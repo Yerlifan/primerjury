@@ -394,7 +394,7 @@ def main():
     hedefler = hedefleri_oku(a.hedefler, a.adlar, a.kimlik)
     if not hedefler:
         sys.exit("hedefler.tsv icinde duzey=tur/cins satiri yok")
-    print("karar duzeyi belirtilen hedef: %d (tur: %d, cins: %d)"
+    print(u'targets with a declared decision level: %d (species: %d, genus: %d)'
           % (len(hedefler),
              sum(1 for h in hedefler if h["duzey"] == "tur"),
              sum(1 for h in hedefler if h["duzey"] == "cins")))
@@ -428,8 +428,7 @@ def main():
                 continue
             ciftler[ad].append((r["ileri_dizi"], r["geri_dizi"], "referans"))
         for ham, n in eslesmeyen.items():
-            print("   UYARI: referans hedefi '%s' (%d cift) hedefler.tsv'deki"
-                  " hicbir adla eslesmedi, OLCUM DISI KALDI" % (ham, n))
+            print(u'   WARNING: reference target \'%s\' (%d pairs) matched no name in hedefler.tsv and was LEFT OUT OF THE MEASUREMENT' % (ham, n))
 
     tum_cins = set()
     for h in hedefler:
@@ -486,11 +485,11 @@ def main():
         for i, (F, R, _k) in enumerate(cf):
             primerler["%s_F%d" % (hd[:20], i)] = F
             primerler["%s_R%d" % (hd[:20], i)] = R
-        print("   %-32s %2d cift x %3d panel kaydi (%d tur)"
+        print(u'   %-32s %2d pairs x %3d panel records (%d species)'
               % (hd, len(cf), len(kayitlar), len(panel_turler)))
         say = urun_say(primerler, panel_fa, calisma, hd[:16], a)
         if say is None:
-            print("      blastn/makeblastdb basarisiz, atlandi")
+            print(u'      blastn/makeblastdb failed, skipped')
             continue
         kimlik_tur = {k: t for k, t, _ in kayitlar}
         # hedef tur kumesi: beyan edilen tur(ler) + olculen tur
@@ -604,16 +603,16 @@ def main():
                      ("; ".join(digerler))[:40]))
             if hedefteki:
                 print("%-32s %s"
-                      % ("", "  hedef turde cogaltilan: "
+                      % ("", u'  amplified in the target species: '
                          + "; ".join(hedefteki)[:60]))
     tur_hedef = {h["hedef"] for h in hedefler if h["duzey"] == "tur"}
     kati = {x["hedef"] for x in sonuc if x["karar"] == "TUR_OZGUL"}
     esikli = {x["hedef"] for x in sonuc
               if x["karar"] in ("TUR_OZGUL", "TUR_OZGUL_ESIKLI")}
-    print("\ntur ozgullugu istenen hedef: %d" % len(tur_hedef))
-    print("   en az bir cifti CAPRAZSIZ (TUR_OZGUL)          : %d"
+    print(u'\ntargets where species specificity was requested: %d' % len(tur_hedef))
+    print(u'   at least one pair with NO CROSS-REACTION (SPECIES-SPECIFIC) : %d'
           % len(kati & tur_hedef))
-    print("   en az bir cifti esik ici (<= %d capraz tur)     : %d"
+    print(u'   at least one pair within the threshold (<= %d cross-reacting species) : %d'
           % (a.capraz_tur_esik, len(esikli & tur_hedef)))
 
 
