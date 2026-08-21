@@ -603,10 +603,10 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     for t in U.cift_akisi(ad):
         bakilan += 1
         if bakilan > BAKILAN_UST:
-            yaz(u'      (bakilan cift tavani %d asildi - tarama durduruldu)' % BAKILAN_UST)
+            yaz(u'      (the cap of %d examined pairs was reached; the scan stopped)' % BAKILAN_UST)
             break
         if bakilan % 5000 == 0:
-            print('      ... %d cift tarandi, %d ayirt edici (%s)          '
+            print(u'      ... %d pairs scanned, %d discriminating (%s)          '
                   % (bakilan, len(secilen), sure_metni(time.time() - t0)), end='\r', flush=True)
         c = U.cift_yap(t)
         if not sor(c['F']):
@@ -636,7 +636,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     ilk = []
     for j, c in enumerate(hepsi, 1):
         if j % 10 == 0:
-            print('      ... aday %d/%d olculuyor          ' % (j, len(hepsi)), end='\r', flush=True)
+            print(u'      ... measuring candidate %d/%d          ' % (j, len(hepsi)), end='\r', flush=True)
         o = nm.olc(c['F'], c['R'], uye, rakip, lo=URUN_ALT, hi=URUN_UST, mm=1)
         if not o or o.get('kat_enkotu') is None:
             continue
@@ -1009,7 +1009,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     yaz('[%2d/%2d] %-44s (onceki kosudan alindi)'
                         % (i, len(hedefler), hedef[:44]))
                     continue
-                yaz('[%2d/%2d] %-44s (ayar degismis, yeniden olculuyor)'
+                yaz(u'[%2d/%2d] %-44s (settings changed, re-measuring)'
                     % (i, len(hedefler), hedef[:44]))
             except Exception:
                 pass
@@ -1052,7 +1052,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                                u'denendi ve esigi gecen aday bulundu. %s' % pz['not_'])
                 yaz(u'         BULUNDU: %s x' % vir(en_iyi['kat1']))
             else:
-                yaz(u'         tek pencerede yok - YOL 5: cok lokuslu arama')
+                yaz(u'         not available in a single window - ROUTE 5: multi-locus search')
                 t5 = yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons,
                                       aday_ust=min(aday_ust, 40),
                                       tarama_ust=min(tarama_ust, 200), yaz=yaz)
@@ -1087,7 +1087,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                            u'artik gereksiz; panelde tutulmasi plaka yeri israfidir.'
                            % (g, vir(kat), int(100 * ort)),
                      yollar=[u'yol 4 - eslenigi kalmis satir'])
-            yaz(u'      -> YOL 4: eslenigi var (%s, %s x) - dusenlere tasinir' % (g, vir(kat)))
+            yaz(u'      -> ROUTE 4: an equivalent exists (%s, %s x), moved to the failed list' % (g, vir(kat)))
 
         # --- YOL 1: evrensel ---
         elif evrensel_mi(hedef, r.get('duzey', '')):
@@ -1184,8 +1184,8 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
             # asagidaki not.
             if s['gecti'] != 'EVET' and (eski or 0) >= KIL_PAYI_ALT:
                 yalniz_ileri = ('microasca' in hedef.lower())
-                yaz(u'      -> YOL 3: yeniden tasarim%s' %
-                    (u' (yalniz ILERI primer degistirilecek - NL1)' if yalniz_ileri else ''))
+                yaz(u'      -> ROUTE 3: redesign%s' %
+                    (u' (only the FORWARD primer will be changed - NL1)' if yalniz_ileri else ''))
                 t = yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons,
                                          r['F'], r['R'], yalniz_ileri, aday_ust,
                                          tarama_ust, arms_ust, yaz)
@@ -1356,8 +1356,8 @@ def raporla(CIKTI, sonuc, yaz):
         fh.write(u'## Result\n\n- Recovered: **%d**\n- Moved to failed (an equivalent exists): **%d**\n- Not recoverable: **%d**\n\n' % (len(gecen), len(tasi), len(kalan)))
         fh.write(u'> **The threshold was not lowered.** On universal rows route 1 replaces the discrimination ratio with a coverage plus out-of-domain measure. That is not a relaxation of the threshold: on those rows the denominator of the ratio is undefined. On every other row 10x was applied exactly as before.\n\n')
         fh.write(u'```' + GEREKCE_EVRENSEL + u'```\n\n')
-        fh.write(u'## Satir satir\n\n')
-        fh.write(u'| hedef | eski | yol | yeni | gecti mi |\n|---|---|---|---|---|\n')
+        fh.write(u'## Row by row\n\n')
+        fh.write(u'| target | before | route | after | passed |\n|---|---|---|---|---|\n')
         for s in sonuc:
             fh.write(u'| %s | %s | %s | %s | %s |\n'
                      % (s['hedef'], vir(s['eski']), ' + '.join(s['yollar']) or '-',
@@ -1365,8 +1365,7 @@ def raporla(CIKTI, sonuc, yaz):
         fh.write(u'\n## Kurtarilamayanlarin sebebi\n\n')
         for s in kalan:
             fh.write(u'**%s** — %s\n\n' % (s['hedef'], s['sebep'] or '-'))
-        fh.write(u'\n## Okuma sirasi\n\n1. Bu dosya. 2. `kurtarma_satirlari.tsv` '
-                 u'(her hedef tek satir). 3. `yeni_adaylar.tsv` (yol 3 ciktisi).\n')
+        fh.write(u'\n## Reading order\n\n1. This file. 2. `kurtarma_satirlari.tsv` (one row per target). 3. `yeni_adaylar.tsv` ')
     yaz(u'  written: %s' % rp)
     yaz('')
     yaz(u'  RECOVERED: %d   MOVED TO FAILED: %d   NOT RECOVERABLE: %d'

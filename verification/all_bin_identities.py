@@ -811,10 +811,10 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         fh.write(u'| measure | value |\n|---|---|\n')
         fh.write(u'| bins tested | %d |\n' % len(sonuc))
         fh.write(u'| **bins whose identity CHANGED** | **%d** |\n' % len(degisen))
-        fh.write(u'| kimligi dogrulanan kutu | %d |\n'
+        fh.write(u'| bins whose identity was verified | %d |\n'
                  % len([s for s in sonuc if s['uyusuyor'] == 'EVET']))
         fh.write(u'| belirsiz / kayitli adi olmayan | %d |\n' % len(belirsiz))
-        fh.write(u'| **etkilenen hedef** | **%d** |\n' % len(etkilenen))
+        fh.write(u'| **targets affected** | **%d** |\n' % len(etkilenen))
         fh.write(u'| bunlardan UYELIK kumesi degisen | %d |\n' % len(uye_etkilenen))
         fh.write(u'| atlanan kutu (olcume girmiyor) | %d |\n\n' % len(atlanan))
         if degisen:
