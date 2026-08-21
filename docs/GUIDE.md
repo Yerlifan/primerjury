@@ -456,10 +456,24 @@ Being honest about what is not yet general:
   stringency filter. The fix is taxonomy **plus** stringency, a 3' clamp or Tm
   proximity, which the MFEprimer layer already applies. Until that lands, the
   size criterion keeps the vote.
-- **Code comments and identifiers are Turkish.** Interface, docs and file names
-  are English. Translating 57k lines of identifiers is planned but has to be
-  staged carefully: several identifiers are also TSV column names and checkpoint
-  keys, so renaming them changes output schemas.
+- **Code comments and identifiers are Turkish.** Every screen message, report
+  heading and help string is English; so are the file names, the CLI flags and
+  the documentation. What remains Turkish is inline comments and identifiers
+  inside function bodies, roughly 10k lines.
+
+  Some of it is staying. An identifier such as `hedef` or `hukum` is also a TSV
+  column name and a checkpoint key, and `cross_check.py` reads several of them
+  by name. Renaming one of those changes an output schema, and it has to be done
+  at the writer and at every reader in the same commit or not at all. During
+  this translation a single replacement did hit a dictionary key: `r['DEGISTI']`
+  became `r['CHANGED']` in two places while the writer still wrote `'DEGISTI'`.
+  Every syntax check and all eight health checks passed, and it would have
+  raised `KeyError` only when that sheet was built.
+
+  The verdict values are the same kind of thing. `screening/labels.py` is a
+  lookup rather than a rename for exactly this reason: `RISKLI`, `ONERILIR` and
+  the rest are data written into TSVs and checkpoints, and `en()` gives you the
+  English wording without moving the stored value.
 
 ### The design rules
 
