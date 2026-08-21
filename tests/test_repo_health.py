@@ -147,10 +147,18 @@ def kontrol_giris_noktalari(bulgu):
 
 
 # ------------------------------------------------------------ 3+4 STALE/PRIVACY
+# Attribution files: the author's name BELONGS here. The rule being enforced
+# is "no personal names in the CODE", not "no author anywhere" -- a project
+# with no author is not more neutral, only less citable.
+ATIF_DOSYALARI = {'CITATION.cff', 'LICENSE', 'README.md'}
+
+
 def kontrol_yasak_adlar(bulgu):
     for y in metin_dosyalari():
         if rel(y) == 'tests/test_repo_health.py':
             continue                      # this file lists them on purpose
+        if os.path.basename(y) in ATIF_DOSYALARI:
+            continue                      # author attribution is expected here
         s = oku(y)
         for desen, sebep in YASAK:
             for m in re.finditer(desen, s, re.M):

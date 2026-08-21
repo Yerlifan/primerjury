@@ -269,8 +269,10 @@ one; GitHub will show it as "Other". That is the intended trade-off.
 
 ## Citation
 
-If this is useful in published work, please cite the repository. Fill in the
-author and DOI fields in `CITATION.cff` before release.
+Author: **Burak Aslancan Pak** ([ORCID 0000-0002-7793-2215](https://orcid.org/0000-0002-7793-2215))
+
+If this is useful in published work, please cite the repository — see
+[CITATION.cff](CITATION.cff).
 
 ## Contributing
 
