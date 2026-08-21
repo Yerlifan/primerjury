@@ -44,19 +44,19 @@ HEDEF="$PROJE/tools/mfeprimer"
 GECICI="$(mktemp -d)"
 trap 'rm -rf "$GECICI"' EXIT
 
-command -v curl >/dev/null || { echo "HATA: curl yok. sudo apt install curl"; exit 1; }
-command -v python3 >/dev/null || { echo "HATA: python3 yok"; exit 1; }
+command -v curl >/dev/null || { echo "ERROR: curl is missing. sudo apt install curl"; exit 1; }
+command -v python3 >/dev/null || { echo "ERROR: python3 is missing"; exit 1; }
 
 echo "depo   : $DEPO"
-echo "surum  : $SURUM"
-echo "hedef  : $HEDEF"
+echo "version: $SURUM"
+echo "target : $HEDEF"
 echo
 
 API="https://api.github.com/repos/$DEPO/releases/tags/$SURUM"
-echo "surum bilgisi aliniyor: $API"
+echo "fetching the release information: $API"
 if ! curl -fsSL --max-time 60 -H "Accept: application/vnd.github+json" "$API" -o "$GECICI/surum.json"; then
-  echo "HATA: surum bilgisi alinamadi. Internet var mi, surum etiketi dogru mu?"
-  echo "  Etiketleri gormek icin: curl -s https://api.github.com/repos/$DEPO/releases | grep tag_name"
+  echo "ERROR: the release information could not be fetched. Is there internet, and is the tag right?"
+  echo "  To see the tags: curl -s https://api.github.com/repos/$DEPO/releases | grep tag_name"
   exit 1
 fi
 
@@ -92,9 +92,9 @@ SEC=$(awk -F'\t' 'BEGIN{IGNORECASE=1}
   "$GECICI/varliklar.tsv" | sort -n | head -1 || true)
 
 if [ -z "$SEC" ]; then
-  echo "HATA: Linux amd64 varligi bulunamadi. Yukaridaki listeden dogru dosyayi secip"
-  echo "elle indirin, sonra su iki adimi yapin:"
-  echo "  chmod +x <dosya> && mv <dosya> \"$HEDEF\""
+  echo "ERROR: no Linux amd64 asset was found. Pick the right file from the list above,"
+  echo "download it by hand, then do these two steps:"
+  echo "  chmod +x <file> && mv <file> \"$HEDEF\""
   echo "  \"$HEDEF\" --version    # ciktida 'mfeprimer' gecmeli"
   exit 1
 fi
@@ -115,7 +115,7 @@ case "$AD" in
   *.tar.bz2|*.tbz) tar xjf "$AD" ;;
   *.tar.xz)       tar xJf "$AD" ;;
   *.tar)          tar xf  "$AD" ;;
-  *.zip)          command -v unzip >/dev/null && unzip -q "$AD" || { echo "HATA: unzip yok"; exit 1; } ;;
+  *.zip)          command -v unzip >/dev/null && unzip -q "$AD" || { echo "ERROR: unzip is missing"; exit 1; } ;;
   *.gz)           gunzip -kf "$AD" ;;
   *.bz2)          bunzip2 -kf "$AD" ;;
   *.xz)           unxz -kf "$AD" ;;
@@ -147,8 +147,8 @@ done < <(find "$GECICI" -type f -size +1M 2>/dev/null)
 
 if [ -z "$BULUNAN" ]; then
   echo
-  echo "HATA: indirilen dosyalarin hicbiri kimligini MFEprimer olarak bildirmedi."
-  echo "Bu, bugun yasanan hatanin aynisidir ve sessiz gecmemelidir."
+  echo "ERROR: not one of the downloaded files identified itself as MFEprimer."
+  echo "This is the same failure seen before, and it must not pass silently."
   echo "Indirilenler: $GECICI"
   find "$GECICI" -type f -size +1M -printf "  %p  %s bayt\n" 2>/dev/null
   echo "Dosya turleri:"; find "$GECICI" -type f -size +1M -exec file {} \; 2>/dev/null | head
@@ -162,11 +162,11 @@ echo
 echo "kuruldu: $HEDEF"
 echo "kimlik : $("$HEDEF" --version 2>&1 | head -1)"
 echo
-echo "verification/mfeprimer_layer.py bu dosyayi tools/mfeprimer adiyla kendisi buluyor."
-echo "Not: tools/linux-x64 MFEprimer DEGIL, silinmesi gerekmez ama kullanilmaz."
+echo "verification/mfeprimer_layer.py finds this file on its own, as tools/mfeprimer."
+echo "Note: tools/linux-x64 is NOT MFEprimer. It need not be deleted, but it is not used."
 echo
 echo "Sinama:"
 echo "  cd $PROJE/WSL"
 echo "  python3 verification/specificity_round.py --kok \"$PROJE\""
-echo "Beklenen: 'MFEprimer bulundu' satirinda surum MFEprimer olmali ve"
-echo "indeks kurulumu bu sefer basarili olmali."
+echo "Expected: on the 'MFEprimer bulundu' line the version must read MFEprimer, and"
+echo "the index build must succeed this time."

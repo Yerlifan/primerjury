@@ -51,8 +51,8 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$PT" ] && [ -n "$OUT" ] || {
   echo "kullanim: bash $0 --pt <PrimerTasarlama> --out <cikti>" >&2; exit 2; }
-[ -d "$PT/fastq files" ] || { echo "HATA: '$PT/fastq files' yok" >&2; exit 1; }
-[ -d "$PT/REFERANS_DB" ] || { echo "HATA: '$PT/REFERANS_DB' yok" >&2; exit 1; }
+[ -d "$PT/fastq files" ] || { echo "ERROR: no such directory: '$PT/fastq files'" >&2; exit 1; }
+[ -d "$PT/REFERANS_DB" ] || { echo "ERROR: no such directory: '$PT/REFERANS_DB'" >&2; exit 1; }
 
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die(){ printf 'HATA: %s\n' "$*" >&2; exit 1; }
@@ -113,7 +113,7 @@ for fq in "$PT/fastq files"/*/*.fastq; do
     esac
   fi
   tid=$(echo "$base" | sed -n 's/.*reads[-_]\([0-9]\+\).*/\1/p')
-  [ -n "$tid" ] || { echo "taxid cikarilamadi, atlandi: $fq" >&2; continue; }
+  [ -n "$tid" ] || { echo "the taxid could not be extracted, skipped: $fq" >&2; continue; }
   tag="${grp}_${tid}"
   DONE=$((DONE+1))
   log "[$DONE] $tag"
@@ -124,11 +124,11 @@ for fq in "$PT/fastq files"/*/*.fastq; do
     q="$OUT/blast/${tag}_sorgu.fasta"
     awk -v n="$SAMPLE" 'NR%4==1{h=substr($1,2)} NR%4==2{print ">"h"\n"$0; c++; if(c>=n) exit}' \
         "$fq" > "$q"
-    [ -s "$q" ] || { echo "  okuma yok, atlandi" >&2; continue; }
+    [ -s "$q" ] || { echo "  no reads, skipped" >&2; continue; }
     # 2. aday veritabanlarina blastn, en yuksek toplam bit skoru kazanir
     best_db=""; best_id=""; best_bit=0; best_n=0
     for d in $(db_for "$grp"); do
-      [ -e "$d.nin" ] || { echo "  indeks yok, atlandi: $d" >&2; continue; }
+      [ -e "$d.nin" ] || { echo "  no index, skipped: $d" >&2; continue; }
       bo="$OUT/blast/${tag}_$(basename "$d").tsv"
       blastn -query "$q" -db "$d" -outfmt '6 qseqid sseqid bitscore pident length' \
              -max_target_seqs 5 -evalue 1e-20 -num_threads "$THREADS" \
@@ -141,7 +141,7 @@ for fq in "$PT/fastq files"/*/*.fastq; do
         best_db="$d"; best_id="$sid"; best_bit="$bit"; best_n="$nq"
       fi
     done
-    [ -n "$best_id" ] || { echo "  referans bulunamadi, atlandi" >&2; continue; }
+    [ -n "$best_id" ] || { echo "  no reference found, skipped" >&2; continue; }
     # 3. referans diziyi cikar, RNA alfabesi varsa T'ye cevir
     if [ "$HAS_BDC" = 1 ] && blastdbcmd -db "$best_db" -entry "$best_id" \
          > "$reffa.tmp" 2>/dev/null && [ -s "$reffa.tmp" ]; then :
@@ -212,15 +212,15 @@ done
 log "islenen: $DONE, grup suzgeciyle atlanan: $SKIPPED, toplam: $TOTAL"
 if [ "$DONE" -eq 0 ]; then
   echo >&2
-  echo "HATA: hicbir dosya islenmedi." >&2
+  echo "ERROR: not one file was processed." >&2
   if [ "$SKIPPED" -eq "$TOTAL" ] && [ -n "$GRUP_SEC" ]; then
     echo "Sebep: --groups '$GRUP_SEC' hicbir klasore uymadi." >&2
     echo "Mevcut grup onekleri:" >&2
     for d in "$PT/fastq files"/*/; do basename "$d"; done | sed 's/-[0-9]*$//' \
       | sort -u | sed 's/^/   /' >&2
   else
-    echo "Sebep: fastq adlarindan taxid cikarilamadi ya da referans bulunamadi." >&2
-    echo "Ayrinti icin $OUT/log/ altindaki dosyalara bakin." >&2
+    echo "Cause: no taxid could be read from the fastq names, or no reference was found." >&2
+    echo "For detail see the files under $OUT/log/." >&2
   fi
   exit 1
 fi
@@ -287,11 +287,11 @@ PY
 log "bitti"
 echo
 echo "Cikti:"
-echo "  $OUT/referans_secimi.tsv        hangi takson hangi referansa oturdu"
+echo "  $OUT/referans_secimi.tsv        which taxon settled on which reference"
 echo "  $OUT/konsensus/*_ref_konsensus.fasta  referans koordinatinda konsensus"
-echo "  $OUT/pileup/*_pileup.txt        pozisyon basina derinlik ve IUPAC cagri"
+echo "  $OUT/pileup/*_pileup.txt        depth and IUPAC call per position"
 echo
-echo "Sonraki adim: bu konsensusleri analyze_ambiguous_bases.sh ile isleyip maske uretin,"
-echo "sonra design_group_primers.py'yi bunlarla calistirin. Ayni taksonun butun"
-echo "yillari artik ayni koordinat sisteminde oldugu icin yon normalizasyonu"
-echo "da gereksizlesir, ancak betik yine de kontrol eder."
+echo "Next step: run these consensuses through analyze_ambiguous_bases.sh to build a mask,"
+echo "then run design_group_primers.py with them. Since every year of the same taxon"
+echo "now shares one coordinate system, orientation normalisation becomes"
+echo "unnecessary, though the script still checks it."

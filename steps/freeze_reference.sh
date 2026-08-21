@@ -56,10 +56,10 @@ done
   echo "kullanim: bash $0 --pt <PrimerTasarlama> --out <06 cikti klasoru> [--mode pin|self]" >&2
   exit 2; }
 case "$MODE" in pin|self) ;; *) echo "HATA: --mode pin ya da self olmali" >&2; exit 2;; esac
-case "$PT$OUT" in *'...'*) echo "HATA: yol icinde '...' var. Yer tutucu degil, tam yol verin." >&2; exit 2;; esac
-[ -d "$PT" ] || { echo "HATA: --pt klasoru yok: $PT" >&2; exit 1; }
+case "$PT$OUT" in *'...'*) echo "ERROR: the path contains '...'. Give a full path, not a placeholder." >&2; exit 2;; esac
+[ -d "$PT" ] || { echo "ERROR: no such --pt directory: $PT" >&2; exit 1; }
 MAP="$OUT/referans_secimi.tsv"
-[ -s "$MAP" ] || { echo "HATA: $MAP yok. Once 06'yi calistirin." >&2; exit 1; }
+[ -s "$MAP" ] || { echo "ERROR: $MAP is missing. Run the mapping step first." >&2; exit 1; }
 
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die(){ printf 'HATA: %s\n' "$*" >&2; exit 1; }
@@ -134,9 +134,9 @@ while IFS=$'\t' read -r grp tid eski yeni durum; do
   for cand in "$OUT/ref"/*_ref.fasta; do
     head -1 "$cand" | grep -qF "$yeni" && { src="$cand"; break; }
   done
-  [ -n "$src" ] || { echo "  kazanan referans dosyasi bulunamadi ($tag)" >&2; continue; }
+  [ -n "$src" ] || { echo "  the winning reference file was not found ($tag)" >&2; continue; }
   fq=$(fastq_bul "$grp" "$tid")
-  [ -n "$fq" ] || { echo "  fastq bulunamadi: $grp $tid" >&2; continue; }
+  [ -n "$fq" ] || { echo "  no fastq found: $grp $tid" >&2; continue; }
   n=$((n+1)); log "[$n] $tag yeniden hizalaniyor"
   cp -f "$src" "$OUT/ref/${tag}_ref.fasta"
   rm -f "$OUT/bam/${tag}.bam" "$OUT/bam/${tag}.bam.bai"
@@ -219,11 +219,11 @@ open(dst,"w").write(">self_%s kaynak=%s kirpma=%d-%d uzunluk=%d\n"
                     +"\n".join(core[k:k+70] for k in range(0,len(core),70))+"\n")
 print("  taxid %-9s %d bp -> kirpilmis %d bp (ic N: %d)"%(tid,len(s),len(core),core.count("N")))
 PY2
-  [ -s "$ref" ] || { echo "  referans uretilemedi, takson atlandi: $tid" >&2; continue; }
+  [ -s "$ref" ] || { echo "  no reference could be produced, taxon skipped: $tid" >&2; continue; }
   for tag in $(echo "$uyeler" | tr ';' ' '); do
     grp="${tag%_*}"; t2="${tag##*_}"
     fq=$(fastq_bul "$grp" "$t2")
-    [ -n "$fq" ] || { echo "  fastq bulunamadi: $grp $t2" >&2; continue; }
+    [ -n "$fq" ] || { echo "  no fastq found: $grp $t2" >&2; continue; }
     n=$((n+1))
     minimap2 -ax map-ont -t "$THREADS" "$ref" "$fq" 2> "$SELF/log/${tag}_mm2.log" \
       | samtools sort -@ "$THREADS" -o "$SELF/bam/${tag}.bam" 2>> "$SELF/log/${tag}_mm2.log"
@@ -290,5 +290,5 @@ if os.path.abspath(base)!=os.path.abspath(d):
 PY
 log "bitti"
 echo
-echo "Sonraki adim: analyze_ambiguous_bases.sh bu konsensusleri isleyip maske uretecek,"
-echo "ardindan design_group_primers.py ve split_clusters.py ile tasarima donulecek."
+echo "Next step: analyze_ambiguous_bases.sh processes these consensuses into a mask,"
+echo "after which design_group_primers.py and split_clusters.py take design back up."

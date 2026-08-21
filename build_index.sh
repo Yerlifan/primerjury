@@ -80,8 +80,8 @@ if [ -f "$GIRDI" ]; then
 elif [ -f "$DB/$GIRDI" ]; then
   FASTA="$DB/$GIRDI"
 else
-  echo "HATA: FASTA bulunamadi: $GIRDI"
-  echo "Adaylari gormek icin: bash $(basename "${BASH_SOURCE[0]}") --list"
+  echo "ERROR: no such FASTA: $GIRDI"
+  echo "To see the candidates: bash $(basename "${BASH_SOURCE[0]}") --list"
   exit 1
 fi
 AD="$(basename "$FASTA")"
@@ -133,8 +133,8 @@ indeks_saglikli_mi() {
 # =============================================================================
 bolum "ADIM 0/4  --  On kontroller"
 # =============================================================================
-[ -x "$MFE" ] || { echo "HATA: mfeprimer bulunamadi/calistirilamaz: $MFE"; echo "Duzeltmek icin: chmod +x '$MFE'"; exit 1; }
-[ -f "$FASTA" ] || { echo "HATA: FASTA yok: $FASTA"; exit 1; }
+[ -x "$MFE" ] || { echo "ERROR: mfeprimer is missing or not executable: $MFE"; echo "To fix it: chmod +x '$MFE'"; exit 1; }
+[ -f "$FASTA" ] || { echo "ERROR: no such FASTA: $FASTA"; exit 1; }
 FASTA_MB=$(( $(stat -c%s "$FASTA") / 1048576 ))
 yaz "mfeprimer : $MFE"
 yaz "HEDEF     : $AD  (${FASTA_MB} MB)"
@@ -161,7 +161,7 @@ GEREKEN_MB=$(( FASTA_MB * 7 + 500 ))
 BOS_MB=$(df -Pm "$DB" | awk 'NR==2{print $4}')
 yaz "Bos disk  : ${BOS_MB} MB (gereken: ~${GEREKEN_MB} MB)"
 if [ "$BOS_MB" -lt "$GEREKEN_MB" ]; then
-  echo "HATA: yeterli disk alani yok. En az ${GEREKEN_MB} MB bosaltip tekrar deneyin."; exit 1
+  echo "ERROR: not enough disk space. Free at least ${GEREKEN_MB} MB and try again."; exit 1
 fi
 yaz "Cekirdek  : $CPU     RAM tavani: %$MEMPCT"
 
@@ -214,7 +214,7 @@ else
   done
   [ -z "$YEDEK" ] && [ -f "$FASTA.gz" ] && YEDEK="$FASTA.gz"
   if [ -z "$YEDEK" ]; then
-    echo "HATA: bu dosyanin yedegi yok (ne ayni boyda kardes kopya, ne .gz)."
+    echo "ERROR: this file has no backup (no sibling copy of the same size, no .gz)."
     echo "      Orijinale DOKUNULMADI. Once yedek alin:"
     echo "        cp '$FASTA' '$FASTA.rna_yedek'"
     exit 1
@@ -251,7 +251,7 @@ else
   # --- Dogrulama 4: dizi satirlarinda U kalmamis olmali
   KALAN=$(grep -v '^>' "$TMP" | grep -c 'U' || true)
   if [ "$KALAN" -ne 0 ]; then
-    echo "HATA: hala U iceren $KALAN dizi satiri var."; rm -f "$TMP"; exit 1
+    echo "ERROR: $KALAN sequence lines still contain U."; rm -f "$TMP"; exit 1
   fi
   yaz "  OK  dizi satirlarinda U kalmadi"
 
@@ -287,7 +287,7 @@ else
   wait "$PID"; RC=$?
   SURE=$(( ($(date +%s) - T0) / 60 ))
   if [ "$RC" -ne 0 ]; then
-    echo "HATA: mfeprimer index cikis kodu $RC ile bitti ($SURE dk sonra)."
+    echo "ERROR: mfeprimer index ended with exit code $RC (after $SURE min)."
     echo "Gunluk sonu:"; tail -20 "$LOG"
     exit 1
   fi

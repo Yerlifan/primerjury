@@ -18,7 +18,7 @@ if [ -r /proc/meminfo ]; then
   awk '/MemTotal|MemAvailable|SwapTotal/ {printf "%-15s: %.1f GB\n", $1, $2/1048576}' /proc/meminfo
 fi
 echo "kernel         : $(uname -r)"
-grep -qi microsoft /proc/version && echo "ortam          : WSL" || echo "ortam          : WSL degil"
+grep -qi microsoft /proc/version && echo "environment    : WSL" || echo "environment    : not WSL"
 
 bar "2. Araç sürümleri"
 for t in kraken2 kraken2-build bracken bracken-build est_abundance.py samtools minimap2 seqkit mash python3 blastn makeblastdb primer3_core; do
@@ -41,7 +41,7 @@ for pair in "kraken2 --help" "bracken --help" "samtools --version" "minimap2 --h
   if command -v "$tool" >/dev/null 2>&1; then
     f="$OUT/${tool}_help.txt"
     { echo "### $tool $*"; "$tool" "$@"; } > "$f" 2>&1
-    echo "yazildi: $f ($(wc -l < "$f") satir)"
+    echo "written: $f ($(wc -l < "$f") lines)"
   fi
 done
 if command -v samtools >/dev/null 2>&1; then
@@ -63,13 +63,13 @@ for r in "${ROOTS[@]}"; do
     timeout 240 find "$r" -maxdepth 7 -name hash.k2d -not -path '*/\.*' 2>/dev/null)
 done
 if [ ${#FOUND[@]} -eq 0 ]; then
-  echo "hash.k2d bulunamadi. Veritabani yolunu elle bildirin."
+  echo "hash.k2d was not found. Give the database path by hand."
 else
   printf '%s\n' "${FOUND[@]}" | sort -u | while read -r db; do
     echo
     echo "DB: $db"
     tot=$(du -sb "$db" 2>/dev/null | cut -f1)
-    printf "  toplam boyut : %.1f GB\n" "$(echo "$tot" | awk '{print $1/1073741824}')"
+    printf "  total size   : %.1f GB\n" "$(echo "$tot" | awk '{print $1/1073741824}')"
     for f in hash.k2d opts.k2d taxo.k2d seqid2taxid.map; do
       if [ -e "$db/$f" ]; then
         printf "  %-16s %10.2f GB\n" "$f" "$(stat -c%s "$db/$f" | awk '{print $1/1073741824}')"
@@ -117,7 +117,7 @@ for r in "$HOME" /mnt/c /mnt/d /mnt/e; do
   timeout 180 find "$r" -maxdepth 7 \( -iname 'barcode*.fastq' -o -iname 'barcode*.fastq.gz' \
      -o -iname '*barcode??.fastq*' \) -not -path '*/\.*' 2>/dev/null | head -40
 done | sort -u | while read -r f; do printf "  %10s  %s\n" "$(du -h "$f" | cut -f1)" "$f"; done
-echo "(satir yoksa ham fastq bulunamadi)"
+echo "(no line here means no raw fastq was found)"
 
 bar "7. Okuma uzunlugu (Bracken kmer_distrib secimi icin veriden olculur)"
 PT=""
@@ -150,12 +150,12 @@ else:
     print("kraken _output dosyalari okunamadi")
 PY
 else
-  echo "PrimerTasarlama klasoru /mnt/c altinda bulunamadi, yolu elle bildirin."
+  echo "The project directory was not found under /mnt/c, give the path by hand."
 fi
 
 bar "8. Disk boslugu"
 df -h "$HOME" /mnt/c 2>/dev/null | sed 's/^/  /'
 
 bar "BITTI"
-echo "Bu dosyayi ve yardim_ciktilari/ klasorunu paylasin; betikleri buna gore"
+echo "Share this file and the yardim_ciktilari/ directory; the scripts are adjusted"
 echo "kesinlestirecegim. Hicbir bayragi hafizadan varsaymayacagim."

@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$PT" ] && [ -n "$OUT" ] || { echo "kullanim: bash $0 --pt <PrimerTasarlama> --out <cikti>" >&2; exit 2; }
-[ -d "$PT/consensus sequences" ] || { echo "HATA: '$PT/consensus sequences' yok" >&2; exit 1; }
+[ -d "$PT/consensus sequences" ] || { echo "ERROR: no such directory: '$PT/consensus sequences'" >&2; exit 1; }
 
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die(){ printf 'HATA: %s\n' "$*" >&2; exit 1; }
@@ -273,11 +273,11 @@ PY
 log "bitti"
 echo
 echo "Cikti:"
-echo "  $OUT/N_pozisyonlari.tsv   her N pozisyonu, derinlik, IUPAC cagri, sinif"
-echo "  $OUT/hedef_ozeti.tsv      hedef basina ozet"
-echo "  $OUT/maske/*.bed          primer yerlesimi icin yasak bolgeler"
+echo "  $OUT/N_pozisyonlari.tsv   every N position, its depth, the IUPAC call and the class"
+echo "  $OUT/hedef_ozeti.tsv      a summary per target"
+echo "  $OUT/maske/*.bed          regions where a primer may not be placed"
 echo "  $OUT/ambig/*.fa           IUPAC kodlarina izin veren konsensus (referans, kullanilmayacak)"
-echo "  $OUT/pileup/*.txt         pozisyon basina derinlik ve baz dizisi"
+echo "  $OUT/pileup/*.txt         depth and base string per position"
 echo
-echo "Bu ciktilari paylasin; iki allelli pozisyon sayilarina gore hangi hedeflerin"
+echo "Share these outputs. The count of biallelic positions says which targets"
 echo "primer tasarimina uygun oldugunu birlikte karara baglayacagiz."

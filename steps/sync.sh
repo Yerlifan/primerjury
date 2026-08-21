@@ -35,7 +35,7 @@ ozet() {   # $1 = kok klasor, gerisi = desenler
 }
 
 uret() {
-  echo "# PrimerJury dosya manifestosu"
+  echo "# PrimerJury file manifest"
   echo "# uretildi: $(date '+%Y-%m-%d %H:%M:%S')"
   echo "# BETIK bolumu iki tarafta BIREBIR AYNI olmali."
   echo "[BETIK]"
@@ -58,7 +58,7 @@ uret() {
 }
 
 if [ "$DOGRULA" = 1 ]; then
-  [ -f "$MANIFEST" ] || { echo "manifesto yok: $MANIFEST"; exit 2; }
+  [ -f "$MANIFEST" ] || { echo "no manifest: $MANIFEST"; exit 2; }
   YENI=$(mktemp); uret > "$YENI"
   # yalniz BETIK bolumu karsilastirilir; CIKTI her kosuda degisir
   kes() { awk '/^\[BETIK\]/{f=1;next} /^\[CIKTI\]/{f=0} f' "$1"; }
@@ -69,9 +69,9 @@ if [ "$DOGRULA" = 1 ]; then
   FARK=0
   # yalniz birinde olanlar
   comm -23 <(cut -d' ' -f3- "$ESKI_T" | sort) <(cut -d' ' -f3- "$YENI_T" | sort) \
-    | while read -r x; do echo "  KAYIP    $x (manifestoda var, diskte yok)"; FARK=1; done
+    | while read -r x; do echo "  MISSING  $x (in the manifest, not on disk)"; FARK=1; done
   comm -13 <(cut -d' ' -f3- "$ESKI_T" | sort) <(cut -d' ' -f3- "$YENI_T" | sort) \
-    | while read -r x; do echo "  FAZLA    $x (diskte var, manifestoda yok)"; done
+    | while read -r x; do echo "  EXTRA    $x (on disk, not in the manifest)"; done
   # ikisinde de olup ozeti farkli olanlar
   join -j2 -o 0,1.1,2.1 "$ESKI_T" "$YENI_T" 2>/dev/null \
     | awk '$2!=$3{printf "  FARKLI   %s\n     manifesto: %s\n     disk     : %s\n",$1,substr($2,1,16),substr($3,1,16); n++} END{if(!n) print "  butun dosyalar manifestoyla ayni"}'
@@ -83,5 +83,5 @@ uret | tee "$MANIFEST"
 echo
 echo "yazildi: $MANIFEST"
 echo "Bu dosyayi bana gonderin; ben kendi tarafimdaki ozetlerle karsilastirir,"
-echo "ayrilan dosya varsa hangisi oldugunu ve hangi yonde guncel oldugunu"
-echo "soylerim. Sonraki kontrol icin: bash sync.sh --dogrula"
+echo "If a file has diverged, this says which one and which side is newer."
+echo "For the next check: bash sync.sh --dogrula"
