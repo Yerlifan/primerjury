@@ -181,10 +181,10 @@ def main():
     for r in satirlar:
         ozet.setdefault(r['klasor'], {}).setdefault(r['karar'], 0)
         ozet[r['klasor']][r['karar']] += 1
-    print('%-44s %s' % ('KLASOR', 'KARAR DAGILIMI'))
+    print('%-44s %s' % (u'DIRECTORY', u'THE DISTRIBUTION OF VERDICTS'))
     for k in sorted(ozet):
         print('%-44s %s' % (k, ', '.join('%s=%d' % x for x in sorted(ozet[k].items()))))
-    print('\ntoplam dosya:', len(satirlar), '| TSV:', a.out)
+    print(u'\ntotal files:', len(satirlar), '| TSV:', a.out)
 
 
 if __name__ == '__main__':

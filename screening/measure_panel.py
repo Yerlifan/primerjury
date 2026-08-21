@@ -30,4 +30,4 @@ Tek giris noktasi: klasor kokundeki verification/full_chain.py
 # ---------------------------------------------------------------------------
 import sys
 print(__doc__)
-sys.exit('Bu betik devre disi. verification/full_chain.py -> secenek (4) kullanin.')
+sys.exit(u'This script is disabled. Use verification/full_chain.py -> option (4).')

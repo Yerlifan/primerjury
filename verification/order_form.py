@@ -85,7 +85,7 @@ def main():
     sl_yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
     sl = _tsv(sl_yol)
     if not sl:
-        sys.exit('HATA: %s okunamadi.' % sl_yol)
+        sys.exit(u'ERROR: %s could not be read.' % sl_yol)
 
     girer, girmez, uyari = [], [], []
     for r in sl:

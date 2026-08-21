@@ -65,7 +65,7 @@ def main():
     panel = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
     ham = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'kutu_bazli_ham_sayilar.tsv'))
     if not panel:
-        sys.exit('HATA: panel_tek_protokol.tsv okunamadi.')
+        sys.exit(u'ERROR: panel_tek_protokol.tsv could not be read.')
 
     # R NEREDEN GELIYOR - ve neden yeniden hesaplanmiyor
     # ---------------------------------------------------
@@ -180,7 +180,7 @@ def main():
     print(u'  measurable rows: %d' % sum(1 for s in satir if s['dcq'] is not None))
     print('  iki kural ayrisan : %d' % len(ayrisan))
     for s in ayrisan:
-        print('    %-44s dCq %.2f, gerekli %.2f' % (s['hedef'][:44], s['dcq'], s['gerekli']))
+        print(u'    %-44s dCq %.2f, required %.2f' % (s['hedef'][:44], s['dcq'], s['gerekli']))
     return 0
 
 

@@ -210,7 +210,7 @@ def tek_protokol_oku(kok):
     """TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]"""
     yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
     if not os.path.exists(yol):
-        sys.exit('HATA: %s yok.\n      Once verification/full_chain.py -> secenek (P) kosulmalidir.' % yol)
+        sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (P) has to be run first.' % yol)
     with open(yol, encoding='utf-8') as fh:
         satirlar = [s for s in fh if not s.startswith('#')]
     return list(csv.DictReader(satirlar, delimiter='\t')), yol
@@ -925,7 +925,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
     satirlar, tp_yolu = tek_protokol_oku(kok)
     uy_yol = uyelik_dosyasi(kok)
     if not uy_yol:
-        sys.exit('HATA: uyelik_yeniden_turetme_uyelik_*.tsv yok. Once secenek (U).')
+        sys.exit(u'ERROR: uyelik_yeniden_turetme_uyelik_*.tsv is missing. Run option (U) first.')
     uyelik = uyelik_oku(uy_yol)
     kons = {d['kutu']: d['dizi'] for d in H.konsensusler()}
     kut = {k['kutu']: k for k in H.kutular()}
@@ -1494,7 +1494,7 @@ def main():
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit('HATA: %s icinde screening yok. --kok ile proje klasorunu verin.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --kok.' % kok)
     return calistir(kok, a.aday_ust, a.yalniz, a.sifirla, a.tarama_ust, a.okuma,
                     a.arms_ust, a.panelsiz_atla)
 

@@ -26,7 +26,7 @@ import argparse, csv, glob, os, sys
 try:
     import mappy
 except ImportError:
-    sys.exit("mappy gerekli: pip install mappy")
+    sys.exit(u'mappy is required: pip install mappy')
 
 
 def fasta(p):
@@ -63,7 +63,7 @@ def main():
             if d in ad and ad not in ref:
                 ref[ad] = s.upper().replace("U", "T")
     if not ref:
-        sys.exit("desene uyan referans bulunamadi: %s" % ", ".join(a.desen))
+        sys.exit(u'no reference matching the pattern was found: %s' % ", ".join(a.desen))
     print("referans kaydi: %d" % len(ref))
     for ad in list(ref)[:10]:
         print("   %-70s %d bp" % (ad[:70], len(ref[ad])))

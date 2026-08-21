@@ -91,7 +91,7 @@ def main():
         for d, tax, not_ in kutular:
             p = os.path.join(a.fastq, d, '%s-reads_%s.fastq' % (d, tax))
             if not os.path.exists(p):
-                print('  YOK:', p); continue
+                print(u'  MISSING:', p); continue
             rs = list(om.okumalar(p))
             if a.nmax and len(rs) > a.nmax:
                 random.seed(a.seed)

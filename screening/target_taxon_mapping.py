@@ -245,7 +245,7 @@ def xlsx_yaz(xlsx, satirlar):
         n += 1
     n += 1
 
-    yaz(n, 1, 'KARAR BASINA SAYIM', bold=True, fill=GRI); n += 1
+    yaz(n, 1, u'THE COUNT PER DECISION', bold=True, fill=GRI); n += 1
     say = {}
     for s in KARAR:
         k = KARAR[s][2].split(' (')[0]
@@ -299,7 +299,7 @@ def xlsx_yaz(xlsx, satirlar):
         ws.merge_cells(start_row=n, start_column=4, end_row=n, end_column=6)
         ws.row_dimensions[n].height = 30
         n += 1
-    yaz(n, 1, 'TOPLAM', bold=True); yaz(n, 2, len(satirlar), bold=True)
+    yaz(n, 1, u'TOTAL', bold=True); yaz(n, 2, len(satirlar), bold=True)
     wb.save(xlsx)
     return len(satirlar)
 

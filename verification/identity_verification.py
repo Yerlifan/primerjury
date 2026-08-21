@@ -2118,9 +2118,9 @@ def main():
     a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit('HATA: %s icinde screening yok.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s.' % kok)
     if a.kisa_liste < 1:
-        sys.exit('HATA: --kisa-liste en az 1 olmali.')
+        sys.exit(u'ERROR: --kisa-liste must be at least 1.')
     return calistir(kok, a.yalniz, a.sifirla, a.vtb_ust, a.nt, a.nt_yukle, a.literatur,
                     kl_ust=a.kisa_liste)
 

@@ -785,7 +785,7 @@ def asama_kos(kok, a, ayar, yaz):
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except Exception as e:
             rc, son_cikti = 127, u'komut baslatilamadi: %s' % e
-            yaz(u'   HATA: %s' % son_cikti)
+            yaz(u'   ERROR: %s' % son_cikti)
             break
 
         satirlar = []

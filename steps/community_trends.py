@@ -270,7 +270,7 @@ def main():
     cins = bracken_oku(a.bracken, "genus")
     tur = bracken_oku(a.bracken, "species")
     if not cins:
-        sys.exit("cins duzeyinde bracken dosyasi bulunamadi: %s" % a.bracken)
+        sys.exit(u'no bracken file at genus level was found: %s' % a.bracken)
     print("cins duzeyi barkod: %d, tur duzeyi barkod: %d" % (len(cins), len(tur)))
     eksik = [b for b in sorted(BARKOD_GRUP) if b not in cins]
     if eksik:

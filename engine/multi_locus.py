@@ -138,7 +138,7 @@ def main():
              if '%s|%s|%d' % (x[0], x[1], x[2]) not in D['bitmis']]
     print('is birimi %d, kalan %d' % (len(birim), len(kalan)), flush=True)
     if not kalan:
-        print('BITTI')
+        print(u'DONE')
         return
 
     ger = {}
@@ -232,7 +232,7 @@ def main():
 
     json.dump(D, open(a.durum, 'w', encoding='utf-8'), ensure_ascii=False)
     if len(D['bitmis']) >= len(birim):
-        print('BITTI')
+        print(u'DONE')
 
 
 if __name__ == '__main__':

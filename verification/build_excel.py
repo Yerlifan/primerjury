@@ -33,7 +33,7 @@ try:
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 except ImportError:
-    sys.exit('HATA: openpyxl yok.  pip3 install openpyxl --break-system-packages')
+    sys.exit(u'ERROR: openpyxl is missing.  pip3 install openpyxl --break-system-packages')
 
 BASLIK = PatternFill('solid', fgColor='1F3864')
 IYI = PatternFill('solid', fgColor='E2EFDA')

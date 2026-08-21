@@ -173,8 +173,7 @@ def vir(x, basamak=2):
 def kok_bul(arg):
     kok = os.path.abspath(arg or '.')
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit('HATA: %s icinde screening klasoru yok. --kok ile proje '
-                 'klasorunu verin.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --kok.' % kok)
     return kok
 
 
@@ -323,13 +322,12 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                    if any(y.strip().lower() in c['hedef'].lower()
                           for y in yalniz.split(','))]
     if not ciftler:
-        sys.exit('HATA: olculecek cift bulunamadi.')
+        sys.exit(u'ERROR: no pair to measure was found.')
 
     # --- uyelik --------------------------------------------------------
     uy_yol = uyelik_dosyasi(kok)
     if not uy_yol:
-        sys.exit('HATA: uyelik_yeniden_turetme_uyelik_*.tsv bulunamadi.\n'
-                 '      Once verification/full_chain.py -> secenek U kosulmalidir.')
+        sys.exit(u'ERROR: uyelik_yeniden_turetme_uyelik_*.tsv was not found.\n      verification/full_chain.py -> option U has to be run first.')
     uyelik = uyelik_oku(uy_yol)
     yaz(u'  membership source : %s' % os.path.basename(uy_yol))
     yaz(u'  pairs             : %d  (panel %d + extra %d)' % (len(ciftler), len(panel), len(ek)))
@@ -495,7 +493,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         b = baglam.get(c['hedef'])
         r = dict(c); r['_ayar'] = _ayar_of(c); r['olcum'] = {}
         if not b or not b['uye']:
-            r['hata'] = 'uyelik yok ya da uye kutu bulunamadi'
+            r['hata'] = 'there is no membership, or no member bin was found'
             yaz(u'[%2d/%2d] %-46s  SKIPPED (%s)' % (i, len(ciftler), c['hedef'][:46], r['hata']))
         else:
             for mm in (PROTOKOL['olcut_asil'], PROTOKOL['olcut_yan']):
@@ -727,7 +725,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                  % (len(gecen), len(kalan), len(olculemeyen)))
         fh.write(u'# "OLCUTE DUYARLI" isaretli satirlar mm<=1 de gecip mm<=3 te cokuyor - kirilgandir.\n')
         fh.write(u'#\n')
-        fh.write(u'# ESIK: %s\n' % _C.esik_metni())
+        fh.write(u'# THRESHOLD: %s\n' % _C.esik_metni())
         fh.write(u'# ESIGIN KOKENI: %s\n' % ESIK_KOKENI)
         fh.write(u'# VERIM UYARISI: %s\n' % ESIK_VERIM_NOTU)
         fh.write(u'#   The agreed criterion is a DIFFERENT quantity: the NUMBER OF CROSS-REACTING SPECIES\n')
@@ -808,7 +806,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
     with open(yol3, 'w', encoding='utf-8') as fh:
         fh.write(u'# Tek protokolle panel olcumu\n\n')
         fh.write(u'Generated: %s, script version %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
-        fh.write(u'## Sonuc\n\n')
+        fh.write(u'## Result\n\n')
         fh.write(u'- Pairs PASSING the threshold (%.0fx): **%d** -> **%d oligos**\n' % (E, len(gecen), 2 * len(gecen)))
         fh.write(u'- Pairs BELOW the threshold: **%d**\n' % len(kalan))
         fh.write(u'- NOT MEASURABLE (no verdict, NOT the same as below threshold): **%d**\n' % len(olculemeyen))

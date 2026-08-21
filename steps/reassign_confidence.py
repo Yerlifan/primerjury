@@ -97,7 +97,7 @@ def main():
     a = get_args()
     ebeveyn, rutbe, ad, nrep = agac_kur(a.kraken, a.desen_rapor)
     if not ebeveyn:
-        sys.exit("rapor bulunamadi: %s" % a.kraken)
+        sys.exit(u'the report was not found: %s' % a.kraken)
     print(u'reports: %d, taxa in the tree: %d' % (nrep, len(ebeveyn)))
 
     # atalar zinciri, bir kez hesaplanir
@@ -123,7 +123,7 @@ def main():
                       + glob.glob(os.path.join(a.kraken, a.desen_cikti)))
     ciktilar = [c for c in ciktilar if not c.endswith(".report")]
     if not ciktilar:
-        sys.exit("output dosyasi bulunamadi (desen: %s)" % a.desen_cikti)
+        sys.exit(u'no output file was found (pattern: %s)' % a.desen_cikti)
     print("output dosyasi: %d" % len(ciktilar))
     os.makedirs(a.out, exist_ok=True)
 

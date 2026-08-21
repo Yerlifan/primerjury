@@ -55,7 +55,7 @@ def main():
     P = Puanlayici(KOK, onbellek_yolu='/tmp/mrb/onbellek/kalib_olcum.json')
     dilim = bek[a.bas:a.bas + a.adet]
     if not dilim:
-        print('parti bos - bitti'); return 0
+        print(u'the batch is empty, done'); return 0
     P.havuz_hazirla([d['hedef'] for d in dilim])
 
     for d in dilim:

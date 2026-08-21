@@ -111,7 +111,7 @@ def main():
 
     ky = os.path.join(kok, 'steps', 'hedefler.tsv')
     if not os.path.exists(ky):
-        sys.exit('HATA: %s yok.' % ky)
+        sys.exit(u'ERROR: %s is missing.' % ky)
     K = kararlar(ky)
     SL = {(r.get('hedef') or '').strip(): r
           for r in _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))}
@@ -193,7 +193,7 @@ def main():
             grup = [s for s in satirlar if s['karar'] == no]
             if not grup:
                 continue
-            fh.write(u'## %s\n\n' % KARAR_ADI.get(no, u'Karar %s' % no))
+            fh.write(u'## %s\n\n' % KARAR_ADI.get(no, u'Decision %s' % no))
             fh.write(u'| requested | its counterpart in the panel | status | dCq | note |\n|---|---|---|---|---|\n')
             for s in grup:
                 fh.write(u'| %s | %s | **%s** | %s | %s |\n'

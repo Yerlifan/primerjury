@@ -116,7 +116,7 @@ def main():
     dosyalar = sorted(glob.glob(os.path.join(a.kraken, a.desen))
                       + glob.glob(os.path.join(a.kraken, "*", a.desen)))
     if not dosyalar:
-        sys.exit("rapor bulunamadi: %s" % a.kraken)
+        sys.exit(u'the report was not found: %s' % a.kraken)
     os.makedirs(a.out, exist_ok=True)
     print(u'reports: %d' % len(dosyalar))
 

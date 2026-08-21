@@ -398,7 +398,7 @@ def main():
     gunluk = []
     hedefler = hedefleri_oku(a.hedefler, a.adlar, a.kimlik)
     if not hedefler:
-        sys.exit("hedefler.tsv icinde duzey=tur/cins satiri yok")
+        sys.exit(u'hedefler.tsv holds no row with duzey=tur or duzey=cins')
     print(u'targets with a declared decision level: %d (species: %d, genus: %d)'
           % (len(hedefler),
              sum(1 for h in hedefler if h["duzey"] == "tur"),

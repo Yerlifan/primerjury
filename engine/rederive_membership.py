@@ -90,7 +90,7 @@ SINIF_ORNEK = 300     # reads per bin in the identity measurement
 try:
     import numpy as np
 except ImportError:
-    sys.exit('HATA: numpy yok.  WSL icinde:  pip3 install numpy --break-system-packages')
+    sys.exit(u'ERROR: numpy is missing.  Inside WSL:  pip3 install numpy --break-system-packages')
 
 _C = str.maketrans('ACGTURYSWKMBDHVNacgturyswkmbdhvn', 'TGCAAYRSWMKVHDBNtgcaayrswmkvhdbn')
 def rc(s): return s.translate(_C)[::-1]
@@ -373,10 +373,10 @@ def main():
     KONS = os.path.join(KOK, 'konsensus_kanonik')
     FQ = os.path.join(KOK, 'fastq files')
     for p, adi in ((KONS, 'konsensus_kanonik'), (FQ, 'fastq files')):
-        if not os.path.isdir(p): sys.exit('HATA: %s klasoru yok: %s' % (adi, p))
+        if not os.path.isdir(p): sys.exit(u'ERROR: there is no %s directory: %s' % (adi, p))
 
     print('=' * 70); print(u'  RE-DERIVING MEMBERSHIP FROM THE MEASURED IDENTITY'); print('=' * 70)
-    print('  Proje  : %s' % KOK); print('  Cikti  : %s' % CIK); print()
+    print('  Proje  : %s' % KOK); print(u'  Output : %s' % CIK); print()
 
     # --- 0. envanter
     kons = {}
@@ -516,8 +516,8 @@ def main():
     print(u'  [3/4] Re-deriving membership')
     uyelik_tsv = os.path.join(KOK, 'screening', 'hedef_uyelik.tsv')
     panel_tsv = os.path.join(KOK, 'primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
-    if not os.path.exists(uyelik_tsv): sys.exit('HATA: %s yok' % uyelik_tsv)
-    if not os.path.exists(panel_tsv): sys.exit('HATA: %s yok' % panel_tsv)
+    if not os.path.exists(uyelik_tsv): sys.exit(u'ERROR: %s is missing' % uyelik_tsv)
+    if not os.path.exists(panel_tsv): sys.exit(u'ERROR: %s is missing' % panel_tsv)
     uyelik = {}
     for line in open(uyelik_tsv, encoding='utf-8'):
         if line.startswith('#') or line.startswith('hedef\t'): continue
@@ -733,7 +733,7 @@ def main():
                 fh.write('- `%s` -> okumalarinin %%%.0f i `%s` organizmasina ait\n' % (kb, srt[0][1], srt[0][0]))
         fh.write(u'\n> This script does NOT write to the panel files. Applying the changes is a separate job.\n')
     print()
-    print('=' * 70); print('  BITTI'); print('=' * 70)
+    print('=' * 70); print(u'  DONE'); print('=' * 70)
     print('  %s' % p3); print('  %s' % p1); print('  %s' % p2)
     return 0
 

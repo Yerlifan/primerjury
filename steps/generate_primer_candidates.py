@@ -40,12 +40,12 @@ import argparse, csv, itertools, os, statistics, sys
 try:
     import primer3
 except ImportError:
-    sys.exit("primer3-py kurulu degil:  pip install primer3-py")
+    sys.exit(u'primer3-py is not installed:  pip install primer3-py')
 try:
     from Bio.Seq import Seq
     from Bio.SeqUtils import MeltingTemp as mt
 except ImportError:
-    sys.exit("biopython kurulu degil:  pip install biopython")
+    sys.exit(u'biopython is not installed:  pip install biopython')
 
 COMP = str.maketrans("ACGTNRYSWKMBDHV", "TGCANYRSWMKVHDB")
 
@@ -140,9 +140,7 @@ def read_fasta(path):
         else:
             seq.append(line.strip())
     if len(names) > 1:
-        sys.exit("HATA: %s icinde %d kayit var. Bu betik tek kayitli konsensus "
-                 "bekler; kayitlarin birlestirilmesi kavsakta yapay primer "
-                 "uretir." % (path, len(names)))
+        sys.exit(u'ERROR: %s holds %d records. This script expects a single record consensus; merging the records produces an artificial primer across the junction.' % (path, len(names)))
     return (names[0] if names else None), "".join(seq).upper()
 
 
@@ -155,8 +153,7 @@ def read_mask(path, seqlen, contig=None, strict_missing=True):
         return bad, classes, seen
     if not os.path.exists(path):
         if strict_missing:
-            sys.exit("HATA: maske dosyasi yok: %s. Yol verildiginde var olmasi "
-                     "zorunludur, aksi halde maskeleme sessizce kapanir." % path)
+            sys.exit(u'ERROR: there is no mask file: %s. Once a path is given the file must exist, otherwise masking is switched off silently.' % path)
         return bad, classes, seen
     for line in open(path, encoding="utf-8", errors="replace"):
         f = line.rstrip("\n").split("\t")
@@ -331,7 +328,7 @@ def main():
     if mclasses:
         print("maske siniflari  : %s" % ", ".join("%s=%d" % kv for kv in sorted(mclasses.items())))
     if L < a.len_min * 2 + a.prod_min:
-        sys.exit("HATA: konsensus cok kisa (%d bp), en az %d bp gerekiyor"
+        sys.exit(u'ERROR: the consensus is too short (%d bp), at least %d bp is needed'
                  % (L, a.len_min * 2 + a.prod_min))
     print(u'forbidden positions : %d (%.2f%%)' % (len(masked), 100.0 * len(masked) / L))
     print(u'degeneracy budget   : %d positions, at most %d fold'
@@ -365,7 +362,7 @@ def main():
     for k, v in sorted(reasons.items(), key=lambda x: -x[1]):
         print("   elenen %-16s %d" % (k, v))
     if not raw:
-        sys.exit("kompozisyon suzgecinden gecen oligo yok")
+        sys.exit(u'no oligo passed the composition filter')
 
     # --- 2. iki bagimsiz Tm olcumu ve sistematik kayma ------------------
     tm3, tmb = [], []
@@ -416,7 +413,7 @@ def main():
     print(u'   dropped, self-dimer dG                 : %d' % n_hd)
     print(u'oligos after the thermodynamic filter     : %d' % len(kept))
     if not kept:
-        sys.exit("termodinamik suzgecten gecen oligo yok")
+        sys.exit(u'no oligo passed the thermodynamics filter')
 
     F = sorted([k for k in kept if k["strand"] == "F"], key=lambda x: x["start"])
     R = sorted([k for k in kept if k["strand"] == "R"], key=lambda x: x["start"])
@@ -515,7 +512,7 @@ def main():
     print(u'   dropped, hetero-dimer dG               : %d' % n_het)
     print(u'valid pairs                              : %d' % len(pairs))
     if not pairs:
-        sys.exit("gecerli cift bulunamadi")
+        sys.exit(u'no valid pair was found')
 
     pairs.sort(key=lambda x: x["ceza"])
     if a.min_locus_spacing > 0:

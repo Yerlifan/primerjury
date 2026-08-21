@@ -356,7 +356,7 @@ def main():
     yaz(u'')
     yaz(u'  bins created: %d' % uretilen)
     for x in atlanan[:20]:
-        yaz(u'  ATLANDI: %s' % x)
+        yaz(u'  SKIPPED: %s' % x)
     yaz(u'  Next step: consensus generation and the identity verification chain')
     yaz(u'    verification/full_chain.py -> option 6 (consensus), then stage G')
     yaz(u'=' * 78)

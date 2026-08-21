@@ -434,7 +434,7 @@ def main():
     a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit('HATA: %s icinde screening yok.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s.' % kok)
     return calistir(kok, a.ncbi, a.yeniden, set(a.atla.upper()))
 
 

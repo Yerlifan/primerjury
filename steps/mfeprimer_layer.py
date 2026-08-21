@@ -114,20 +114,19 @@ def indeks_eksik(fna):
 def main():
     a = get_args()
     if not os.path.exists(a.mfe):
-        sys.exit("mfeprimer bulunamadi: %s" % a.mfe)
+        sys.exit(u'mfeprimer was not found: %s' % a.mfe)
     if not os.access(a.mfe, os.X_OK):
         try:
             os.chmod(a.mfe, 0o755)
         except OSError:
-            sys.exit("mfeprimer calistirilabilir degil: %s\n"
-                     "   chmod +x '%s' deneyin" % (a.mfe, a.mfe))
+            sys.exit(u'mfeprimer is not executable: %s\n   try chmod +x \'%s\'' % (a.mfe, a.mfe))
     tsv = os.path.join(a.final, "primer_final.tsv")
     if not os.path.exists(tsv):
-        sys.exit("bulunamadi: %s" % tsv)
+        sys.exit(u'not found: %s' % tsv)
     rows = [r for r in csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t")
             if r.get("ozgulluk_durum") == "GECTI"]
     if not rows:
-        sys.exit("gecen aday yok")
+        sys.exit(u'no candidate passed')
     print(u'pairs to test: %d' % len(rows))
 
     # what external_databases.py produced: (target, class, forward, reverse, database) -> product count
@@ -203,7 +202,7 @@ def main():
                 continue
             ciktisi = (p.stdout or "") + (p.stderr or "")
             if p.returncode != 0:
-                print("      HATA: %s" % ciktisi.strip()[:220])
+                print(u'      ERROR: %s' % ciktisi.strip()[:220])
                 hata += 1
                 continue
             # On some errors mfeprimer RETURNS EXIT CODE 0 and only writes

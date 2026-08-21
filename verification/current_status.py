@@ -48,7 +48,7 @@ def main():
     kok = os.path.abspath(a.kok)
     sl, kesin, evr, disi = sayilar(kok)
     if not sl:
-        sys.exit('HATA: TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv okunamadi.')
+        sys.exit(u'ERROR: TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv could not be read.')
 
     y = os.path.join(kok, 'GUNCEL_DURUM.md')
     with io.open(y, 'w', encoding='utf-8', newline='') as fh:

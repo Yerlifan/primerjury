@@ -65,7 +65,7 @@ ORNEKLER = [
 def kd_yukle(kok):
     y = os.path.join(kok, 'verification', 'identity_verification.py')
     if not os.path.exists(y):
-        sys.stderr.write('bulunamadi: %s\n' % y)
+        sys.stderr.write(u'not found: %s\n' % y)
         sys.exit(2)
     spec = importlib.util.spec_from_file_location('kd', y)
     m = importlib.util.module_from_spec(spec)
@@ -116,7 +116,7 @@ def main():
         print('%-30s | %-38s | %s' % (ad, duzey[:38], 'DOGRU' if ok else 'YANLIS'))
 
     print()
-    print('SONUC: ' + (u'EVERY TEST PASSED' if gecti else 'BASARISIZ'))
+    print(u'RESULT: ' + (u'EVERY TEST PASSED' if gecti else 'BASARISIZ'))
     return 0 if gecti else 1
 
 

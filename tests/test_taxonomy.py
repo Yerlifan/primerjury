@@ -201,7 +201,7 @@ def main():
     a = p.parse_args()
     s = [bolum1(), bolum2(), bolum3(a.ornek)]
     print()
-    print('SONUC: ' + ('UC BOLUMUN UCU DE GECTI' if all(s) else 'BASARISIZ'))
+    print(u'RESULT: ' + ('UC BOLUMUN UCU DE GECTI' if all(s) else 'BASARISIZ'))
     return 0 if all(s) else 1
 
 

@@ -429,11 +429,11 @@ def main():
     a = get_args()
     tsv = os.path.join(a.final, "primer_final.tsv")
     if not os.path.exists(tsv):
-        sys.exit("bulunamadi: %s" % tsv)
+        sys.exit(u'not found: %s' % tsv)
     rows = [r for r in csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t")
             if r.get("ozgulluk_durum") == "GECTI"]
     if not rows:
-        sys.exit("gecen aday yok")
+        sys.exit(u'no candidate passed')
     print(u'pairs to test: %d' % len(rows))
 
     # sinif -> primer kumesi
@@ -508,7 +508,7 @@ def main():
                 atlanan.append((sinif, dbad, "zaman asimi"))
                 continue
             if r.returncode != 0:
-                print("      HATA: %s" % r.stderr.strip()[:200])
+                print(u'      ERROR: %s' % r.stderr.strip()[:200])
                 atlanan.append((sinif, dbad, "blastn hatasi"))
                 continue
             # vuruslari referans basina topla
