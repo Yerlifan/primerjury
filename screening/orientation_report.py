@@ -105,11 +105,7 @@ def main():
     ws.row_dimensions[n].height = 32; n += 2
 
     yaz(ws, n, 1, u'1. WHY IT WAS ASKED - three separate patches, no single canonical fix', bold=True, fill=GRI); n += 1
-    for s in ['Yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri yamandi: '
-              '(a) the strand choice of 85 on the source study side, (b) "the consensuses are the reverse complement of SILVA" on the design side, '
-              'gore ters tumleyen", (c) B/F yeniden olcumunde "58 konsensusten 39\'u ters yonde". '
-              'Uc ayri yama = tek kanonik cozum yok = bir sonraki degisiklikte yine kacar. '
-              'Bu sayfa "sanirim duzeltildi"yi olcuye baglar.']:
+    for s in ['The orientation bug was found and patched separately in AT LEAST THREE SEPARATE PLACES over the course of one night: (a) the strand choice of 85 on the source study side, (b) "the consensuses are the reverse complement of SILVA" on the design side, (c) "39 of 58 consensuses are in the reverse orientation" during the B/F re-measurement. Three separate patches means there is no single canonical fix, which means it escapes again on the next change. This page ties "I think it is fixed" to a measurement.']:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
@@ -148,13 +144,8 @@ def main():
     yaz(ws, n, 1, '3. KOK NEDEN (kod kaniti)', bold=True, fill=KIRMIZI); n += 1
     for s in ['screening/config.py:  KONSENSUS = y(\'consensus sequences\')  '
               '-> paket KARISIK klasoru tek kaynak sayiyordu.',
-              'screening/build_consensus.py -> _sablon_sec(): sablon "mevcut konsensus"tan '
-              'aliniyordu. Okumalar sablona iki yonde capalanip NORMALIZE ediliyordu (kod bunu '
-              '"yon normalize edilir" diye yaziyordu) ama SABLONUN KENDI YONU hicbir yerde '
-              'normalize edilmiyordu. Sonuc: cikti sablonun yonunu birebir miras aliyor. '
-              'Olculen kanit: konsensus_yeni 28 antisense / 7 sense.',
-              'Oksuz kutularda sablon dogrudan bir HAM OKUMADAN seciliyordu - okuma yonu rastgele, '
-              'yani cikti yonu de rastgele.']:
+              'screening/build_consensus.py -> _sablon_sec(): the template was taken from the "current consensus". The reads were anchored to the template in both directions and NORMALISED (the code called this "the orientation is normalised"), but THE TEMPLATE\'S OWN ORIENTATION was normalised nowhere. The result: the output inherits the template\'s orientation exactly. Measured evidence: konsensus_yeni was 28 antisense / 7 sense.',
+              "For orphan bins the template was chosen straight from a RAW READ, and a read's orientation is random, so the output orientation was random too."]:
         yaz(ws, n, 1, s, fill=KIRMIZI if 'konsensus_uret' in s else None)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 46; n += 1
@@ -188,21 +179,14 @@ def main():
     ws.row_dimensions[n].height = 30; n += 2
 
     yaz(ws, n, 1, '5. KANONIK COZUM - tek kaynak, tek tanim', bold=True, fill=YESIL); n += 1
-    for s in ['KANONIK YON = SENSE (referans / arti iplik). Tanim TEK YERDE: screening/orientation.py. '
-              'Iki bagimsiz olcut, ayrilirlarsa dosya BELIRSIZ sayilir ve normalize EDILMEZ, '
-              'isaretlenir (proje kurali: hicbir karar tek kod yoluna birakilmaz).',
+    for s in ['THE CANONICAL ORIENTATION = SENSE (the reference, or plus, strand). The definition lives in ONE PLACE: screening/orientation.py. Two independent criteria, and if they disagree the file counts as UNCERTAIN, is NOT normalised, and is flagged instead (the project rule: no decision is left to a single code path).',
               'TEK KAYNAK: konsensus_kanonik/ - %d kutu, hepsi SENSE. Uretici: '
               'screening/build_canonical.py. Yaninda MANIFEST.tsv (her dosyanin kaynagi, '
               'eski yonu, cevrilip cevrilmedigi), INDEKS.tsv (gecerli dosya listesi) ve '
               'BELIRSIZ.tsv. Bu koside %d dosya ANTISENSE -> SENSE cevrildi, BELIRSIZ 0.'
               % (len(ix), sum(1 for r in ix if r['cevrildi'] == 'EVET')),
-              'BUTUN BETIKLER BURAYI OKUR: targets.py -> konsensusler() artik INDEKS.tsv okuyor '
-              've indeks yoksa HATA verir; karisik klasore SESSIZCE DUSMEZ. Hicbir betigin kendi '
-              'yon yamasi yok.',
-              'DIKKAT - bagli klasorde dosya SILINEMIYOR. konsensus_kanonik/ icinde ilk kosunun '
-              'yanlis adlandirilmis "*_kanonik.fasta" kalintilari var. Gecerli dosyalar '
-              '"*.kanonik.fa" desenindedir ve INDEKS.tsv\'de listelidir. Tuketiciler glob DEGIL '
-              'INDEKS okur. Klasordeki OKUBENI.txt bunu tekrar eder.']:
+              'EVERY SCRIPT READS THIS PLACE: targets.py -> konsensusler() now reads INDEKS.tsv and RAISES AN ERROR when the index is missing; it does NOT fall back SILENTLY to the mixed directory. No script carries its own orientation patch any more.',
+              'CAUTION - files CANNOT BE DELETED on a mounted drive. konsensus_kanonik/ still holds the misnamed "*_kanonik.fasta" leftovers of the first run. The valid files match the pattern "*.kanonik.fa" and are listed in INDEKS.tsv. Consumers read the INDEX, NOT a glob. The OKUBENI.txt in the directory repeats this.']:
         yaz(ws, n, 1, s, fill=SARI if s.startswith('DIKKAT') else None)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 52; n += 1
@@ -235,40 +219,20 @@ def main():
     n += 1
 
     yaz(ws, n, 1, u'7. THE PRODUCTION RUN TONIGHT - checked specifically', bold=True, fill=YESIL); n += 1
-    for s in ['build_consensus.py UC yerde duzeltildi: (a) sablon kanonige cevriliyor, '
-              '(b) oksuz kutu sablonu (ham okuma) da cevriliyor, (c) CIKTI yazilmadan once bir kez '
-              'daha olculup cevriliyor (son emniyet kemeri). Cikti fasta basligina kanonik=... '
-              'cevrildi=... yaziliyor, TSV\'ye cikti_yon ve cikti_cevrildi sutunlari eklendi.',
-              'KAPI KONDU: konsensus_uret.calistir() basinda yon sinamasi kosar; gecmezse '
-              'URETIM BASLATILMAZ ve ne yapilacagi yazilir. Gerekce: bu adimin ciktisi yanlis '
-              'yonde cikarsa butun gece bosa gider.',
-              'self_test.py icine yon_sinamasi() eklendi (3 madde: orientation.py kendi sinavi, kanonik '
-              'sette ters dosya var mi, bilinen cevapli etki testi). primer3 gibi opsiyonel '
-              'bagimliliklara TAKILMAZ - ayri cagrilabilir. Bu oturumda kosuldu: 3/3 GECTI '
-              '(dogru 39/40, ters 0/40).',
-              'SIRA: (1) python screening/build_canonical.py --kok .   (2) verification/full_chain.py '
-              'menusunden konsensus yeniden uretimi   (3) uretim bitince kanonik_uret\'i '
-              '--oncelik yeni ile TEKRAR kosun ki yeni set kanonik kaynak olsun.']:
+    for s in ['build_consensus.py was fixed in THREE places: (a) the template is converted to canonical, (b) the orphan bin template (a raw read) is converted too, (c) the OUTPUT is measured once more and converted before it is written (the last seat belt). The output fasta header carries kanonik=... cevrildi=..., and the columns cikti_yon and cikti_cevrildi were added to the TSV.',
+              'A GATE WAS PUT IN: konsensus_uret.calistir() runs the orientation test first, and if it does not pass, GENERATION IS NOT STARTED and what to do is printed. The reason: if the output of this step comes out in the wrong orientation, the whole night is wasted.',
+              "yon_sinamasi() was added inside self_test.py (3 items: orientation.py's own test, whether the canonical set still holds a reversed file, and a known-answer impact test). It does NOT TRIP over optional dependencies such as primer3, and it can be called on its own. It was run in this session: 3/3 PASSED (correct 39/40, reversed 0/40).",
+              'THE ORDER: (1) python screening/build_canonical.py --root .   (2) consensus regeneration from the verification/full_chain.py menu   (3) once generation finishes, run kanonik_uret AGAIN with --oncelik yeni so that the new set becomes the canonical source.']:
         yaz(ws, n, 1, s, fill=SARI if s.startswith('SIRA') else None)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 56; n += 1
     n += 1
 
     yaz(ws, n, 1, '8. ACIK KALAN', bold=True, fill=SARI); n += 1
-    for s in ['konsensus_kanonik su an referans_konsensus/konsensus kaynakli (99 kutu) + 1 oksuz '
-              'kutu (A1-1_2209, ozgun klasorden, ANTISENSE idi, cevrildi). konsensus_yeni EKSIK '
-              'oldugu icin (35/99) kanonige alinmadi - yarim bir seti tam bir setle karistirmak '
-              'heterojen taban yaratir. Gece uretimi bitince --oncelik yeni ile yeniden kosulmali.',
-              'steps/split_clusters.py karisik klasoru tek yon varsayarak okuyor. Panelin '
-              'MEVCUT sayilarini uretmiyor (devre disi hat) ama yeniden kosulursa yanlis sonuc '
-              'verir. Kanonige cevrilmeli ya da arsivlenmeli.',
-              'yon_kod_taramasi\'nda KAYNAK_BELIRSIZ isaretli betikler (cogu steps ve '
-              'engine altinda) konsensus yolunu komut satirindan aliyor; yonu cagiran '
-              'tarafa birakiyorlar. Bunlar eski hattir. Yeniden kosulacaksa kanonik klasor '
-              'verilmelidir.',
-              'Bu sayfadaki yon olcumu konsensus dosyalarinadir. HAM OKUMA olcumleri yondan '
-              'etkilenmez (okumalar zaten iki yonde taranir) - "16 Okuma Motoru Duzeltmesi" '
-              'sayfasindaki sayilar bu bulgudan ETKILENMEZ.']:
+    for s in ['konsensus_kanonik currently comes from referans_konsensus/konsensus (99 bins) plus 1 orphan bin (A1-1_2209, from the original directory, which was ANTISENSE and was converted). konsensus_yeni was NOT taken into the canonical set because it is INCOMPLETE (35/99); mixing a half set with a full one creates a heterogeneous base. Once the overnight generation finishes it should be re-run with --oncelik yeni.',
+              "steps/split_clusters.py reads the mixed directory assuming a single orientation. It does not produce the panel's CURRENT numbers (it is a disabled line), but if it is re-run it gives a wrong answer. It should either be converted to canonical or archived.",
+              'The scripts flagged KAYNAK_BELIRSIZ in yon_kod_taramasi (most of them under steps and engine) take the consensus path from the command line and leave the orientation to the caller. Those are the old line. If they are to be re-run, the canonical directory must be given.',
+              'The orientation measurement on this page applies to the consensus files. RAW READ measurements are unaffected by orientation (reads are scanned in both directions anyway), so the numbers on the "16 Okuma Motoru Duzeltmesi" sheet are NOT AFFECTED by this finding.']:
         yaz(ws, n, 1, s)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 56; n += 1

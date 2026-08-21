@@ -318,11 +318,7 @@ def main():
            'dCq', 'kapsam', 'kural ihlali', '4 katman hukmu'],
           pr, {'hedef': 34, 'ileri primer': 26, 'geri primer': 26,
                'kural ihlali': 30, '4 katman hukmu': 30},
-          [u'Tm, GC ve dTm panelin kendi motoruyla (primer3; mv 50 mM, dv 1,5 mM, '
-           u'dNTP 0,6 mM, oligo 50 nM) 11.08.2026 07:02\'de yeniden olculdu. '
-           u'Kirmizi satir: dort katmanli dogrulama "RISKLI" diyor ama cift '
-           u'siparis listesinde duruyor - "8 Bulgular" sayfasina bakin. '
-           u'Sari satir: panelin GC / 3\' uc / Tm penceresi kurallarindan sapma var.'],
+          ['Tm, GC and dTm were re-measured on 11.08.2026 at 07:02 with the panel\'s own engine (primer3; mv 50 mM, dv 1.5 mM, dNTP 0.6 mM, oligo 50 nM). A red row: the four layer verification says "RISKLI" but the pair is still on the order list, so look at the "8 Bulgular" sheet. A yellow row: it deviates from the panel\'s GC, 3\' end or Tm window rules.'],
           renk=panel_renk)
 
     # ================= 3 KIMLIKLER ve 4 CINS-TUR =================
@@ -369,8 +365,7 @@ def main():
            'veritabani', 'ikinci %', 'marj', 'lokus', 'uyesi oldugu hedefler'],
           kim, {'olculen kimlik': 40, 'en iyi isabet': 46, 'Kraken etiketi': 26,
                 'onerilen ad': 30, 'uyesi oldugu hedefler': 32},
-          [u'Her kutunun kimligi bagimsiz olarak yeniden olculdu. "ad degisti mi" '
-           u'sutunu HAYIR ise Kraken etiketi ile olculen kimlik ayrisiyor demektir.'],
+          ['The identity of every bin was re-measured independently. Where the "ad degisti mi" column reads HAYIR, the Kraken label and the measured identity disagree.'],
           renk=lambda s: UYARI if str(s['ad degisti mi']).strip().upper().startswith('HAYIR') else None)
 
     # --- 4 Cins-Tur: tur adi VERILEMEYEN kutularda en yuksek yuzdeli tur adayi
@@ -428,12 +423,7 @@ def main():
            'tur esigi', 'neden tur adi verilmedi'],
           ct, {'su an yazan ad': 34, 'EN YUKSEK YUZDELI TUR ADAYI': 30,
                'neden tur adi verilmedi': 46, 'ikinci aday': 24},
-          [u'Tur adi VERILEMEYEN kutularda en yuksek yuzdeyi veren tur adayi. '
-           u'Bu sutun bir KIMLIK IDDIASI DEGILDIR; "en yakin kayit su, su yuzdeyle" '
-           u'demektir. Esikler panelin kendi kurallaridir: SSU/LSU tur %98,7, '
-           u'ITS %98,5; cins %94,5 / %90,0; en iyi ile ikinci arasindaki fark '
-           u'%0,5\'ten kucukse tur atamasi savunulmaz. Adlar panelin kendi ad_coz() '
-           u'fonksiyonuyla cikarildi, yeni bir kural konmadi.'],
+          ['For bins that CANNOT be given a species name, this is the species candidate with the highest percentage. This column is NOT AN IDENTITY CLAIM; it says "the nearest record is this one, at this percentage". The thresholds are the panel\'s own rules: SSU/LSU species 98.7%, ITS 98.5%; genus 94.5% / 90.0%; and if the gap between the best and the second is smaller than 0.5% a species assignment is not defensible. The names were extracted with the panel\'s own ad_coz() function, and no new rule was introduced.'],
           renk=lambda s: IYI if (_f(s['kimlik %']) or 0) >= 98.7 and (_f(s['marj']) or 0) >= 0.5 else None)
 
     # ================= 5 ESIK =================
@@ -454,11 +444,7 @@ def main():
           ['hedef', 'dCq', 'duz esik (3,00)', 'R (bolluk orani)', 'gerekli dCq',
            'bolluk kurali', 'iki kural ayrisiyor mu', 'R bayat mi', 'dCq 08.08'],
           es, {'hedef': 34},
-          [u'Iki esik kurali yan yana. Duz kural: dCq >= 3,00. Bolluga agirlikli '
-           u'kural: dCq >= max(log2(R)+4,3 ; 3,32). Hangisinin uygulanacagi bir '
-           u'OLCUT TERCIHIDIR, olcum degildir; bu yuzden burada hukum yazilmadi. '
-           u'"R bayat mi" EVET olan satirlarda R 8 Agustos uyeligiyle hesaplandi ve '
-           u'o gunden sonra cift degisti - o satirlarda bolluk hukmu guvenilmez.'],
+          ['Two threshold rules side by side. The flat rule: dCq >= 3.00. The abundance weighted rule: dCq >= max(log2(R)+4.3 ; 3.32). Which one applies is A CHOICE OF CRITERION, not a measurement, so no verdict is written here. On rows where "R bayat mi" reads EVET, R was computed against the membership of 8 August and the pair changed after that day, so the abundance verdict is not trustworthy on those rows.'],
           renk=lambda s: UYARI if str(s['iki kural ayrisiyor mu']).strip() == 'EVET' else None)
 
     # ================= 6 NCBI =================
@@ -477,12 +463,7 @@ def main():
           ['hedef', 'adli hedef disi (siki)', 'adsiz cevre klonu', 'toplam urun',
            'gevsek kural (eski sayim)', 'ornek adli hedef disi'],
           nc, {'hedef': 34, 'ornek adli hedef disi': 52},
-          [u'NCBI Primer-BLAST, GenBank\'in TAMAMINA karsi olcer. Buradaki sayilar '
-           u'"bu primer DUNYADA baska neyi tutar" sorusunun cevabidir; numunede ne '
-           u'oldugunu 2. katman olcer ve siparis karari oradan gelir. Adsiz cevre '
-           u'klonlari ("uncultured ...") hukme GIRMEZ: hicbir taksona bagli '
-           u'degiller ve hedeflerimiz adlandirilmamis soylar oldugundan hedefin '
-           u'kendisi olabilirler.'])
+          ['NCBI Primer-BLAST measures against the WHOLE of GenBank. The numbers here answer "what else in the WORLD does this primer bind"; what happens in the sample is measured by layer 2, and the order decision comes from there. Unnamed environmental clones ("uncultured ...") do NOT enter the verdict: they are attached to no taxon, and since our targets are unnamed lineages they could be the target itself.'])
 
     # ================= 7 TOPLANTI =================
     tp = [{'karar': r.get('karar', ''), 'istenen': r.get('istenen', ''),
@@ -494,8 +475,7 @@ def main():
           ['karar', 'istenen', 'istenen duzey', 'paneldeki karsiligi', 'durum',
            'dCq', 'not'],
           tp, {'istenen': 30, 'paneldeki karsiligi': 34, 'not': 60},
-          [u'Toplantida numarali olarak istenen her hedef ve bugunku durumu. '
-           u'Hicbir durum elle yazilmadi; siparis listesinden okundu.'],
+          ['Every target requested by number in the meeting, and where it stands today. No status was written by hand; all of them were read from the order list.'],
           renk=lambda s: KOTU if str(s['durum']).startswith('YAPILAMADI') else
           (IYI if 'kosulsuz' in str(s['durum']) else None))
 
@@ -517,9 +497,7 @@ def main():
     sayfa(wb, '8 Bulgular',
           ['onem', 'bulgu', 'ayrinti'], bl,
           {'onem': 20, 'bulgu': 40, 'ayrinti': 90},
-          [u'Denetim kapisinin son kosusundaki acik bulgular. "SIPARISI DURDURUR" '
-           u'olanlar giderilmeden siparis verilmemelidir. Ayrintili anlatim ve '
-           u'karar secenekleri GECE_BULGULARI.md dosyasindadir.'],
+          ['The open findings from the last run of the audit gate. Those marked "SIPARISI DURDURUR" must be resolved before an order is placed. The full account and the decision options are in GECE_BULGULARI.md.'],
           renk=lambda s: KOTU if 'DURDUR' in str(s['onem']).upper() else
           (UYARI if 'DIKKAT' in str(s['onem']).upper() else GRI))
 

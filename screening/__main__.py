@@ -339,7 +339,7 @@ def uyelik_uyarisi(satir, taban):
                            taban.get('kat_enkotu_kapsayan'),
                            taban.get('kat_havuz_kapsayan')) if x]
     if not olculen:
-        return ['!! UYARI: mevcut cift icin ayrim orani HIC olculemedi - uye kutularinin',
+        return [' !! WARNING: the discrimination ratio for the current pair could NOT be measured at all, because the member bins',
                 '   hicbiri urun vermiyor. Uyelik tanimi yanlis olabilir:',
                 '   screening/hedef_uyelik.tsv -> satir "%s"' % satir['hedef']]
     if any(0.34 * p <= o <= 3.0 * p for o in olculen):
@@ -347,9 +347,9 @@ def uyelik_uyarisi(satir, taban):
     return [
         '!! UYARI: panelin yayimladigi ayrim %.1fx, bu koşuda olculen %s.' % (
             p, ' / '.join('%.1fx' % o for o in olculen)),
-        '   Sapma buyuk. En olasi sebep UYELIK TANIMI (hangi kutu uye, hangisi rakip).',
+        '   The deviation is large. The most likely cause is the MEMBERSHIP DEFINITION (which bin is a member, which is a competitor).',
         '   Once su dosyaya bakin: screening/hedef_uyelik.tsv  ->  satir "%s"' % satir['hedef'],
-        '   (Okuma sayisi dusukse Wilson araligi genisler, sapmanin bir kismi ondandir.)',
+        '   (If the read count is low the Wilson interval widens, and part of the deviation comes from that.)',
     ]
 
 
