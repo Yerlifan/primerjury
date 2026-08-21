@@ -126,7 +126,7 @@ def t1_sentetik(max_mm=1):
                     eski_kacan += len(b) - len([x for x in e if x in b])
     print('T1 sentetik : %d baglanma yeri, duzeltilmis motor farki = %d'
           % (toplam, fark))
-    print('   ayni testte ESKI motorun kacirdigi yer = %d (%.1f%%)'
+    print(u'   in the same test the sites the OLD engine missed = %d (%.1f%%)'
           % (eski_kacan, 100.0 * eski_kacan / max(toplam, 1)))
     return fark == 0
 
@@ -162,9 +162,9 @@ def t2_t3_gercek(desen, n=300, max_mm=1):
             if p1 != p2:
                 fark_urun += 1
                 print('  T3 FARK %s %s: yeni=%d kaba=%d' % (os.path.basename(p), ad, p1, p2))
-    print('T2 gercek okuma : %d baglanma yeri, duzeltilmis motor farki = %d'
+    print(u'T2 real reads   : %d binding sites, difference from the corrected engine = %d'
           % (toplam_yer, fark_yer))
-    print('   ayni testte ESKI motorun kacirdigi yer = %d (%.1f%%)'
+    print(u'   in the same test the sites the OLD engine missed = %d (%.1f%%)'
           % (eski_kacan, 100.0 * eski_kacan / max(toplam_yer, 1)))
     print(u'T3 product count : mismatching (file x pair) = %d' % fark_urun)
     return fark_yer == 0 and fark_urun == 0
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     ok2 = t2_t3_gercek(a.fastq, a.n, a.mm) if a.fastq else True
     print()
     if ok1 and ok2:
-        print('SONUC: GECTI - duzeltilmis motor kaba kuvvetle BIREBIR ayni.')
+        print(u'RESULT: PASSED - the corrected engine is IDENTICAL to brute force.')
         sys.exit(0)
     print(u'RESULT: FAILED - there is a difference, so do NOT write to the panel.')
     sys.exit(1)

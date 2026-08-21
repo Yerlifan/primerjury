@@ -277,7 +277,7 @@ def testler(a):
     except Exception as e:
         sina("hizalama arka ucu var", False, str(e)[:80])
 
-    print("\n10. HAM OKUMA TARAMASI ILE TASARIM KURALI TUTARLILIGI")
+    print(u'\n10. CONSISTENCY BETWEEN THE RAW READ SCAN AND THE DESIGN RULE')
     T = "".join(random.choice("ACGT") for _ in range(400))
     F = T[100:121]
     R = ref_rc(T[250:271])
@@ -301,7 +301,7 @@ def testler(a):
     sina("yanlis yonde yazilmis geri primer urun VERMEZ",
          both2 < both * 0.2, "urun=%d (dogru yonde %d)" % (both2, both))
 
-    print("\n11. DIS VERITABANI URUN BOYU")
+    print(u'\n11. PRODUCT LENGTH IN THE EXTERNAL DATABASES')
     V = yukle("V", "external_databases.py")
     sina("14 urun boyu iki 5' uc arasi (04 ile ayni olcu)",
          "(ur + lr - 1) - (uf - lf + 1) + 1" in open(
@@ -313,7 +313,7 @@ def testler(a):
          not V.baglanma_uygun("ACGTACGTACGTACGTACGA",
                               "ACGTACGTACGTACGTACGC")[0])
 
-    print("\n12. 08 ILE 09 ARASINDA DOSYA BICIMI SOZLESMESI")
+    print(u'\n12. THE FILE FORMAT CONTRACT BETWEEN STAGES 08 AND 09')
     # 08'in yazdigi dislanan_takson.tsv'yi 09 okur. Sutunlar konuma gore
     # okunursa, dosya bicimi degistiginde dislama SESSIZCE devre disi kalir
     # ve 09 hicbir sey soylemez. Bu, "hicbir karar tek koda birakilmasin"
@@ -359,7 +359,7 @@ def testler(a):
     except ValueError:
         sina("09'da dislama blogu bulundu", False, "blok isaretleri degismis")
 
-    print("\n13. DIS VERITABANI KUME ESLEMESI VE KAPSAM DENETIMI")
+    print(u'\n13. EXTERNAL DATABASE SET MAPPING AND COVERAGE AUDIT')
     # 2026-08-01'de bulunan hata: ROD_v1.2_operon_variants.fasta okaryot
     # yalnizdir (60320/60320 Eukaryota) ama A1/A2/B siniflarina atanmisti.
     # 71 arke/bakteri cifti icin "hedef disi urun yok" yazildi; oysa o
@@ -433,7 +433,7 @@ def testler(a):
     else:
         sina("blastn/makeblastdb kurulu", False, "kapsam testleri atlandi")
 
-    print("\n14. KENDI TAKSONU ILE YABANCI TAKSON AYRIMI")
+    print(u'\n14. SEPARATING THE OWN TAXON FROM A FOREIGN TAXON')
     # 2026-08-01: geniş taramada en yuksek "hedef disi urun" sayilarinin bir
     # kismi hedefin KENDISIYDI (Methanothrix hedefi SILVA'daki Methanothrix
     # kayitlarini cogaltiyor). Ham sayiya gore siralamak yanlis primerleri
@@ -626,7 +626,7 @@ def testler(a):
     sina("kendi vurusu yoksa referans soyagaci bos",
          DV._baskin_soy([]) == [])
 
-    print("\n16. KARAR DUZEYI DENETIMI (27): TUR VE CINS OZGULLUGU")
+    print(u'\n16. DECISION LEVEL AUDIT (27): SPECIES AND GENUS SPECIFICITY')
     # Toplanti karari alti hedefte TUR, dort hedefte CINS ozgulluk istiyor.
     # 09 numunedeki rakiplere, 14 dis veritabanlarina bakar; ikisi de
     # "kendi cinsinin oteki TURLERINDEN ayiriyor mu" sorusunu sormaz.
@@ -1046,7 +1046,7 @@ def main():
     testler(a)
     gecen = sum(1 for _, ok, _ in SONUC if ok)
     print("\n" + "=" * 72)
-    print("SONUC: %d testin %d tanesi gecti, %d tanesi kaldi"
+    print(u'RESULT: %d of %d tests passed, %d failed'
           % (len(SONUC), gecen, len(SONUC) - gecen))
     for ad, ok, ayrinti in SONUC:
         if not ok:

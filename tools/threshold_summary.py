@@ -309,7 +309,7 @@ def ayakta_kalma(kutular_a, kutular_b, ad_a, ad_b):
 # ------------------------------------------------------------------ selftest
 def selftest():
     print("=" * 72)
-    print("ESIK OZETI, BILINEN CEVAPLI SINAV")
+    print(u'THRESHOLD SUMMARY, A TEST WITH KNOWN ANSWERS')
     print("=" * 72)
     hata = 0
     def K(ad, bul, bek):

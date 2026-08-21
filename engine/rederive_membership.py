@@ -353,7 +353,7 @@ def main():
     for p, adi in ((KONS, 'konsensus_kanonik'), (FQ, 'fastq files')):
         if not os.path.isdir(p): sys.exit('HATA: %s klasoru yok: %s' % (adi, p))
 
-    print('=' * 70); print('  UYELIGI OLCULEN KIMLIKTEN YENIDEN TURETME'); print('=' * 70)
+    print('=' * 70); print(u'  RE-DERIVING MEMBERSHIP FROM THE MEASURED IDENTITY'); print('=' * 70)
     print('  Proje  : %s' % KOK); print('  Cikti  : %s' % CIK); print()
 
     # --- 0. envanter
@@ -428,7 +428,7 @@ def main():
         for k in probs: g.setdefault(bul(k), []).append(k)
         GRUPLAR[s] = sorted([sorted(v) for v in g.values()], key=lambda v: v[0])
     if any(k not in IC for k in ortak):
-        print('  [2/4] Ayirt edici k-mer ile okuma siniflamasi')
+        print(u'  [2/4] Classifying reads with discriminating k-mers')
         for s, gruplar in sorted(GRUPLAR.items()):
             hedefler = [k for k in ortak if sinifi(k) == s and k not in IC]
             if not hedefler: continue
