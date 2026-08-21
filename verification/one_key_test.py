@@ -133,7 +133,7 @@ def golge_kur(taban):
     # girmez (ESIK ALTI + ONERILMEZ). Beklenen sayi: 3.
     with io.open(os.path.join(taban, 'ESIK_VE_OLCUT_2026-08-08.tsv'), 'w',
                  encoding='utf-8') as fh:
-        fh.write(u'# sinama dosyasi\n')
+        fh.write(u'# test file\n')
         fh.write(u'hedef\tESKI_HUKUM\tYENI_HUKUM\tdCq_olculen\n')
         fh.write(u'A_hedefi\tKOSULLU\tSIPARIS EDILEBILIR (kosullu)\t7,28\n')
         fh.write(u'B_hedefi\tKOSULLU\tSIPARIS EDILEBILIR (kosullu)\t4,01\n')
@@ -224,32 +224,32 @@ def s1_sifirdan(ana):
     sina(u'S1 cikis kodu 0', rc == 0, u'rc=%d' % rc)
     sina(u'S1 on kontrol gecti', u'ON KONTROL GECTI' in out)
     for k in ('8', 'H', 'E', 'U', 'P', 'K', 'D', 'I', 'G', 'S'):
-        sina(u'S1 asama %s bitti' % k, d.get(k, {}).get('durum') == 'bitti',
+        sina(u'S1 stage %s finished' % k, d.get(k, {}).get('durum') == 'bitti',
              d.get(k, {}).get('durum', 'YOK'))
-    sina(u'S1 Kraken asamalari arac yok diye atlandi',
+    sina(u'S1 the Kraken stages were skipped for want of the tool',
          all(d.get(k, {}).get('durum', '').startswith('atlandi') for k in 'WXZ'),
          u'W=%s X=%s Z=%s' % tuple(d.get(k, {}).get('durum', '?') for k in 'WXZ'))
-    sina(u'S1 sira dogru: U, P den once kostu',
+    sina(u'S1 the order is right: U ran before P',
          out.index(u'>> [') >= 0 and
          out.find(u'\n>> [') >= 0 and
          out.find(u'] U ') < out.find(u'] P '),
          u'U konumu %d, P konumu %d' % (out.find(u'] U '), out.find(u'] P ')))
     sina(u'S1 sira dogru: P, K, D bu sirada',
          out.find(u'] P ') < out.find(u'] K ') < out.find(u'] D '))
-    sina(u'S1 sira dogru: I, G den once',
+    sina(u'S1 the order is right: I before G',
          out.find(u'] I ') < out.find(u'] G '))
     ozet = os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md')
-    sina(u'S1 sabah ozeti uretildi', os.path.exists(ozet))
+    sina(u'S1 the morning summary was produced', os.path.exists(ozet))
     m = io.open(ozet, encoding='utf-8').read() if os.path.exists(ozet) else u''
-    sina(u'S1 ozette "DUSEN ASAMA YOK" yaziyor', u'DÜŞEN AŞAMA YOK' in m)
-    sina(u'S1 ozette siparis tablosu var', u'KOSULLU' in m and u'A_hedefi' in m)
-    sina(u'S1 siparis sayimi dogru (3 girer, 2 girmez)',
+    sina(u'S1 the summary says "DUSEN ASAMA YOK"', u'DÜŞEN AŞAMA YOK' in m)
+    sina(u'S1 the summary holds the order table', u'KOSULLU' in m and u'A_hedefi' in m)
+    sina(u'S1 the order count is right (3 in, 2 out)',
          u'SİPARİŞ EDİLEBİLİR: 3 çift = 6 oligo' in m and u'Sipariş dışı 2 çift' in m,
          u'ozette bulunan: %s' % (u' | '.join(
              x.strip() for x in m.splitlines() if u'SİPARİŞ EDİLEBİLİR' in x) or u'yok'))
-    sina(u'S1 siparis tablosu ESIK_VE_OLCUT dosyasindan okundu',
+    sina(u'S1 the order table was read from the ESIK_VE_OLCUT file',
          u'ESIK_VE_OLCUT_2026-08-08.tsv' in m and u'YENI_HUKUM' in m)
-    sina(u'S1 gunluk dosyasi zaman damgali',
+    sina(u'S1 the log file is time stamped',
          any(x.startswith('gunluk_') for x in
              os.listdir(os.path.join(t, 'TEK_TUS_SONUC'))))
     return t
@@ -263,10 +263,10 @@ def s2_devam(ana, s1_taban):
     gecen = time.time() - t0
     d = durum_oku(t)
     sina(u'S2 cikis kodu 0', rc == 0, u'rc=%d' % rc)
-    sina(u'S2 P atlandi (kontrol noktasi gecerli)',
+    sina(u'S2 P was skipped (the checkpoint is valid)',
          u'>> P' in out and u'ATLANDI' in out.split(u'>> P')[1][:400],
          out.split(u'>> P')[1][:120].replace(u'\n', u' ') if u'>> P' in out else u'')
-    sina(u'S2 hepsi ikinci kosuda hizli bitti (< 40 sn)', gecen < 40,
+    sina(u'S2 everything finished quickly on the second run (< 40 s)', gecen < 40,
          u'%.1f sn' % gecen)
     sina(u'S2 durum.json korundu', d.get('D', {}).get('durum') == 'bitti')
     return t
@@ -282,15 +282,15 @@ def s3_bayat(ana, taban):
         fh.write(u'hedef\tklad\nX\tBacteria\n')
     os.utime(hk, (time.time() + 5, time.time() + 5))   # ciktidan KESIN yeni
     rc, out = kos(taban, ek=['--plan'])
-    sina(u'S3 D "BAYAT" diye isaretlendi',
+    sina(u'S3 D was marked "BAYAT"',
          u'D  KOSACAK' in out and u'BAYAT' in out.split(u'D  KOSACAK')[1][:300],
          out.split(u'D  KOSACAK')[1][:150].replace(u'\n', u' ')
-         if u'D  KOSACAK' in out else u'D KOSACAK satiri yok')
-    sina(u'S3 bayat olmayan asamalar hala ATLANIR',
+         if u'D  KOSACAK' in out else u'there is no D KOSACAK row')
+    sina(u'S3 the stages that are not stale are still SKIPPED',
          u'I  ATLANIR' in out and u'G  ATLANIR' in out)
     rc, out = kos(taban)
     d = durum_oku(taban)
-    sina(u'S3 yeniden kosuldu ve bitti', d.get('D', {}).get('durum') == 'bitti'
+    sina(u'S3 it ran again and finished', d.get('D', {}).get('durum') == 'bitti'
          and d.get('D', {}).get('sure', 0) > 0, u'sure=%s' % d.get('D', {}).get('sure'))
     return taban
 
@@ -305,11 +305,11 @@ def s4_eksik_dosya(ana):
     rc, out = kos(t)
     sina(u'S4 cikis kodu 2 (on kontrol kapisi)', rc == 2, u'rc=%d' % rc)
     sina(u'S4 "ON KONTROL DUSTU" yazdi', u'ON KONTROL DUSTU' in out)
-    sina(u'S4 eksik SILVA indeksini adiyla yazdi',
+    sina(u'S4 it named the missing SILVA index',
          u'SILVA_138.2_SSURef_NR99.fasta' in out and u'MFE indeksi' in out)
-    sina(u'S4 eksik fastq klasorunu adiyla yazdi', u'fastq files' in out)
-    sina(u'S4 kurulum komutunu yazdi', u'mfeprimer index -i' in out)
-    sina(u'S4 HICBIR ASAMA KOSMADI',
+    sina(u'S4 it named the missing fastq directory', u'fastq files' in out)
+    sina(u'S4 it wrote the install command', u'mfeprimer index -i' in out)
+    sina(u'S4 NO STAGE RAN',
          u'>> [1/' not in out and not os.path.exists(
              os.path.join(t, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')))
     return t
@@ -325,23 +325,23 @@ def s5_asama_dustu(ana):
     ayar_yaz(t, a)
     rc, out = kos(t)
     d = durum_oku(t)
-    sina(u'S5 zincir cikis kodu 3', rc == 3, u'rc=%d' % rc)
-    sina(u'S5 P DUSTU (cikti dolu olsa da rc!=0 maskelenmedi)',
+    sina(u'S5 the chain exit code is 3', rc == 3, u'rc=%d' % rc)
+    sina(u'S5 P FAILED (rc!=0 was not masked even though the output was not empty)',
          d.get('P', {}).get('durum') == 'DUSTU', d.get('P', {}).get('durum', 'YOK'))
     sina(u'S5 dusme sebebi cikis kodunu yaziyor',
          'CIKIS KODU 3' in (d.get('P', {}).get('sebep') or ''),
          (d.get('P', {}).get('sebep') or '')[:90])
-    sina(u'S5 K atlandi (bagimli)', d.get('K', {}).get('durum') == 'atlandi (bagimli)',
+    sina(u'S5 K was skipped (dependent)', d.get('K', {}).get('durum') == 'atlandi (bagimli)',
          d.get('K', {}).get('durum', 'YOK'))
-    sina(u'S5 D atlandi (bagimli)', d.get('D', {}).get('durum') == 'atlandi (bagimli)',
+    sina(u'S5 D was skipped (dependent)', d.get('D', {}).get('durum') == 'atlandi (bagimli)',
          d.get('D', {}).get('durum', 'YOK'))
     sina(u'S5 BAGIMSIZ asamalar (I, G) yine de kostu',
          d.get('I', {}).get('durum') == 'bitti' and d.get('G', {}).get('durum') == 'bitti',
          u'I=%s G=%s' % (d.get('I', {}).get('durum'), d.get('G', {}).get('durum')))
     m = io.open(os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md'),
                 encoding='utf-8').read()
-    sina(u'S5 ozet "DUSEN ASAMALAR" bolumu acti', u'DÜŞEN AŞAMALAR' in m)
-    sina(u'S5 ozet DUSTU kelimesini P satirinda tasiyor', u'DUSTU' in m)
+    sina(u'S5 the summary opened a "DUSEN ASAMALAR" section', u'DÜŞEN AŞAMALAR' in m)
+    sina(u'S5 the summary carries the word DUSTU on the P row', u'DUSTU' in m)
     return t
 
 
@@ -354,12 +354,12 @@ def s6_bos_cikti(ana):
     ayar_yaz(t, a)
     rc, out = kos(t)
     d = durum_oku(t)
-    sina(u'S6 K DUSTU (bos cikti geciyor sayilmadi)',
+    sina(u'S6 K FAILED (an empty output did not count as passing)',
          d.get('K', {}).get('durum') == 'DUSTU', d.get('K', {}).get('durum', 'YOK'))
-    sina(u'S6 sebep "BOS" diyor', u'BOS' in (d.get('K', {}).get('sebep') or u''),
+    sina(u'S6 the reason says "BOS"', u'BOS' in (d.get('K', {}).get('sebep') or u''),
          (d.get('K', {}).get('sebep') or u'')[:90])
-    sina(u'S6 D atlandi (bagimli)', d.get('D', {}).get('durum') == 'atlandi (bagimli)')
-    sina(u'S6 zincir cikis kodu 3', rc == 3, u'rc=%d' % rc)
+    sina(u'S6 D was skipped (dependent)', d.get('D', {}).get('durum') == 'atlandi (bagimli)')
+    sina(u'S6 the chain exit code is 3', rc == 3, u'rc=%d' % rc)
     return t
 
 
@@ -373,13 +373,13 @@ def s7_kesinti(ana):
     rc, out = kos(t, sinyal_sn=14)
     d = durum_oku(t)
     sina(u'S7 kesme cikis kodu 130', rc == 130, u'rc=%d' % rc)
-    sina(u'S7 "KESME ISTEGI ALINDI" yazildi', u'KESME ISTEGI ALINDI' in out)
-    sina(u'S7 D kesildi olarak damgalandi', d.get('D', {}).get('durum') == 'kesildi',
+    sina(u'S7 "KESME ISTEGI ALINDI" was written', u'KESME ISTEGI ALINDI' in out)
+    sina(u'S7 D was stamped as interrupted', d.get('D', {}).get('durum') == 'kesildi',
          d.get('D', {}).get('durum', 'YOK'))
-    sina(u'S7 D den ONCEKI asamalar bitti damgali',
+    sina(u'S7 the stages BEFORE D are stamped finished',
          all(d.get(k, {}).get('durum') == 'bitti' for k in ('H', 'E', 'U', 'P', 'K')),
          u', '.join(u'%s=%s' % (k, d.get(k, {}).get('durum')) for k in 'HEUPK'))
-    sina(u'S7 kesintide de sabah ozeti yazildi',
+    sina(u'S7 the morning summary was written on an interruption too',
          os.path.exists(os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md')))
     # DEVAM: ayni komut yeniden kosuluyor
     a['D'] = dict(rc=0, bekle=0, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
@@ -390,11 +390,11 @@ def s7_kesinti(ana):
     gecen = time.time() - t0
     d2 = durum_oku(t)
     sina(u'S7-devam cikis kodu 0', rc2 == 0, u'rc=%d' % rc2)
-    sina(u'S7-devam bitmis asamalar ATLANDI',
+    sina(u'S7-continue the finished stages were SKIPPED',
          u'ATLANDI' in out2 and u'>> [1/' in out2)
-    sina(u'S7-devam D artik bitti', d2.get('D', {}).get('durum') == 'bitti',
+    sina(u'S7-continue D is finished now', d2.get('D', {}).get('durum') == 'bitti',
          d2.get('D', {}).get('durum', 'YOK'))
-    sina(u'S7-devam hizli bitti (< 40 sn)', gecen < 40, u'%.1f sn' % gecen)
+    sina(u'S7-continue it finished quickly (< 40 s)', gecen < 40, u'%.1f sn' % gecen)
     return t
 
 
@@ -411,7 +411,7 @@ def s8_belirlenimci_imza(ana, taban):
         cev = dict(os.environ, PYTHONHASHSEED=tohum)
         r = subprocess.run([sys.executable, '-c', kod], capture_output=True, env=cev)
         im.append(r.stdout.decode().strip() or r.stderr.decode()[-200:])
-    sina(u'S8 imza uc farkli PYTHONHASHSEED ile AYNI',
+    sina(u'S8 the signature is THE SAME under three different PYTHONHASHSEED values',
          len(set(im)) == 1 and len(im[0]) == 16, u' / '.join(im))
     return taban
 
@@ -422,7 +422,7 @@ def s9_yalniz_atla(ana):
     ayar_yaz(t, basarili_ayar())
     rc, out = kos(t, ek=['--yalniz', '8S'])
     d = durum_oku(t)
-    sina(u'S9 --yalniz 8S: yalniz 8 ve S kaydedildi',
+    sina(u'S9 --yalniz 8S: only 8 and S were recorded',
          set(d.keys()) <= {'8', 'S'} and '8' in d, u'anahtarlar: %s' % sorted(d.keys()))
     t2 = golge_kur(os.path.join(ana, 's9b'))
     ayar_yaz(t2, basarili_ayar())
@@ -430,7 +430,7 @@ def s9_yalniz_atla(ana):
     d2 = durum_oku(t2)
     sina(u'S9 --atla IGD: I, G, D hic kaydedilmedi',
          not ({'I', 'G', 'D'} & set(d2.keys())), u'anahtarlar: %s' % sorted(d2.keys()))
-    sina(u'S9 --atla sonrasi cikis kodu 0', rc2 == 0, u'rc=%d' % rc2)
+    sina(u'S9 the exit code after --atla is 0', rc2 == 0, u'rc=%d' % rc2)
     return t
 
 
@@ -447,7 +447,7 @@ def main():
     os.makedirs(ana, exist_ok=True)
     print(u'=' * 78)
     print(u'  one_key.py SENARYO SINAMALARI')
-    print(u'  golge kok: %s   (bagli klasore TEK BAYT yazilmaz)' % ana)
+    print(u'  shadow root: %s   (NOT ONE BYTE is written to the mounted directory)' % ana)
     print(u'=' * 78)
 
     t0 = time.time()
