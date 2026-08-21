@@ -1,53 +1,59 @@
 # -*- coding: utf-8 -*-
-"""SECENEK 5 - Konsensusleri ham okumalardan YENIDEN URET.
+"""OPTION 5 - REGENERATE the consensuses from the raw reads.
 
-YONTEM
-------
-Her kutu icin okumalar bir SABLONA (mevcut konsensus; yoksa en iyi okuma)
-ortak k-mer capalariyla oturtulur ve sutun sutun oy verilir. Iki AYRI yontem
-kullanilir:
+THE METHOD
+----------
+For each bin the reads are seated on a TEMPLATE (the existing consensus, or the
+best read if there is none) with shared k-mer anchors, and voted on column by
+column. TWO SEPARATE methods are used:
 
-  A) KALITE AGIRLIKLI (esigi dusurulmus): her oy, okumanin o bazdaki Phred
-     kalitesiyle agirliklanir; agirlikli cogunluk >= %50 ise baz cagrilir.
-  B) COGUNLUK OYU (agirliksiz): duz plurality.
+  A) QUALITY WEIGHTED (with a lowered threshold): every vote is weighted by the
+     read's Phred quality at that base; the base is called when the weighted
+     majority is >= 50%.
+  B) MAJORITY VOTE (unweighted): a flat plurality.
 
-Iki yontem AYNI bazi verirse baz KESINDIR. Ayrilirlarsa o sutun MASKELENIR
-(N yazilir). DEJENERE BAZ URETILMEZ - cikti yalniz A/C/G/T/N icerir.
+If the two methods give THE SAME base, the base is DEFINITE. Where they differ,
+that column is MASKED (an N is written). NO DEGENERATE BASE IS PRODUCED; the
+output holds only A/C/G/T/N.
 
-BILINEN TUZAKLAR (hepsi bilerek ele alindi)
--------------------------------------------
-1. Okuma uzunluk filtresi: A2 sinifi okumalari 4,2-4,5 kb, F2 sinifi ~3,7 kb.
-   Eski 200-3000 bp filtresi bu iki sinifi tumden eliyordu. Burada filtre
-   200-%(max)d bp'dir ve sinif bazinda hangi araligin kullanildigi raporlanir.
-2. Konsensus YONU: okumalar iki yonde gelir, saklanan konsensuslerin bir kismi
-   ters tumleyen yonde. Her okuma iki yonde de capalanir, cok capa hangisinde
-   tutuyorsa o yon kullanilir - yon NORMALIZE edilir.
-3. 5' UC KESILMEZ: cikti sablon boyundadir; kapsanmayan sutunlar kirpilmaz,
-   N ile isaretlenir. Boylece koordinatlar bozulmaz.
+KNOWN TRAPS (all of them handled deliberately)
+----------------------------------------------
+1. The read length filter: class A2 reads are 4.2-4.5 kb and class F2 ~3.7 kb.
+   The old 200-3000 bp filter discarded both classes entirely. The filter here is
+   200-%(max)d bp, and which range was used per class is reported.
+2. The consensus ORIENTATION: reads come in both directions and some of the stored
+   consensuses are in the reverse complement direction. Every read is anchored in
+   both directions and whichever holds more anchors is used, so the orientation is
+   NORMALISED.
+3. THE 5' END IS NOT TRIMMED: the output is at template length; uncovered columns
+   are not clipped but marked with N. That way the coordinates are not disturbed.
+
 """
-# ---------------------------------------------------------------------------
-# build_consensus.py — her kutunun konsensus dizisini ham fastq okumalarindan
-#                     iki bagimsiz yontemle yeniden uretir; yontemler ayrilan
-#                     sutunlari N ile maskeler.
+# -------------------------------------------------------------------------
+# build_consensus.py regenerates each bin's consensus sequence from the raw fastq
+#                     reads by two independent methods; where the methods disagree,
+#                     the column is masked with N.
 #
-# GIRDI  : hedefler.kutular() ile "fastq files" altindaki okumalar (kutu basina
-#          en cok MAX_OKUMA okuma, sabit tohum); sablon olarak
-#          hedefler.konsensusler()'in verdigi kanonik konsensus, o yoksa en iyi
-#          okuma; orientation.py ile yon normalizasyonu.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/konsensus_yeni/ altina kutu basina fasta;
-#          KAPSAMLI_ARAMA_SONUC/KONSENSUS_YENIDEN_URETIM.md ve
-#          konsensus_yeniden_uretim.tsv (calistir bu iki yolu dondurur);
-#          kutu basina kontrol noktasi. Uretilen dosyalar DOGRUDAN kullanilmaz;
-#          run_all.py once build_canonical.py --oncelik yeni ile bunlari kanonik
-#          klasore yon normalizasyonundan gecirerek alir.
-# CAGRAN : verification/full_chain.py tusu 6 (--mod konsensus) ve tusu 9 icindeki
-#          3. asama (hepsi.calistir -> konsensus_uret.calistir).
+# INPUT  : the reads under "fastq files" through hedefler.kutular() (at most
+#          MAX_OKUMA reads per bin, with a fixed seed); as the template, the
+#          canonical consensus hedefler.konsensusler() gives, and failing that the
+#          best read; orientation normalisation through orientation.py.
+# OUTPUT : one fasta per bin under KAPSAMLI_ARAMA_SONUC/konsensus_yeni/;
+#          KAPSAMLI_ARAMA_SONUC/KONSENSUS_YENIDEN_URETIM.md and
+#          konsensus_yeniden_uretim.tsv (calistir returns those two paths); plus a
+#          checkpoint per bin. The files produced are NOT USED DIRECTLY; run_all.py
+#          first takes them into the canonical directory through
+#          build_canonical.py --oncelik yeni, passing them through orientation
+#          normalisation.
+# CALLED BY: verification/full_chain.py key 6 (--mod konsensus) and the 3rd stage
+#          inside key 9 (hepsi.calistir -> konsensus_uret.calistir).
 #
-# YON burada uc ayri noktada ele alinir (kosunun basindaki kapi, sablonun
-# kanonige cevrilmesi ve cikti yazilmadan onceki son olcum) cunku uretilen yeni
-# konsensus bir sonraki asamanin omurgasi olur; ters yonde uretilmis bir omurga
-# sonraki butun in-silico PCR sonuclarini sessizce sifirlar.
-# ---------------------------------------------------------------------------
+# ORIENTATION is handled at three separate points here (the gate at the start of the
+# run, converting the template to canonical, and a final measurement before the
+# output is written), because the new consensus produced becomes the next stage's
+# backbone; a backbone produced in reverse silently zeroes every in-silico PCR result
+# that follows.
+# -------------------------------------------------------------------------
 import os, gzip, glob, time, json, math
 from collections import defaultdict, Counter
 from . import config as C
@@ -55,11 +61,11 @@ from . import engine_gateway, hedefler as H, kontrol
 from . import orientation
 
 K = 15                      # capa k-mer boyu
-MIN_DERINLIK = 5            # bir sutunun cagrilabilmesi icin en az okuma
+MIN_DERINLIK = 5            # the minimum reads for a column to be called
 AGIRLIK_ESIGI = 0.50        # kalite agirlikli yontemin esigi (DUSURULMUS)
 COGUNLUK_ESIGI = 0.50
 OKUMA_MIN, OKUMA_MAX = 200, 8000     # A2 (4,5 kb) ve F2 (3,7 kb) ELENMEZ
-MAX_OKUMA = 600             # kutu basina kullanilan en fazla okuma
+MAX_OKUMA = 600             # the most reads used per bin
 
 
 def fastq_oku(yol, n=MAX_OKUMA, tohum=C.NUMUNE_TOHUM):
@@ -87,7 +93,7 @@ def _kmer_indeksi(sablon):
     d = defaultdict(list)
     for i in range(len(sablon) - K + 1):
         d[sablon[i:i + K]].append(i)
-    # tekrar eden k-mer'ler capa olarak GUVENILMEZ - atilir
+    # repeated k-mers are UNRELIABLE as anchors and are discarded
     return {k: v[0] for k, v in d.items() if len(v) == 1}
 
 
@@ -117,15 +123,17 @@ def _capala(okuma, kal, idx):
 
 def kutu_konsensusu(reads, sablon):
     """Sutun bazli oy tablosu -> iki yontem -> uzlasi dizisi."""
-    # Her okuma HEM duz HEM ters tumleyen halinde sablona capalanir ve daha cok
-    # capa tutan yon secilir. Bu sart, cunku nanopore okumalari cift yonlu gelir;
-    # tek yonde capalansa okumalarin yaklasik yarisi hicbir sutuna oy veremez ve
-    # derinlik yariya duser. Secilen yon sayaci (ters) raporda gorunur.
+    # Every read is anchored to the template BOTH as itself AND as its reverse
+    # complement, and the direction holding more anchors is chosen. That is required,
+    # because nanopore reads come in both directions; anchored in one direction only,
+    # roughly half the reads can vote on no column at all and the depth halves. The
+    # counter of the chosen direction (ters) appears in the report.
     #
-    # Iki yontem AYRI tutulur ve ancak ikisi AYNI bazi verirse baz cagrilir;
-    # ayrildiklari sutun N ile maskelenir. Boylece belirsizlik gizlenmez, diziye
-    # yazilir. Dejenere IUPAC bazi URETILMEZ: dejenere baz sentezde birden fazla
-    # oligo demektir ve panelin kurallarina aykiridir - belirsizlik N kalir.
+    # The two methods are kept SEPARATE and a base is called only when both give THE
+    # SAME base; a column where they differ is masked with N. That way the uncertainty
+    # is not hidden but written into the sequence. NO degenerate IUPAC base IS PRODUCED:
+    # a degenerate base means more than one oligo at synthesis and is against the panel's
+    # rules, so the uncertainty stays an N.
     idx = _kmer_indeksi(sablon)
     L = len(sablon)
     agir = [defaultdict(float) for _ in range(L)]
@@ -173,12 +181,15 @@ def kutu_konsensusu(reads, sablon):
 
 
 def _sablon_sec(kutu, kons_haritasi, reads):
-    """YON NORMALIZASYONU (2026-08-02): sablon KANONIGE (SENSE) cevrilir.
-    Onceki hal: sablon mevcut konsensusten aliniyordu ve o klasor KARISIK yonluydu;
-    okumalar sablona normalize ediliyordu ama SABLONUN KENDI YONU hic normalize
-    edilmiyordu. Sonuc: cikti sablonun yonunu miras aliyordu (olculdu:
-    konsensus_yeni 28 antisense / 7 sense). Ters yonlu konsensuste in-silico PCR
-    sessizce 0 urun verir."""
+    """ORIENTATION NORMALISATION (2026-08-02): the template is converted to CANONICAL
+        (SENSE).
+        How it was before: the template was taken from the existing consensus and that
+        directory was MIXED orientation; the reads were normalised to the template, but
+        THE TEMPLATE'S OWN ORIENTATION was never normalised. The result: the output
+        inherited the template's orientation (measured: konsensus_yeni was 28 antisense /
+        7 sense). On a reversed consensus, in-silico PCR silently gives 0 products.
+
+    """
     sn = yon.sinifi(kutu)
     k = kons_haritasi.get(kutu)
     if k:
@@ -186,7 +197,7 @@ def _sablon_sec(kutu, kons_haritasi, reads):
         return d, 'mevcut konsensus (yon=%s%s)' % (karar, ', KANONIGE CEVRILDI' if cev else '')
     if not reads:
         return None, 'okuma yok'
-    # konsensusu olmayan kutu (oksuz): en uzun okumalarin ortancasi sablon olur
+    # a bin with no consensus (an orphan): the median of the longest reads becomes the template
     sirali = sorted(reads, key=lambda x: -len(x[0]))[:15]
     s = sirali[len(sirali) // 2][0]
     d, karar, cev = yon.kanonik(motor.clean(s), yon.sinifi(kutu))
@@ -195,9 +206,9 @@ def _sablon_sec(kutu, kons_haritasi, reads):
 
 
 def calistir(yaz, sure, yalniz=None, yeniden=False):
-    # KAPI: yon normalizasyonu sinamasi gecmeden konsensus uretilmez.
-    # Gerekce: bu adimin ciktisi yanlis yonde cikarsa butun gece bosa gider
-    # (ters yonlu konsensuste in-silico PCR SESSIZCE 0 urun verir).
+    # THE GATE: no consensus is produced before the orientation normalisation test passes.
+    # The reason: if the output of this step comes out in the wrong orientation the whole
+    # night is wasted (on a reversed consensus, in-silico PCR SILENTLY gives 0 products).
     from . import self_test as _KS
     if not _KS.yon_sinamasi(yaz):
         yaz(u'   THE ORIENTATION TEST FAILED, so consensus generation WAS NOT STARTED.')
@@ -274,8 +285,9 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
                      yontemler_ayrildi=sum(1 for a, b in zip(r['A'], r['B'])
                                            if a != b and 'N' not in (a, b)),
                      dizi=r['uzlasi'])
-        # CIKTI KANONIGE CEVRILIR - son emniyet kemeri. Sablon kanonik olsa bile
-        # cikti burada bir kez daha olculur; BELIRSIZ cikarsa basliga yazilir.
+        # THE OUTPUT IS CONVERTED TO CANONICAL - the last seat belt. Even when the template
+        # is canonical, the output is measured once more here; if it comes out UNCERTAIN that
+        # is written into the header.
         _ck, _karar, _cev = yon.kanonik(r['uzlasi'], yon.sinifi(k['kutu']))
         r['uzlasi'] = _ck
         satir['cikti_yon'] = _karar
@@ -298,7 +310,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         print('       gecen %s  tahmini kalan %s' % (
             sure(gecen), sure(gecen / i * (len(kut) - i))), flush=True)
 
-    # rapor BUTUN kontrol dosyalarindan uretilir (onceki kosular dahil)
+    # the report is produced from ALL the checkpoint files (earlier runs included)
     hepsi = []
     for f in sorted(os.listdir(C.KONTROL)):
         if f.startswith('konsensus_') and f.endswith('.json'):
