@@ -88,15 +88,15 @@ OZEL_IS="$PROJE/SONUCLAR/kraken_ozelvt"
 
 log_ac() {
   local ad="$1"
-  mkdir -p "$PROJE/WSL/loglar"
-  LOG="$PROJE/WSL/loglar/130_${ad}_$(date '+%Y%m%d_%H%M%S').log"
+  mkdir -p "$PROJE/kurulum_loglari"
+  LOG="$PROJE/kurulum_loglari/kraken_${ad}_$(date '+%Y%m%d_%H%M%S').log"
   exec > >(tee -a "$LOG") 2>&1
   echo "=============================================================="
-  echo "kraken_tool  tus: $ad  baslangic $(date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "  makine: $(hostname)  $(uname -sr)  $IPLIK iplik"
+  echo "kraken_tool  key: $ad  start $(date '+%Y-%m-%d %H:%M:%S %Z')"
+  echo "  machine: $(hostname)  $(uname -sr)  $IPLIK threads"
   echo "  log   : $LOG"
   echo "=============================================================="
-  trap 'echo; echo "bitis $(date "+%Y-%m-%d %H:%M:%S %Z")"; echo "log: $LOG"' EXIT
+  trap 'echo; echo "finished $(date "+%Y-%m-%d %H:%M:%S %Z")"; echo "log: $LOG"' EXIT
 }
 
 # --- ortam. rerun_kraken.sh ile ayni: kraken2 micromamba "mikro" icinde --
@@ -196,7 +196,7 @@ ortam_ac() {
       done
       export PATH="$shim:$PATH"
       KRAKEN2_BIN="$shim/kraken2"; export KRAKEN2_BIN
-      KRAKEN_YONTEM="micromamba run -n $envad (ikili dogrudan calismadi)"
+      KRAKEN_YONTEM="micromamba run -n $envad (the binary did not run directly)"
       return 0
     fi
   done
@@ -262,22 +262,22 @@ tus_kraken_yol() {
     return 0
   fi
   {
-    echo "kraken2 bulunamadi. TAM OLARAK su yerlere bakildi:"
+    echo "kraken2 was not found. These are EXACTLY the places that were checked:"
     printf '%s\n' "$BAKILAN_YERLER" | sed '/^$/d'
     echo
-    echo "Bu projedeki beklenen yer:  \$HOME/micromamba/envs/${ORTAM:-mikro}/bin/kraken2"
-    echo "  (WSL kullanicisi yerlifan ise: /home/yerlifan/micromamba/envs/mikro/bin/kraken2)"
+    echo "The place this project expects:  \$HOME/micromamba/envs/${ORTAM:-mikro}/bin/kraken2"
+    echo "  (for a WSL user named alice that is: /home/alice/micromamba/envs/mikro/bin/kraken2)"
     echo
-    echo "KURULUM - bu projede kullanilan yol:"
-    echo "    bash $install.sh araclar"
-    echo "Elle kurmak icin:"
+    echo "INSTALL - the route this project uses:"
+    echo "    bash install.sh tools"
+    echo "To install it by hand:"
     echo "    micromamba create -n mikro -c bioconda -c conda-forge kraken2 bracken"
     echo
-    echo "ZATEN KURULUYSA ortam adi farkli olabilir:"
-    echo "    micromamba env list        (ya da: conda env list)"
-    echo "    ORTAM=<ortam_adi> bash $0 kraken-yol"
-    echo "Ikilinin tam yolunu biliyorsaniz:"
-    echo "    KRAKEN2_BIN=/tam/yol/kraken2 bash $0 kraken-yol"
+    echo "IF IT IS ALREADY INSTALLED the environment may have a different name:"
+    echo "    micromamba env list        (or: conda env list)"
+    echo "    ORTAM=<environment_name> bash $0 kraken-yol"
+    echo "If you know the full path of the binary:"
+    echo "    KRAKEN2_BIN=/full/path/kraken2 bash $0 kraken-yol"
   } >&2
   return 1
 }
@@ -286,19 +286,19 @@ kraken_sart() {
   ortam_ac
   if ! command -v kraken2 >/dev/null 2>&1; then
     echo
-    echo "HATA: kraken2 bulunamadi. Sessizce atlanmiyor, is burada duruyor."
+    echo "ERROR: kraken2 was not found. This is not skipped silently, the work stops here."
     echo
-    echo "  Gereken: kraken2 surum 2.1 ve ustu."
-    echo "  Bu projede kullanilan kurulum yolu:"
-    echo "      bash $install.sh araclar"
-    echo "  Elle:"
+    echo "  Needed: kraken2 version 2.1 or above."
+    echo "  The installation route this project uses:"
+    echo "      bash install.sh tools"
+    echo "  By hand:"
     echo "      micromamba create -n mikro -c bioconda -c conda-forge kraken2 bracken"
-    echo "  Zaten kuruluysa ortami etkinlestirin:"
+    echo "  If it is already installed, activate the environment:"
     echo "      export PATH=\"\$HOME/bin:\$PATH\""
     echo "      export MAMBA_ROOT_PREFIX=\"\$HOME/micromamba\""
     echo "      eval \"\$(micromamba shell hook -s bash)\""
     echo "      micromamba activate ${ORTAM:-mikro}"
-    echo "  Ortam adini bilmiyorsaniz:  micromamba env list"
+    echo "  If you do not know the environment name:  micromamba env list"
     exit 1
   fi
   echo "kraken2: ${KRAKEN2_BIN:-$(command -v kraken2)}   $(kraken2 --version 2>&1 | head -1)"
@@ -319,44 +319,44 @@ kraken_sart() {
 vt_hazir_mi() {
   local d="$1"
   if [ ! -d "$d" ]; then
-    echo "  klasor yok: $d"
+    echo "  no such directory: $d"
     return 2
   fi
   local eksik=0
   for g in hash.k2d opts.k2d taxo.k2d; do
     if [ -s "$d/$g" ]; then
-      printf "    %-10s var   %8s   %s\n" "$g" \
+      printf "    %-10s present   %8s   %s\n" "$g" \
         "$(du -h "$d/$g" | cut -f1)" \
         "$(date -r "$d/$g" '+%Y-%m-%d %H:%M' 2>/dev/null || echo '?')"
     else
-      printf "    %-10s YOK\n" "$g"
+      printf "    %-10s ABSENT\n" "$g"
       eksik=1
     fi
   done
   if [ "$eksik" -eq 0 ]; then
-    echo "    -> indeks hazir"
+    echo "    -> the index is ready"
     return 0
   fi
   local ars
   ars=$(ls "$d"/*.tar.gz 2>/dev/null | head -3 || true)
   if [ -n "$ars" ]; then
     echo
-    echo "    INDEKS HAZIR DEGIL. Klasorde arsiv var ama acilmamis:"
+    echo "    THE INDEX IS NOT READY. There is an archive in the directory but it is not unpacked:"
     while IFS= read -r t; do
       [ -n "$t" ] && printf "      %-52s %8s  %s\n" "$(basename "$t")" \
         "$(du -h "$t" | cut -f1)" "$(date -r "$t" '+%Y-%m-%d' 2>/dev/null || echo '?')"
     done <<< "$ars"
     echo
-    echo "    Acmak icin (kendiliginden ACILMADI, onlarca GB yer kaplar):"
+    echo "    To unpack it (this does NOT happen on its own, it takes tens of GB):"
     echo "        cd $d"
     while IFS= read -r t; do
       [ -n "$t" ] && echo "        tar -xzvf $(basename "$t")"
     done <<< "$ars"
-    echo "    Once bos yer olcun:  df -h $d"
-    echo "    Actiktan sonra:      bash $0 vt-kimlik"
+    echo "    First measure the free space:  df -h $d"
+    echo "    After unpacking:     bash $0 vt-kimlik"
     return 1
   fi
-  echo "    INDEKS YOK, arsiv da yok: $d"
+  echo "    NO INDEX and no archive either: $d"
   return 2
 }
 
@@ -377,7 +377,7 @@ vt_hazir_mi() {
 # =========================================================================
 vt_surum() {
   local d="$1"
-  echo "  surum tespiti: $d"
+  echo "  version detection: $d"
   local hb hgb
   hb=$(stat -c%s "$d/hash.k2d" 2>/dev/null || echo 0)
   hgb=$((hb / 1073741824))
@@ -385,17 +385,17 @@ vt_surum() {
 
   # --- olcum 2: boyut ---
   local o2
-  if   [ "$hgb" -ge 125 ]; then o2="PlusPFP (tam)"
-  elif [ "$hgb" -ge 95  ]; then o2="PlusPF (tam)"
-  elif [ "$hgb" -ge 60  ]; then o2="Standard (tam)"
-  elif [ "$hgb" -ge 12  ]; then o2="kapakli surum (16 GB sinifi)"
-  elif [ "$hgb" -ge 5   ]; then o2="kapakli surum (8 GB sinifi)"
-  else                          o2="kucuk ya da ozel veritabani"
+  if   [ "$hgb" -ge 125 ]; then o2="PlusPFP (full)"
+  elif [ "$hgb" -ge 95  ]; then o2="PlusPF (full)"
+  elif [ "$hgb" -ge 60  ]; then o2="Standard (full)"
+  elif [ "$hgb" -ge 12  ]; then o2="capped version (16 GB class)"
+  elif [ "$hgb" -ge 5   ]; then o2="capped version (8 GB class)"
+  else                          o2="a small or custom database"
   fi
-  echo "    olcum 2 (boyut)  : $o2"
+  echo "    measurement 2 (size)    : $o2"
 
   # --- olcum 1: inspect ---
-  local o1="olculemedi"
+  local o1="not measured"
   local ins="$PROJE/SONUCLAR/vt_inspect_$(basename "$d").txt"
   if command -v kraken2-inspect >/dev/null 2>&1; then
     # ONBELLEK, AMA KAYNAK DAMGASIYLA (2026-08-04 duzeltmesi)
@@ -412,20 +412,20 @@ vt_surum() {
     [ -f "$damga_dosya" ] && damga_eski="$(cat "$damga_dosya" 2>/dev/null)"
     if [ ! -s "$ins" ] || [ "$damga_simdi" != "$damga_eski" ]; then
       if [ -s "$ins" ]; then
-        echo "    onbellekteki inspect ciktisi BASKA bir veritabanina ait"
-        echo "      (damga degisti: '$damga_eski' -> '$damga_simdi'), yeniden kosuluyor"
+        echo "    the cached inspect output belongs to a DIFFERENT database"
+        echo "      (the stamp changed: '$damga_eski' -> '$damga_simdi'), re-running"
       fi
-      echo "    kraken2-inspect calisiyor (1 ile 5 dakika surebilir, bir kez)"
+      echo "    kraken2-inspect is running (this can take 1 to 5 minutes, once)"
       mkdir -p "$(dirname "$ins")"
       if kraken2-inspect --db "$d" --threads "$IPLIK" > "$ins" 2>/dev/null; then
         printf '%s' "$damga_simdi" > "$damga_dosya"
       else
-        echo "    kraken2-inspect KOSMADI (cikis kodu sifir degil)."
+        echo "    kraken2-inspect DID NOT RUN (its exit code was not zero)."
         : > "$ins"
         rm -f "$damga_dosya"
       fi
     else
-      echo "    kraken2-inspect ciktisi onbellekte ve damga tutuyor: $ins"
+      echo "    the kraken2-inspect output is cached and the stamp matches: $ins"
     fi
     if [ -s "$ins" ]; then
       local bitki mantar protozoa insan virus arke
@@ -435,38 +435,38 @@ vt_surum() {
       insan=$(awk -F'\t' '$5=="9606"{print $2+0}' "$ins" | head -1); insan=${insan:-0}
       virus=$(awk -F'\t' '$5=="10239"{print $2+0}' "$ins" | head -1); virus=${virus:-0}
       arke=$(awk -F'\t' '$5=="2157"{print $2+0}' "$ins" | head -1); arke=${arke:-0}
-      printf "    icerik: arke %s, virus %s, insan %s, mantar %s, protozoa %s, BITKI %s\n" \
+      printf "    content: archaea %s, viruses %s, human %s, fungi %s, protozoa %s, PLANTS %s\n" \
              "$arke" "$virus" "$insan" "$mantar" "$protozoa" "$bitki"
       if   [ "$bitki" -gt 0 ] && [ "$mantar" -gt 0 ]; then o1="PlusPFP"
-      elif [ "$mantar" -gt 0 ]; then o1="PlusPF (bitki YOK)"
-      elif [ "$arke" -gt 0 ]; then o1="Standard (mantar ve bitki YOK)"
-      else o1="ozel ya da tanimlanamayan veritabani"
+      elif [ "$mantar" -gt 0 ]; then o1="PlusPF (NO plants)"
+      elif [ "$arke" -gt 0 ]; then o1="Standard (NO fungi and NO plants)"
+      else o1="a custom or unidentifiable database"
       fi
     fi
   else
-    echo "    kraken2-inspect yok, olcum 1 yapilamadi."
-    echo "      Kurmak icin: micromamba install -n ${ORTAM:-mikro} -c bioconda kraken2"
+    echo "    kraken2-inspect is missing, so measurement 1 could not be made."
+      echo "      To install it: micromamba install -n ${ORTAM:-mikro} -c bioconda kraken2"
   fi
-  echo "    olcum 1 (icerik) : $o1"
+  echo "    measurement 1 (content) : $o1"
 
   # --- iki olcumun uzlasisi ---
   echo
   case "$o1:$o2" in
-    "olculemedi:"*)
-      echo "    SONUC: BELIRSIZ. Yalnizca boyuta bakildi, icerik olculemedi."
-      echo "    Boyut PlusPF ile PlusPFP'yi ayirmaya TEK BASINA yetmez."
-      echo "    kraken2-inspect kurulmadan bu soru kapanmaz." ;;
-    "PlusPFP:PlusPFP (tam)")
-      echo "    SONUC: PlusPFP. Iki olcum de ayni seyi soyluyor." ;;
-    "PlusPF (bitki YOK):PlusPF (tam)")
-      echo "    SONUC: PlusPF. Iki olcum de ayni seyi soyluyor."
-      echo "    DIKKAT: bu PlusPFP DEGIL. Bitki icermez. Beklediginiz PlusPFP ise"
-      echo "    indirilen arsiv yanlis olabilir. PlusPFP adresi:"
+    "not measured:"*)
+      echo "    RESULT: UNCERTAIN. Only the size was looked at; the content could not be measured."
+      echo "    Size ON ITS OWN is not enough to tell PlusPF from PlusPFP."
+      echo "    this question does not close until kraken2-inspect is installed." ;;
+    "PlusPFP:PlusPFP (full)")
+      echo "    RESULT: PlusPFP. Both measurements say the same thing." ;;
+    "PlusPF (NO plants):PlusPF (full)")
+      echo "    RESULT: PlusPF. Both measurements say the same thing."
+      echo "    CAUTION: this is NOT PlusPFP. It holds no plants. If you expected PlusPFP,"
+      echo "    the downloaded archive may be the wrong one. The PlusPFP address:"
       echo "      https://genome-idx.s3.amazonaws.com/kraken/  (k2_pluspfp_*.tar.gz)" ;;
     *)
-      echo "    AYRILIK: icerik olcumu '$o1', boyut olcumu '$o2' diyor."
-      echo "    Iki olcum ayrildi, birine sessizce gecilmiyor. Icerik olcumu daha"
-      echo "    guvenilirdir ama once arsivin tam acildigini dogrulayin." ;;
+      echo "    DISAGREEMENT: the content measurement says '$o1', the size measurement says '$o2'."
+      echo "    The two measurements disagree, and neither is silently preferred. The content"
+      echo "    measurement is the more reliable one, but first confirm the archive unpacked fully." ;;
   esac
   VT_SURUM_SONUC="$o1 / $o2"
 
@@ -484,23 +484,25 @@ vt_surum() {
 # ayni sey olabilir ve karsilastirmanin anlami degisir.
 # =========================================================================
 eski_kosu_tespit() {
-  echo "ESKI KOSULAR HANGI VERITABANIYLA YAPILDI"
+  echo "WHICH DATABASE THE OLD RUNS USED"
   echo
-  echo "  a) Loglardan dogrudan kayit:"
+  echo "  a) A direct record from the logs:"
   local bulundu=0
-  for l in "$PROJE"/WSL/loglar/*.log; do
+  for l in "$PROJE"/kurulum_loglari/*.log; do
     [ -f "$l" ] || continue
     local yol boy
-    yol=$(grep -m1 -oE "veritabani *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
-    boy=$(grep -m1 -oE "hash\.k2d *var *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
+    # Bu grep KENDI loglarimizi okur. Ekran metni Ingilizceye cevrildi, ama
+    # eski loglar hala Turkce; ikisi de tutsun diye desen iki kelimeyi de alir.
+    yol=$(grep -m1 -oE "(veritabani|database) *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
+    boy=$(grep -m1 -oE "hash\.k2d *(var|present) *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
     if [ -n "$yol" ]; then
       printf "     %-46s  %-28s  hash %s\n" "$(basename "$l")" "$yol" "${boy:-?}"
       bulundu=1
     fi
   done
-  [ "$bulundu" -eq 1 ] || echo "     log kaydi bulunamadi"
+  [ "$bulundu" -eq 1 ] || echo "     no log record was found"
   echo
-  echo "  b) Ciktilardan dolayli kanit (raporlarda hangi alanlar gorunuyor):"
+  echo "  b) Indirect evidence from the outputs (which domains appear in the reports):"
   for r in "$PROJE/SONUCLAR/kraken_yeniden/tum.report" \
            "$PROJE/SONUCLAR/kraken results"/*/*_kraken2.report; do
     [ -f "$r" ] || continue
@@ -518,16 +520,16 @@ eski_kosu_tespit() {
     m=$(awk -F'\t' '$5=="4751"{print "VAR"}' "$ilk" | head -1)
     p=$(awk -F'\t' '$5=="5794"{print "VAR"}' "$ilk" | head -1)
     b=$(awk -F'\t' '$5=="33090"{print "VAR"}' "$ilk" | head -1)
-    echo "     kraken_yeniden/tum.report: mantar ${m:-yok}, protozoa ${p:-yok}, bitki ${b:-yok}"
+    echo "     kraken_yeniden/tum.report: fungi ${m:-none}, protozoa ${p:-none}, plants ${b:-none}"
   fi
   echo
-  echo "  BU KANITIN SINIRI, acikca yazilmali:"
-  echo "  Raporda mantar ve protozoa GORUNMESI, veritabaninin onlari icerdigini"
-  echo "  KANITLAR. Yani eski kosular en az PlusPF ile yapilmistir, Standard degil."
-  echo "  Ama bitkinin GORUNMEMESI hicbir sey kanitlamaz: cururucu numunesinde"
-  echo "  bitki okumasi atanmadiysa, veritabani bitki icerse bile rapora satir"
-  echo "  yazilmaz. Yoklugun kaniti degildir. PlusPF ile PlusPFP ancak"
-  echo "  kraken2-inspect ile ayrilir:  bash $0 vt-kimlik"
+  echo "  THE LIMIT OF THIS EVIDENCE, stated openly:"
+  echo "  Fungi and protozoa APPEARING in the report PROVES that the database"
+  echo "  contained them. So the old runs used at least PlusPF, not Standard."
+  echo "  But plants NOT APPEARING proves nothing: if no plant read was assigned in"
+  echo "  a digester sample, no line is written even when the database holds plants."
+  echo "  ABSENCE IS NOT EVIDENCE. PlusPF and PlusPFP are separated only by"
+  echo "  kraken2-inspect:  bash $0 vt-kimlik"
 }
 
 # =========================================================================
@@ -539,10 +541,10 @@ eski_kosu_tespit() {
 vt_ara() {
   local derin="${DERINLIK:-5}"
   local kokler=("$HOME" /opt /srv /data /media /run/media /mnt)
-  echo "VERITABANI ARAMASI"
+  echo "DATABASE SEARCH"
   echo "  aranan   : hash.k2d"
   echo "  kokler   : ${kokler[*]}"
-  echo "  derinlik : $derin (butun disk TARANMAZ, makul surede bitmesi icin)"
+  echo "  depth    : $derin (the WHOLE disk is NOT scanned, so that it finishes in reasonable time)"
   echo
   local t0 t1
   t0=$(date +%s)
@@ -567,27 +569,27 @@ vt_ara() {
   local benzersiz=()
   while IFS= read -r y; do [ -n "$y" ] && benzersiz+=("$y"); done \
     < <(printf '%s\n' "${bulunanlar[@]+"${bulunanlar[@]}"}" | sort -u)
-  echo "  arama suresi: $((t1 - t0)) saniye"
+  echo "  search time: $((t1 - t0)) seconds"
   echo
   if [ "${#benzersiz[@]}" -eq 0 ]; then
-    echo "  HICBIR KRAKEN2 VERITABANI BULUNAMADI."
+    echo "  NO KRAKEN2 DATABASE WAS FOUND AT ALL."
     echo
-    echo "  Yalnizca .tar.gz duruyor olabilir, acilmamis arsivler:"
+    echo "  There may be only a .tar.gz, an archive that was never unpacked:"
     for k in "${kokler[@]}"; do
       [ -d "$k" ] || continue
       timeout 60 find "$k" -maxdepth "$derin" -name "k2_*.tar.gz" 2>/dev/null | head -5 \
         | while IFS= read -r t; do printf "    %s  %s\n" "$(du -h "$t" | cut -f1)" "$t"; done
     done
     echo
-    echo "  Arsiv varsa acin (kendiliginden ACILMAZ):"
-    echo "      cd <klasor> && tar -xzvf k2_*.tar.gz"
-    echo "  Arsiv da yoksa indirin:"
+    echo "  If there is an archive, unpack it (it does NOT unpack itself):"
+    echo "      cd <directory> && tar -xzvf k2_*.tar.gz"
+    echo "  If there is no archive either, download one:"
     echo "      https://benlangmead.github.io/aws-indexes/k2"
-    echo "      PlusPFP tam surum yaklasik 150 GB, indirilmis arsiv yaklasik 90 GB."
-    echo "  Baska bir yerdeyse dogrudan verin:  VT_A=/tam/yol bash $0 $TUS"
+    echo "      The full PlusPFP is about 150 GB, and the downloaded archive about 90 GB."
+    echo "  If it is somewhere else, give it directly:  VT_A=/full/path bash $0 $TUS"
     return 1
   fi
-  echo "  ${#benzersiz[@]} veritabani bulundu:"
+  echo "  ${#benzersiz[@]} databases found:"
   echo
   local i=0
   for y in "${benzersiz[@]}"; do
@@ -598,23 +600,23 @@ vt_ara() {
     local eksik=""
     for g in opts.k2d taxo.k2d; do [ -s "$y/$g" ] || eksik="$eksik $g"; done
     if [ -n "$eksik" ]; then
-      echo "      EKSIK DOSYA:$eksik  (indeks kullanilamaz)"
+      echo "      MISSING FILES:$eksik  (the index cannot be used)"
     else
-      echo "      toplam $(du -sh "$y" 2>/dev/null | cut -f1)"
+      echo "      total $(du -sh "$y" 2>/dev/null | cut -f1)"
       vt_surum "$y" | sed 's/^/      /'
     fi
     echo
   done
   if [ "${#benzersiz[@]}" -eq 1 ]; then
-    echo "  Tek veritabani bulundu. Kullanmak icin:"
+    echo "  One database was found. To use it:"
     echo "      VT_A=${benzersiz[0]} bash $0 esik"
   else
-    echo "  BIRDEN FAZLA VERITABANI VAR. Hangisiyle kosulacagini betik SECMEZ,"
-    echo "  cunku yanlis surumle kosarsak sonucu yanlis yorumlariz."
-    echo "  Yukaridaki surum satirlarina bakip secin ve yolu verin:"
+    echo "  THERE IS MORE THAN ONE DATABASE. The script does NOT CHOOSE which one to run,"
+    echo "  because running the wrong version means reading the result wrongly."
+    echo "  Look at the version lines above, choose, and give the path:"
     for y in "${benzersiz[@]}"; do echo "      VT_A=$y bash $0 esik"; done
-    echo "  Iki veritabanini karsilastirmak isterseniz:"
-    echo "      VT_A=<genis> VT_B=<dar> bash $0 esik"
+    echo "  If you want to compare two databases:"
+    echo "      VT_A=<wide> VT_B=<narrow> bash $0 esik"
   fi
   return 0
 }
@@ -630,10 +632,10 @@ tus_ali_vt() {
   # yazilmali. Bu yuzden errexit burada kapatilir.
   set +e
   echo "======================================================================"
-  echo "OZGUN KOSU HANGI VERITABANINI KULLANDI"
+  echo "WHICH DATABASE THE ORIGINAL RUN USED"
   echo "======================================================================"
   echo
-  echo "KANIT 1: kaynak calismanin betiklerindeki --db argumani"
+  echo "EVIDENCE 1: the --db argument in the source study's scripts"
   local k1=""
   for f in "$PROJE/troubleshooting tools"/*.sh; do
     [ -f "$f" ] || continue
@@ -644,32 +646,34 @@ tus_ali_vt() {
         "$PROJE/troubleshooting tools"/*.sh 2>/dev/null | sort -u | head -3)
   if [ -n "$k1" ]; then
     echo
-    echo "    -> betiklerin gosterdigi yol(lar):"
+    echo "    -> the path(s) the scripts point at:"
     printf '       %s\n' $k1
     if printf '%s' "$k1" | grep -qi "pluspf16\|pluspf_16\|_16gb"; then
-      echo "       Klasor adi PlusPF-16 diyor: PlusPF'in 16 GB'a KAPAKLI surumu."
-      echo "       Kapakli surum, tam surumle AYNI taksonlari icerir ama minimizer"
-      echo "       sayisi seyreltilmistir. Ayni okuma daha ust bir dugume, hatta"
-      echo "       baska bir klada dusebilir. Yani kapsam degil, COZUNURLUK dusuktur."
+      echo "       The directory name says PlusPF-16: the version of PlusPF CAPPED to 16 GB."
+      echo "       A capped version holds THE SAME taxa as the full one, but the minimizer"
+      echo "       count is thinned. The same read can land on a higher node, or even on"
+      echo "       a different clade. So it is not the coverage that is lower, it is the RESOLUTION."
     fi
   else
-    echo "    betiklerde veritabani yolu bulunamadi"
+    echo "    no database path was found in the scripts"
   fi
 
   echo
-  echo "KANIT 2: kosu loglari"
+  echo "EVIDENCE 2: the run logs"
   local k2=0
-  for l in "$PROJE"/WSL/loglar/*.log; do
+  for l in "$PROJE"/kurulum_loglari/*.log; do
     [ -f "$l" ] || continue
     local yol boy
-    yol=$(grep -m1 -oE "veritabani *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
-    boy=$(grep -m1 -oE "hash\.k2d *var *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
+    # Bu grep KENDI loglarimizi okur. Ekran metni Ingilizceye cevrildi, ama
+    # eski loglar hala Turkce; ikisi de tutsun diye desen iki kelimeyi de alir.
+    yol=$(grep -m1 -oE "(veritabani|database) *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
+    boy=$(grep -m1 -oE "hash\.k2d *(var|present) *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
     [ -n "$yol" ] && { printf "    %-42s %-26s hash %s\n" "$(basename "$l")" "$yol" "${boy:-?}"; k2=1; }
   done
-  [ "$k2" -eq 1 ] || echo "    ozgun kosuya ait log yok (loglar bizim kosularimiza ait)"
+  [ "$k2" -eq 1 ] || echo "    there is no log from the original run (these logs are from our runs)"
 
   echo
-  echo "KANIT 3: rapor icerigi (hangi alanlar veritabaninda VARDI)"
+  echo "EVIDENCE 3: report content (which domains WERE in the database)"
   local r="$PROJE/SONUCLAR/kraken results/A1/edited_barcode01_kraken2.report"
   if [ -f "$r" ]; then
     local m p b v
@@ -677,74 +681,74 @@ tus_ali_vt() {
     p=$(awk -F'\t' '$5=="5794"{print "VAR"}' "$r" | head -1)
     b=$(awk -F'\t' '$5=="33090"{print "VAR"}' "$r" | head -1)
     v=$(awk -F'\t' '$5=="10239"{print "VAR"}' "$r" | head -1)
-    echo "    mantar (4751)      : ${m:-satir yok}"
-    echo "    Apicomplexa (5794) : ${p:-satir yok}"
-    echo "    bitki (33090)      : ${b:-satir yok}"
-    echo "    virus (10239)      : ${v:-satir yok}"
+    echo "    fungi (4751)       : ${m:-no line}"
+    echo "    Apicomplexa (5794) : ${p:-no line}"
+    echo "    plants (33090)     : ${b:-no line}"
+    echo "    viruses (10239)    : ${v:-no line}"
     echo
-    echo "    Mantar ve protozoa GORUNUYORSA veritabani onlari ICERIYORDU."
-    echo "    Yani ozgun kosunun veritabani en az PlusPF kapsamindadir, Standard degil."
-    echo "    Bitkinin gorunmemesi hicbir sey kanitlamaz: cururucu numunesinde"
-    echo "    bitki okumasi atanmadiysa, veritabani bitki icerse bile satir yazilmaz."
-    echo "    YOKLUK, KANIT DEGILDIR."
+    echo "    If fungi and protozoa APPEAR, the database DID CONTAIN them."
+    echo "    So the original run's database covers at least PlusPF, not Standard."
+    echo "    Plants not appearing proves nothing: if no plant read was assigned in a"
+    echo "    digester sample, no line is written even when the database holds plants."
+    echo "    ABSENCE IS NOT EVIDENCE."
   else
-    echo "    kaynak calismanin raporu bulunamadi: $r"
+    echo "    the source study's report was not found: $r"
   fi
 
   echo
-  echo "KANIT 4: bizim yeniden kosumuz kaynak calismanin sonucunu tekrarladi mi"
+  echo "EVIDENCE 4: did our re-run reproduce the source study's result"
   local oz="$PROJE/SONUCLAR/kraken_yeniden/kraken_ozet.csv"
   if [ -f "$oz" ]; then
     local top uy ay
     top=$(awk -F',' 'NR>1{n++} END{print n+0}' "$oz")
     uy=$(awk -F',' 'NR>1 && $9=="uyusuyor"{n++} END{print n+0}' "$oz")
     ay=$((top - uy))
-    echo "    $top kutunun $uy tanesinde ayni sonuc, $ay tanesinde FARKLI sonuc."
+    echo "    $uy of $top bins gave the same answer, $ay gave a DIFFERENT one."
     echo
-    echo "    BU BIR CIKARIM URETIR. Kraken2 belirlenimcidir: ayni okuma, ayni"
-    echo "    veritabani, ayni esik her zaman ayni atamayi verir. Kutular zaten"
-    echo "    kaynak calismanin ciktisina gore ayrildigina gore, veritabani AYNI olsaydi"
-    echo "    butun kutular kendi etiketini tekrarlardi."
+    echo "    THIS PRODUCES AN INFERENCE. Kraken2 is deterministic: the same read, the"
+    echo "    same database and the same threshold always give the same assignment. Since"
+    echo "    the bins were split by the source study's own output, every bin would repeat"
+    echo "    its own label if the database were THE SAME."
     if [ "$ay" -gt 0 ]; then
-      echo "    $ay kutu tekrarlamadi, dolayisiyla bizim yeniden kosumuzun"
-      echo "    veritabani ozgun kosunun veritabaniyla AYNI DEGILDIR."
+      echo "    $ay bins did not repeat, so the database behind our re-run is"
+      echo "    NOT THE SAME as the database behind the original run."
       echo
-      echo "    Bu cikarimin sinirlari, durustce:"
-      echo "      extract_kraken_reads.py --include-children ile calisti, yani bir"
-      echo "      kutuda o taksonun ALT dugumlerine ait okumalar da var. Tur duzeyi"
-      echo "      toplama bunun cogunu kapatir ama tamamini degil. Buna karsilik"
-      echo "      cins ve aile atlayan ayrismalar (ornegin Bacteroides kutusunun"
-      echo "      Candidatus Azobacteroides cikmasi) alt dugumle aciklanamaz."
+      echo "    The limits of that inference, stated honestly:"
+      echo "      it ran with extract_kraken_reads.py --include-children, so a bin also"
+      echo "      holds reads belonging to the taxon's CHILD nodes. Species level"
+      echo "      aggregation closes most of that but not all of it. Against that,"
+      echo "      splits that jump genus and family (a Bacteroides bin coming out as"
+      echo "      Candidatus Azobacteroides, for instance) cannot be explained by child nodes."
     else
-      echo "    Butun kutular tekrarlandi. Bu, iki kosunun ayni ya da cok benzer"
-      echo "    veritabanini kullandigina isaret eder."
+      echo "    Every bin repeated. That points to the two runs using the same or a very"
+      echo "    similar database."
     fi
   else
-    echo "    kraken_ozet.csv yok, bu kanit olculemedi"
+    echo "    there is no kraken_ozet.csv, so this evidence could not be measured"
   fi
 
   echo
   echo "======================================================================"
-  echo "SONUC"
+  echo "CONCLUSION"
   echo "======================================================================"
   if printf '%s' "$k1" | grep -qi "pluspf16\|pluspf_16\|_16gb"; then
-    echo "  ozgun kosunun veritabani: PlusPF-16 (PlusPF'in 16 GB'a kapakli surumu),"
-    echo "  betiginde yazili yola gore. Bu KESIN degil, betikteki yol ile fiilen"
-    echo "  kosulan sey ayrilabilir; ama elimizdeki en dogrudan kanit budur ve"
-    echo "  rapor icerigiyle (mantar ve protozoa var) celismiyor."
+    echo "  the original run's database: PlusPF-16 (the 16 GB capped version of PlusPF),"
+    echo "  according to the path written in its script. This is NOT CERTAIN; the path in"
+    echo "  a script and what actually ran can differ. But it is the most direct evidence"
+    echo "  we have and it does not contradict the report content (fungi and protozoa present)."
   else
-    echo "  BELIRLENEMEDI. Elimizdeki kanit yalnizca su kadarini soyluyor:"
-    echo "  veritabani mantar ve protozoa iceriyordu, yani en az PlusPF"
-    echo "  kapsamindaydi. Kapakli mi tam mi, PlusPFP mi degil mi, cikarilamadi."
+    echo "  NOT DETERMINED. The evidence we have says only this much:"
+    echo "  the database contained fungi and protozoa, so it covered at least PlusPF."
+    echo "  Whether it was capped or full, PlusPFP or not, could not be inferred."
   fi
   echo
-  echo "  BU BELIRSIZLIK YORUMU ETKILER, acikca yazilmali:"
-  echo "  Eski kosu zaten genis bir veritabaniyla yapildiysa, 'sorun kapsamdi'"
-  echo "  teshisi zayiflar ve sebebin nanopore hata orani olma ihtimali one cikar."
-  echo "  Iki aciklamayi ayirt etmenin yolu yine de PlusPFP kosusudur:"
-  echo "    kapsam sorunuysa  -> PlusPFP'de atamalar guclenir ve esige dayanir"
-  echo "    okuma hatasiysa   -> PlusPFP'de de atamalar zayif kalir ve esikle coker"
-  echo "  Tablonun yorumu bu belirsizligi tasiyacak, gizlemeyecek."
+  echo "  THIS UNCERTAINTY AFFECTS THE READING, and must be stated openly:"
+  echo "  If the old run already used a wide database, the diagnosis that the problem"
+  echo "  was coverage weakens, and the nanopore error rate becomes the likelier cause."
+  echo "  The way to tell the two explanations apart is still a PlusPFP run:"
+  echo "    if it is a coverage problem -> assignments strengthen under PlusPFP and hold at the threshold"
+  echo "    if it is a read error       -> assignments stay weak under PlusPFP too and collapse at the threshold"
+  echo "  The reading of the table will carry that uncertainty, not hide it."
   set -e
 }
 
@@ -756,17 +760,17 @@ bellek_bayragi() {
   rb=$(( $(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null || echo 0) * 1024 ))
   {
     echo "  hash.k2d       : $(numfmt --to=iec "$hb" 2>/dev/null || echo "$hb")"
-    echo "  kullanilabilir : $(numfmt --to=iec "$rb" 2>/dev/null || echo "$rb")"
+    echo "  available      : $(numfmt --to=iec "$rb" 2>/dev/null || echo "$rb")"
   } >&2
   if [ "${ZORLA_MMAP:-1}" = "1" ] || [ "$hb" -gt $((rb - 2147483648)) ]; then
     {
-      echo "  --memory-mapping KULLANILACAK. Veritabani RAM'e yuklenmez, diskten"
-      echo "  okunur. RAM ihtiyaci duser, kosu YAVASLAR. Siniflandirma sonucu"
-      echo "  AYNIDIR, degisen tek sey suredir."
+      echo "  --memory-mapping WILL BE USED. The database is not loaded into RAM, it is read"
+      echo "  from disk. The RAM requirement drops and the run SLOWS DOWN. The"
+      echo "  classification result is THE SAME; the only thing that changes is the time."
     } >&2
     echo "--memory-mapping"
   else
-    echo "  RAM yeterli, veritabani bellege yuklenecek (hizli)." >&2
+    echo "  RAM is sufficient, the database will be loaded into memory (fast)." >&2
     echo ""
   fi
 }
@@ -776,24 +780,24 @@ birlestir() {
   local hedef="$1"
   local eski="$PROJE/SONUCLAR/kraken_yeniden/tum.fastq"
   if [ -s "$hedef" ]; then
-    echo "birlestirilmis dosya zaten var: $(awk 'END{print int(NR/4)}' "$hedef") okuma"
+    echo "the merged file already exists: $(awk 'END{print int(NR/4)}' "$hedef") reads"
     return
   fi
   mkdir -p "$(dirname "$hedef")"
   if [ -s "$eski" ]; then
-    echo "rerun_kraken.sh'in urettigi tum.fastq bulundu, AYNI okuma kumesi kullanilacak."
-    echo "  (Esikleri ve veritabanlarini karsilastirilabilir kilan sart budur.)"
+    echo "the tum.fastq produced by rerun_kraken.sh was found, so THE SAME read set is used."
+    echo "  (That is the condition that makes thresholds and databases comparable.)"
     cp "$eski" "$hedef"
     cp "$PROJE/SONUCLAR/kraken_yeniden/kaynak_sayim.tsv" "$(dirname "$hedef")/" 2>/dev/null || true
-    echo "  $(awk 'END{print int(NR/4)}' "$hedef") okuma"
+    echo "  $(awk 'END{print int(NR/4)}' "$hedef") reads"
     return
   fi
-  [ -d "$KAYNAK" ] || { echo "HATA: fastq klasoru yok: $KAYNAK"; exit 1; }
+  [ -d "$KAYNAK" ] || { echo "ERROR: no fastq directory: $KAYNAK"; exit 1; }
   local dosyalar sayi
   dosyalar=$(ls "$KAYNAK"/*/*reads_*.fastq 2>/dev/null || true)
   sayi=$(printf '%s\n' "$dosyalar" | grep -c . || true)
-  [ "$sayi" -gt 0 ] || { echo "HATA: hic fastq bulunamadi: $KAYNAK"; exit 1; }
-  echo "$sayi fastq dosyasi birlestiriliyor (takson basina en fazla ${KAP} okuma; 0 = hepsi)"
+  [ "$sayi" -gt 0 ] || { echo "ERROR: no fastq was found: $KAYNAK"; exit 1; }
+  echo "merging $sayi fastq files (at most ${KAP} reads per taxon; 0 = all of them)"
   local ks="$(dirname "$hedef")/kaynak_sayim.tsv"
   : > "$hedef"; : > "$ks"; : > /tmp/kraken_alinan_130.tsv
   while IFS= read -r f; do
@@ -815,8 +819,8 @@ birlestir() {
   local toplam beklenen
   toplam=$(awk 'END{print int(NR/4)}' "$hedef")
   beklenen=$(awk -F'\t' '{s+=$3} END{print s+0}' "$ks")
-  [ "$toplam" = "$beklenen" ] || { echo "HATA: okuma sayisi tutmuyor ($toplam / $beklenen)"; exit 1; }
-  echo "  $toplam okuma birlestirildi ve sayisi dogrulandi"
+  [ "$toplam" = "$beklenen" ] || { echo "ERROR: the read count does not add up ($toplam / $beklenen)"; exit 1; }
+  echo "  $toplam reads merged, and the count verified"
 }
 
 
@@ -840,12 +844,12 @@ birlestir() {
 ornekle() {
   local kaynak="$1" hedef="$2" toplam="$3"
   if [ -s "$hedef" ]; then
-    echo "  ornek dosyasi zaten var: $(awk 'END{print int(NR/4)}' "$hedef") okuma"
+    echo "  the sample file already exists: $(awk 'END{print int(NR/4)}' "$hedef") reads"
     return
   fi
   local n_kaynak; n_kaynak=$(awk 'END{print int(NR/4)}' "$kaynak")
   if [ "$toplam" -le 0 ] || [ "$n_kaynak" -le "$toplam" ]; then
-    echo "  ornekleme GEREKMEDI (kaynak $n_kaynak okuma, hedef $toplam)"
+    echo "  sampling WAS NOT NEEDED (source $n_kaynak reads, target $toplam)"
     cp "$kaynak" "$hedef"
     return
   fi
@@ -858,10 +862,10 @@ ornekle() {
   local onekli
   onekli=$(awk 'NR%4==1{n++; if ($1 ~ /^@tx[0-9]+_/) k++} NR>40000{exit} END{print (n>0? int(100*k/n) : 0)}' "$kaynak")
   if [ "${onekli:-0}" -lt 90 ]; then
-    echo "  HATA: okuma basliklarinda 'tx<taxid>_' oneki yok (%${onekli:-0})."
-    echo "  Kutu basina esit ornekleme YAPILAMAZ; sessizce yanli bir ornek uretmektense"
-    echo "  is durduruluyor. Cozum: $(dirname "$kaynak")/tum.fastq dosyasini silip"
-    echo "  yeniden urettirin, ya da ORNEK=0 ile tam veriyle kosun."
+    echo "  ERROR: the read headers carry no 'tx<taxid>_' prefix (${onekli:-0}%)."
+    echo "  Equal sampling per bin is NOT POSSIBLE, and rather than quietly producing a"
+    echo "  wrong sample the work stops. The fix: delete $(dirname "$kaynak")/tum.fastq and"
+    echo "  have it regenerated, or run on the full data with ORNEK=0."
     exit 1
   fi
 
@@ -884,8 +888,8 @@ ornekle() {
   # girdi ve ayni tohum her zaman ayni ornegi verir. ORNEK_TOHUM ile
   # degistirilebilir.
   local TOHUM="${ORNEK_TOHUM:-20260805}"
-  echo "  ornekleme: $kutu_sayisi kutu x $pay okuma = hedef ~$toplam"
-  echo "  yontem   : kutu ici RASTGELE, sabit tohum $TOHUM (tekrarlanabilir)"
+  echo "  sampling: $kutu_sayisi bins x $pay reads = target ~$toplam"
+  echo "  method  : RANDOM within a bin, fixed seed $TOHUM (reproducible)"
 
   # Iki gecis: once her okumanin karmasi, sonra kutu basina esik.
   # awk'in kendi rand()'i yerine ad tabanli karma kullanilir; boylece okuma
@@ -907,7 +911,7 @@ ornekle() {
   ' /tmp/kraken_esik_130.tsv "$kaynak" > "$hedef"
 
   local n; n=$(awk 'END{print int(NR/4)}' "$hedef")
-  echo "  ornek hazir: $n okuma ($n_kaynak icinden)"
+  echo "  sample ready: $n reads (out of $n_kaynak)"
   printf 'kaynak_okuma\t%s\nornek_okuma\t%s\nkutu\t%s\npay\t%s\nyontem\trastgele\ntohum\t%s\n' \
     "$n_kaynak" "$n" "$kutu_sayisi" "$pay" "$TOHUM" > "$(dirname "$hedef")/ornek_bilgi.tsv"
   rm -f /tmp/kraken_karma_130.tsv /tmp/kraken_esik_130.tsv
@@ -924,8 +928,8 @@ tus_sure() {
   kraken_sart
   local d="${1:-$VT_A}"
   echo
-  echo "SURE OLCUMU. Kucuk bir ornek gercekten kosulur, tahmin uydurulmaz."
-  vt_hazir_mi "$d" || { echo "Veritabani hazir degil, olcum yapilamaz."; exit 1; }
+  echo "TIMING MEASUREMENT. A small sample is actually run; no estimate is invented."
+  vt_hazir_mi "$d" || { echo "The database is not ready, so no measurement can be made."; exit 1; }
   local BAYRAK; BAYRAK=$(bellek_bayragi "$d")
   local tmp; tmp=$(mktemp -d)
   birlestir "$tmp/tum.fastq" >/dev/null
@@ -934,27 +938,27 @@ tus_sure() {
   head -n $((N*4)) "$tmp/tum.fastq" > "$tmp/deneme.fastq"
   local gercek; gercek=$(awk 'END{print int(NR/4)}' "$tmp/deneme.fastq")
   echo
-  echo "  deneme: $gercek okuma (tam kume $TOPLAM okuma)"
+  echo "  trial: $gercek reads (the full set is $TOPLAM reads)"
   local t0 t1 sn
   t0=$(date +%s)
   kraken2 --db "$d" --threads "$IPLIK" $BAYRAK --confidence 0 \
           --report "$tmp/d.report" --output "$tmp/d.out" "$tmp/deneme.fastq" \
           >/dev/null 2>"$tmp/d.err" || {
-    echo "  kraken2 HATA:"; sed 's/^/    /' "$tmp/d.err" | tail -5; rm -rf "$tmp"; exit 1; }
+    echo "  kraken2 ERROR:"; sed 's/^/    /' "$tmp/d.err" | tail -5; rm -rf "$tmp"; exit 1; }
   t1=$(date +%s); sn=$((t1 - t0)); [ "$sn" -lt 1 ] && sn=1
   local tam esik_adet
   tam=$(( sn * TOPLAM / gercek ))
   esik_adet=$(echo $ESIKLER | wc -w)
   echo
-  echo "  olculen  : $sn saniye / $gercek okuma"
-  echo "  tam kume : yaklasik $(( tam / 60 )) dakika (tek esik)"
-  echo "  $esik_adet esik: yaklasik $(( tam * esik_adet / 60 )) dakika = $(( tam * esik_adet / 3600 )) saat"
+  echo "  measured : $sn seconds / $gercek reads"
+  echo "  full set : about $(( tam / 60 )) minutes (a single threshold)"
+  echo "  $esik_adet thresholds: about $(( tam * esik_adet / 60 )) minutes = $(( tam * esik_adet / 3600 )) hours"
   echo
-  echo "  BU SAYININ SINIRI: --memory-mapping ile ilk okumalar en yavas olandir,"
-  echo "  sayfalar diskten gelir. Isletim sistemi onbellegi isindikca hizlanir."
-  echo "  Yani bu tahmin bir UST SINIRDIR, gercek sure buna esit ya da daha kisa."
-  echo "  Ters yonde tek risk: makine baska is yapip RAM'i bosaltirsa onbellek"
-  echo "  soguyup sure uzayabilir. Kosu sirasinda makineyi mesgul etmeyin."
+  echo "  THE LIMIT OF THIS NUMBER: under --memory-mapping the first reads are the slowest,"
+  echo "  because the pages come from disk. It speeds up as the operating system cache warms."
+  echo "  So this estimate is an UPPER BOUND; the real time is equal to it or shorter."
+  echo "  The one risk in the other direction: if the machine does other work and frees the"
+  echo "  RAM, the cache cools and the time can grow. Keep the machine idle during the run."
   rm -rf "$tmp"
 }
 
@@ -962,7 +966,7 @@ tus_sure() {
 # TUS: durum
 # =========================================================================
 tus_durum() {
-  echo "ORTAM DENETIMI. Hicbir sey kosulmaz, yalnizca bakilir."
+  echo "ENVIRONMENT CHECK. Nothing is run, only looked at."
   echo
   ortam_ac
   for a in kraken2 kraken2-build kraken2-inspect bracken; do
@@ -973,7 +977,7 @@ tus_durum() {
   echo "VT_A = $VT_A"
   if ! vt_hazir_mi "$VT_A"; then
     echo
-    echo "VT_A kullanilamiyor. Diskte araniyor (pes edilmiyor):"
+    echo "VT_A cannot be used. Searching the disk (this is not given up on):"
     echo
     vt_ara || true
   fi
@@ -983,32 +987,32 @@ tus_durum() {
     vt_hazir_mi "$VT_B" || true
     if [ "$(readlink -f "$VT_A" 2>/dev/null)" = "$(readlink -f "$VT_B" 2>/dev/null)" ]; then
       echo
-      echo "  UYARI: VT_A ile VT_B AYNI klasor. Iki egri cizilemez, tek egri cizilir."
+      echo "  WARNING: VT_A and VT_B are the SAME directory. Two curves cannot be drawn, only one."
     fi
   else
     echo
-    echo "VT_B = (verilmedi). Tek veritabaniyla calisilacak."
-    echo "  Iki veritabanini karsilastirmak icin:  VT_B=/yol/eski_db bash $0 esik"
+    echo "VT_B = (not given). Work will proceed with a single database."
+    echo "  To compare two databases:  VT_B=/path/old_db bash $0 esik"
   fi
   echo
   local n; n=$(ls "$KAYNAK"/*/*reads_*.fastq 2>/dev/null | wc -l || echo 0)
-  echo "okumalar: $n fastq dosyasi ($KAYNAK)"
+  echo "reads: $n fastq files ($KAYNAK)"
   echo
   free -g 2>/dev/null | awk '/Mem:/{print "RAM: "$2" GB toplam, "$7" GB kullanilabilir"}'
   df -h "$VT_A" 2>/dev/null | tail -1 | awk '{print "disk: "$4" bos ("$6")"}'
   echo
   eski_kosu_tespit
   echo
-  echo "Sonraki adim:  bash $0 vt-kimlik    (veritabani hangi surum)"
+  echo "Next step:  bash $0 vt-kimlik    (which version the database is)"
 }
 
 tus_vt_kimlik() {
   log_ac vt_kimlik
   kraken_sart
   echo
-  echo "VERITABANI SURUM TESPITI"
-  echo "Butun argumanimiz veritabaninin KAPSAMI uzerine kurulu. Yanlis surumle"
-  echo "kosarsak sonucu yanlis yorumlariz, o yuzden bu adim atlanmaz."
+  echo "DATABASE VERSION DETECTION"
+  echo "The whole argument rests on the COVERAGE of the database. If we run with the"
+  echo "wrong version we read the result wrongly, so this step is not skipped."
   echo
   echo "VT_A = $VT_A"
   if vt_hazir_mi "$VT_A"; then
@@ -1024,16 +1028,16 @@ tus_vt_kimlik() {
 }
 
 tus_sinav() {
-  echo "SELFTESTLER. Sinav gecmeden ana is baslamaz (proje kurali 2)."
+  echo "SELF TESTS. No main work starts before the test passes (project rule 2)."
   local hata=0
   for p in threshold_summary.py comparison_table.py custom_taxonomy.py kraken_summary.py; do
     echo; echo "--- $p"
     if [ -f "$_BETIK_DIZIN/$p" ]; then
       python3 "$_BETIK_DIZIN/$p" --selftest || hata=1
-    else echo "  DOSYA YOK: $p"; hata=1; fi
+    else echo "  NO SUCH FILE: $p"; hata=1; fi
   done
   echo
-  [ "$hata" -eq 0 ] && echo "BUTUN SINAVLAR GECTI" || { echo "SINAV KALDI"; return 1; }
+  [ "$hata" -eq 0 ] && echo "EVERY SELF TEST PASSED" || { echo "A SELF TEST FAILED"; return 1; }
 }
 
 # =========================================================================
@@ -1043,18 +1047,18 @@ esik_tara() {
   local d="$1" is="$2" etiket="$3"
   echo
   echo "======================================================================"
-  echo "GUVEN ESIGI TARAMASI, $etiket"
-  echo "  veritabani: $d"
-  echo "  esikler   : $ESIKLER"
-  echo "  is parcacigi: $IPLIK   (tepe bellegi dusurmek icin dusuk tutuluyor)"
+  echo "CONFIDENCE THRESHOLD SCAN, $etiket"
+  echo "  database: $d"
+  echo "  thresholds: $ESIKLER"
+  echo "  threads : $IPLIK   (kept low to hold the peak memory down)"
   echo "======================================================================"
   vt_hazir_mi "$d" || {
     echo
-    echo "Veritabani hazir degil. Pes edilmiyor, diskte araniyor."
+    echo "The database is not ready. This is not given up on; the disk is being searched."
     echo
     vt_ara || true
     echo
-    echo "HATA: '$d' kullanilamadi, is duruyor. Yukaridan bir yol secip verin."
+    echo "ERROR: '$d' could not be used, the work stops. Pick one of the paths above and give it."
     exit 1; }
   echo
   vt_surum "$d"
@@ -1066,31 +1070,31 @@ esik_tara() {
   local GIRDI="$is/tum.fastq"
   if [ "${ORNEK:-0}" -gt 0 ]; then
     echo
-    echo "ORNEKLEME ACIK (ORNEK=$ORNEK). Tam veri icin: ORNEK=0 bash $0 esik"
+    echo "SAMPLING IS ON (ORNEK=$ORNEK). For the full data: ORNEK=0 bash $0 esik"
     ornekle "$is/tum.fastq" "$is/ornek.fastq" "$ORNEK"
     GIRDI="$is/ornek.fastq"
   fi
   local OKUMA; OKUMA=$(awk 'END{print int(NR/4)}' "$GIRDI")
-  echo "  taramada kullanilacak okuma: $OKUMA"
+  echo "  reads to be used in the scan: $OKUMA"
   echo
   for C in $ESIKLER; do
     local ad="esik_${C}"
     if [ -s "$is/${ad}.report" ]; then
-      echo "[$C] zaten var, atlaniyor"; continue
+      echo "[$C] already exists, skipping"; continue
     fi
     local t0 t1
     t0=$(date +%s)
-    echo "[$C] kraken2 --confidence $C  baslangic $(date '+%H:%M:%S')"
+    echo "[$C] kraken2 --confidence $C  start $(date '+%H:%M:%S')"
     kraken2 --db "$d" --threads "$IPLIK" $BAYRAK --confidence "$C" \
             --use-names --report "$is/${ad}.report" --output "$is/${ad}.out" \
             "$GIRDI" 2>"$is/${ad}.err" >/dev/null || {
-      echo "    kraken2 HATA:"; tail -5 "$is/${ad}.err" | sed 's/^/      /'
-      echo "    Bu esik atlanmiyor, is duruyor. Yarim tarama yaniltir."; exit 1; }
+      echo "    kraken2 ERROR:"; tail -5 "$is/${ad}.err" | sed 's/^/      /'
+      echo "    This threshold is not skipped, the work stops. A half scan misleads."; exit 1; }
     rm -f "$is/${ad}.err"
     t1=$(date +%s)
     local n; n=$(wc -l < "$is/${ad}.out")
-    [ "$n" = "$OKUMA" ] || { echo "HATA: cikti satiri $n, okuma $OKUMA, tutmuyor"; exit 1; }
-    echo "    bitti, $n okuma, $(( (t1-t0)/60 )) dakika $(( (t1-t0)%60 )) saniye"
+    [ "$n" = "$OKUMA" ] || { echo "ERROR: the output has $n lines but $OKUMA reads, they do not match"; exit 1; }
+    echo "    done, $n reads, $(( (t1-t0)/60 )) minutes $(( (t1-t0)%60 )) seconds"
   done
 }
 
@@ -1103,9 +1107,9 @@ tus_esik() {
     ikili=1
   fi
   if [ -n "$VT_B" ] && [ "$ikili" -eq 0 ]; then
-    echo "UYARI: VT_A ile VT_B ayni klasor. Iki egri cizmenin anlami yok,"
-    echo "tek tarama yapilacak. Gercekten iki farkli veritabani karsilastirmak"
-    echo "istiyorsaniz ikincisinin yolunu verin: VT_B=/yol/oteki bash $0 esik"
+    echo "WARNING: VT_A and VT_B are the same directory. Drawing two curves is"
+    echo "meaningless, so a single scan will be made. If you really want to compare"
+    echo "two different databases, give the path of the second: VT_B=/path/other bash $0 esik"
   fi
   esik_tara "$VT_A" "$IS_A" "VT_A"
   if [ "$ikili" -eq 1 ]; then
@@ -1120,14 +1124,14 @@ tus_esik() {
       --is "$IS_A" --ad "$(basename "$VT_A")"
   fi
   echo
-  echo "bitti. Dosyalar: $IS_A"
-  echo "  esik_<C>.report          her esigin kraken raporu"
-  echo "  esik_egrisi.csv / .txt   alan bazinda atama yuzdeleri, esige gore"
+  echo "done. Files: $IS_A"
+  echo "  esik_<C>.report          the kraken report for each threshold"
+  echo "  esik_egrisi.csv / .txt   assignment percentages per domain, against the threshold"
   # NOT: son komut olarak "[ ... ] && echo" birakilmaz. Kosul yanlis oldugunda
   # test 1 doner ve fonksiyonun cikis kodu olur; is basariyla bittigi halde
   # betik HATA vermis gibi gorunur. Bu tuzaga bir kez dusuldu.
   if [ "$ikili" -eq 1 ]; then
-    echo "  esik_iki_veritabani.txt  iki veritabani yan yana + ayakta kalma"
+    echo "  esik_iki_veritabani.txt  the two databases side by side, plus what survives"
   fi
   return 0
 }
@@ -1149,11 +1153,12 @@ tus_esik() {
 # ---------------------------------------------------------------------------
 tus_tablo() {
   log_ac tablo
-  local hedef="$PROJE/TESLIM/KRAKEN_KARSILASTIRMA.md"
+  local hedef="$PROJE/tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md"
+  mkdir -p "$(dirname "$hedef")"
   if [ -f "$hedef" ]; then
     local yed="$hedef.yedek_$(date +%Y%m%d_%H%M%S)"
     cp -p "$hedef" "$yed" 2>/dev/null && \
-      echo "  mevcut tablo yedeklendi: $(basename "$yed")"
+      echo "  the existing table was backed up: $(basename "$yed")"
   fi
   python3 "$_BETIK_DIZIN/comparison_table.py" --kok "$PROJE" \
           --is-a "$IS_A" --ad-a "$(basename "$VT_A")" \
@@ -1166,16 +1171,16 @@ tus_tablo() {
 # =========================================================================
 tus_ozelvt_kur() {
   echo "======================================================================"
-  echo "OZEL KRAKEN2 VERITABANI KURULUMU  (EN SON CARE)"
+  echo "BUILDING A CUSTOM KRAKEN2 DATABASE  (THE LAST RESORT)"
   echo "======================================================================"
   echo
-  echo "ONCE BUNU OKUYUN: PlusPFP kuruluysa BU ADIMA GEREK YOKTUR."
-  echo "PlusPFP zaten Standard'a protozoa, mantar ve bitki ekler; yani eksik"
-  echo "oldugunu olctugumuz gruplarin tamami. Bu tus, PlusPFP hicbir sekilde"
-  echo "kurulamiyorsa ya da marker gen (16S/ITS) duzeyinde ikinci bir gorus"
-  echo "isteniyorsa vardir. Kurulum saatler surer."
+  echo "READ THIS FIRST: if PlusPFP is installed, THIS STEP IS NOT NEEDED."
+  echo "PlusPFP already adds protozoa, fungi and plants to Standard, which is"
+  echo "every group we measured as missing. This key exists for the case where"
+  echo "PlusPFP cannot be installed at all, or where a second opinion at marker"
+  echo "gene level (16S/ITS) is wanted. The build takes hours."
   echo
-  echo "Kontrol:  bash $0 vt-kimlik    (PlusPFP kuruluysa buraya hic gelmeyin)"
+  echo "Check:  bash $0 vt-kimlik    (if PlusPFP is installed, do not come here at all)"
   echo
   local toplam=0 var=0
   for k in ${KUMELER:-silva_ssu unite pr2}; do
@@ -1184,25 +1189,25 @@ tus_ozelvt_kur() {
       toplam=$((toplam + $(stat -c%s "$f"))); var=$((var+1))
       printf "  %-12s %-42s %s\n" "$k" "$(basename "$f")" "$(du -h "$f" | cut -f1)"
     else
-      printf "  %-12s %-42s YOK\n" "$k" "$(basename "$f")"
+      printf "  %-12s %-42s ABSENT\n" "$k" "$(basename "$f")"
     fi
   done
-  [ "$var" -gt 0 ] || { echo; echo "HATA: hicbir referans kumesi bulunamadi ($PROJE/REFERANS_DB)"; exit 1; }
+  [ "$var" -gt 0 ] || { echo; echo "ERROR: not one reference set was found ($PROJE/REFERANS_DB)"; exit 1; }
   local gb=$((toplam / 1073741824)); [ "$gb" -lt 1 ] && gb=1
   echo
-  echo "  toplam dizi  : yaklasik ${gb} GB"
-  echo "  TAHMINI SURE : $(( gb*40 + 30 )) ile $(( gb*120 + 60 )) dakika"
-  echo "  TAHMINI RAM  : en az $(( gb*6 + 8 )) GB"
-  echo "  TAHMINI DISK : yaklasik $(( gb*5 + 10 )) GB"
-  echo "  Hedef        : $OZELVT"
+  echo "  total sequence : about ${gb} GB"
+  echo "  ESTIMATED TIME : $(( gb*40 + 30 )) to $(( gb*120 + 60 )) minutes"
+  echo "  ESTIMATED RAM  : at least $(( gb*6 + 8 )) GB"
+  echo "  ESTIMATED DISK : about $(( gb*5 + 10 )) GB"
+  echo "  target         : $OZELVT"
   echo
-  echo "  Bu bir MARKER GEN veritabanidir (16S/18S/ITS), tam genom icermez."
-  echo "  Taksonomi NCBI'dan degil dosyalarin kendi soy dizgilerinden uretilir;"
-  echo "  taxid'ler sentetiktir ve NCBI taxid'leriyle karsilastirilamaz, tablo"
-  echo "  bu yuzden isim duzeyinde karsilastirir."
+  echo "  This is a MARKER GENE database (16S/18S/ITS); it holds no whole genomes."
+  echo "  The taxonomy comes from the lineage strings in the files themselves, not"
+  echo "  from NCBI. The taxids are synthetic and cannot be compared with NCBI"
+  echo "  taxids, which is why the table compares at name level."
   local mem; mem=$(free -g 2>/dev/null | awk '/Mem:/{print $2}' || echo 0)
-  echo "  Bu makinede toplam RAM: ${mem} GB"
-  [ "${mem:-0}" -lt $(( gb*6 + 8 )) ] && echo "  UYARI: RAM tahmini ihtiyacin altinda."
+  echo "  total RAM on this machine: ${mem} GB"
+  [ "${mem:-0}" -lt $(( gb*6 + 8 )) ] && echo "  WARNING: the RAM is below the estimated requirement."
   echo
   if [ "${ONAY:-}" != "evet" ]; then
     read -r -p "Kuruluma baslansin mi? (evet yazin, baska her sey iptal): " c
@@ -1211,10 +1216,10 @@ tus_ozelvt_kur() {
   log_ac ozelvt_kur
   kraken_sart
   command -v kraken2-build >/dev/null 2>&1 || {
-    echo "HATA: kraken2-build bulunamadi."
+    echo "ERROR: kraken2-build was not found."
     echo "  micromamba install -n ${ORTAM:-mikro} -c bioconda kraken2"; exit 1; }
   mkdir -p "$OZELVT/library" "$OZELVT/taxonomy"
-  echo; echo "1/2  soy dizgilerinden taksonomi ve kutuphane uretiliyor"
+  echo; echo "1/2  building the taxonomy and library from the lineage strings"
   local args=()
   for k in ${KUMELER:-silva_ssu unite pr2}; do
     local f; f=$(kume_dosya "$k") || continue
@@ -1223,8 +1228,8 @@ tus_ozelvt_kur() {
   python3 "$_BETIK_DIZIN/custom_taxonomy.py" --cikti "$OZELVT" "${args[@]}"
   echo; echo "2/2  kraken2-build --build  ($(date '+%H:%M:%S'))"
   kraken2-build --build --db "$OZELVT" --threads "$IPLIK"
-  echo; echo "kurulum bitti: $OZELVT"
-  du -sh "$OZELVT" | awk '{print "  boyut: "$1}'
+  echo; echo "build finished: $OZELVT"
+  du -sh "$OZELVT" | awk '{print "  size: "$1}'
 }
 
 kume_dosya() {
@@ -1242,8 +1247,8 @@ tus_ozelvt_kos() {
   log_ac ozelvt_kos
   kraken_sart
   [ -f "$OZELVT/hash.k2d" ] || {
-    echo "HATA: ozel veritabani kurulu degil ($OZELVT/hash.k2d yok)."
-    echo "  Once:  bash $0 ozelvt-kur"; exit 1; }
+    echo "ERROR: the custom database is not built ($OZELVT/hash.k2d is missing)."
+    echo "  First:  bash $0 ozelvt-kur"; exit 1; }
   mkdir -p "$OZEL_IS"
   birlestir "$OZEL_IS/tum.fastq"
   local BAYRAK; BAYRAK=$(bellek_bayragi "$OZELVT")
@@ -1251,7 +1256,7 @@ tus_ozelvt_kos() {
   kraken2 --db "$OZELVT" --threads "$IPLIK" $BAYRAK --confidence "$C" \
           --use-names --report "$OZEL_IS/tum.report" --output "$OZEL_IS/tum.out" \
           "$OZEL_IS/tum.fastq" 2>"$OZEL_IS/hata.txt" >/dev/null || {
-    echo "kraken2 HATA:"; tail -5 "$OZEL_IS/hata.txt" | sed 's/^/  /'; exit 1; }
+    echo "kraken2 ERROR:"; tail -5 "$OZEL_IS/hata.txt" | sed 's/^/  /'; exit 1; }
   rm -f "$OZEL_IS/hata.txt"
   python3 "$_BETIK_DIZIN/kraken_summary.py" --job "$OZEL_IS" --toolkit "$_BETIK_DIZIN" || true
 }
@@ -1273,7 +1278,7 @@ tus_ozelvt_kos() {
 # ---------------------------------------------------------------------------
 tus_bellek_ayari() {
   echo "======================================================================"
-  echo "WSL BELLEK AYARI - Windows'un kilitlenmesini onler"
+  echo "WSL MEMORY SETTING - it stops Windows from freezing"
   echo "======================================================================"
   echo
   local TOPLAM_MB=0 KAYNAK="olculemedi"
@@ -1286,7 +1291,7 @@ tus_bellek_ayari() {
   case "$TOPLAM_MB" in ''|*[!0-9]*) TOPLAM_MB=0 ;; esac
   if [ "$TOPLAM_MB" -le 0 ]; then
     TOPLAM_MB=$(( $(awk '/MemTotal/{print $2}' /proc/meminfo) / 1024 ))
-    KAYNAK="WSL icinden tahmin (Windows toplami DAHA BUYUK olabilir)"
+    KAYNAK="estimated from inside WSL (the Windows total can be LARGER)"
   fi
   local TOPLAM_GB=$(( TOPLAM_MB / 1024 ))
   # Yuzde 60: WSL'e yeter, Windows'a nefes payi birakir. Alt sinir 4 GB,
@@ -1296,9 +1301,9 @@ tus_bellek_ayari() {
   local SWAP_GB=$(( WSL_GB / 2 ))
   [ "$SWAP_GB" -lt 4 ] && SWAP_GB=4
 
-  echo "  Toplam RAM   : ${TOPLAM_GB} GB   ($KAYNAK)"
-  echo "  WSL'e onerilen: ${WSL_GB} GB     (toplamin yuzde 60'i)"
-  echo "  Swap         : ${SWAP_GB} GB"
+  echo "  total RAM       : ${TOPLAM_GB} GB   ($KAYNAK)"
+  echo "  suggested for WSL: ${WSL_GB} GB    (60 percent of the total)"
+  echo "  swap            : ${SWAP_GB} GB"
   echo
 
   local ICERIK
@@ -1306,10 +1311,10 @@ tus_bellek_ayari() {
 memory=${WSL_GB}GB
 swap=${SWAP_GB}GB
 processors=${IPLIK}
-# Sayfa onbellegini sinirlar; 110 GB'lik veritabani mmap ile okunurken
-# onbellegin sanal makineyi sisirmesini engeller.
+# Caps the page cache, so that reading a 110 GB database through mmap does
+# not let the cache inflate the virtual machine.
 pageReporting=true
-# Bosta kalan bellegi Windows'a geri verir.
+# Gives idle memory back to Windows.
 autoMemoryReclaim=gradual"
 
   local CIKTI="$PROJE/wslconfig_ONERILEN.txt"
@@ -1319,30 +1324,29 @@ autoMemoryReclaim=gradual"
   printf '%s\n' "$ICERIK"
   echo "----------------------------------------------------------------------"
   echo
-  echo "NE YAPACAKSINIZ - sirayla, uc adim"
+  echo "WHAT TO DO - three steps, in order"
   echo
-  echo "  1) Yukaridaki metin su dosyaya yazildi:"
+  echo "  1) The text above was written to this file:"
   echo "       $CIKTI"
-  echo "     Windows tarafinda gorunen adi:"
-  echo "       C:\\Users\\yerli\\Masaustu\\PROJE\\wslconfig_ONERILEN.txt"
+  echo "     Its name on the Windows side is that same file seen through \\\\wsl$."
   echo
-  echo "  2) O dosyayi SU ADA ve SU YERE kopyalayin:"
-  echo "       C:\\Users\\yerli\\.wslconfig"
-  echo "     (dosya adi nokta ile baslar ve uzantisi YOKTUR)"
-  echo "     Kisa yol: Windows'ta Calistir (Win+R) acip sunu yapistirin:"
-  echo "       notepad C:\\Users\\yerli\\.wslconfig"
-  echo "     Bos dosya acilirsa metni yapistirip kaydedin."
+  echo "  2) Copy that file to THIS NAME and THIS PLACE:"
+  echo "       %USERPROFILE%\\.wslconfig"
+  echo "     (the file name starts with a dot and has NO extension)"
+  echo "     A shortcut: open Run on Windows (Win+R) and paste this:"
+  echo "       notepad %USERPROFILE%\\.wslconfig"
+  echo "     If an empty file opens, paste the text and save."
   echo
-  echo "  3) WSL'i kapatip acin. Windows'ta PowerShell ya da Komut Istemi:"
+  echo "  3) Shut WSL down and start it again. In PowerShell or Command Prompt:"
   echo "       wsl --shutdown"
-  echo "     Sonra WSL'i yeniden acin. Ayar ancak bundan sonra gecerlidir."
+  echo "     Then open WSL again. The setting takes effect only after that."
   echo
-  echo "DOGRULAMA: yeniden actiktan sonra WSL icinde su komutu calistirin"
+  echo "VERIFICATION: after reopening it, run this command inside WSL"
   echo "       free -g"
-  echo "  'total' sutunu yaklasik ${WSL_GB} GB gostermelidir."
+  echo "  the 'total' column should read about ${WSL_GB} GB."
   echo
-  echo "BU AYAR TEK BASINA KILITLENMEYI COZER. WSL yavaslar, Windows kullanilabilir"
-  echo "kalir. Esik taramasi ayrica ornekleme ile hafifletildi (asagi bakin)."
+  echo "THIS SETTING ON ITS OWN FIXES THE FREEZE. WSL gets slower and Windows stays"
+  echo "usable. The threshold scan was also lightened with sampling (see below)."
 }
 
 # ---------------------------------------------------------------------------
@@ -1360,7 +1364,7 @@ tus_dogrula_ornek() {
   log_ac dogrula_ornek
   kraken_sart
   local d="$VT_A" is="$IS_A" C="${DOGRULAMA_ESIGI:-0.05}"
-  vt_hazir_mi "$d" || { echo "HATA: veritabani hazir degil"; exit 1; }
+  vt_hazir_mi "$d" || { echo "ERROR: the database is not ready"; exit 1; }
   mkdir -p "$is"
   birlestir "$is/tum.fastq"
   ornekle "$is/tum.fastq" "$is/ornek.fastq" "$ORNEK"
@@ -1368,19 +1372,19 @@ tus_dogrula_ornek() {
   local a="$is/dogrulama_ornek" b="$is/dogrulama_tam"
   for cift in "ornek.fastq:$a" "tum.fastq:$b"; do
     local gir="${cift%%:*}" cik="${cift##*:}"
-    if [ -s "${cik}.report" ]; then echo "$(basename $cik) zaten var, atlaniyor"; continue; fi
-    echo "[$C] $(basename $gir) siniflandiriliyor  $(date '+%H:%M:%S')"
+    if [ -s "${cik}.report" ]; then echo "$(basename $cik) already exists, skipping"; continue; fi
+    echo "[$C] classifying $(basename $gir)  $(date '+%H:%M:%S')"
     kraken2 --db "$d" --threads "$IPLIK" $BAYRAK --confidence "$C" \
             --use-names --report "${cik}.report" --output /dev/null \
             "$is/$gir" 2>"${cik}.err" >/dev/null || {
-      echo "  kraken2 HATA:"; tail -3 "${cik}.err" | sed 's/^/    /'; exit 1; }
+      echo "  kraken2 ERROR:"; tail -3 "${cik}.err" | sed 's/^/    /'; exit 1; }
     rm -f "${cik}.err"
   done
   echo
-  echo "TEMSIL KARSILASTIRMASI  (esik $C)"
-  echo "  Bakilan: alan duzeyi yuzdeleri. Mutlak sayilar farkli olacak, ONEMLI DEGIL."
+  echo "REPRESENTATION COMPARISON  (threshold $C)"
+  echo "  What is looked at: domain level percentages. The absolute counts will differ, and that DOES NOT MATTER."
   echo
-  printf '  %-24s %10s %10s %10s\n' "alan" "ornek %" "tam %" "fark"
+  printf '  %-24s %10s %10s %10s\n' "domain" "sample %" "full %" "difference"
   local sapma_max=0
   for tx in 2157:Archaea 2:Bacteria 4751:Fungi 33090:Viridiplantae 0:sinifsiz; do
     local id="${tx%%:*}" ad="${tx##*:}"
@@ -1409,7 +1413,7 @@ tus_dogrula_ornek() {
   printf 'esik\t%s\nen_buyuk_sapma_puan\t%s\n' "$C" "$sapma_max" \
     > "$is/temsil_dogrulamasi.tsv"
   echo
-  echo "  yazildi: $is/temsil_dogrulamasi.tsv"
+  echo "  written: $is/temsil_dogrulamasi.tsv"
 }
 
 # =========================================================================
@@ -1423,14 +1427,14 @@ case "$TUS" in
   vt-kimlik)   tus_vt_kimlik ;;
   sinav)       tus_sinav ;;
   sure)        tus_sure "${2:-$VT_A}" ;;
-  esik-a)      tus_sinav >/dev/null || { echo "SINAV KALDI. Ayrinti: bash $0 sinav"; exit 2; }
+  esik-a)      tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
                log_ac esik_a; kraken_sart; esik_tara "$VT_A" "$IS_A" "VT_A"
                python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" --is "$IS_A" --ad "$(basename "$VT_A")" ;;
-  esik-b)      [ -n "$VT_B" ] || { echo "HATA: VT_B verilmedi.  VT_B=/yol bash $0 esik-b"; exit 1; }
+  esik-b)      [ -n "$VT_B" ] || { echo "ERROR: VT_B was not given.  VT_B=/path bash $0 esik-b"; exit 1; }
                tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
                log_ac esik_b; kraken_sart; esik_tara "$VT_B" "$IS_B" "VT_B"
                python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" --is "$IS_B" --ad "$(basename "$VT_B")" ;;
-  esik)        tus_sinav >/dev/null || { echo "SINAV KALDI. Ayrinti: bash $0 sinav"; exit 2; }
+  esik)        tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
                tus_esik ;;
   tablo)       tus_tablo ;;
   hepsi)       tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
@@ -1438,5 +1442,5 @@ case "$TUS" in
   ozelvt-kur)  tus_ozelvt_kur ;;
   ozelvt-kos)  tus_ozelvt_kos ;;
   *)           sed -n '3,48p' "$0" | sed 's/^# \{0,1\}//'
-               echo; echo "Ayrinti icin: $PROJE/NASIL_DEVAM_EDILIR.md" ;;
+               echo; echo "For detail: $PROJE/docs/GUIDE.md" ;;
 esac
