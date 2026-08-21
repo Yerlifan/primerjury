@@ -1,47 +1,50 @@
-"""Bagimsiz in-silico PCR motoru (2026-08-02 son etap).
-Onceki oturumun engine_gateway.py / kararlar.py kodu KULLANILMAZ - sifirdan yazildi.
-Kriter: F ve R primerleri karsilikli yonelimde baglanacak, 3' son 2 baz TAM tutacak,
-toplam uyumsuzluk <= max_mm, urun boyu araligi verilen pencerede olacak.
+"""A self-contained in-silico PCR engine (2026-08-02, the final stage).
+The engine_gateway.py / kararlar.py code of the earlier session is NOT USED; this
+was written from scratch.
+The criterion: F and R must bind facing one another, the last 2 bases at the 3' end
+must match exactly, the total mismatch count must be <= max_mm, and the product
+length must fall inside the given window.
+
 """
 # ---------------------------------------------------------------------------
-# ispcr.py — panelin cekirdek in-silico PCR motoru; bir dizide F ve R
-#            primerlerinin karsilikli baglanip urun verip vermedigini olcer.
+# ispcr.py - the panel's core in-silico PCR engine. It measures whether the F
+#            and R primers bind facing one another and give a product.
 #
-# GİRDİ  : fasta dosyalari (read_fasta) ya da dogrudan dizi metni; F ve R primer
-#          dizileri (IUPAC dejenere baz kabul edilir). Komut satirindan:
+# INPUT  : fasta files (read_fasta) or sequence text directly; the F and R primer
+#          sequences (IUPAC degenerate bases accepted). From the command line:
 #          python ispcr.py <F> <R> <fasta...>
-# ÇIKTI  : dosyaya YAZMAZ, deger dondurur. find_sites -> [(baslangic, mm)];
-#          amplify -> [(bas, bit, urun_bp, mm_F, mm_R)]; scan_file ->
-#          (toplam_dizi, urun_veren_dizi, boy_dagilimi, vurus_listesi).
-#          Yalniz __main__ ekrana ozet basar.
-# ÇAĞRAN : screening/engine_gateway.py bu dosyayi ada gore bulup yukler; bulamazsa
-#          "HATA: ispcr.py bulunamadi" deyip cikar, yani engine_gateway.py'siz hicbir
-#          olcum kosamaz. engine_gateway.py'yi de paketin butun olcum modulleri
-#          (sample.py, global_scan.py, reference.py, generator.py, targets.py,
+# OUTPUT : it WRITES NO FILE, it returns values. find_sites -> [(start, mm)];
+#          amplify -> [(start, end, product_bp, mm_F, mm_R)]; scan_file ->
+#          (total, with_product, length_distribution, hit_list).
+#          Only __main__ prints a summary to the screen.
+# CALLED BY: screening/engine_gateway.py finds this file by name and loads it. If
+#          it cannot, it says "ispcr.py was not found" and exits, so no
+#          measurement runs without engine_gateway.py. engine_gateway.py itself is
+#          used by every measuring module in the package (sample.py,
+#          global_scan.py, reference.py, generator.py, targets.py,
 #          build_consensus.py, panel_measurement.py, membership_check.py,
-#          self_test.py) ve disaridan verification/recovery_round.py ile
-#          protocol/single_protocol_measure.py kullanir. Ayrica ayni klasordeki
-#          ara.py, hiza.py, mazei*.py, deg_*.py, mmb_*.py ve
-#          engine/scanner.py, pair.py dogrudan "import ispcr" der.
-#          Menude her olcum tusunda yuklenir: P (tek protokolle panel olcumu),
-#          K (kurtarma), D (dogrulama), I ve G (kimlik), T (P->K->D->I),
-#          U (uyelik), H (hizli test), 1-9 (kapsamli arama).
-#          full_chain.py bu dosyayi DOGRUDAN cagirmaz ama acilista
-#          "engine\ispcr.py" var mi diye bakar; yoksa arac acilmaz.
+#          self_test.py) and from outside by verification/recovery_round.py and
+#          protocol/single_protocol_measure.py. Beside those, ara.py, hiza.py,
+#          mazei*.py, deg_*.py, mmb_*.py and engine/scanner.py, pair.py say
+#          "import ispcr" directly.
+#          It loads on every measuring key in the menu: P (panel measurement under
+#          a single protocol), K (recovery), D (verification), I and G (identity),
+#          T (P->K->D->I), U (membership), H (quick test), 1-9 (search).
+#          full_chain.py does not call this file directly, but on start-up it
+#          checks that engine/ispcr.py exists; without it the tool does not open.
 #
-# NEDEN TOHUMSUZ: bu motor find_sites icinde tam kayan pencere tarar, hicbir
-# tohum/kisayol varsayimi yoktur; dolayisiyla kayipsizligi tanim geregidir.
-# Tohumlu hizli yollar (screening/read_engine.py, scanner.py Havuz)
-# bu dosyanin olcutunu taklit etmek zorundadir ve self_test.py ucunu
-# birebir karsilastirir.
+# WHY THERE IS NO SEED: this engine scans a full sliding window inside find_sites
+# and makes no seed or shortcut assumption, so its losslessness holds by
+# definition. The seeded fast paths (screening/read_engine.py, scanner.py Havuz)
+# must imitate this file's criterion, and self_test.py compares all three.
 # ---------------------------------------------------------------------------
 import re, sys, os, glob
 from collections import defaultdict
 
-# IUPAC dejenere baz tablosu: bir primer harfinin dizide hangi bazlara
-# karsilik gelmesine izin verildigi. Ornegin R yazan bir primer konumu hem A
-# hem G ile eslesir. Dejenere primerler tek bir oligo degil, oligo KARISIMIDIR;
-# arama tarafinda bu tabloyla acilir.
+# The IUPAC degenerate base table: which bases in the sequence a primer letter may
+# match. An R at a primer position matches both A and G. A degenerate primer is
+# not one oligo but a MIXTURE of oligos, and this table is how the search side
+# expands it.
 IUPAC = {
     'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T', 'U': 'T',
     'R': 'AG', 'Y': 'CT', 'S': 'GC', 'W': 'AT', 'K': 'GT', 'M': 'AC',
@@ -51,24 +54,24 @@ COMP = str.maketrans('ACGTURYSWKMBDHVNacgturyswkmbdhvn',
                      'TGCAAYRSWMKVHDBNtgcaayrswmkvhdbn')
 
 
-# Ters tumleyen (reverse complement). PCR'de R primeri sablonun EKSI ipligine
-# baglanir; motor yalniz arti iplikte tarama yaptigi icin R'yi aramadan once
-# rc(R)'ye cevirmek zorundadir (bkz. amplify).
+# Reverse complement. In PCR the R primer binds the MINUS strand; since the engine
+# scans only the plus strand, it has to convert R to rc(R) before searching for it
+# (see amplify).
 def rc(s):
     return s.translate(COMP)[::-1]
 
 
-# Diziyi normalize eder: ACGTUN disindaki her karakter (bosluk, dejenere baz,
-# hizalama tiresi, kucuk harf artigi) N'ye cevrilir, U -> T yapilir.
-# Onemli: buradaki N'ler encode() icinde -1 olur ve find_sites'ta ASLA
-# eslesmez. Yani belirsiz baz sessizce "uyar" sayilmaz, uyumsuzluk sayilir -
-# olcum bu yuzden iyimser degil, temkinlidir.
+# Normalises a sequence: every character outside ACGTUN (a space, a degenerate
+# base, an alignment dash, a lower case leftover) becomes N, and U becomes T.
+# This matters: those Ns become -1 inside encode() and NEVER match in find_sites.
+# So an ambiguous base is never silently counted as a match; it counts as a
+# mismatch. The measurement is cautious rather than optimistic.
 def clean(s):
     return re.sub(r'[^ACGTUN]', 'N', s.upper()).replace('U', 'T')
 
 
-# Fasta okuyucu. Tum dosyayi bellege almaz, kayit kayit uretir (yield): panelin
-# referans/konsensus dosyalari cok kayitli olabiliyor.
+# The fasta reader. It does not hold the whole file in memory, it yields record by
+# record: the panel's reference and consensus files can hold many records.
 def read_fasta(path):
     name, buf = None, []
     with open(path, errors='ignore') as fh:
@@ -85,194 +88,203 @@ def read_fasta(path):
 
 import numpy as np
 
-# Bayt -> baz kodu cevrim tablosu. A,C,G,T sirasiyla 0,1,2,3; DIGER HER BAYT
-# -1 kalir. -1 olmasi kasitlidir: find_sites'ta "col >= 0" kosulu N'i ve her
-# tanimsiz karakteri otomatik olarak uyumsuz sayar.
+# The byte to base code table. A, C, G, T map to 0, 1, 2, 3; EVERY OTHER BYTE
+# stays -1. The -1 is deliberate: the "col >= 0" condition in find_sites makes N
+# and every undefined character count automatically as a mismatch.
 _B = np.zeros(256, dtype=np.int8)
 _B[:] = -1
 for _i, _c in enumerate('ACGT'):
     _B[ord(_c)] = _i
 
 
-# Diziyi int8 dizisine cevirir. Tarama saf Python dongusu yerine numpy sutun
-# islemleriyle yapilabilsin diye; hiz buradan gelir, olcut degismez.
+# Turns the sequence into an int8 array so the scan can use numpy column
+# operations instead of a pure Python loop. Speed comes from here, not the criterion.
 def encode(seq):
     a = np.frombuffer(seq.encode(), dtype=np.uint8)
     return _B[a]
 
 
 # ---------------------------------------------------------------------------
-# find_sites — primerin dizide ILERI yonde bagladigi tum baslangic konumlari.
+# find_sites - every start position where the primer binds in the FORWARD direction.
 #
-# NE HESAPLAR: her olasi baslangic konumu icin (a) toplam uyumsuzluk sayisi ve
-# (b) 3' kritik uclarin tam tutup tutmadigi. Kabul kosulu: mm <= max_mm ve
-# (need_tail ise) tail_pos konumlarinin HEPSI tam eslesmis olmali.
+# WHAT IT COMPUTES: for each possible start position, (a) the total mismatch count
+# and (b) whether the critical 3' end positions match exactly. The acceptance
+# condition: mm <= max_mm and (when need_tail) ALL of tail_pos match exactly.
 #
-# NEDEN BOYLE HESAPLANIR - TOHUM YOK:
-# Bu fonksiyon dizide TAM KAYAN PENCERE tarar. Dis dongu primerin bazlari
-# uzerindedir (L adim), her adimda o bazin dizideki butun hizalamalari tek
-# hamlede karsilastirilir; yani hicbir baslangic konumu elenmeden atlanmaz.
-# Bu, kayipsizligin tanim geregi saglanmasi demektir.
+# WHY IT IS COMPUTED THIS WAY - NO SEED:
+# This function scans a FULL SLIDING WINDOW over the sequence. The outer loop runs
+# over the primer's bases (L steps), and at each step every alignment of that base
+# in the sequence is compared in one go, so no start position is skipped without
+# being evaluated. That is what makes losslessness hold by definition.
 #
-# GUVERCIN YUVASI (PIGEONHOLE) ILE ILISKISI: tohumlu motorlar hiz icin once
-# kisa bir parcanin TAM eslestigi yerlere bakar. Bunun kayipsiz olmasi ancak
-# su garantiyle mumkundur: en fazla m uyumsuzluga izin verilen bir aramada
-# dizi (m + 1) tane ORTUSMEYEN parcaya bolunurse, en fazla m parca bozulabilir
-# ve geriye kalan EN AZ BIR parca tam eslesmek ZORUNDADIR. Bu bir garantidir,
-# sezgisel bir hizlandirma degildir. Parca sayisi m + 1'in ALTINA duserse
-# garanti coker ve arama sessizce baglanma yeri kacirmaya baslar - hata da
-# atmaz, sadece sayilar kucuk cikar. Bu dosya hic tohum kullanmadigi icin o
-# riski tasimaz; tam da bu yuzden tohumlu yollarin dogrulugu (read_engine.py,
-# scanner.py) bu fonksiyona ve brute_force.py'ye karsi sinanir.
+# ITS RELATION TO PIGEONHOLE SEEDING: a seeded engine looks first, for speed, at
+# the places where a short piece matches EXACTLY. That can only be lossless under
+# this guarantee: in a search allowing at most m mismatches, if the sequence is
+# split into (m + 1) NON-OVERLAPPING pieces, at most m pieces can be spoiled and
+# AT LEAST ONE piece MUST match exactly. That is a guarantee, not a heuristic
+# speed-up. If the piece count drops BELOW m + 1 the guarantee collapses and the
+# search starts missing binding sites silently. It raises no error either, the
+# numbers simply come out small. This file uses no seed at all, so it does not
+# carry that risk, and that is exactly why the correctness of the seeded paths
+# (read_engine.py, scanner.py) is tested against this function and brute_force.py.
 #
-# 3' UC KURALI (tail_pos): polimeraz primeri 3' ucundan uzatir. 3' ucta
-# uyumsuzluk varsa uzatma pratikte olmaz; bu yuzden 3' son 2 bazin TAM tutmasi
-# sart kosulur. Panelin olcutu budur. tail_pos negatif verilirse (-1, -2)
-# primerin sonu, (0, 1) verilirse basi kritik olur - ikincisi ters primerin
-# tumleyeni icin gerekir (bkz. amplify).
+# THE 3' END RULE (tail_pos): the polymerase extends a primer from its 3' end. If
+# there is a mismatch at the 3' end, extension does not happen in practice, so the
+# last 2 bases at the 3' end are required to match EXACTLY. That is the panel's
+# criterion. A negative tail_pos (-1, -2) makes the end of the primer critical,
+# and (0, 1) makes the start critical; the second form is what the complement of
+# the reverse primer needs (see amplify).
 # ---------------------------------------------------------------------------
 def find_sites(enc, primer, max_mm, need_tail=True, tail_pos=(-1, -2)):
-    """primer'in dizide ileri yonde baglandigi 0-tabanli baslangiclar (numpy).
-    tail_pos: 3' kritik konumlarin primer icindeki indeksleri."""
+    """The 0-based starts where the primer binds the sequence in the forward direction (numpy).
+    tail_pos: the indices, inside the primer, of the critical 3' positions.
+
+    """
     L, n = len(primer), enc.shape[0]
     if n < L:
         return []
-    # m = olasi baslangic konumu sayisi. Her konum ayri bir aday hizalamadir.
+    # m = the number of possible start positions, each a separate candidate alignment.
     m = n - L + 1
-    # mm[i]  : i konumundaki hizalamanin toplam uyumsuzluk sayisi
-    # tail_ok: i konumunda 3' kritik uclarin hepsi tam tuttu mu
+    # mm[i]  : the total mismatch count of the alignment at position i
+    # tail_ok: whether every critical 3' position matched exactly at position i
     mm = np.zeros(m, dtype=np.int16)
     tail_ok = np.ones(m, dtype=bool)
-    # Negatif indeksler (-1, -2) primer uzunluguna gore pozitife cevrilir.
+    # Negative indices (-1, -2) are converted to positive against the primer length.
     tpos = {(p % L) for p in tail_pos}
-    # Dis dongu PRIMER bazlari uzerinde (L adim), ic islem numpy vektoru.
-    # Boylece butun baslangic konumlari es zamanli degerlendirilir; konum
-    # atlanmaz, tohum elemesi yapilmaz.
+    # The outer loop runs over the PRIMER bases (L steps) and the inner work is a numpy
+    # vector, so every start position is evaluated at the same time. No position is
+    # skipped and no seed filtering happens.
     for k, p in enumerate(primer):
         allowed = [ 'ACGT'.index(c) for c in IUPAC.get(p, 'ACGT') ]
-        # col: her aday hizalamanin k. sirasindaki dizi bazi.
+        # col: the sequence base at position k of each candidate alignment.
         col = enc[k:k + m]
         ok = np.zeros(m, dtype=bool)
-        # Dejenere primer bazi birden cok baza izin verebilir; hepsi denenir.
+        # A degenerate primer base can allow several bases; all of them are tried.
         for a in allowed:
             ok |= (col == a)
-        ok &= (col >= 0)          # N/bosluk = uyumsuz
+        ok &= (col >= 0)          # N or a gap counts as a mismatch
         mm += (~ok)
-        # 3' kritik konumsa tolerans YOK: tek uyumsuzluk konumu tumden eler.
+        # At a critical 3' position there is NO tolerance: one mismatch rules it out.
         if k in tpos:
             tail_ok &= ok
     sel = mm <= max_mm
     if need_tail:
         sel &= tail_ok
     idx = np.nonzero(sel)[0]
-    # (baslangic, o baglanmadaki uyumsuzluk sayisi) ciftleri dondurulur;
-    # uyumsuzluk sayisi cagiran tarafta "en iyi urun"u secmek icin kullanilir.
+    # (start, the mismatch count of that binding) pairs are returned. The caller uses
+    # the mismatch count to pick the "best product".
     return list(zip(idx.tolist(), mm[idx].tolist()))
 
 
 # ---------------------------------------------------------------------------
-# amplify — IN-SILICO PCR. Bir dizide F ve R primerlerinin gercekten bir urun
-#           verip veremeyecegini olcer.
+# amplify - IN-SILICO PCR. It measures whether the F and R primers can really give
+#           a product on a sequence.
 #
-# URUN SAYILMA SARTLARI (gercek PCR'in dort kosulu):
-#   1) F, dizide ileri yonde baglanmali (find_sites, 3' son 2 baz tam).
-#   2) R, KARSI iplige baglanmali. Motor yalniz arti ipligi taradigi icin R'nin
-#      kendisi degil, ters tumleyeni rc(R) aranir. rc(R) arti iplikte
-#      bulunuyorsa, R gercekte eksi iplige baglaniyor demektir.
-#   3) IKI PRIMER BIRBIRINE BAKMALI: F soldan saga, R sagdan sola uzar.
-#      j >= i + len(fwd) kosulu R'nin baglanma yerinin F'nin SAGINDA ve F ile
-#      ORTUSMEDEN olmasini sart kosar. Bu olmadan ayni bolgeye binmis iki
-#      baglanma sahte bir "urun" uretirdi; ayrica yanlis siradaki (R solda,
-#      F sagda) bir cift PCR'de hicbir sey vermez, burada da verilmez.
-#   4) URUN BOYU PENCEREYE girmeli: lo <= size <= hi. Bunun qPCR karsiligi
-#      var - config.py'de URUN_IDEAL (60-150 bp), URUN_KABUL (150-250),
-#      URUN_MUTLAK_UST 400. Kisa urun protokoldeki 30 sn uzatmada tamamlanir
-#      ve SYBR Green sinyali temiz cikar; cok uzun urun ne verimli cogalir ne
-#      de jelde/erime egrisinde beklenen yerde gorunur. Pencere yoksa motor
-#      birbirinden 5 kb uzaktaki iki baglanmayi da "urun" sayardi.
+# WHAT COUNTS AS A PRODUCT (the four conditions of real PCR):
+#   1) F must bind the sequence in the forward direction (find_sites, the last 2
+#      bases at the 3' end exact).
+#   2) R must bind the OPPOSITE strand. Since the engine scans only the plus
+#      strand, it searches not for R itself but for its reverse complement rc(R).
+#      If rc(R) is found on the plus strand, R really does bind the minus strand.
+#   3) THE TWO PRIMERS MUST FACE ONE ANOTHER: F extends left to right, R right to
+#      left. The condition j >= i + len(fwd) requires R's binding site to lie to
+#      the RIGHT of F and NOT OVERLAP it. Without that, two bindings sitting on
+#      the same region would produce a false "product"; and a pair in the wrong
+#      order (R on the left, F on the right) gives nothing in real PCR, so it
+#      gives nothing here either.
+#   4) THE PRODUCT LENGTH must fall in the window: lo <= size <= hi. This has a
+#      qPCR counterpart. config.py holds URUN_IDEAL (60-150 bp), URUN_KABUL
+#      (150-250) and URUN_MUTLAK_UST 400. A short product completes within the
+#      30 s extension of the protocol and gives a clean SYBR Green signal; a very
+#      long product neither amplifies efficiently nor appears where it should on
+#      a gel or a melt curve. With no window the engine would call two bindings
+#      5 kb apart a "product".
 #
-# 3' UC INDEKSININ YON DEGISTIRMESI: R primerinin 3' ucu, rc(R) dizisinin 5'
-# UCUDUR. Bu yuzden F icin tail_pos=(-1,-2) verilirken rc(R) icin (0,1)
-# verilir. Bu ayrinti atlanirsa 3' kurali R tarafinda yanlis uctan uygulanir.
+# WHY THE 3' END INDEX FLIPS: the 3' end of the R primer is the 5' END of the
+# rc(R) sequence. That is why tail_pos=(-1,-2) is given for F while (0,1) is given
+# for rc(R). Miss this and the 3' rule is applied from the wrong end on the R side.
 #
-# YON UYARISI: bu fonksiyon verilen dizinin YALNIZ ARTI IPLIGINI tarar,
-# rc(seq)'i kendiliginden denemez. Nanopore okumalari cift yonludur ve bir
-# konsensus ters yonde uretilmis olabilir; ters yonlu bir dizide bu fonksiyon
-# urunlerin TAMAMINI kaybeder ve HATA DA ATMAZ, sessizce 0 doner. Bu yuzden:
-#   - konsensus tarafinda yon KANONIK KAYNAKTAN okunur
-#     (screening/hedefler.konsensusler -> konsensus_kanonik/INDEKS.tsv,
-#     hepsi SENSE). Eski "consensus sequences" klasoru KARISIK yonluydu
-#     (71 antisense / 27 sense) ve ona sessizce dusulmesi yasaklanmistir.
-#   - ham okuma tarafinda cagiran her okumayi iki yonde de dener
-#     (okuma.kutu_pcr ve numune.pcr_kutu icindeki "for seq in (s, rc(s))"),
-#     motor.urun_var da ayni sekilde iki yon dener.
+# ORIENTATION WARNING: this function scans ONLY THE PLUS STRAND of the sequence it
+# is given; it does not try rc(seq) on its own. Nanopore reads come in both
+# directions and a consensus may have been built in reverse. On a reversed
+# sequence this function loses EVERY product and RAISES NO ERROR, it quietly
+# returns 0. So:
+#   - on the consensus side the orientation is read FROM THE CANONICAL SOURCE
+#     (screening/hedefler.konsensusler -> konsensus_kanonik/INDEKS.tsv, all SENSE).
+#     The old "consensus sequences" directory was MIXED orientation
+#     (71 antisense / 27 sense) and falling back to it silently is forbidden.
+#   - on the raw read side the caller tries every read in both directions
+#     ("for seq in (s, rc(s))" inside okuma.kutu_pcr and numune.pcr_kutu), and
+#     motor.urun_var tries both directions in the same way.
 # ---------------------------------------------------------------------------
 def amplify(seq, fwd, rev, max_mm=3, lo=40, hi=600, need_tail=True, enc=None):
-    """Urunleri dondur: (baslangic, bitis, urun_bp, mm_F, mm_R)."""
+    """Return the products: (start, end, product_bp, mm_F, mm_R)."""
     if enc is None:
         enc = encode(clean(seq))
     revrc = rc(rev)
     fs = find_sites(enc, fwd, max_mm, need_tail, tail_pos=(-1, -2))
-    # F hic baglanmiyorsa R'yi aramaya gerek yok - urun zaten olamaz.
+    # If F does not bind at all there is no point searching for R; there can be no product.
     if not fs:
         return []
-    # revrc icin 3' kriteri: rev primerin 3' ucu = revrc'nin 5' ucu -> indeks 0,1
+    # The 3' criterion for revrc: the 3' end of rev = the 5' end of revrc -> index 0,1
     rs = find_sites(enc, revrc, max_mm, need_tail, tail_pos=(0, 1))
     if not rs:
         return []
     prods = []
-    # Butun F x R baglanma cifti denenir; ayni dizide birden cok urun cikabilir.
+    # Every F x R binding pair is tried; one sequence can give more than one product.
     for i, mmf in fs:
         for j, mmr in rs:
-            # Urun, F'nin baslangicindan rc(R)'nin BITISINE kadardir; yani iki
-            # primerin kendisi de urunun icindedir (gercek amplikonda oldugu gibi).
+            # The product runs from the start of F to the END of rc(R), so both primers are
+            # themselves inside the product, as they are in a real amplicon.
             end = j + len(revrc)
             size = end - i
-            # Boy penceresi + primerlerin ortusmeden karsilikli durmasi.
+            # The length window, plus the primers facing one another without overlapping.
             if lo <= size <= hi and j >= i + len(fwd):
                 prods.append((i, end, size, mmf, mmr))
     return prods
 
 
 # ---------------------------------------------------------------------------
-# scan_file — bir fasta dosyasindaki dizilerin kacinda urun ciktigini sayar.
+# scan_file - counts how many sequences in a fasta file give a product.
 #
-# NE HESAPLAR: (toplam, urun_veren, boy_dagilimi, vurus_listesi).
-# Oran hesabinin PAYDASI min_len'den kisa diziler ELENDIKTEN sonraki dizi
-# sayisidir. Neden: kirpik/parcali bir kayit urunu tasiyacak kadar uzun bile
-# degilse onu paydaya koymak orani sahte olarak asagi ceker.
+# WHAT IT COMPUTES: (total, with_product, length_distribution, hit_list).
+# The DENOMINATOR of the ratio is the number of sequences left AFTER those shorter
+# than min_len are dropped. The reason: if a truncated or partial record is not
+# even long enough to carry the product, putting it in the denominator pushes the
+# ratio down falsely.
 #
-# Bir dizi urun verse de vermese de BIR kez sayilir (derinlik degil, varlik
-# olcumu). Ayni dizide birden cok urun varsa toplam uyumsuzlugu en kucuk olan
-# "en iyi" urun secilir - en olasi baglanma odur.
+# A sequence is counted ONCE whether or not it gives a product (this measures
+# presence, not depth). If one sequence gives several products, the "best" one is
+# the one with the smallest total mismatch count, since that is the likeliest
+# binding.
 #
-# DIKKAT: burada clean(seq) verilir ama rc(seq) DENENMEZ. Ters yonlu bir
-# fasta bu fonksiyonda sessizce 0 urun verir; yon kanonik kaynaktan gelmelidir
-# (bkz. amplify basligindaki yon uyarisi).
+# CAUTION: clean(seq) is passed here but rc(seq) is NOT TRIED. A reversed fasta
+# quietly gives 0 products in this function; the orientation must come from the
+# canonical source (see the orientation warning in the amplify header).
 # ---------------------------------------------------------------------------
 def scan_file(path, fwd, rev, max_mm=3, lo=40, hi=600, min_len=0):
-    """Bir fasta uzerinde tara. Payda = min_len'den uzun diziler."""
+    """Scan one fasta. The denominator is the sequences longer than min_len."""
     tot = amp = 0
     sizes = defaultdict(int)
     hits = []
     for name, seq in read_fasta(path):
-        # Paydaya girmeyecek kadar kisa kayitlar tamamen atlanir.
+        # Records too short to enter the denominator are skipped entirely.
         if len(seq) < min_len:
             continue
         tot += 1
         p = amplify(clean(seq), fwd, rev, max_mm, lo, hi)
         if p:
             amp += 1
-            # En iyi urun = mm_F + mm_R toplami en kucuk olan.
+            # The best product = the one with the smallest mm_F + mm_R.
             best = min(p, key=lambda x: x[3] + x[4])
             sizes[best[2]] += 1
             hits.append((name, best[2], best[3], best[4]))
     return tot, amp, dict(sizes), hits
 
 
-# Elle kullanim: python ispcr.py <F> <R> <fasta...>
-# min_len=1200 - komut satiri kullanimi tam boy 16S/ITS kayitlarini hedefler,
-# kisa parcalar paydayi kirletmesin diye.
+# Manual use: python ispcr.py <F> <R> <fasta...>
+# min_len=1200 - command line use targets full length 16S/ITS records, so that
+# short fragments do not pollute the denominator.
 if __name__ == '__main__':
     fwd, rev = sys.argv[1].upper(), sys.argv[2].upper()
     for path in sorted(sys.argv[3:]):
