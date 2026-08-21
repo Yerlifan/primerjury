@@ -118,7 +118,7 @@ def main():
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# SIPARIS FORMU - %s\n' % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'# Kaynak: %s (md5 %s)\n' % (PANEL.replace('\\', '/'), ozet))
-        fh.write(u'# Bu dosya ELLE YAZILMAZ, panelin kaynagindan uretilir.\n')
+        fh.write(u'# This file is NEVER WRITTEN BY HAND; it is generated from the panel source.\n')
         fh.write(u'# xlsx dosyasindan KOPYALAMAYIN: 2026-08-10 itibariyla oradaki\n'
                  u'# alti ciftin dizisi ESKIDIR (Bacteroidales, Bakteri_universal,\n'
                  u'# Mantar F1, Microascaceae, Petriella_musispora, Petrimonas).\n')
@@ -133,24 +133,17 @@ def main():
 
     my = os.path.join(kok, 'SIPARIS_FORMU.md')
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Sipariş formu\n\n')
-        fh.write(u'Üretim: %s · kaynak `%s` (md5 `%s`)\n\n'
+        fh.write(u'# Order form\n\n')
+        fh.write(u'Generated: %s, source `%s` (md5 `%s`)\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), PANEL.replace('\\', '/'), ozet))
-        fh.write(u'> **Excel dosyasından kopyalamayın.** '
-                 u'`PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx` içindeki '
-                 u'`2 Panel` sayfasında altı çiftin dizisi eskidir: Bacteroidales, '
-                 u'Bakteri evrensel, Mantar F1, Microascaceae, Petriella musispora, '
-                 u'Petrimonas. O sayfadan sipariş verilirse yirmi çiftin altısı '
-                 u'yanlış oligo olarak gelir. Doğru diziler aşağıdadır ve panelin '
-                 u'kendi kaynağından üretilmiştir.\n\n')
-        fh.write(u'**%d çift = %d oligo**\n\n' % (len(girer), 2 * len(girer)))
+        fh.write(u'> **Do not copy from the Excel file.** The `2 Panel` sheet inside `PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx` ')
+        fh.write(u'**%d pairs = %d oligos**\n\n' % (len(girer), 2 * len(girer)))
         if uyari:
             fh.write(u'### Uyarılar\n\n')
             for u_ in uyari:
                 fh.write(u'- %s\n' % u_)
             fh.write(u'\n')
-        fh.write(u'| oligo adı | dizi (5→3) | uz | hedef | yön | plaka | Ta | ürün |\n'
-                 u'|---|---|---|---|---|---|---|---|\n')
+        fh.write(u'| oligo name | sequence (5->3) | len | target | orientation | plate | Ta | product |\n|---|---|---|---|---|---|---|---|\n')
         for c in girer:
             for ad, d, yon in ((c['adF'], c['F'], 'ileri'), (c['adR'], c['R'], 'geri')):
                 fh.write(u'| %s | `%s` | %d | %s | %s | %s | %s | %s |\n'
@@ -169,8 +162,8 @@ def main():
 
     print('yazildi: %s' % ty)
     print('yazildi: %s' % my)
-    print('  siparise giren: %d cift = %d oligo' % (len(girer), 2 * len(girer)))
-    print('  siparis disi  : %d cift' % len(girmez))
+    print(u'  going into the order: %d pairs = %d oligos' % (len(girer), 2 * len(girer)))
+    print(u'  not ordered        : %d pairs' % len(girmez))
     print('  kaynak md5    : %s' % ozet)
     return 0
 

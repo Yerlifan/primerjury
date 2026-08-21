@@ -126,11 +126,11 @@ def main():
 
     ty = os.path.join(kok, 'ESIK_IKI_KURAL.tsv')
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Iki esik kurali yan yana. Uretim %s\n'
+        fh.write(u'# The two threshold rules side by side. Generated %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'# duz kural   : dCq >= %.2f\n' % DUZ_ESIK)
         fh.write(u'# bolluk kural: dCq >= max(log2(R) + %.1f, %.2f)\n' % (FIERER, TABAN))
-        fh.write(u'# R = rakip havuzu okumasi / uye havuzu okumasi (mm<=1)\n')
+        fh.write(u'# R = competitor pool reads / member pool reads (mm<=1)\n')
         fh.write(u'hedef\tdCq\tdCq_08_08\tR_bayat_mi\tR\tgerekli_dCq\t'
                  u'duz_kural\tbolluk_kurali\tayrisiyor_mu\n')
         for s in satir:
@@ -150,51 +150,34 @@ def main():
                and s['duz'] != s['bolluk']]
     my = os.path.join(kok, 'ESIK_IKI_KURAL.md')
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# İki eşik kuralı yan yana\n\n')
-        fh.write(u'Üretim: %s · kaynak `TEK_PROTOKOL_SONUC/` (bu koşunun kendi '
-                 u'çıktısı)\n\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'| kural | tanım |\n|---|---|\n')
-        fh.write(u'| Düz | dCq ≥ %.2f |\n' % DUZ_ESIK)
-        fh.write(u'| Bolluğa ağırlıklı | dCq ≥ max(log2(R) + %.1f, %.2f) |\n\n'
+        fh.write(u'# The two threshold rules side by side\n\n')
+        fh.write(u'Generated: %s, source `TEK_PROTOKOL_SONUC/` (this run\'s own output)\n\n' % time.strftime('%Y-%m-%d %H:%M'))
+        fh.write(u'| rule | definition |\n|---|---|\n')
+        fh.write(u'| Flat | dCq >= %.2f |\n' % DUZ_ESIK)
+        fh.write(u'| Abundance-weighted | dCq >= max(log2(R) + %.1f, %.2f) |\n\n'
                  % (FIERER, TABAN))
-        fh.write(u'R, rakip havuzunun üye havuzuna okuma oranıdır. 4,3 sayısı '
-                 u'Fierer ve arkadaşlarının %5 saflık ölçütünün döngü karşılığıdır; '
-                 u'3,32 tabanı, R küçük olsa bile en az on kat ayrım istendiği '
-                 u'içindir.\n\n')
+        fh.write(u'R is the ratio of competitor-pool reads to member-pool reads. The 4.3 comes from Fierer et al.\'s 5% purity criterion')
         bayat = [s for s in satir if s.get('bayat')]
-        fh.write(u'> **R değerlerinin kaynağı.** R, `ESIK_VE_OLCUT_2026-08-08.tsv` '
-                 u'dosyasından alındı; onu üreten betik projede yok. Oturum '
-                 u'kayıtlarında tanımı bulundu ("en yakın rakibin hedefe göre '
-                 u'bolluk oranı") ama o tanımın altı varyantı bugünkü sayılarla '
-                 u'denendiğinde 18 satırın 1\'inde tuttu. Yani bu R değerleri '
-                 u'8 Ağustos\'un üyelikleriyle hesaplanmış; üyelikler 3 Ağustos\'ta '
-                 u'yeniden türetildi ve 10 Ağustos\'ta altı çift değişti. '
-                 u'**%d satırda dCq o günden beri değişmiş** — o satırlarda R de '
-                 u'değişmiş olmalı ve aşağıdaki "gerekli dCq" güvenilmezdir; '
-                 u'tabloda `R bayat` diye işaretli.\n\n' % len(bayat))
-        fh.write(u'**İki kural %d satırda ayrışıyor.**\n\n' % len(ayrisan))
-        fh.write(u'| hedef | dCq | R | gerekli dCq | düz | bolluk | R bayat mı |\n'
-                 u'|---|---|---|---|---|---|---|\n')
+        fh.write(u'> **Where the R values come from.** R was taken from `ESIK_VE_OLCUT_2026-08-08.tsv`; the script that produced it' % len(bayat))
+        fh.write(u'**The two rules disagree on %d rows.**\n\n' % len(ayrisan))
+        fh.write(u'| target | dCq | R | required dCq | flat | abundance | is R stale |\n|---|---|---|---|---|---|---|\n')
         for s in satir:
             if s['dcq'] is None:
                 continue
             fh.write(u'| %s%s | %.2f | %s | %s | %s | %s | %s |\n' % (
-                s['hedef'], ' **←ayrışıyor**' if s in ayrisan else '',
+                s['hedef'], u' **<-- disagrees**' if s in ayrisan else '',
                 s['dcq'],
                 '—' if s['R'] is None else '%.2f' % s['R'],
                 '—' if s['gerekli'] is None else '%.2f' % s['gerekli'],
-                'geçer' if s['duz'] else 'kalır',
-                '—' if s['bolluk'] is None else ('geçer' if s['bolluk'] else 'kalır'),
-                (u'**EVET** (dCq 8 Ağustos\'ta %.2f idi)' % s['dcq08'])
+                u'passes' if s['duz'] else u'stays',
+                '—' if s['bolluk'] is None else (u'passes' if s['bolluk'] else u'stays'),
+                (u'**YES** (on 8 August dCq was %.2f)' % s['dcq08'])
                 if s.get('bayat') else u'—'))
-        fh.write(u'\n## Bu tablonun karar vermediği şey\n\n'
-                 u'Hangi kuralın uygulanacağı bir **ölçüt tercihidir**, ölçüm '
-                 u'değildir. İki sütun da aynı ölçümden gelir; ayrıldıkları yer '
-                 u'kuralın kendisidir. Bu yüzden burada hüküm yazılmadı.\n')
+        fh.write(u'\n## What this table does not decide\n\nWhich rule to apply is a **choice of criterion**, not a measurement')
 
     print('yazildi: %s' % ty)
     print('yazildi: %s' % my)
-    print('  olculebilen satir: %d' % sum(1 for s in satir if s['dcq'] is not None))
+    print(u'  measurable rows: %d' % sum(1 for s in satir if s['dcq'] is not None))
     print('  iki kural ayrisan : %d' % len(ayrisan))
     for s in ayrisan:
         print('    %-44s dCq %.2f, gerekli %.2f' % (s['hedef'][:44], s['dcq'], s['gerekli']))
