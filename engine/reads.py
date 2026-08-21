@@ -1,54 +1,58 @@
-"""Ham okuma duzeyinde hizli in-silico PCR (tohum + dogrulama).
-okuma_pcr.py KULLANILMAZ; bagimsiz yazildi. Filtre 200-6000 bp (duzeltilmis).
+"""Fast in-silico PCR at raw read level (a seed plus verification).
+okuma_pcr.py IS NOT USED; this was written independently. The filter is 200-6000 bp
+(corrected).
+
 """
-# ---------------------------------------------------------------------------
-# reads.py — numunenin HAM OKUMALARI (fastq) uzerinde in-silico PCR; ispcr'in
-#            olcutunu kullanir ama once kisa bir tohumla aday konum arar.
+# -------------------------------------------------------------------------
+# reads.py - in-silico PCR on the sample's RAW READS (fastq); it uses ispcr's
+#            criterion but looks for candidate positions with a short seed first.
 #
-# GİRDİ  : fastq / fastq.gz kutu dosyalari (okumalar), F ve R primer dizileri.
-#          Komut satirindan: python reads.py <F> <R> <fastq...>
-# ÇIKTI  : dosyaya YAZMAZ. kutu_pcr -> (toplam_okuma, urun_veren_okuma,
-#          urun_boyu_sayaci). __main__ kutu basina yuzde satiri basar.
-# ÇAĞRAN : screening/engine_gateway.py bu dosyayi ada gore bulup yukler (ispcr'in
-#          aksine ZORUNLU degil, bulunamazsa okuma=None kalir) ve yukledikten
-#          hemen sonra okuma uzunluk filtresini yapilandirmadaki duzeltilmis
-#          degerlerle EZER: okuma.MINL, okuma.MAXL = C.NUMUNE_OKUMA_MIN,
-#          C.NUMUNE_OKUMA_MAX. Ayrica ayni klasordeki sample.py ve
-#          engine/numune_olc.py, kutu_cache.py "import okuma" der.
-#          Menude engine_gateway.py uzerinden her olcum tusunda yuklenir: P, K, D, I, G,
-#          T, U, H ve 1-9. full_chain.py bu dosyayi dogrudan cagirmaz.
+# INPUT  : the fastq / fastq.gz bin files (the reads), and the F and R primer
+#          sequences. From the command line: python reads.py <F> <R> <fastq...>
+# OUTPUT : it WRITES NO FILE. kutu_pcr -> (total_reads, reads_with_product,
+#          product_length_counter). __main__ prints a percentage line per bin.
+# CALLED BY: screening/engine_gateway.py finds and loads this file by name (unlike
+#          ispcr it is NOT REQUIRED; if it cannot be found, okuma stays None), and
+#          immediately after loading it OVERWRITES the read length filter with the
+#          corrected values from the configuration: okuma.MINL, okuma.MAXL =
+#          C.NUMUNE_OKUMA_MIN, C.NUMUNE_OKUMA_MAX. Beside that, sample.py in the
+#          same directory and engine/numune_olc.py, kutu_cache.py say "import okuma".
+#          In the menu it is loaded through engine_gateway.py on every measuring key:
+#          P, K, D, I, G, T, U, H and 1-9. full_chain.py does not call this file
+#          directly.
 #
-# DIKKAT - BU DOSYA PANELIN ESKI MOTORUDUR:
-# Asagidaki Sonda sinifi TEK ve SABIT 13 bazlik bir tohum kullanir; bu tohum
-# kayipli olabilir (ayrintili gerekce Sonda.__init__ basinda). Panelin bugunku
-# OTORITE olcum yolu screening/read_engine.py'dir (guvercin yuvasi
-# tohumlamasi, kayipsiz). self_test.py bu iki motoru yan yana kosar ve
-# buradaki Sonda'nin ne kadar baglanma yeri kacirdigini olcup rapor eder.
-# ---------------------------------------------------------------------------
+# CAUTION - THIS FILE IS THE PANEL'S OLD ENGINE:
+# The Sonda class below uses ONE FIXED 13 base seed, and that seed can be lossy (the
+# full reasoning is at the head of Sonda.__init__). The panel's AUTHORITATIVE
+# measurement route today is screening/read_engine.py (pigeonhole seeding,
+# lossless). self_test.py runs the two engines side by side and measures and reports
+# how many binding sites the Sonda here misses.
+# -------------------------------------------------------------------------
 import os, sys, glob, itertools, json, gzip
 from collections import Counter
 import ispcr
 
-# Okuma uzunluk filtresi. Nanopore kutularinda cok kisa (parcalanmis) ve cok
-# uzun (kimerik/birlesmis) okumalar bulunur; ikisi de urun orani hesabini
-# bozar. engine_gateway.py bu iki degeri yukleme aninda yapilandirmadan gelen
-# duzeltilmis degerlerle degistirir.
+# The read length filter. Nanopore bins hold very short (fragmented) and very long
+# (chimeric or joined) reads, and both distort the product ratio. engine_gateway.py
+# replaces these two values at load time with the corrected values from the
+# configuration.
 MINL, MAXL = 200, 6000
 # Tohum uzunlugu. SABIT tek tohum - bkz. Sonda.__init__ icindeki uyari.
 SEED = 13
 
 
-# Dejenere (IUPAC) bir tohumu, olasi tum SOMUT dizilere acar. Ornegin iki R
-# iceren bir tohum 4 ayri metne cevrilir. str.find yalniz somut metin arayabildigi
-# icin gereklidir; dejenere baz sayisi arttikca liste ussel buyur.
+# Expands a degenerate (IUPAC) seed into every possible CONCRETE sequence. A seed
+# holding two Rs, for instance, becomes 4 separate strings. It is needed because
+# str.find can only search for concrete text; the list grows exponentially with the
+# number of degenerate bases.
 def variants(p):
     return [''.join(x) for x in itertools.product(*[ispcr.IUPAC.get(c, 'ACGT') for c in p])]
 
 
-# Tohum tuttuktan sonra TAM primer icin uyumsuzluk sayar. max_mm asilir asilmaz
-# -1 ile erken cikar (kalan bazlari saymanin anlami yok).
-# Not: ispcr.find_sites'taki gibi IUPAC farkindalidir, yani dejenere primer
-# bazi izin verdigi her bazi uyumlu sayar.
+# Once the seed matches, it counts mismatches for the FULL primer. It exits early
+# with -1 as soon as max_mm is exceeded (there is no point counting the rest).
+# Note: like ispcr.find_sites it is IUPAC aware, so a degenerate primer base counts
+# every base it allows as a match.
 def mm_ok(primer, win, max_mm):
     mm = 0
     for a, b in zip(primer, win):
@@ -63,47 +67,46 @@ class Sonda:
     """Bir primerin belirli yonelimde okunmus dizide baglanma yerlerini bulur."""
 
     # -----------------------------------------------------------------------
-    # TOHUMLAMA - BURASI KAYIPLI OLABILIR (guvercin yuvasi garantisi YOK)
+    # THE SEEDING - THIS CAN BE LOSSY (there is NO pigeonhole guarantee)
     #
-    # Bu sinif primerin 3' ucundaki (ters tumleyende 5' basindaki) TEK bir
-    # SEED=13 bazlik parcayi alir ve yalnizca o parcanin TAM eslestigi yerlere
-    # bakar. Sorun su: max_mm >= 1 iken uyumsuzluk pekala o 13 bazin ICINE
-    # dusebilir. O zaman tohum hic tutmaz, aday konum hic uretilmez ve gercek
-    # bir baglanma yeri SESSIZCE kacirilir - kod hata atmaz, sadece sayi kucuk
-    # cikar.
+    # This class takes ONE piece of SEED=13 bases from the primer's 3' end (from the
+    # start of the reverse complement) and looks only at the places where that piece
+    # matches EXACTLY. The problem: with max_mm >= 1 the mismatch may perfectly well
+    # fall INSIDE those 13 bases. The seed then never matches, no candidate position is
+    # produced, and a real binding site is SILENTLY missed. The code raises no error,
+    # the number simply comes out small.
     #
-    # KAYIPSIZ OLMASI ICIN GEREKEN (guvercin yuvasi / pigeonhole):
-    # En fazla m uyumsuzluga izin verilen bir aramada dizi (m + 1) tane
-    # ORTUSMEYEN parcaya bolunurse, en fazla m parca bozulabilir; geriye kalan
-    # EN AZ BIR parca tam eslesmek ZORUNDADIR. Yani "parcalardan herhangi biri
-    # tam eslesiyor mu" diye aramak, kaba kuvvetin bulacagi hicbir yeri
-    # kacirmaz. Bu bir GARANTIDIR, sezgisel hizlandirma degildir. Parca sayisi
-    # m + 1'in ALTINA duserse garanti coker - buradaki gibi tek parca (yani
-    # m = 0 varsayimi) kullanmak, max_mm = 1 ile kosuldugunda tam olarak bu
-    # cokmus durumdur.
+    # WHAT IT WOULD TAKE TO BE LOSSLESS (pigeonhole):
+    # In a search allowing at most m mismatches, if the sequence is split into (m + 1)
+    # NON-OVERLAPPING pieces, at most m pieces can be spoiled; AT LEAST ONE of the
+    # remaining pieces MUST match exactly. So asking "does any of the pieces match
+    # exactly" misses no site that brute force would find. That is A GUARANTEE, not a
+    # heuristic speed-up. If the piece count drops BELOW m + 1 the guarantee collapses,
+    # and using a single piece as here (that is, assuming m = 0) is exactly that
+    # collapsed state when it runs with max_mm = 1.
     #
-    # Duzeltilmis surum: screening/read_engine.py, primeri max_mm + 1
-    # ortusmeyen bloga boler, her blok icin ayri tarama yapar ve bulunan her
-    # adayi tam kural altinda yeniden dogrular. Panelin bugunku olcum yolu
-    # odur; bu sinif tarihsel karsilastirma icin durur.
+    # The corrected version is screening/read_engine.py: it splits the primer into
+    # max_mm + 1 non-overlapping blocks, scans separately for each block, and re-verifies
+    # every candidate found under the full rule. That is the panel's measurement route
+    # today; this class stands for historical comparison.
     # -----------------------------------------------------------------------
     def __init__(self, primer, uc5=False, max_mm=1):
         # uc5=True -> 3' kritik uc dizinin BASINDA (ters tumleyen primer)
         self.p = primer
         self.max_mm = max_mm
         self.uc5 = uc5
-        # Tohum primerin 3' ucundan alinir: polimerazin uzattigi uc orasidir,
-        # dolayisiyla gercek baglanmalarda en iyi korunan bolge de orasidir.
-        # rc(R) icin 3' uc dizinin BASINA dustugu icin bas taraftan alinir.
+        # The seed is taken from the primer's 3' end: that is the end the polymerase
+        # extends, and therefore the best conserved region in a real binding. For rc(R) it
+        # is taken from the start, because the 3' end falls at the START of that sequence.
         s = primer[:SEED] if uc5 else primer[-SEED:]
-        # off: tohumun primer icindeki baslangic kaymasi. Tohum dizide i
-        # konumunda bulununca primerin baslangici i - off olur.
+        # off: the seed's start offset inside the primer. When the seed is found at
+        # position i in the sequence, the primer starts at i - off.
         self.off = 0 if uc5 else len(primer) - SEED
         self.seeds = variants(s)
 
-    # Tohumun gectigi HER yeri dener (find dongusu i+1'den devam eder, yani
-    # ortusen tekrarlar da yakalanir), sonra her adayi tam primerle dogrular.
-    # Donus: [(baslangic, uyumsuzluk)].
+    # It tries EVERY place the seed occurs (the find loop continues from i+1, so
+    # overlapping repeats are caught too), then verifies each candidate against the full
+    # primer. Returns: [(start, mismatches)].
     def bul(self, seq):
         out = []
         L = len(self.p)
@@ -121,10 +124,11 @@ class Sonda:
         return out
 
 
-# fastq okuyucu. fastq 4 satirlik kayitlardan olusur (@baslik / DIZI / + /
-# kalite); k % 4 == 1 tam olarak DIZI satiridir. .gz dosyalar seffaf acilir,
-# bozuk baytlar errors='ignore' ile atlanir (nanopore ciktilarinda olur).
-# Filtre MINL..MAXL disindaki okumalari tamamen eler - bunlar paydaya da girmez.
+# The fastq reader. A fastq is made of 4 line records (@header / SEQUENCE / + /
+# quality); k % 4 == 1 is exactly the SEQUENCE line. .gz files are opened
+# transparently and malformed bytes are skipped with errors='ignore' (that happens
+# in nanopore output). The filter discards reads outside MINL..MAXL entirely, and
+# those do not enter the denominator either.
 def okumalar(path):
     op = gzip.open if path.endswith('.gz') else open
     with op(path, 'rt', errors='ignore') as fh:
@@ -135,43 +139,46 @@ def okumalar(path):
                     yield s
 
 
-# ---------------------------------------------------------------------------
-# kutu_pcr — bir kutunun (fastq) ham okumalarinda urun veren okuma orani.
+# -------------------------------------------------------------------------
+# kutu_pcr - the proportion of reads giving a product among a bin's (fastq) raw reads.
 #
-# NE HESAPLAR: (toplam_okuma, urun_veren_okuma, urun_boyu_sayaci). Sonuc bir
-# ORANDIR: pos / tot.
+# WHAT IT COMPUTES: (total_reads, reads_with_product, product_length_counter). The
+# result is A RATIO: pos / tot.
 #
-# NEDEN HAM OKUMALAR UZERINDE, REFERANS DIZI UZERINDE DEGIL:
-# Referans/konsensus tek bir ozetlenmis dizidir; numunede fiilen bulunan
-# varyantlari, tur ici farklari ve nanopore hata desenini icermez. Bir cift
-# referansta kusursuz urun verip numunenin gercek okumalarinda tutmayabilir.
-# Panelin karar sayisi bu yuzden ham okuma duzeyinde uretilir.
+# WHY ON THE RAW READS RATHER THAN ON A REFERENCE SEQUENCE:
+# A reference or consensus is a single summarised sequence; it does not hold the
+# variants actually present in the sample, the within species differences, or the
+# nanopore error pattern. A pair can give a perfect product on a reference and not
+# hold on the sample's real reads. The panel's deciding number is produced at raw
+# read level for that reason.
 #
-# YON - IKI YONUN DE DENENMESI SART:
-# Nanopore okumalari CIFT YONLUDUR; ayni bolge kimi okumada arti, kimisinde
-# eksi iplik olarak yazilir. Motorlar (ispcr.find_sites ve buradaki Sonda)
-# yalniz ileri yonde tarar. Bu yuzden her okuma hem kendisi hem ters tumleyeni
-# olarak denenir: "for seq in (s, ispcr.rc(s))". Bu dongu olmasaydi okumalarin
-# kabaca yarisi sessizce kaybedilir, hata da atilmazdi.
+# ORIENTATION - TRYING BOTH DIRECTIONS IS REQUIRED:
+# Nanopore reads are BIDIRECTIONAL; the same region is written as the plus strand in
+# some reads and the minus strand in others. The engines (ispcr.find_sites and the
+# Sonda here) scan only in the forward direction. So every read is tried both as
+# itself and as its reverse complement: "for seq in (s, ispcr.rc(s))". Without that
+# loop roughly half the reads would be lost silently, with no error raised.
 #
-# SAYIM KURALI: bir okuma urun verdigi anda "break" ile cikilir; okuma en fazla
-# BIR kez sayilir. Yani bu bir VARLIK olcumudur (kac okumada urun var), derinlik
-# olcumu degil. Ayni sekilde ilk uyan urun boyu kaydedilip ic donguler kirilir.
-# ---------------------------------------------------------------------------
+# THE COUNTING RULE: the moment a read gives a product the loop "break"s; a read is
+# counted AT MOST ONCE. So this is a PRESENCE measurement (in how many reads is
+# there a product), not a depth measurement. In the same way, the first matching
+# product length is recorded and the inner loops are broken.
+# -------------------------------------------------------------------------
 def kutu_pcr(path, F, R, lo=40, hi=600, max_mm=1):
-    """Bir kutudaki okumalarda urun veren okuma sayisi ve toplam okuma."""
-    # F ileri yonde aranir; R ise ters tumleyeni olarak, 3' ucu dizinin BASINA
-    # dustugu icin uc5=True ile (ispcr.amplify'daki tail_pos=(0,1) ile ayni fikir).
+    """The number of reads giving a product in a bin, and the total reads."""
+    # F is searched in the forward direction; R as its reverse complement, with
+    # uc5=True because its 3' end falls at the START of the sequence (the same idea as
+    # tail_pos=(0,1) in ispcr.amplify).
     fs = Sonda(F, False, max_mm)
     rs = Sonda(ispcr.rc(R), True, max_mm)
     tot = pos = 0
     sizes = Counter()
     for s in okumalar(path):
         tot += 1
-        # Okumanin iki yonu de denenir - bkz. yukaridaki YON aciklamasi.
+        # Both directions of the read are tried - see the ORIENTATION note above.
         for seq in (s, ispcr.rc(s)):
             a = fs.bul(seq)
-            # F yoksa bu yonde urun olamaz, R'yi aramaya gerek yok.
+            # With no F there can be no product in this direction; no need to look for R.
             if not a:
                 continue
             b = rs.bul(seq)
@@ -182,8 +189,8 @@ def kutu_pcr(path, F, R, lo=40, hi=600, max_mm=1):
                 for j, _ in b:
                     # Urun boyu: F'nin basindan R'nin (tumleyeninin) sonuna.
                     n = j + len(R) - i
-                    # Boy penceresi + primerlerin ortusmeden karsilikli durmasi
-                    # (ispcr.amplify ile birebir ayni olcut).
+                    # The length window plus the primers facing one another without overlapping
+                    # (exactly the same criterion as ispcr.amplify).
                     if lo <= n <= hi and j >= i + len(F):
                         sizes[n] += 1
                         got = True
@@ -192,7 +199,7 @@ def kutu_pcr(path, F, R, lo=40, hi=600, max_mm=1):
                     break
             if got:
                 pos += 1
-                # Okuma zaten sayildi; diger yonu denemeye gerek yok.
+                # The read is already counted; there is no need to try the other direction.
                 break
     return tot, pos, sizes
 
