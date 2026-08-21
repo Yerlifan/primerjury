@@ -229,7 +229,7 @@ def main():
     print(f"u'\n  total '{toplam_ok} baslik, {toplam_yz} dizi yazildi, {toplam_sz} soysuz")
     print(f"  taksonomi: {n} dugum")
     if toplam_yz == 0:
-        print("HATA: hicbir dizi yazilamadi, kurulum anlamsiz. Duruluyor.")
+        print(u'ERROR: not one sequence could be written, so the build is pointless. Stopping.')
         sys.exit(1)
     print(f"  kutuphane: {hedef}")
     print(f"u'  The next step is kraken2-build --build (kraken_tool.sh does it)'")

@@ -124,7 +124,7 @@ def main():
     for yol in dosyalar:
         m = re.search(r"barcode(\d+)", os.path.basename(yol))
         if not m:
-            print("   ATLANDI, barkod cozulemedi: %s" % os.path.basename(yol))
+            print(u'   SKIPPED, the barcode could not be resolved: %s' % os.path.basename(yol))
             continue
         bc = int(m.group(1))
         if bc not in BARKOD_GRUP:

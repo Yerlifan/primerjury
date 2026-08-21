@@ -116,7 +116,7 @@ def main():
         print('%-30s | %-38s | %s' % (ad, duzey[:38], 'DOGRU' if ok else 'YANLIS'))
 
     print()
-    print('SONUC: ' + ('BUTUN SINAMALAR GECTI' if gecti else 'BASARISIZ'))
+    print('SONUC: ' + (u'EVERY TEST PASSED' if gecti else 'BASARISIZ'))
     return 0 if gecti else 1
 
 

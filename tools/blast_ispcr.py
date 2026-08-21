@@ -532,7 +532,7 @@ def birim_testleri(yazdir=True):
     K("wilson buyuk orneklemde orana yaklasir",round(wilson_alt(150, 300), 2), 0.44)
     K("sifir sayim sifir alt sinir",           wilson_alt(0, 300), 0.0)
 
-    if yazdir: print("  --- kapsayan okuma sayisi (capraz oraninin paydasi)")
+    if yazdir: print(u'  --- the number of covering reads (the denominator of the cross reaction ratio)')
     kl = kalip[:400]
     b3, bas3 = kalip_kur([kl, kl, "".join(rnd.choice("ACGT") for _ in range(400))], 30)
     W3 = np.lib.stride_tricks.sliding_window_view(b3, 30)

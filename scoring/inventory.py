@@ -127,7 +127,7 @@ def main():
         mx = max([x['boy_maks'] for x in kutular] or [0])
         md = [x['boy_medyan'] for x in kutular]
         bulunan = sorted({a2 for x in kutular for a2 in x['capa']})
-        print('%-46s uye=%2d  en uzun okuma=%5d  medyan %s..%s' % (
+        print(u'%-46s member=%2d  longest read=%5d  median %s..%s' % (
             hedef[:46], len(b['uye']), mx, min(md or [0]), max(md or [0])))
         print('    capalar: %s' % (', '.join(bulunan) or 'YOK'))
         json.dump(durum, open(KP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

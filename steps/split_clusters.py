@@ -92,7 +92,7 @@ def main():
     outg = expand(a.out_group)
     if not pool:
         sys.exit("hedef kumesi bos")
-    print("baslangic uye sayisi : %d" % len(pool))
+    print(u'starting member count : %d' % len(pool))
     print(u'number of competitors : %d' % len(outg))
     print("motor                : %s" % ENGINE)
 

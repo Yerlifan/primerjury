@@ -126,7 +126,7 @@ def main():
           % (tp_d, tp_t, tp_d - tp_t, 100.0 * (tp_d - tp_t) / max(tp_d, 1)))
 
     if ISPCR:
-        print('\nCAPRAZ KONTROL - panelin kendi motoru (ispcr.amplify), ayni dosyalar, A sinifi:')
+        print(u'\nCROSS CHECK - the panel\'s own engine (ispcr.amplify), the same files, class A:')
         ad, F, R = CIFT['A']
         d = t = n = 0
         for y in yollar:

@@ -97,7 +97,7 @@ def main():
 
     P.onbellek_yaz()
     json.dump(durum, open(KP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-    print('--- toplam kayit: %d / %d' % (len(durum), len(bek)))
+    print(u'--- total records: %d / %d' % (len(durum), len(bek)))
     return 0
 
 

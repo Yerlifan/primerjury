@@ -161,7 +161,7 @@ def main():
         print(u'      product start=%s ... end=%s' % (urun[:28], urun[-28:]))
         print("      rc(R)   =%s" % rc(r["geri_dizi"]))
     if say["tamam"] == n:
-        print("\nButun satirlar dort geometri sartini da gecti.")
+        print(u'\nEvery row passed all four geometry conditions.')
 
 
 if __name__ == "__main__":

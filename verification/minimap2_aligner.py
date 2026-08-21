@@ -227,7 +227,7 @@ if __name__ == '__main__':
     print(u'mappy calisiyor mu : %s' % (u'EVET' if var_mi() else u'HAYIR'))
     if not var_mi():
         print(u'sebep              : %s' % _SEBEP)
-        print(u'kurulum            : pip install mappy')
+        print(u'install            : pip install mappy')
         sys.exit(1)
     print(u'mappy surumu       : %s' % surum())
     print(u'HIZALAYICI secili  : %s' % (u'minimap2' if secili_mi() else u'python (varsayilan)'))

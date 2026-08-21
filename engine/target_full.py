@@ -298,7 +298,7 @@ def main():
             ('%.2f' % z['dCq']) if z['dCq'] is not None else '-',
             ('%.2f' % z['kat']) if z['kat'] is not None else '-',
             z['kapsam'], z['urun'], z['arms'] or '-', z['F'] + '/' + z['R']))
-    print('gerekli dCq (bolluk) %.2f ; sabit 3,00' % ger)
+    print(u'required dCq (abundance) %.2f ; flat 3.00' % ger)
 
 
 if __name__ == '__main__':
