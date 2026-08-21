@@ -1,69 +1,82 @@
 # -*- coding: utf-8 -*-
-"""verification TURU - TEK PROTOKOL kosusunda esik altinda kalan satirlari
-dort ayri yolla kurtarmayi dener.
+"""THE RECOVERY ROUND - it tries to recover the rows the SINGLE PROTOCOL run left
+below the threshold, by five separate routes.
 
-TEMEL CERCEVE
--------------
-Toplantida secilen hedef aslinda bir KUTUdur; isim o gunku Kraken etiketidir ve
-YANLIS OLABILIR. Amac o kutulari cogaltmaktir. Dolayisiyla bir hedefin uye
-kumesi = degerlendiricinin isaret ettigi kutu + olcumun AYNI ORGANIZMA oldugunu gosterdigi
-butun kutular. Petriella'yi kurtaran sey buydu: organizma dokuz kutuya dagilmisti
-ve digerleri "rakip" hanesinde durdugu icin metrik hedefi hedefle kiyasliyordu.
+THE BASIC FRAME
+---------------
+The target chosen in the meeting is really A BIN; the name is that day's Kraken
+label and IT MAY BE WRONG. The aim is to amplify those bins. So a target's member
+set = the bin that was pointed at, plus every bin the measurement shows to be THE
+SAME ORGANISM. That is what rescued Petriella: the organism was spread over nine
+bins, and because the others sat in the "competitor" column the metric was
+comparing the target against itself.
 
-DORT YOL (hepsi bu tek secenekte, sirayla)
-  1) Evrensel hedeflerde OLCUYU duzelt   (ayrim kati bu satirlarda tanimsiz)
-  2) UYELIK DARALTMA                     (kapsami tam olmayan her hedef)
-  3) YENIDEN TASARIM + ARMS              (kil payi kalanlar)
-  4) ESLENIGI KALMIS satirlari temizle    (yerine daha iyisi gelmis olanlar)
+FIVE ROUTES (all in this one option, in order)
+  1) fix THE MEASURE on universal targets   (the discrimination ratio is undefined
+     on those rows)
+  2) NARROW THE MEMBERSHIP                  (every target whose coverage is partial)
+  3) REDESIGN plus ARMS                     (the ones that fell just short)
+  4) clean up rows that still have A COUNTERPART (a better pair took their place)
+  5) A MULTI LOCUS search                   (split the whole consensus into regions)
 
-ESIK INDIRILMEZ. Bir satiri esigi dusurerek gecirmek YASAKTIR. Olcuyu duzeltmek
-(yol 1) ile esigi gevsetmek AYRI SEYLERDIR; bu betik yalnizca birincisini yapar
-ve hangi olcunun neden kullanildigini her satirda yazar.
+THE THRESHOLD IS NOT LOWERED. Getting a row through by lowering the threshold is
+FORBIDDEN. Fixing the measure (route 1) and loosening the threshold ARE DIFFERENT
+THINGS; this script does only the first, and it writes on every row which measure
+was used and why.
 
-Panel dosyalarina YAZMAZ. Yalniz okur, KURTARMA_SONUC/ altina yazar.
+It WRITES NOTHING into the panel files. It only reads, and writes under
+KURTARMA_SONUC/.
+
 """
 
 # -------------------------------------------------------------------------
-# recovery_round.py — TEK PROTOKOL (P) kosusunun esik altinda biraktigi satirlari
-# bes ayri yolla kurtarmayi dener. ESIK ASLA INDIRILMEZ.
+# recovery_round.py takes the rows the SINGLE PROTOCOL (P) run left below the
+# threshold and tries to recover them by five separate routes. THE THRESHOLD IS
+# NEVER LOWERED.
 #
-# GİRDİ  : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (esik alti satirlar),
-#          uyelik_yeniden_turetme_uyelik_*.tsv (U asamasinin olculen uyeligi),
-#          protocol/ek_ciftler.tsv (hedef adi takma adlari),
-#          konsensus_kanonik/ ve "fastq files"/ (olcum kaynaklari).
-# ÇIKTI  : KURTARMA_SONUC/kurtarma_satirlari.tsv (hedef basina TEK satir),
-#          KURTARMA_SONUC/yeni_adaylar.tsv (yol 3 ve yol 5 taramasinin adaylari),
-#          KURTARMA_SONUC/KURTARMA_RAPORU.md, kontrol/ (hedef basina JSON).
-#          Panel dosyalarina YAZMAZ.
-# ÇAĞRAN : verification/full_chain.py -> K tusu
-#          (bat icinde: wsl -e python3 "verification/recovery_round.py" --kok .)
+# INPUT  : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the below-threshold rows),
+#          uyelik_yeniden_turetme_uyelik_*.tsv (stage U's measured membership),
+#          protocol/ek_ciftler.tsv (target name aliases),
+#          konsensus_kanonik/ and "fastq files"/ (the measurement sources).
+# OUTPUT : KURTARMA_SONUC/kurtarma_satirlari.tsv (ONE row per target),
+#          KURTARMA_SONUC/yeni_adaylar.tsv (the candidates from the route 3 and
+#          route 5 scans),
+#          KURTARMA_SONUC/KURTARMA_RAPORU.md, kontrol/ (one JSON per target).
+#          It WRITES NOTHING into the panel files.
+# CALLED BY: verification/full_chain.py -> key K
+#          (python3 verification/recovery_round.py --root .)
 #
-# BES YOL, sirayla denenir:
-#   yol 1  evrensel hedeflerde OLCUYU duzelt (ayrim kati orada tanimsiz)
-#   yol 2  UYELIK DARALTMA (olculen dizi kimligine gore, KOSULSUZ)
-#   yol 3  YENIDEN TASARIM + ARMS (kil payi kalan satirlar)
-#   yol 4  ESLENIGI KALMIS satirlari dusenlere tasi
-#   yol 5  COK LOKUSLU arama (konsensusun tamamini bolgelere ayirip her birinde
-#          ayri tasarim; Petriella'yi kurtaran sey buydu - cozum ITS'te degil
-#          LSU'daydi)
+# FIVE ROUTES, tried in order:
+#   route 1  fix THE MEASURE on universal targets (the discrimination ratio is
+#            undefined there)
+#   route 2  NARROW THE MEMBERSHIP (by measured sequence identity, UNCONDITIONALLY)
+#   route 3  REDESIGN plus ARMS (for rows that fell just short)
+#   route 4  move rows that still have A COUNTERPART onto the ones that dropped
+#   route 5  A MULTI LOCUS search (split the whole consensus into regions and
+#            design separately in each; this is what rescued Petriella, where the
+#            answer was not in ITS but in LSU)
 #
-# OLCUYU DUZELTMEK ile ESIGI GEVSETMEK AYRI SEYLERDIR. Bu betik yalnizca
-# birincisini yapar ve hangi satirda hangi olcunun kullanildigini "olcu" sutununa
-# acikca yazar.
+# FIXING THE MEASURE and LOOSENING THE THRESHOLD ARE DIFFERENT THINGS. This script
+# does only the first, and it writes which measure was used on which row openly in
+# the 'olcu' column.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, argparse, math
 
 VERSIYON = '1.0 (2026-08-03)'
 
-# ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
-# Kat karsiligi 2 ** ESIK_DCQ = 8,00. Sabit sayi GOMULMEZ; dCq degisirse
-# tek yerden degisir. Gerekce ve verim uyarisi o dosyada yazili.
-# ESIGI KOD ICINDEN INDIRMEK YINE YASAKTIR - bkz. modul basligi. Degisiklik
-# yalniz ESIK_DCQ uzerinden ve BILEREK yapilir; 2026-08-06'da dCq 3'e sabitlendi.
+# THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
+# Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
+# changes it changes in one place. The reasoning and the efficiency warning are
+# written in that file.
+# LOWERING THE THRESHOLD FROM INSIDE THE CODE IS STILL FORBIDDEN, see the module
+# header. A change is made only through ESIK_DCQ and DELIBERATELY; on 2026-08-06
+# dCq was fixed at 3.
 def _esik_yukle():
-    """Esigi TEK KAYNAKTAN okur: screening/config.py.
-    verification/ ile screening/ kardes klasorler oldugu icin kok buradan
-    turetilir; betik hangi calisma dizininden cagrilirsa cagrilsin bulur."""
+    """Reads the threshold from ONE SOURCE: screening/config.py.
+        Since verification/ and screening/ are sibling directories the root is derived
+        from here, so the script finds it whatever working directory it is called from.
+
+    """
     import os as _o, sys as _s
     _kok = _o.path.dirname(_o.path.dirname(_o.path.abspath(__file__)))
     if _kok not in _s.path:
@@ -73,14 +86,14 @@ def _esik_yukle():
 
 _C = _esik_yukle()
 ESIK = _C.AYRIM_ESIK
-KAPSAM_ESIGI = 0.20         # bir uye kutu 'kapsandi' sayilmak icin en az %20 urun
-OKUMA_TAVANI = 3000         # TEK PROTOKOL ile ayni
+KAPSAM_ESIGI = 0.20         # a member bin counts as 'covered' at >=20% product
+OKUMA_TAVANI = 3000         # the same as in the SINGLE PROTOCOL run
 ENKOTU_ASGARI = 150
 URUN_ALT, URUN_UST = 60, 400
-KIMLIK_ESIGI = 99.0         # ayni organizma sayilmak icin konsensus kimligi
+KIMLIK_ESIGI = 99.0         # the consensus identity for counting as the same organism
 KIL_PAYI_ALT = 5.0          # yol 3'e girecek satirin asgari mevcut kati
 
-# --- evrensel hedefler icin AYRI olcu ------------------------------------
+# --- a SEPARATE measure for universal targets ----------------------------
 EVRENSEL_KAPSAMA_ESIGI = 0.80   # uye kutularin en az %80'i urun vermeli
 EVRENSEL_ALANDISI_UST = 5.0     # alan disi kutularda Wilson ust sinir en cok %5
 
@@ -108,7 +121,7 @@ zaten mumkun degil, cunku oranin paydasi tanimsiz. Diger butun satirlarda 10x
 esigi AYNEN durur.
 """ % (int(KAPSAM_ESIGI * 100), int(EVRENSEL_KAPSAMA_ESIGI * 100), EVRENSEL_ALANDISI_UST)
 
-# --- daha once OLCULMUS, tekrar denenmeyecek satirlar --------------------
+# --- rows ALREADY MEASURED, not to be tried again ------------------------
 BILINEN = {
     'Proteiniphilum_cinsi': dict(
         sonuc='KURTARILAMAZ',
@@ -119,24 +132,26 @@ BILINEN = {
               u'Uyeligi daraltmak burada bir sey kurtarmaz - sorun uyelik degil '
               u'HEDEF TANIMI. Yeniden olculmedi, zaman harcanmadi.',
         yol=u'atlandi (onceden olculdu)'),
-    # 2026-08-06: BU KAYIT KALDIRILDI (yorumda birakildi).
-    # Elle yazilmis 'atlandi' damgasi yuzunden satir kurtarma merdivenine
-    # HIC girmiyordu, dolayisiyla yol 5 (cok lokuslu arama) da kosmuyordu.
-    # Gerekcesi 16S'e dayaniyordu ve dogruydu, ama 'baska lokusta da olmaz'
-    # SONUCUNU icermiyordu - o olculmemisti. Olculdu: A2 kutulari (4309 bp
-    # tam operon) ayni organizma (A1 ile %98,62-99,38 kimlik), operonun
-    # UC bolgesi de tarandi, hicbirinde aday cikmadi. Artik satir merdivene
-    # girer ve sonucu olcumden gelir.
+    # 2026-08-06: THIS RECORD WAS REMOVED (left here as a comment).
+    # Because of a hand written 'atlandi' stamp, the row was NOT ENTERING the recovery
+    # ladder at all, so route 5 (the multi locus search) never ran either.
+    # The reasoning rested on 16S and it was correct, but it did not contain the
+    # CONCLUSION 'it will not work at another locus either' - that had not been
+    # measured. It has now: the A2 bins (a 4309 bp full operon) are the same organism
+    # (98.62-99.38% identity to A1), all THREE regions of the operon were scanned, and
+    # no candidate came out of any of them. The row now enters the ladder and its
+    # result comes from measurement.
     #     'Methanosarcina mazei / M. soligelidi grubu': dict(
     #         sonuc='KURTARILAMAZ',
-    #         sebep=u'Sinirlayan rakip A1-4_3078083 (M. hadiensis) AYRI BIR ORGANIZMA: '
-    #               u'mazei kutularina konsensus kimligi %98,61-98,75, mazei kutulari '
-    #               u'kendi aralarinda %99,79-99,93; 16S tur esigi ~%98,7. Okuma duzeyi '
-    #               u'prob testi de ayni sonucu verdi (hadiensis okumalari kendi probunda '
-    #               u'kaliyor, 171\'e 5). Yani uyelik daraltmasi bu satiri kurtarmaz. '
-    #               u'Kurtarma yolu VAR ama primer degisikligi gerektirir: mazei ile '
-    #               u'hadiensis 16S\'te ~19 pozisyonda ayriliyor, mevcut cift bunlarin '
-    #               u'hicbirini tutmuyor (yol 3\'e girer, ayri tasarim isi).',
+    #         sebep=u'The limiting competitor A1-4_3078083 (M. hadiensis) is A SEPARATE '
+    #               u'ORGANISM: its consensus identity to the mazei bins is 98.61-98.75%, '
+    #               u'while the mazei bins are 99.79-99.93% among themselves; the 16S '
+    #               u'species threshold is ~98.7%. The read level probe test gave the same '
+    #               u'answer (the hadiensis reads stay on their own probe, 171 to 5). So '
+    #               u'narrowing the membership does not rescue this row. A recovery route '
+    #               u'DOES EXIST but it needs a primer change: mazei and hadiensis differ '
+    #               u'at ~19 positions in 16S and the current pair holds none of them '
+    #               u'(that goes to route 3, a separate design job).',
     # 
     #     yol=u'atlandi (onceden olculdu)'),
 
@@ -169,13 +184,14 @@ def kutu_adi_normalize(k):
 
 
 # -------------------------------------------------------------------------
-# WILSON SKOR ARALIGI - NEDEN HAM ORAN DEGIL
-# Ham oran k/n kucuk orneklemde yaniltici olur: 3 okumanin 3'u urun verdiyse ham
-# oran %100'dur ama arkasinda kanit yoktur; 200 okumanin 0'i verdiyse ham oran
-# %0'dir ama gercek oran %1,5 olabilir. Wilson araligi bu belirsizligi sayiya
-# doker ve daima MUHAFAZAKAR taraf secilir: uye tarafinda ALT sinir, rakip
-# tarafinda UST sinir. Yol 1'deki "alan disi" orani da bu yuzden UST sinirdir -
-# hedef grubun disinda ne kadar tasma OLABILECEGINI olcer.
+# THE WILSON SCORE INTERVAL - WHY NOT THE RAW PROPORTION
+# The raw proportion k/n misleads on a small sample: if 3 of 3 reads gave a product
+# the raw proportion is 100% with no evidence behind it; if 0 of 200 did, the raw
+# proportion is 0% while the real one could be 1.5%. The Wilson interval turns that
+# uncertainty into a number, and the CONSERVATIVE side is always taken: the LOWER
+# bound on the member side, the UPPER bound on the competitor side. The "outside
+# the domain" proportion in route 1 is an UPPER bound for the same reason; it
+# measures how much spill outside the target group there COULD BE.
 # -------------------------------------------------------------------------
 def wilson(k, n, z=1.96):
     if n == 0:
@@ -186,10 +202,10 @@ def wilson(k, n, z=1.96):
     return (max(0.0, c - s), min(1.0, c + s))
 
 
-# ---------------------------------------------------------------- girdiler
-# P asamasinin panel tablosu bu turun TEK giris kapisidir. Dosya yoksa kosu
-# baslamaz: yoklugunda "kurtarilacak satir yok" diye sessizce bitmek, gercekte
-# hicbir sey denenmedigi halde is bitmis izlenimi verirdi.
+# ---------------------------------------------------------------- inputs
+# Stage P's panel table is the ONE entrance to this round. If the file is missing
+# the run does not start: finishing silently with "there is no row to recover"
+# would give the impression that the job was done when in fact nothing was tried.
 def tek_protokol_oku(kok):
     """TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]"""
     yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
@@ -211,12 +227,12 @@ def _f(s):
 
 def uyelik_dosyasi(kok):
     import glob
-    # 2026-08-10: "a[-1]" EN YENI DEMEK DEGILDI. Iki glob alfabetik siralanip
-    # birlestiriliyordu, yani engine_SONUC girdileri tarihine
-    # bakilmaksizin kokteki girdileri yeniyordu. single_protocol_measure.py ayni
-    # tuzagi tasiyordu; ikisi ayri dosya secseydi K ile P farkli uyelikle
-    # olcer ve dCq'lari karsilastirilamaz olurdu. Ikisi de artik ZAMANA gore
-    # seciyor ve ayni dosyayi buluyor.
+    # 2026-08-10: "a[-1]" DID NOT MEAN THE NEWEST. Two globs were sorted
+    # alphabetically and concatenated, so engine_SONUC entries beat the ones in the
+    # root regardless of date. single_protocol_measure.py carried the same trap; had
+    # the two picked different files, K and P would have measured with different
+    # memberships and their dCq values would not have been comparable. Both now select
+    # BY TIME and find the same file.
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
     a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
     if not a:
@@ -225,8 +241,8 @@ def uyelik_dosyasi(kok):
     return a[-1]
 
 
-# Uyelik tablosunu okur. yeni_uye_kutular yoksa eski_uye_kutular'a duser -
-# tablo hangi surumden gelirse gelsin satir bos kalmaz.
+# Reads the membership table. If yeni_uye_kutular is missing it falls back to
+# eski_uye_kutular, so the row is never left empty whichever version the table is.
 def uyelik_oku(yol):
     out = {}
     with open(yol, encoding='utf-8') as fh:
@@ -240,11 +256,11 @@ def uyelik_oku(yol):
     return out
 
 
-# ek_ciftler.tsv'deki cift adi ile uyelik tablosundaki hedef adi ayni olmayabilir;
-# bu tablo ikisini eslestirir. Eslestirilmezse ek ciftler "uyelik yok" diye
-# atlanirdi.
+# The pair name in ek_ciftler.tsv and the target name in the membership table may
+# not be the same; this table maps the two. Without the mapping the extra pairs
+# would be skipped as "no membership".
 def takma_adlar(kok):
-    """protocol/ek_ciftler.tsv: hedef -> uyelik_hedefi (uyelik tablosundaki ad)"""
+    """protocol/ek_ciftler.tsv: target -> membership target (the name in the membership table)"""
     yol = os.path.join(kok, 'protocol', 'ek_ciftler.tsv')
     out = {}
     if not os.path.exists(yol):
@@ -265,11 +281,11 @@ def evrensel_mi(hedef, duzey=''):
             or (duzey or '').strip().lower() == 'alan')
 
 
-# --- TOPLANTIDA ISTENIP PANELE HIC GIRMEMIS TALEPLER -------------------
-# Zincir panelden basliyor; panelde satiri olmayan bir talep zincire HIC
-# gorunmez ve "hic denenmeden yapilamadi" diye kalir. Bu talepler icin en
-# azindan BIR tasarim denemesi yapilir: omurga olarak kutunun KENDI konsensusu
-# kullanilir (M. barkeri hedefinde uygulanan yontemin aynisi).
+# --- REQUESTS ASKED FOR IN THE MEETING THAT NEVER ENTERED THE PANEL ----
+# The chain starts from the panel, so a request with no panel row is NEVER seen by
+# the chain and is left as "could not be done, never attempted". For those requests
+# at least ONE design attempt is made, using the bin's OWN consensus as the
+# backbone (the same method applied to the M. barkeri target).
 PANELSIZ_TALEPLER = [
     dict(hedef='Podospora_pseudopauciseta (PANELSIZ TALEP)', karar='Karar 1',
          sinif='F1', uye=['F1-1_2093780', 'F1-4_2093780'],
@@ -287,30 +303,34 @@ PANELSIZ_TALEPLER = [
 ]
 
 
-# ---------------------------------------------------------------- yollar
+# ---------------------------------------------------------------- routes
 # -------------------------------------------------------------------------
-# YOL 1 - EVRENSEL HEDEFLERDE OLCUNUN DEGISTIRILMESI (esik DUSURULMEZ)
+# ROUTE 1 - CHANGING THE MEASURE ON UNIVERSAL TARGETS (the threshold IS NOT LOWERED)
 #
-# Ayrim kati = (uye alt siniri) / (rakip ust siniri). Evrensel bir hedefte
-# "rakip" diye bir kume YOKTUR: Bakteri_universal butun bakterileri,
-# Arke_universal butun arkeleri cogaltmak icin tasarlandi. Rakip kumesi bosa
-# yaklastikca payda sifira gider ve oran ya 0/0 (tanimsiz) olur ya da devasa bir
-# sayi - nitekim eski panelde ayni sutunda 0,00 ile 117 milyon yan yana duruyordu.
-# O sayilar bir SEYI OLCMUYOR.
+# The discrimination ratio = (the member lower bound) / (the competitor upper
+# bound). On a universal target there IS NO set called "competitors":
+# Bakteri_universal was designed to amplify all bacteria and Arke_universal all
+# archaea. As the competitor set approaches empty the denominator goes to zero and
+# the ratio is either 0/0 (undefined) or a huge number. Indeed, the old panel had
+# 0.00 and 117 million standing side by side in the same column. Those numbers ARE
+# NOT MEASURING ANYTHING.
 #
-# Bu satirlarda iddia da farklidir: "her seyi ayirt ederim" degil, "grubun
-# tamamini gorurum, grup disina tasmam". Dogru olcu bu iddiayi olcendir:
-#   KAPSAMA   = uye kutularin kaci >=%20 urun veriyor
-#   ALAN DISI = hedef grubun DISINDAKI kutularda urun veren okuma orani,
-#               Wilson UST siniri (muhafazakar taraf)
-# Gecme olcutu IKISI BIRDEN: kapsama >= %80 ve alan disi <= %5.
+# The claim on those rows is different too: not "I can tell everything apart" but
+# "I see the whole group and I do not spill outside it". The right measure is the
+# one that measures that claim:
+#   COVERAGE     = how many of the member bins give >=20% product
+#   OUTSIDE THE DOMAIN = the proportion of reads giving a product in bins OUTSIDE
+#               the target group, the Wilson UPPER bound (the conservative side)
+# The passing criterion is BOTH AT ONCE: coverage >= 80% and outside <= 5%.
 #
-# BU ESIGI DUSURMEK DEGILDIR. 10x oranini bu satirlarda uygulamak zaten mumkun
-# degil, cunku paydasi tanimsiz. Diger butun satirlarda 10x AYNEN durur.
+# THIS IS NOT LOWERING THE THRESHOLD. Applying the 10x ratio on these rows is not
+# even possible, because its denominator is undefined. On every other row the 10x
+# stands EXACTLY as it was.
 #
-# Rakip okuma hic yoksa alan disi OLCULEMEZ ve None dondurulur. Eskiden 0,0
-# yaziliyordu, yani mumkun olan EN OLUMLU deger uretilip esik kendiliginden
-# geciliyordu - olcum yoklugu basari sayiliyordu.
+# If there is no competitor read at all, 'outside the domain' CANNOT BE MEASURED
+# and None is returned. It used to be written as 0.0, that is, the MOST FAVOURABLE
+# possible value was produced and the threshold passed itself; an absence of
+# measurement counted as a success.
 # -------------------------------------------------------------------------
 def yol1_evrensel(nm, uye, rakip, F, R):
     """Kapsama + alan disi orani. Ayrim kati KULLANILMAZ (paydasi tanimsiz)."""
@@ -331,8 +351,9 @@ def yol1_evrensel(nm, uye, rakip, F, R):
         p, n, _ = h.urun_veren(F, R, URUN_ALT, URUN_UST, 1)
         rp += p; rn += n
     kapsama = (ka / float(na)) if na else 0.0
-    # O-7: rakip okuma yoksa 'alan disi' OLCULEMEZ. Eskiden 0.0 yaziliyordu,
-    # yani mumkun olan EN OLUMLU deger uretilip esik kendiliginden geciliyordu.
+    # O-7: with no competitor read, 'outside the domain' CANNOT BE MEASURED. It used to
+    # be written as 0.0, so the MOST FAVOURABLE possible value was produced and the
+    # threshold passed itself.
     alandisi = (100.0 * wilson(rp, rn)[1]) if rn else None
     gecti = (kapsama >= EVRENSEL_KAPSAMA_ESIGI
              and alandisi is not None and alandisi <= EVRENSEL_ALANDISI_UST)
@@ -344,7 +365,7 @@ _KOD = None
 
 
 def _enc(s):
-    """engine/rederive_membership.py ile AYNI kodlama."""
+    """THE SAME encoding as engine/rederive_membership.py."""
     global _KOD
     import numpy as np
     if _KOD is None:
@@ -355,14 +376,17 @@ def _enc(s):
     return _KOD[np.frombuffer(s.encode(), dtype=np.uint8)]
 
 
-# Iki konsensusun yuzde kimligi. Infix (HW) hizalama: kisa dizi uzunun ICINE
-# hizalanir, uclardaki fazlalik cezalandirilmaz. Konsensus uzunluklari cok farkli
-# oldugu icin (1,5 kb ile 4,5 kb yan yana) global hizalama ayni organizmayi
-# farkli gosterirdi.
+# The percent identity of two consensuses. Infix (HW) alignment: the short sequence
+# is aligned INSIDE the long one and the overhang at the ends is not penalised.
+# Because consensus lengths differ so much (1.5 kb beside 4.5 kb), a global
+# alignment would make the same organism look different.
 def hw_kimlik(a, b):
-    """Kisa olani sorgu, uzun olanin ICINE (infix/HW) hizala; yuzde kimlik dondur.
-    engine/rederive_membership.py'deki hw_kimlik ile ayni tanim; o dosya
-    bir betik (paket degil) oldugu icin burada yeniden yazildi, ithal edilmedi."""
+    """Align the short one as the query INSIDE the long one (infix/HW); return the percent
+        identity.
+        The same definition as hw_kimlik in engine/rederive_membership.py; because that
+        file is a script rather than a package it was rewritten here instead of imported.
+
+    """
     import numpy as np
     q, t = (a, b) if len(a) <= len(b) else (b, a)
     if not q or not t:
@@ -373,11 +397,11 @@ def hw_kimlik(a, b):
         simdi = np.empty_like(onceki)
         simdi[0] = i + 1
         esit = (T != Q[i]) | (T == 4) | (Q[i] == 4)
-        # Sol komsu bagimliligi (ekleme) VEKTORLESTIRILDI:
-        #   simdi[j] = min(aday[j], simdi[j-1]+1)
-        # a[j] = simdi[j]-j konursa a[j] = min(aday[j]-j, a[j-1]) olur, yani
-        # kosan minimum. np.minimum.accumulate ile tek gecis. Python ic dongusu
-        # kaldirildi: 1,5 kb x 1,5 kb hizalama dakikalardan saniyelere iner.
+        # The left neighbour dependency (insertion) is VECTORISED:
+        #   now[j] = min(cand[j], now[j-1]+1)
+        # Setting a[j] = now[j]-j gives a[j] = min(cand[j]-j, a[j-1]), which is a running
+        # minimum, so np.minimum.accumulate does it in one pass. The Python inner loop is
+        # gone: a 1.5 kb x 1.5 kb alignment drops from minutes to seconds.
         aday = np.minimum(onceki[:-1] + esit, onceki[1:] + 1)
         aday = np.concatenate(([i + 1], aday))
         idx = np.arange(len(aday))
@@ -388,29 +412,34 @@ def hw_kimlik(a, b):
 
 
 # -------------------------------------------------------------------------
-# YOL 2 - UYELIK DARALTMA
+# ROUTE 2 - NARROWING THE MEMBERSHIP
 #
-# Toplantida secilen hedef aslinda bir KUTUdur; isim o gunku Kraken etiketidir ve
-# yanlis olabilir. Bir hedefin uye kumesi = isaret edilen kutu + OLCUMUN ayni
-# organizma oldugunu gosterdigi butun kutular. Uye kutular konsensus dizi
-# kimligine gore (esik %99) tek baglantili kumelenir; hedefe ait olmayanlar rakip
-# hanesine tasinir ve satir yeniden olculur.
+# The target chosen in the meeting is really A BIN; the name is that day's Kraken
+# label and it may be wrong. A target's member set = the bin that was pointed at,
+# plus every bin MEASUREMENT shows to be the same organism. The member bins are
+# clustered by single linkage on consensus sequence identity (threshold 99%); those
+# that do not belong to the target move to the competitor column and the row is
+# re-measured.
 #
-# KARAR PRIMERIN SONUCUNA BAKILMADAN VERILIR. Daraltma yalnizca olculen dizi
-# kimligine dayanir ve KOSULSUZ benimsenir - satiri dusurse bile. "Esigi
-# gecirdigi icin benimsendi" gerekcesi bu betikte HICBIR YERDE yoktur.
+# THE DECISION IS MADE WITHOUT LOOKING AT THE PRIMER'S RESULT. The narrowing rests
+# only on measured sequence identity and is adopted UNCONDITIONALLY, even when it
+# makes the row drop. The reason "it was adopted because it got past the threshold"
+# appears NOWHERE in this script.
 #
-# En buyuk kumenin uye sayilmasi bir VARSAYIMDIR ve oyle isaretlenir: hangi
-# kumenin hedef oldugu numune ici dizi kanitiyla degil kume buyuklugu ile
-# secilmistir; dis referansla teyit I ve G asamalarinin isidir.
+# Treating the largest cluster as the member set is AN ASSUMPTION and it is flagged
+# as one: which cluster is the target was chosen by cluster size rather than by
+# in-sample sequence evidence, and confirming it against an external reference is
+# the job of stages I and G.
 #
-# Hicbir iki kutu birbiriyle >=%99 cikmiyorsa daraltma UYGULANMAZ: birini secmek
-# keyfi olurdu. O hedef HETEROJEN isaretlenir ve karar dis referans teyidine
-# birakilir.
+# If no two bins come out >=99% together, the narrowing IS NOT APPLIED: picking one
+# would be arbitrary. That target is marked HETEROJEN and the decision is left to
+# external reference confirmation.
 # -------------------------------------------------------------------------
 def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
-    """Uye kutulari konsensus kimligine gore kumele; capayi iceren kume gercek
-    uye kumesidir. Donen: (yeni_uye, cikarilan, kanit_metni)"""
+    """Cluster the member bins by consensus identity; the cluster holding the anchor is
+        the real member set. Returns: (new_members, removed, evidence_text)
+
+    """
     d = {k: kons[k] for k in uye_adlari if k in kons and len(kons[k]) > 200}
     if len(d) < 2:
         return (list(uye_adlari), [], u'uye kutu sayisi 2\'den az - kumeleme yapilamaz')
@@ -419,7 +448,7 @@ def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
     for i, a in enumerate(adlar):
         for b in adlar[i + 1:]:
             kimlik[(a, b)] = kimlik[(b, a)] = hw_kimlik(d[a], d[b])
-    # tek baglantili kumeleme, esik KIMLIK_ESIGI
+    # single linkage clustering, threshold KIMLIK_ESIGI
     kume = {a: {a} for a in adlar}
     for (a, b), v in kimlik.items():
         if v >= KIMLIK_ESIGI and kume[a] is not kume[b]:
@@ -436,7 +465,7 @@ def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
     elif len(en_buyuk) >= 2:
         secilen = en_buyuk
     else:
-        # hicbir iki kutu ayni organizma cikmadi -> daraltma ANLAMSIZ
+        # no two bins came out as the same organism -> narrowing is MEANINGLESS
         ozet = '; '.join('%d kutu' % len(k) for k in kumeler)
         return (list(uye_adlari), [],
                 u'DARALTMA UYGULANMADI: %d uye kutunun hicbiri birbiriyle >=%%%s '
@@ -461,12 +490,12 @@ def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
     return (sorted(secilen) + [a for a in uye_adlari if a not in d], cikan, kanit)
 
 
-# YOL 4 - ESLENIGI KALMIS SATIRLAR. Ayni uye kumesini (>=%80 ortusme) hedefleyen
-# ve esigi GECEN baska bir cift varsa, esik alti satir gereksizdir: panelde
-# tutulmasi plaka yeri israfidir. Bu bir kurtarma degil, bir TEMIZLIKtir - satir
-# "dusenlere tasindi" olarak isaretlenir.
+# ROUTE 4 - ROWS THAT STILL HAVE A COUNTERPART. If another pair targets the same
+# member set (>=80% overlap) and DOES pass the threshold, the below-threshold row is
+# unnecessary: keeping it in the panel wastes a plate position. This is not a
+# recovery but a CLEAN-UP; the row is marked "moved onto the ones that dropped".
 def yol4_eslenik_bul(satirlar, uyelik, alias=None):
-    """Ayni uye kumesini hedefleyen ve esigi GECEN baska bir cift var mi."""
+    """Is there another pair targeting the same member set that DOES pass the threshold?"""
     alias = alias or {}
     U = lambda h: uyelik.get(alias.get(h, h), {})
     gecen = [r for r in satirlar if (r.get('esik_gecti_mi') or '').startswith('ESIK USTU')]
@@ -489,12 +518,14 @@ def yol4_eslenik_bul(satirlar, uyelik, alias=None):
 
 
 def _ayirt_onbellekli(U, uye_diz, rak_diz):
-    """ayirt_edici_mi PRIMER basina onbelleklenir.
+    """ayirt_edici_mi is cached PER PRIMER.
 
-    DARBOGAZ DUZELTMESI: cift_akisi N ileri x M geri cift uretir ama ayirt_edici_mi
-    PRIMERE bagliddir - ayni primer yuzlerce ciftte tekrar sorulur. Olculdu:
-    cagri basina 0,030 sn; 60x60 izgara = 3600 cift x 2 cagri = 216 sn. Onbellekle
-    yalniz 120 ayri primer sorulur = 3,6 sn. Tam kosuda etki daha da buyuk.
+        A BOTTLENECK FIX: cift_akisi produces N forward x M reverse pairs, but
+        ayirt_edici_mi depends on THE PRIMER, so the same primer is asked about in
+        hundreds of pairs. Measured: 0.030 s per call; a 60x60 grid = 3600 pairs x 2
+        calls = 216 s. With the cache only 120 distinct primers are asked = 3.6 s. On a
+        full run the effect is larger still.
+
     """
     bellek = {}
 
@@ -507,24 +538,27 @@ def _ayirt_onbellekli(U, uye_diz, rak_diz):
 
 
 # -------------------------------------------------------------------------
-# YOL 3 - YENIDEN TASARIM + ARMS
+# ROUTE 3 - REDESIGN plus ARMS
 #
-# Kil payi kalan satirlar icin (mevcut kat >= KIL_PAYI_ALT) omurga konsensusu
-# uzerinde yeni cift aranir. Aday primerler geometri suzgecinden gecirilir, sonra
-# uye/rakip konsensuslerine karsi "ayirt edici mi" diye sorulur.
+# For rows that fell just short (the current fold >= KIL_PAYI_ALT), a new pair is
+# searched for on the backbone consensus. The candidate primers go through the
+# geometry filter and are then asked, against the member and competitor consensuses,
+# whether they discriminate.
 #
-# ARMS = ileri primerin 3' sondan 2. ve 3. bazina KASITLI uyumsuzluk eklenmesi.
-# Bu bir DEJENERE BAZ DEGILDIR: tek bir sabit dizidir, oligo sayisini artirmaz ve
-# "dejenere baz kullanilmasin" kararini ihlal etmez. Amaci 3' ucundaki tek baz
-# farkini uzatma icin belirleyici hale getirmektir.
+# ARMS = a DELIBERATE mismatch added at the 2nd and 3rd base from the 3' end of the
+# forward primer. This IS NOT A DEGENERATE BASE: it is one fixed sequence, it does
+# not increase the oligo count, and it does not violate the decision that no
+# degenerate base be used. Its purpose is to make a single base difference at the 3'
+# end decisive for extension.
 #
-# IKI ASAMALI ELEME: butun adaylar once ASIL olcutle (mm<=1) olculur, YAN olcut
-# (mm<=3) yalniz basa gureseyen 25 adayda kosar. Is yariya iner ve karar sutunu
-# yine asil olcuttur.
+# ELIMINATION IN TWO STAGES: every candidate is first measured under THE PRIMARY
+# criterion (mm<=1), and THE SECONDARY criterion (mm<=3) runs only on the 25
+# candidates in front. The work halves and the deciding column is still the primary
+# criterion.
 #
-# "yalniz_ileri" kipi mevcut geri primeri KORUR ve sadece ileriyi degistirir
-# (NL1 sorunu): bu durumda geri primerin omurgadaki yeri once tam, bulunamazsa
-# <=1 uyumsuzlukla aranir.
+# The "yalniz_ileri" mode KEEPS the existing reverse primer and changes only the
+# forward one (the NL1 problem): in that case the reverse primer's place on the
+# backbone is looked for exactly first, and with <=1 mismatch if that fails.
 # -------------------------------------------------------------------------
 def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                          yalniz_ileri=False, aday_ust=400, tarama_ust=3000,
@@ -561,10 +595,10 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     ad = U.aday_primerler(omurga)
     yaz(u'      candidates passing geometry: %d forward / %d reverse' % (len(ad['F']), len(ad['R'])))
 
-    # HIZ SINIRI: ayirt_edici_mi her aday icin butun konsensuslari tarar. Aday
-    # sayisi on binlerce oldugunda bu saatler surer. Omurga BOYUNCA esit araliklarla
-    # ornekleyerek tavana indiriyoruz - ilk N'i almak butun adaylari omurganin 5'
-    # ucundan secmek olurdu.
+    # A SPEED LIMIT: ayirt_edici_mi scans every consensus for each candidate. When the
+    # candidate count runs into the tens of thousands that takes hours. We bring it down
+    # to a cap by sampling at even intervals ALONG the backbone; taking the first N
+    # would mean choosing every candidate from the 5' end of the backbone.
     def sey(liste, tavan):
         if len(liste) <= tavan:
             return liste
@@ -599,7 +633,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     bakilan = 0
     t0 = time.time()
     sor, bellek = _ayirt_onbellekli(U, uye_diz, rak_diz)
-    BAKILAN_UST = max(20000, aday_ust * 200)   # kabul edilen degil BAKILAN cift tavani
+    BAKILAN_UST = max(20000, aday_ust * 200)   # the cap on pairs LOOKED AT, not on pairs accepted
     for t in U.cift_akisi(ad):
         bakilan += 1
         if bakilan > BAKILAN_UST:
@@ -619,8 +653,9 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     yaz(u'      %d pairs scanned -> %d discriminating candidates (%s, %d distinct primers queried)'
         % (bakilan, len(secilen), sure_metni(time.time() - t0), len(bellek)))
 
-    # ARMS varyantlari: en iyi birkac adayin ileri primerine + MEVCUT cifte.
-    # (Kasitli uyumsuzluk dejenere baz DEGILDIR; oligo sayisini artirmaz.)
+    # The ARMS variants: on the forward primer of the best few candidates, plus on the
+    # CURRENT pair. (A deliberate mismatch IS NOT a degenerate base; it does not
+    # increase the oligo count.)
     arms = []
     for c in secilen[:arms_ust]:
         for v, etiket in U.arms_varyantlari(c['F']):
@@ -628,8 +663,9 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     for v, etiket in U.arms_varyantlari(mevcut_F):
         arms.append(dict(F=v, R=mevcut_R, urun=0, arms='F ' + etiket + ' (mevcut cift)'))
 
-    # IKI ASAMA: once hepsi ASIL olcutle (mm<=1) elenir; YAN olcut (mm<=3)
-    # yalniz basa gureseneler icin olculur - is yarisina iner.
+    # TWO STAGES: everything is first eliminated under THE PRIMARY criterion (mm<=1);
+    # THE SECONDARY criterion (mm<=3) is measured only for the ones in front, so the
+    # work halves.
     hepsi = secilen + arms
     yaz(u'      candidates to measure: %d (%d pairs + %d ARMS variants)'
         % (len(hepsi), len(secilen), len(arms)))
@@ -653,19 +689,21 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                 taranan=len(hepsi), omurga=capa)
 
 
-# --------------------------------------------------------------- YOL 5
-# Cok lokuslu arama: konsensusun TAMAMINI bolgelere ayirip her bolgede AYRI
-# tasarim dener. Petriella'yi kurtaran sey buydu - ITS'te cozum yoktu, LSU'da
-# vardi. Tek bir omurga penceresine sikismayi onler.
+# --------------------------------------------------------------- ROUTE 5
+# The multi locus search: split THE WHOLE consensus into regions and try A SEPARATE
+# design in each. This is what rescued Petriella; there was no answer in ITS and
+# there was one in LSU. It stops the search from being confined to one backbone
+# window.
 #
-# BOLGE SINIRLARI NASIL BULUNUYOR
-# -------------------------------
-# Korunmus CAPA dizileriyle. Capalar, on yillardir evrensel primer olarak
-# kullanilan ve tam da korunmus olduklari icin secilmis bolgelerdir; nanopore
-# konsensusunde hata payi oldugu icin <=3 uyumsuzlukla ve IUPAC farkindalikli
-# aranirlar (screening/motor.find_sites). Bir capa bulunamazsa o sinir
-# "bulunamadi" olarak isaretlenir ve bolge YEDEK YOLLA (oransal pencere) kurulur;
-# rapor hangi bolgenin capayla hangisinin yedekle kuruldugunu ACIKCA yazar.
+# HOW THE REGION BOUNDARIES ARE FOUND
+# -----------------------------------
+# With conserved ANCHOR sequences. The anchors are regions that have been used as
+# universal primers for decades and were chosen precisely because they are
+# conserved; since a nanopore consensus carries some error, they are searched for
+# with <=3 mismatches and with IUPAC awareness (screening/motor.find_sites). If an
+# anchor is not found, that boundary is marked "not found" and the region is built
+# BY THE FALLBACK ROUTE (a proportional window); the report says OPENLY which region
+# was built from an anchor and which from the fallback.
 CAPALAR = [
     # (ad, dizi, aciklama)  - hepsi 5'->3', sense yonunde aranir
     ('SSU_baslangic', 'AGAGTTTGATCMTGGCTCAG',  u'27F - bakteri/arke 16S basi'),
@@ -729,18 +767,18 @@ def bolgeler_kur(motor, dizi, yaz):
         if d2son is not None and L - d2son > 300:
             ekle('LSU kalani', d2son, L, 'capa')
     if not b:
-        # YEDEK YOL: hicbir capa tutmadi - konsensusu esit parcalara bol
+        # THE FALLBACK ROUTE: no anchor matched - split the consensus into equal parts
         n = max(2, min(6, L // 600))
         adim = L // n
         for i in range(n):
             ekle('bolge %d/%d (YEDEK - capa bulunamadi)' % (i + 1, n),
                  i * adim, min(L, (i + 1) * adim + 100), 'yedek')
     else:
-        # CAPALARIN KAPSAMADIGI YERLER DE TARANIR. Yol 5'in butun amaci
-        # konsensusun TAMAMINI denemek; capa tabanli bolgeler operonun bir
-        # kismini disarida birakirsa (orn. arke A2 konsensusunda yalniz SSU
-        # capasi tutuyor, 4,3 kb'nin 1,6 kb'si kapsaniyor) kalan parcalar
-        # "kapsanmayan" adiyla eklenir.
+        # THE PLACES THE ANCHORS DO NOT COVER ARE SCANNED TOO. The whole point of
+        # route 5 is to try ALL of the consensus; if the anchor based regions leave
+        # part of the operon outside (in the archaeal A2 consensus, for instance,
+        # only the SSU anchor matches and 1.6 kb of the 4.3 kb is covered), the
+        # remaining pieces are added under the name "kapsanmayan".
         kapsanan = sorted((x, y) for _a, x, y, _k in b)
         bosluk, imlec = [], 0
         for x, y in kapsanan:
@@ -757,24 +795,24 @@ def bolgeler_kur(motor, dizi, yaz):
     return b, c
 
 
-# YOL 5 - COK LOKUSLU ARAMA. Yol 3 tek bir omurga penceresine sikisir; bu yol
-# konsensusun TAMAMINI bolgelere ayirip her bolgede AYRI tasarim dener.
-# "Yapilamiyor" demeden once butun lokuslar denenmis olur.
+# ROUTE 5 - THE MULTI LOCUS SEARCH. Route 3 is confined to one backbone window;
+# this route splits THE WHOLE consensus into regions and tries A SEPARATE design in
+# each. Every locus has been tried before anything says "cannot be done".
 def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
                      tarama_ust=800, yaz=print):
-    """Her bolgede AYRI tasarim denemesi. Donen: bolge bolge rapor."""
+    """A SEPARATE design attempt in each region. Returns: a report, region by region."""
     import importlib.util
     if importlib.util.find_spec('primer3') is None:
         return dict(durum='ATLANDI', bolge=[],
                     sebep=u'primer3-py kurulu degil - cok lokuslu arama yapilamadi')
     from screening import engine_gateway, uretec as U
 
-    # OMURGA = EN UZUN uye konsensusu (2026-08-06 duzeltmesi).
-    # Eskiden 800 bp'yi gecen ILK kutu aliniyordu. Uye kumesi hem A1 (16S
-    # amplikonu, ~1,4 kb) hem A2 (tam operon, ~4,3 kb) kutulari tasidiginda
-    # liste sirasi A1'i one koyuyor ve yol 5 operonun 2,9 kb'sini HIC gormuyordu:
-    # "butun lokuslar denendi" derken aslinda yalniz 16S taranmisti. Yol 5'in
-    # varlik sebebi en genis diziyi bolgelere ayirmaktir, o yuzden EN UZUNU.
+    # THE BACKBONE = the LONGEST member consensus (the 2026-08-06 fix).
+    # It used to take the FIRST bin over 800 bp. When the member set held both A1 bins
+    # (a 16S amplicon, ~1.4 kb) and A2 bins (the full operon, ~4.3 kb), the list order
+    # put A1 first and route 5 NEVER SAW 2.9 kb of the operon: while saying "every locus
+    # was tried" it had in fact scanned only 16S. Route 5 exists to split the widest
+    # sequence into regions, so it takes THE LONGEST.
     capa_kutu = None
     _en = 0
     for k in uye:
@@ -836,20 +874,20 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
                 capalar=sorted(capalar), sebep='')
 
 
-# ---------------------------------------------------------------- surucu
+# ---------------------------------------------------------------- driver
 # -------------------------------------------------------------------------
-# HAZIRLIK VE SURUCU. Sira: girdi denetimi -> panel/uyelik/konsensus okuma ->
-# esik alti satirlarin secimi -> panelsiz taleplerin eklenmesi -> okuma
-# havuzlarinin kurulmasi -> _tur().
+# PREPARATION AND THE DRIVER. The order: check the input -> read the panel, the
+# membership and the consensuses -> select the below-threshold rows -> add the
+# requests with no panel row -> build the read pools -> _tur().
 #
-# Okuma tavani (--okuma) TEK PROTOKOL ile AYNI olmalidir: farkli derinlikte
-# olculmus kat sayilari birbiriyle karsilastirilamaz ve "kurtarildi" karari
-# derinlik farkindan dogabilir.
+# The read cap (--okuma) must be THE SAME as in the single protocol run: fold values
+# measured at different depths cannot be compared, and a "recovered" decision could
+# come out of the depth difference alone.
 #
-# PANELSIZ TALEPLER: toplantida istenip panele hic girmemis hedefler. Zincir
-# panelden basladigi icin bunlar hic gorunmez ve "denenmeden yapilamadi" diye
-# kalirdi. Burada omurga olarak kutunun KENDI konsensusu alinir ve en azindan bir
-# tasarim denemesi yapilir.
+# REQUESTS WITH NO PANEL ROW: targets asked for in the meeting that never entered
+# the panel. Because the chain starts from the panel these are never seen and would
+# be left as "could not be done, never attempted". Here the bin's OWN consensus is
+# taken as the backbone and at least one design attempt is made.
 # -------------------------------------------------------------------------
 def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI,
              arms_ust=5, panelsiz_atla=False):
@@ -959,18 +997,17 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
 
 
 # -------------------------------------------------------------------------
-# HEDEF HEDEF verification DONGUSU. Her hedef icin sira sabittir:
-#   panelsiz talep -> BILINEN (onceden olculmus cikmaz) -> yol 4 -> yol 1 ->
-#   yol 2 -> yol 3 -> yol 5
+# THE verification LOOP, TARGET BY TARGET. For each target the order is fixed:
+#   a request with no panel row -> KNOWN (an outcome already measured) -> route 4 ->
+#   route 1 -> route 2 -> route 3 -> route 5
 #
-# BILINEN tablosundaki satirlar (Proteiniphilum, M. mazei grubu) YENIDEN
-# DENENMEZ: sebepleri daha once olculmustur, satirda gosterilir ve zaman
-# harcanmaz.
+# The rows in the KNOWN table (Proteiniphilum, the M. mazei group) ARE NOT TRIED
+# AGAIN: their reasons have already been measured, they are shown on the row, and no
+# time is spent.
 #
-# KONTROL NOKTASI MUHRU (_ayar): okuma derinligi, aday tavani, tarama tavani,
-# ARMS tavani ve betik surumu muhre dahildir. Farkli derinlikte olculmus bir
-# sonucun sessizce yeniden kullanilmasi, bu zincirin duzeltmeye calistigi hatanin
-# ta kendisidir.
+# THE CHECKPOINT SEAL (_ayar): the read depth, the candidate cap, the scan cap, the
+# ARMS cap and the script version are all part of the seal. Silently reusing a result
+# measured at a different depth is the very mistake this chain is trying to correct.
 # -------------------------------------------------------------------------
 def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
          aday_ust, gunluk, alias=None, tarama_ust=3000, arms_ust=5,
@@ -982,11 +1019,11 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
 
     AYAR = dict(okuma=okuma, aday_ust=aday_ust, tarama_ust=tarama_ust,
                 arms_ust=arms_ust, surum=VERSIYON)
-    # 2026-08-10 DIZI MUHRU: kontrol noktasi anahtarina primer DIZISI
-    # dahil edilmemisti. Bir ciftin ileri/geri dizisi degistiginde eski
-    # sonuc sessizce yeniden kullaniliyordu. Ayni hata P asamasinda iki
-    # tam kosuyu bosa harcatti (5 sa 29 dk + 2 sa 0 dk). Artik dizi de
-    # anahtara giriyor; dizi degisirse kontrol noktasi gecersiz olur.
+    # THE 2026-08-10 SEQUENCE SEAL: the primer SEQUENCE was not included in the
+    # checkpoint key. When a pair's forward or reverse sequence changed, the old result
+    # was silently reused. The same bug wasted two full runs at stage P (5 h 29 min plus
+    # 2 h 0 min). The sequence now goes into the key; if it changes the checkpoint
+    # becomes invalid.
     import hashlib as _hl
 
     def _ayar_of(r):
@@ -1002,8 +1039,8 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
         if os.path.exists(yol):
             try:
                 _v = json.load(open(yol, encoding='utf-8'))
-                # O-9: ayar muhru - farkli derinlikte olculmus sonuc yeniden
-                # kullanilmamali (TEK PROTOKOL modulunun var olus sebebi bu).
+                # O-9: the settings seal - a result measured at a different depth must not be
+                # reused (that is the reason the single protocol module exists).
                 if _v.get('_ayar') == _ayar_of(r):
                     sonuc.append(_v)
                     yaz(u'[%2d/%2d] %-44s (taken from the previous run)'
@@ -1110,19 +1147,20 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
             kapsam_tam = (r.get('ASIL_kapsam_mm1') or '').split('/')
             tam = (len(kapsam_tam) == 2 and kapsam_tam[0] == kapsam_tam[1])
             # ---------------------------------------------------------------
-            # UYELIK KOSULSUZ BENIMSENIR - VE DUSUS BIR KAYIP DEGILDIR.
-            # Daraltma sonrasi olculen deger eskisinden DUSUK cikabilir. Bu,
-            # primerin kotulesmesi degil OLCUNUN duzelmesidir: eski deger yanlis
-            # uyelikten geliyordu (hedefe ait olmayan kutular uye sayilmis ya da
-            # ayni organizma olan kutular rakip hanesinde birakilmisti) ve hicbir
-            # zaman gecerli degildi. Satirin dusmesine izin verilmesi, kuralin tek
-            # yonlu calismadiginin kanitidir.
+            # THE MEMBERSHIP IS ADOPTED UNCONDITIONALLY - AND A DROP IS NOT A LOSS.
+            # After narrowing, the measured value can come out LOWER than before. That is
+            # not the primer getting worse but THE MEASURE being corrected: the old value
+            # came from a wrong membership (bins not belonging to the target had been
+            # counted as members, or bins that are the same organism had been left in the
+            # competitor column) and was never valid. Letting the row drop is the proof
+            # that the rule does not work in one direction only.
             # ---------------------------------------------------------------
-            # --- YOL 2: UYELIK DARALTMA ---
-            # KRITIK DUZELTME (tasarim incelemesi madde 1): uyelik ARTIK primerin
-            # sonucuna gore benimsenmiyor. Daraltma yalniz OLCULEN DIZI KIMLIGINE
-            # gore yapilir ve KOSULSUZ benimsenir - sonuc hedefi dusurse bile.
-            # "Esigi gecirdigi icin benimsendi" gerekcesi hicbir yerde YOKTUR.
+            # --- ROUTE 2: NARROWING THE MEMBERSHIP ---
+            # THE CRITICAL FIX (design review item 1): the membership is NO LONGER adopted
+            # according to the primer's result. The narrowing is done only by MEASURED
+            # SEQUENCE IDENTITY and is adopted UNCONDITIONALLY, even when the result makes
+            # the target drop. The reason "it was adopted because it got past the
+            # threshold" appears NOWHERE.
             if len(u['uye']) > 1:
                 yeni_uye, cikan, kanit = yol2_uyelik_daralt(kons, u['uye'])
                 s['ayrinti']['yol2'] = dict(kanit=kanit, cikan=cikan,
@@ -1177,10 +1215,10 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     s['uyelik_gerekcesi'] = kanit
                     yaz(u'      -> YOL 2: %s' % kanit)
 
-            # --- YOL 3: yeniden tasarim + ARMS ---
-            # KIL_PAYI_ALT kapisi YOL 3 icin dogrudur: ayni omurga penceresinde
-            # primer oynatmak 0,8x'i 8x'e cikarmaz. YOL 5 icin YANLISTI - bkz.
-            # asagidaki not.
+            # --- ROUTE 3: redesign plus ARMS ---
+            # The KIL_PAYI_ALT gate is right FOR ROUTE 3: moving a primer inside the same
+            # backbone window does not take 0.8x to 8x. It was WRONG for ROUTE 5, see the
+            # note below.
             if s['gecti'] != 'EVET' and (eski or 0) >= KIL_PAYI_ALT:
                 yalniz_ileri = ('microasca' in hedef.lower())
                 yaz(u'      -> ROUTE 3: redesign%s' %
@@ -1209,9 +1247,9 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                         % (vir(en_iyi['kat1']) if en_iyi else '-'))
                     yaz(u'         no candidate passes the threshold')
 
-                # --- YOL 5: COK LOKUSLU ARAMA ---
-                # Yol 3 tek omurga penceresine dayanir. Petriella'da cozum ITS'te
-                # degil LSU'daydi; "yapilamiyor" demeden once BUTUN lokuslar denenir.
+                # --- ROUTE 5: THE MULTI LOCUS SEARCH ---
+                # Route 3 rests on a single backbone window. For Petriella the answer was not
+                # in ITS but in LSU; EVERY locus is tried before anything says "cannot be done".
                 yaz(u'      -> YOL 5: cok lokuslu arama (bolge bolge)')
                 t5 = yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons,
                                       aday_ust=min(aday_ust, 40),
@@ -1237,17 +1275,18 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                                       ', '.join(b['bolge'] for b in t5['bolge'])))
             elif s['gecti'] != 'EVET':
                 # ---------------------------------------------------------------
-                # 2026-08-06 MANTIK HATASI DUZELTMESI.
-                # Eskiden bu dalda HICBIR SEY denenmiyordu: taban KIL_PAYI_ALT'in
-                # altindaysa satir "yeniden tasarim kosulmadi" notuyla birakiliyordu.
-                # YOL 3 icin dogru, YOL 5 icin YANLIS:
-                #   - yol 3 AYNI omurga penceresinde primer oynatir; mevcut kat
-                #     0,8x ise o pencerede cozum yoktur, kapi yerindedir.
-                #   - yol 5 BASKA BIR LOKUSA gecer. Mevcut kat, TERK EDILEN
-                #     lokusun olcusudur; yeni lokus hakkinda hicbir sey soylemez.
-                # Sonuc: tabani dusuk bes hedefte cok lokuslu arama HIC KOSMADI ve
-                # rapor "ayrim yetmedi" diyordu - oysa "butun lokuslarda denendi"
-                # diyebilmemiz gerekiyordu. Artik kapi yalniz yol 3'e uygulanir.
+                # THE 2026-08-06 LOGIC BUG FIX.
+                # NOTHING AT ALL used to be tried in this branch: if the floor was below
+                # KIL_PAYI_ALT the row was left with the note "redesign did not run".
+                # Right FOR ROUTE 3, WRONG for ROUTE 5:
+                #   - route 3 moves a primer inside THE SAME backbone window; if the current
+                #     fold is 0.8x there is no answer in that window and the gate belongs.
+                #   - route 5 moves to ANOTHER LOCUS. The current fold is the measure of the
+                #     locus BEING ABANDONED; it says nothing about the new one.
+                # The result: on five targets with a low floor the multi locus search NEVER RAN
+                # and the report said "the discrimination was not enough", when what we needed
+                # to be able to say was "it was tried at every locus". The gate now applies to
+                # route 3 only.
                 # ---------------------------------------------------------------
                 _uzun = max([len(kons[k['kutu']]) for k in uye if k['kutu'] in kons] or [0])
                 if _uzun >= 2000:
@@ -1292,12 +1331,13 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
     return rc
 
 
-# ---------------------------------------------------------------------------
-# Uc cikti: hedef basina tek satirlik tablo, aday primer tablosu ve markdown
-# rapor. "olcu" sutunu her satirda HANGI olcunun uygulandigini soyler - evrensel
-# satirlarda kapsama + alan disi, digerlerinde ayrim kati (10x). Esigin
-# indirilmedigi ve neden indirilmedigi rapor basliginda yazilidir.
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# Three outputs: a one row per target table, a candidate primer table and a markdown
+# report. The 'olcu' column says on every row WHICH measure was applied: coverage
+# plus outside-the-domain on the universal rows, the discrimination ratio (10x) on
+# the rest. That the threshold was not lowered, and why, is written in the report
+# header.
+# -------------------------------------------------------------------------
 def raporla(CIKTI, sonuc, yaz):
     yol = os.path.join(CIKTI, 'kurtarma_satirlari.tsv')
     with open(yol, 'w', encoding='utf-8', newline='') as fh:
@@ -1373,11 +1413,13 @@ def raporla(CIKTI, sonuc, yaz):
 
 # --------------------------------------------------------------- guvenlik agi
 def cikti_denetle(yaz, ad, dosyalar, asgari=1):
-    """Asama bittiginde KENDI ciktisini denetler.
+    """When the stage ends, it audits ITS OWN output.
 
-    Beklenen satir sayisi sifirsa ya da dosya hic yoksa SESSIZCE DEVAM ETMEZ:
-    acik Turkce hata basar ve sifirdan farkli kod dondurur. Gece boyunca bos
-    sonuc uretip sabah "hicbir sey bulunamadi" dememesi icin.
+        If the expected row count is zero, or the file is missing entirely, it DOES NOT
+        CARRY ON SILENTLY: it prints a clear error and returns a non-zero code. This is
+        so that it cannot produce an empty result overnight and then say "nothing was
+        found" in the morning.
+
     """
     sorun = []
     for yol, etiket in dosyalar:
@@ -1410,7 +1452,7 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
 
 
 def girdi_denetle(yaz, ad, dosyalar):
-    """Asama BASLAMADAN once ihtiyac duydugu dosyalar var mi ve dolu mu."""
+    """Before the stage STARTS: do the files it needs exist, and are they non-empty?"""
     eksik = []
     for yol, etiket, uretici in dosyalar:
         if not os.path.exists(yol):
@@ -1431,10 +1473,9 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# Komut satiri: --aday-ust ve --tarama-ust yol 3 taramasinin buyuklugunu,
-# --arms-ust kac adayin ARMS varyantinin uretilecegini, --okuma derinlik tavanini
-# (P ile ayni olmali), --panelsiz-atla hizli sinamada panelsiz talepleri atlamayi
-# belirler.
+# The command line: --aday-ust and --tarama-ust set the size of the route 3 scan,
+# --arms-ust how many candidates get an ARMS variant, --okuma the depth cap (it must
+# match P), and --panelsiz-atla skips the requests with no panel row in a quick test.
 def main():
     p = argparse.ArgumentParser(description='Esik alti satirlar icin kurtarma turu')
     p.add_argument('--root', '--kok', dest='kok', default='.')
