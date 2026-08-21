@@ -279,10 +279,10 @@ def main():
     # Olcu 13 ile AYNI modulden gelir; iki yerde iki ayri kural olursa
     # Excel'den cikarilan cift burada temiz gorunebilir ya da tersi olur.
     if a.hedefler and a.kons:
-        _ta = alan_denetimi.taxid_alanlari(a.kons)
-        _ht = alan_denetimi.hedef_taxidleri(a.hedefler)
+        _ta = field_audit.taxid_alanlari(a.kons)
+        _ht = field_audit.hedef_taxidleri(a.hedefler)
         for r in rows:
-            uyumsuz, dag, baskin = alan_denetimi.alan_dagilimi(
+            uyumsuz, dag, baskin = field_audit.alan_dagilimi(
                 r.get("hedef", ""), r.get("sinif", ""),
                 taxid_alan=_ta, hedef_taxid=_ht)
             if uyumsuz:

@@ -34,8 +34,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import alignment
 
-if hizalama.ARKA_UC is None:
-    sys.exit(hizalama.durum())
+if alignment.ARKA_UC is None:
+    sys.exit(alignment.durum())
 
 BAZLAR = "ACGT"
 
@@ -79,7 +79,7 @@ def fastq_oku(yol, min_uz, azami):
 
 def kalipta_say(kalip, okumalar, yigin):
     """Okumalari kalibin uzerine yigar. Doner: (sayim_matrisi, hizalanan)."""
-    A = hizalama.Hizalayici(seq=kalip, preset="map-ont")
+    A = alignment.Hizalayici(seq=kalip, preset="map-ont")
     if not A:
         return None, 0
     say = [[0, 0, 0, 0] for _ in kalip]
@@ -99,7 +99,7 @@ def kalipta_say(kalip, okumalar, yigin):
             if h.strand == 1:
                 q, qp = r, h.q_st
             else:
-                q, qp = hizalama.revcomp(r), len(r) - h.q_en
+                q, qp = alignment.revcomp(r), len(r) - h.q_en
             rp = h.r_st
             for ln, op in h.cigar:
                 if op == 0:
@@ -198,7 +198,7 @@ def fark_olc(x, y):
 
     def olc(a, b):
         try:
-            A = hizalama.Hizalayici(seq=a, preset="map-ont")
+            A = alignment.Hizalayici(seq=a, preset="map-ont")
         except RuntimeError:
             return None
         if not A:
@@ -212,7 +212,7 @@ def fark_olc(x, y):
         if en_iyi.strand == 1:
             q, qp = b, en_iyi.q_st
         else:
-            q, qp = hizalama.revcomp(b), len(b) - en_iyi.q_en
+            q, qp = alignment.revcomp(b), len(b) - en_iyi.q_en
         rp = en_iyi.r_st
         ortak = ikame = indel = 0
         # mlen'e guvenilmez; karakter karakter sayilir
@@ -253,7 +253,7 @@ def main():
     if not os.path.exists(a.fastq):
         sys.exit(u'no fastq found: %s' % a.fastq)
     os.makedirs(a.out, exist_ok=True)
-    print(hizalama.durum())
+    print(alignment.durum())
     okumalar = fastq_oku(a.fastq, a.min_uzunluk, a.max_okuma)
     print(u'reads: %d (>= %d bp)' % (len(okumalar), a.min_uzunluk))
     if len(okumalar) < a.min_derinlik * 2:

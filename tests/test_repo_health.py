@@ -48,6 +48,14 @@ PAKETLER = [
     'screening.order_classes', 'screening.sample', 'screening.reference',
     'screening.checks', 'screening.report', 'screening.orientation',
     'verification.mfeprimer_layer',
+    # The menu entry point and the stages it drives. They were missing from
+    # this list, and that is how screening/__main__.py came to sit in the
+    # repository unable to import at all: it still said
+    # `from . import geometri as G` after geometri.py had become geometry.py.
+    'screening.__main__', 'screening.run_all', 'screening.self_test',
+    'screening.panel_measurement', 'screening.membership_check',
+    'screening.build_consensus', 'screening.build_canonical',
+    'screening.generator', 'screening.read_engine',
 ]
 
 # Names that must not survive anywhere in shipped code.
@@ -318,6 +326,134 @@ def kontrol_parse(bulgu):
             bulgu.append(('PARSE', '%s:%s' % (rel(y), e.lineno), e.msg))
 
 
+# ------------------------------------------------------------- 7 NAME BINDING
+# A rename can leave a module imported under its new name and used under the
+# old one. `import alignment` with `hizalama.ARKA_UC` below it parses, passes
+# every check that reads the file as text, and then raises NameError the moment
+# the module is imported. steps/specificity.py sat like that: the whole in
+# sample specificity stage was dead, and steps/regression_test.py could not run
+# at all because it loads that file.
+#
+# The set of bound names below is deliberately generous: a name assigned
+# anywhere in the file counts as bound, whatever the real scope. That gives up
+# some sensitivity and buys near zero false alarms, and it still catches the
+# case that matters, a name bound nowhere at all.
+_AD_OZEL = {'__file__', '__name__', '__doc__', '__package__', '__spec__',
+            '__loader__', '__builtins__', '__debug__', 'unicode', 'unicode_',
+            'basestring', 'xrange', 'raw_input', 'long', 'reduce'}
+
+
+def _bagli_adlar(agac):
+    ad = set()
+
+    def hedef(n):
+        if isinstance(n, ast.Name):
+            ad.add(n.id)
+        elif isinstance(n, (ast.Tuple, ast.List)):
+            for e in n.elts:
+                hedef(e)
+        elif isinstance(n, ast.Starred):
+            hedef(n.value)
+
+    for n in ast.walk(agac):
+        if isinstance(n, (ast.Import, ast.ImportFrom)):
+            for a in n.names:
+                ad.add((a.asname or a.name).split('.')[0])
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            ad.add(n.name)
+        elif isinstance(n, ast.Assign):
+            for t in n.targets:
+                hedef(t)
+        elif isinstance(n, (ast.AugAssign, ast.AnnAssign)):
+            hedef(n.target)
+        elif isinstance(n, (ast.For, ast.AsyncFor, ast.comprehension)):
+            hedef(n.target)
+        elif isinstance(n, ast.withitem) and n.optional_vars is not None:
+            hedef(n.optional_vars)
+        elif isinstance(n, ast.ExceptHandler) and n.name:
+            ad.add(n.name)
+        elif isinstance(n, (ast.Global, ast.Nonlocal)):
+            ad.update(n.names)
+        elif isinstance(n, ast.NamedExpr):
+            hedef(n.target)
+        elif isinstance(n, ast.arguments):
+            for a in (list(n.posonlyargs) + list(n.args) + list(n.kwonlyargs)
+                      + ([n.vararg] if n.vararg else [])
+                      + ([n.kwarg] if n.kwarg else [])):
+                ad.add(a.arg)
+    return ad
+
+
+def kontrol_ad_baglama(bulgu):
+    import builtins
+    for y in metin_dosyalari():
+        if not y.endswith('.py'):
+            continue
+        try:
+            agac = ast.parse(oku(y))
+        except SyntaxError:
+            continue                      # kontrol_parse zaten bildirir
+        bagli = _bagli_adlar(agac) | set(dir(builtins)) | _AD_OZEL
+        gorulen = set()
+        for n in ast.walk(agac):
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) \
+                    and n.id not in bagli and n.id not in gorulen:
+                gorulen.add(n.id)
+                bulgu.append(('NAME', '%s:%s' % (rel(y), n.lineno),
+                              'name %r is used but bound nowhere' % n.id))
+
+
+# ------------------------------------------------------------ 8 PACKAGE IMPORT
+def kontrol_paket_ithal(bulgu):
+    """`from . import X` must name a module that exists in that package."""
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        if '__init__.py' not in dosyalar:
+            continue
+        moduller = set(d[:-3] for d in dosyalar if d.endswith('.py'))
+        for d in sorted(dosyalar):
+            if not d.endswith('.py'):
+                continue
+            y = os.path.join(kok, d)
+            try:
+                agac = ast.parse(oku(y))
+            except SyntaxError:
+                continue
+            for n in ast.walk(agac):
+                if not isinstance(n, ast.ImportFrom) or n.level != 1:
+                    continue
+                adlar = ([a.name for a in n.names] if n.module is None
+                         else [n.module.split('.')[0]])
+                for ad in adlar:
+                    if ad not in moduller:
+                        bulgu.append(('IMPORT', '%s:%s' % (rel(y), n.lineno),
+                                      'relative import of %r, but %s.py is not in '
+                                      'this package' % (ad, ad)))
+
+
+# ------------------------------------------------------------ 9 ABSOLUTE PATHS
+# A default path from the workspace this code grew in is a machine specific
+# path in a public repository. engine/inventory.py, engine/multi_locus.py and
+# engine/target_full.py all defaulted their project root to /tmp/fl/kok and
+# died at import on any other machine.
+_MUTLAK = re.compile(r"""['"](/tmp/fl\b|/home/[a-z]|/mnt/[a-z]/Users/|"""
+                     r"""[A-Z]:[\\/]Users[\\/])""")
+
+
+def kontrol_mutlak_yol(bulgu):
+    for y in metin_dosyalari():
+        if not y.endswith(('.py', '.sh')):
+            continue
+        if rel(y).startswith('tests/'):
+            continue                      # bu dosyanin kendi deseni
+        for i, satir in enumerate(oku(y).split('\n'), 1):
+            m = _MUTLAK.search(satir)
+            if m:
+                bulgu.append(('PATH', '%s:%d' % (rel(y), i),
+                              'a machine specific absolute path: %s'
+                              % satir.strip()[:80]))
+
+
 KONTROLLER = [
     ('PARSE',     'every Python file parses',            kontrol_parse),
     ('IMPORT',    'core packages import (side effects)', kontrol_import),
@@ -325,6 +461,9 @@ KONTROLLER = [
     ('NAME',      'no stale or personal names',          kontrol_yasak_adlar),
     ('CONFIG',    'config paths resolve',                kontrol_yapilandirma),
     ('IMPORT',    'bare imports resolve',                kontrol_ciplak_import),
+    ('IMPORT',    'relative imports name real modules',  kontrol_paket_ithal),
+    ('NAME',      'every name used is bound somewhere',  kontrol_ad_baglama),
+    ('PATH',      'no machine specific absolute paths',  kontrol_mutlak_yol),
     ('EOL',       'text files use LF, not CRLF',         kontrol_satir_sonu),
     ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),
 ]

@@ -220,7 +220,7 @@ def main():
         return yalniz_urun_boyu(kok, a.yaz)
     print('=' * 78)
     print(u'  GEOMETRY RE-MEASUREMENT   %s' % time.strftime('%Y-%m-%d %H:%M'))
-    print('  motor: %s   ayarlar: %s' % (geo_yol, geo.KW))
+    print('  motor: %s   ayarlar: %s' % (geo_yol, geometry_core.KW))
     print('=' * 78)
 
     ciftler, bas, sat, panel_yolu = panel_oku(kok)
@@ -230,9 +230,9 @@ def main():
     ihlal = []
     uyusmaz = []
     for c in ciftler:
-        tF, tR = geo.tm(c['F']), geo.tm(c['R'])
-        vF, vR = geo.viol(c['F']), geo.viol(c['R'])
-        het = geo.het(c['F'], c['R'])
+        tF, tR = geometry_core.tm(c['F']), geometry_core.tm(c['R'])
+        vF, vR = geometry_core.viol(c['F']), geometry_core.viol(c['R'])
+        het = geometry_core.het(c['F'], c['R'])
         c['yeni_tmF'], c['yeni_tmR'] = tF, tR
         c['yeni_dTm'] = round(abs(tF - tR), 2)
         sonuc.append((c, tF, tR, vF, vR, het))
@@ -308,13 +308,13 @@ def main():
     with io.open(cy, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# The geometry audit, with the panel sequences AS THEY ARE NOW. Produced %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'# Motor: %s  ayarlar: %s\n' % (geo_yol, geo.KW))
+        fh.write(u'# Motor: %s  ayarlar: %s\n' % (geo_yol, geometry_core.KW))
         fh.write(u'Hedef\tPrimer\tDizi\tUz\tGC%\tTm\tHairpin Tm\tHomodimer Tm\tIhlal\n')
         for c, tF, tR, vF, vR, het in sonuc:
             for et, d, t, v in (('Ileri', c['F'], tF, vF), ('Geri', c['R'], tR, vR)):
                 fh.write(u'%s\t%s\t%s\t%d\t%.1f\t%.2f\t%.1f\t%.1f\t%s\n'
-                         % (c['hedef'], et, d, len(d), geo.gc(d), t,
-                            geo.hp(d), geo.hd(d), '; '.join(v)))
+                         % (c['hedef'], et, d, len(d), geometry_core.gc(d), t,
+                            geometry_core.hp(d), geometry_core.hd(d), '; '.join(v)))
             fh.write(u'%s\tCIFT\tdTm=%.2f  het=%.1f\t\t\t\t\t\t\n'
                      % (c['hedef'], abs(tF - tR), het))
     print()

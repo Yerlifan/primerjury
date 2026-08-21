@@ -33,7 +33,7 @@ Usage:
 #          --oncelik: consensus sequences (the original set the panel was built
 #          on), KAPSAMLI_ARAMA_SONUC/konsensus_yeni (the new production) and
 #          referans_konsensus/konsensus. The orientation decision is made with
-#          yon.dosya_kanonik().
+#          orientation.dosya_kanonik().
 # OUTPUT : <bin>.kanonik.fa per bin under konsensus_kanonik/; besides that
 #          INDEKS.tsv (the one list consumers must read), MANIFEST.tsv (the source,
 #          the old orientation, whether it was flipped), BELIRSIZ.tsv and
@@ -117,10 +117,10 @@ def main():
     ap.add_argument('--priority', '--oncelik', dest='oncelik', default='ozgun', choices=sorted(ONCELIK))
     a = ap.parse_args()
 
-    h = yon.kendini_sina()
+    h = orientation.kendini_sina()
     if h:
         sys.exit(u'orientation.py DID NOT PASS its self test: %s' % h)
-    print(u'orientation.py self test: PASSED. The canonical orientation =', yon.KANONIK_YON)
+    print(u'orientation.py self test: PASSED. The canonical orientation =', orientation.KANONIK_YON)
     print('kaynak onceligi :', ' > '.join(e for e, _ in ONCELIK[a.oncelik]))
 
     cik = os.path.join(a.kok, a.cikti)
@@ -137,16 +137,16 @@ def main():
             k = kutu_adi(y)
             if not k:
                 continue
-            sn = yon.sinifi(os.path.basename(y))
+            sn = orientation.sinifi(os.path.basename(y))
             if sn == '?':
-                sn = yon.sinifi(y)
+                sn = orientation.sinifi(y)
             if sn == '?':
                 continue
             if k in gorulen:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
                                      eski_yon='', cevrildi='', uzunluk='', durum='atlandi (%s kazandi)' % gorulen[k]))
                 continue
-            kayitlar, _ = yon.dosya_kanonik(y)
+            kayitlar, _ = orientation.dosya_kanonik(y)
             kayitlar = [r for r in kayitlar if len(r[1]) >= 200]
             if not kayitlar:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
@@ -166,7 +166,7 @@ def main():
             cy = os.path.join(cik, '%s.kanonik.fa' % k)
             with open(cy, 'w', encoding='utf-8') as fh:
                 fh.write('>%s kanonik=%s kaynak=%s eski_yon=%s cevrildi=%s\n'
-                         % (k, yon.KANONIK_YON, etiket, karar, int(cev)))
+                         % (k, orientation.KANONIK_YON, etiket, karar, int(cev)))
                 for i in range(0, len(dizi), 70):
                     fh.write(dizi[i:i + 70] + '\n')
             manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
@@ -207,7 +207,7 @@ def main():
     # VERIFICATION: is every file written really SENSE
     kotu = 0
     for y in sorted(glob.glob(os.path.join(cik, '*.kanonik.fa'))):
-        kayitlar, sn = yon.dosya_kanonik(y)
+        kayitlar, sn = orientation.dosya_kanonik(y)
         for ad, dizi, karar, cev in kayitlar:
             if cev:
                 kotu += 1

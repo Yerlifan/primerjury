@@ -52,8 +52,8 @@ yeniden baslatilinca kalinan parcadan devam eder.
 #
 # GIRDI  : aday listesi ({'ad','F','R','lo','hi'}); veritabani olarak
 #          yapilandirma.SILVA_SSU (ya da cagiranin verdigi baska fasta);
-#          varsa kontrol/kuresel_<hedef>.pkl ara durumu. Tarama motor.encode
-#          ve motor.find_sites (numpy vektor arama) ile yapilir.
+#          varsa kontrol/kuresel_<hedef>.pkl ara durumu. Tarama engine_gateway.encode
+#          ve engine_gateway.find_sites (numpy vektor arama) ile yapilir.
 # CIKTI  : durum_yolu verilirse her parca sonunda pickle ara durumu yazar.
 #          tara() {aday_ad: {'urun': n, 'boy': {...}, 'vurus': [...]}} sozlugu
 #          dondurur.
@@ -79,8 +79,8 @@ def _parcalar(db, parca_baz=C.KURESEL_PARCA):
     """FASTA'yi ~parca_baz buyuklugunde bloklara bol; her blok:
     (baslik listesi, uzunluk listesi, birlestirilmis dizi)."""
     ad_l, uz_l, buf, tot = [], [], [], 0
-    for ad, seq in motor.read_fasta(db):
-        s = motor.clean(seq.upper())
+    for ad, seq in engine_gateway.read_fasta(db):
+        s = engine_gateway.clean(seq.upper())
         # A2 (2026-08-21): baslik ARTIK KESILMIYOR (eskiden ad[:150] idi).
         # Olculdu: SILVA SSU basliklarinin %16,6'si 150 karakteri asiyor ve
         # kesilen kuyruk tam da CINS ve TUR jetonlaridir - yani hedef kladla
@@ -165,16 +165,16 @@ def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM
         pi += 1
         if pi <= baslangic:
             continue
-        enc = motor.encode(big)
+        enc = engine_gateway.encode(big)
         off = _kayit_indeksi(uz_l)
         durum['toplam_kayit'] += len(ad_l)
         for a in adaylar:
             F, R = a['F'], a['R']
-            revrc = motor.rc(R)
-            fs = motor.find_sites(enc, F, max_mm, need_tail=False)
+            revrc = engine_gateway.rc(R)
+            fs = engine_gateway.find_sites(enc, F, max_mm, need_tail=False)
             if not fs:
                 continue
-            rs = motor.find_sites(enc, revrc, max_mm, need_tail=False)
+            rs = engine_gateway.find_sites(enc, revrc, max_mm, need_tail=False)
             if not rs:
                 continue
             fpos = np.array([x[0] for x in fs]); fmm = np.array([x[1] for x in fs])

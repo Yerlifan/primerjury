@@ -23,7 +23,7 @@ Usage (normally verification/full_chain.py calls it):
 #          --sinama-atla).
 # OUTPUT : the kontrol/hedef_*.json checkpoints under KAPSAMLI_ARAMA_SONUC/;
 #          adaylar.tsv, parametre_izgarasi.tsv and KAPSAMLI_ARAMA_RAPORU.md
-#          through rapor.uret(). main() returns the process exit code
+#          through report.uret(). main() returns the process exit code
 #          (0 = success, 2 = a gate or self test failed).
 # CALLED BY: the "python3 -m screening --mod <MOD>" line inside
 #          verification/full_chain.py. The keys: 1 (--mod tam), 2 (--mod sorunlu),
@@ -37,8 +37,8 @@ Usage (normally verification/full_chain.py calls it):
 import os, sys, time, argparse, traceback
 
 from . import config as C
-from . import engine_gateway, geometri as G, hedefler as H, uretec as U, numune as N
-from . import reference as REF, kuresel_tarama as KT, kontrol, rapor
+from . import engine_gateway, geometry as G, targets as H, generator as U, sample as N
+from . import reference as REF, global_scan as KT, checks, report
 
 BASLANGIC = time.time()
 
@@ -289,7 +289,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                      temsilci=len(cl), arms=len(arms),
                      numune_olculen=len(olculen), cift_yapisi_gecen=len(gecen)),
         izgara=izgara,
-        adaylar=[rapor.aday_ozet(c) for c in en_iyi],
+        adaylar=[report.aday_ozet(c) for c in en_iyi],
         sure_sn=round(time.time() - t0, 1),
     )
     yaz(u'\n  DONE: %s  (%s)' % (ad, sure(time.time() - t0)))
@@ -420,7 +420,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
     # not canonical the stage DOES NOT START; it stops with SystemExit(2).
     if mod:
         a.mod = mod
-    from .hepsi import yon_kapisi
+    from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'kapsamli arama')
     for _x in _m:
         yaz('  ' + _x)
@@ -451,12 +451,12 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         liste = [d for d in liste if a.hedef.lower() in d['hedef'].lower()]
 
     if a.mod == 'devam':
-        liste = [d for d in liste if not kontrol.bitti_mi(d['hedef'])]
+        liste = [d for d in liste if not checks.bitti_mi(d['hedef'])]
         yaz(u'\nCONTINUE MODE: finished targets are skipped. Remaining: %d' % len(liste))
 
     if not liste:
         yaz(u'\nNo target to process. The report is being built from the existing checkpoint files.')
-        rapor.uret(kontrol.hepsi(), panel, panel_yolu, yaz)
+        report.uret(checks.hepsi(), panel, panel_yolu, yaz)
         return 0
     uyelik = H.uyelik_oku(); kons = H.konsensusler(); kut = H.kutular()
     baglamlar = {d['hedef']: H.hedef_baglami(d, uyelik, kons, kut) for d in liste}
@@ -504,18 +504,18 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
     for i, d in enumerate(liste, 1):
         try:
             s = hedefi_isle(d, baglamlar[d['hedef']], numune, i, len(liste), hafif=a.hafif)
-            kontrol.yaz(d['hedef'], s)
-            rapor.uret(kontrol.hepsi(), panel, panel_yolu, lambda *x: None)
+            checks.yaz(d['hedef'], s)
+            report.uret(checks.hepsi(), panel, panel_yolu, lambda *x: None)
         except KeyboardInterrupt:
             yaz(u'\n\nSTOPPED BY THE USER. The finished targets are saved; continue with (3).')
             break
         except Exception:
             yaz(u'\n  ERROR (%s) - this target was skipped, the others continue:' % d['hedef'])
             traceback.print_exc()
-            kontrol.yaz(d['hedef'], dict(hedef=d['hedef'], durum='HATA',
+            checks.yaz(d['hedef'], dict(hedef=d['hedef'], durum='HATA',
                                          hata=traceback.format_exc()[-2000:]))
 
-    yolar = rapor.uret(kontrol.hepsi(), panel, panel_yolu, yaz)
+    yolar = report.uret(checks.hepsi(), panel, panel_yolu, yaz)
     cizgi('=')
     yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
     yaz('  SONUCLAR:')
@@ -563,9 +563,9 @@ def main(argv=None):
             print(u'The target list could not be read:', e)
         return 0
 
-    kontrol.ayar_kur(okuma=a.okuma, hafif=bool(a.hafif),
+    checks.ayar_kur(okuma=a.okuma, hafif=bool(a.hafif),
                      aday_ust=C.HUNI['numuneye_giden'])
-    kontrol.hazirla()
+    checks.hazirla()
     cizgi('=')
     yaz(u'  COMPREHENSIVE PRIMER SEARCH - the PrimerJury panel')
     yaz(u'  start: %s     mode: %s' % (time.strftime('%Y-%m-%d %H:%M:%S'), a.mod))
@@ -587,10 +587,10 @@ def main(argv=None):
 
     if a.mod == 'uyelik':
         from . import membership_check
-        if not a.sinama_atla and not kendini_sina.calistir(yaz):
+        if not a.sinama_atla and not self_test.calistir(yaz):
             yaz(u'\nTHE SELF TEST FAILED - the audit was not started.')
             return 2
-        uyelik_denetimi.calistir(yaz, sure,
+        membership_check.calistir(yaz, sure,
                                  okuma_sayisi=(a.okuma or C.NUMUNE_OKUMA_SAYISI),
                                  yalniz=a.hedef, yeniden=a.yeniden)
         yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
@@ -598,11 +598,11 @@ def main(argv=None):
 
     if a.mod == 'konsensus':
         from . import build_consensus
-        konsensus_uret.calistir(yaz, sure, yalniz=a.hedef, yeniden=a.yeniden)
+        build_consensus.calistir(yaz, sure, yalniz=a.hedef, yeniden=a.yeniden)
         yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return 0
 
-    if not a.sinama_atla and not kendini_sina.calistir(yaz):
+    if not a.sinama_atla and not self_test.calistir(yaz):
         yaz(u'\nTHE SELF TEST FAILED, the search was not started.')
         return 2
     if a.sina:
@@ -611,7 +611,7 @@ def main(argv=None):
 
     if a.mod == 'panel-olc':
         from . import panel_measurement
-        panel_olcum.calistir(yaz, sure, okuma_sayisi=a.okuma if a.okuma else 0,
+        panel_measurement.calistir(yaz, sure, okuma_sayisi=a.okuma if a.okuma else 0,
                              yalniz=a.hedef, yeniden=a.yeniden)
         yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return 0

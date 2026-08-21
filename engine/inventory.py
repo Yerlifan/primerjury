@@ -13,11 +13,16 @@ Cikti: JSON, /tmp altina. Bagli klasore yalniz betik yazilir.
 """
 import os, sys, json, gzip, random, itertools
 
-KOK = os.environ.get('_FL_KOK', '/tmp/fl/kok')
+# The project root. It used to default to /tmp/fl/kok, the path of the private
+# workspace this code grew in; on any other machine the module died at import
+# with FileNotFoundError. The default is now derived from this file's own
+# location, and _FL_KOK still overrides it.
+KOK = os.environ.get('_FL_KOK') or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 os.environ['_KURTARMA_KOK'] = KOK
 
-from screening import targets as H, motor
+from screening import targets as H, engine_gateway
 import importlib.util as _iu
 _sp = _iu.spec_from_file_location('kt', os.path.join(KOK, 'verification', 'recovery_round.py'))
 kt = _iu.module_from_spec(_sp)
@@ -98,11 +103,11 @@ def main():
                  uye_kutu=[], rakip_kutu=[k['kutu'] for k in rak])
         for k in uye:
             kd = kmap.get(k['kutu'], '')
-            capa = kt.capa_bul(motor, kd) if kd else {}
+            capa = kt.capa_bul(engine_gateway, kd) if kd else {}
             bol = []
             if kd:
                 bol = [(a, x, y, s) for a, x, y, s in
-                       kt.bolgeler_kur(motor, kd, lambda *_a, **_k: None)[0]]
+                       kt.bolgeler_kur(engine_gateway, kd, lambda *_a, **_k: None)[0]]
             d['uye_kutu'].append(dict(
                 kutu=k['kutu'], sinif=k['sinif'], taxid=k['taxid'],
                 kons_bp=len(kd), capa=capa,
@@ -121,7 +126,7 @@ def main():
             ad[:46], len(uye),
             '/'.join(str(x['kons_bp']) for x in d['uye_kutu'])), flush=True)
 
-    yol = os.environ.get('_FL_CIKTI', '/tmp/fl/envanter.json')
+    yol = os.environ.get('_FL_CIKTI') or os.path.join(KOK, 'SONUCLAR', 'envanter.json')
     json.dump(cikti, open(yol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('yazildi:', yol)
 

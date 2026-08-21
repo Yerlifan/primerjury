@@ -183,16 +183,16 @@ def main():
     # ALAN TUTARLILIGI: hedefin ait olmadigi lokus kitapligindan tasarlanmis
     # ciftler teslimden CIKARILIR. Kural ihlali degildirler, ama hedefi temsil
     # etmezler; tabloda kalirlarsa o hedef kapsanmis gorunur, oysa kapsanmaz.
-    _ta = alan_denetimi.taxid_alanlari(a.kons)
-    _ht = alan_denetimi.hedef_taxidleri(a.hedefler)
+    _ta = field_audit.taxid_alanlari(a.kons)
+    _ht = field_audit.hedef_taxidleri(a.hedefler)
     alan_disi = []
     temiz = []
     for x in gecen:
-        uyumsuz, dag, baskin = alan_denetimi.alan_dagilimi(
+        uyumsuz, dag, baskin = field_audit.alan_dagilimi(
             x.get("hedef", ""), x.get("sinif", ""),
             taxid_alan=_ta, hedef_taxid=_ht)
         if uyumsuz:
-            x["alan_gerekce"] = alan_denetimi.aciklama(dag, x.get("sinif"), baskin)
+            x["alan_gerekce"] = field_audit.aciklama(dag, x.get("sinif"), baskin)
             alan_disi.append(x)
         else:
             temiz.append(x)

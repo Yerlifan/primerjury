@@ -63,7 +63,7 @@ The module tests BOTH and writes down which it is.
 # -------------------------------------------------------------------------
 import os, csv, json, time, re
 from . import config as C
-from . import engine_gateway, hedefler as H, numune as N, kontrol
+from . import engine_gateway, targets as H, sample as N, checks
 
 # THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
 # Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
@@ -201,8 +201,8 @@ def tani(satir, sf, kut, numune, kons):
     for k in kons:
         if k['sinif'] not in sf:
             continue
-        for s in (k['dizi'], motor.rc(k['dizi'])):
-            pr = motor.amplify(s, F, R, max_mm=1, lo=lo, hi=hi)
+        for s in (k['dizi'], engine_gateway.rc(k['dizi'])):
+            pr = engine_gateway.amplify(s, F, R, max_mm=1, lo=lo, hi=hi)
             if pr:
                 bp = min(pr, key=lambda x: x[3] + x[4])[2]
                 kons_veren.append(dict(kutu=k['kutu'], taxid=k['taxid'],
@@ -277,7 +277,7 @@ def tani_yorumu(uye_kutu, veren, kons_veren, panel_urun, olcum=None, panel_uye='
 # ---------------------------------------------------------------- ana
 def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
              yeniden=False):
-    from .hepsi import yon_kapisi
+    from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'uyelik denetimi')
     for _x in _m:
         yaz('  ' + _x)
@@ -290,7 +290,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
         yaz(u'  Fix:    python3 screening/build_canonical.py --root . --rerun')
         raise SystemExit(2)
 
-    kontrol.hazirla()
+    checks.hazirla()
     panel, panel_yolu = H.panel_oku()
     if yalniz:
         panel = [d for d in panel if yalniz.lower() in d['hedef'].lower()]
@@ -333,7 +333,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
         if os.path.exists(kp) and not yeniden:
             try:
                 _v = json.load(open(kp, encoding='utf-8'))
-                if not kontrol.ayar_uyuyor(_v):
+                if not checks.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 sonuclar.append(json.load(open(kp, encoding='utf-8')))
                 yaz(u'[%d/%d] %-38s (from the previous run)' % (i, len(panel), d['hedef'][:38]))
@@ -418,7 +418,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                  varyantlar=varyantlar, oynaklik=oynaklik,
                  tani=tsonuc, tani_aciklama=taciklama,
                  urun_veren_kutular=veren[:8], konsensus_veren=kons_veren[:8])
-        r['_ayar'] = dict(kontrol.AYAR)
+        r['_ayar'] = dict(checks.AYAR)
         with open(kp, 'w', encoding='utf-8') as fh:
             json.dump(r, fh, ensure_ascii=False, indent=1, default=str)
         sonuclar.append(r)

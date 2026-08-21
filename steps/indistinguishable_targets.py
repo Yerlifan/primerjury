@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import alignment
 
-MAPPY = hizalama.ARKA_UC is not None
+MAPPY = alignment.ARKA_UC is not None
 
 TAMLAYICI = str.maketrans("ACGTRYSWKMBDHVN", "TGCAYRSWMKVHDBN")
 
@@ -95,7 +95,7 @@ def hizala(s1, s2):
     if not MAPPY:
         return (0, 0.0, 0.0)
     try:
-        A = hizalama.Hizalayici(seq=s1, preset="asm20")
+        A = alignment.Hizalayici(seq=s1, preset="asm20")
     except RuntimeError:
         return (0, 0.0, 0.0)
     if not A:
@@ -227,7 +227,7 @@ def get_args():
 
 def main():
     a = get_args()
-    print(hizalama.durum())
+    print(alignment.durum())
     if not MAPPY:
         print(u'WARNING: there is no alignment backend. Only k-mer containment will be used, which makes the measurement coarser.')
     ad = {}

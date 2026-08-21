@@ -104,7 +104,7 @@ def calistir(yaz):
                    'pip3 install primer3-py --break-system-packages')
         return False
 
-    from . import engine_gateway, geometri as G, hedefler as H, uretec as U, numune as N
+    from . import engine_gateway, geometry as G, targets as H, generator as U, sample as N
 
     # ---- 1b dosyalar
     for ad, p in (('panel TSV', C.PANEL_TSV), ('hedefler.tsv', C.HEDEFLER_TSV),
@@ -115,7 +115,7 @@ def calistir(yaz):
     _ok(yaz, 'REFERANS_DB/SILVA SSU (kuresel adim icin)', var_ref,
         '' if var_ref else '-> kuresel adim atlanacak')
 
-    bilgi = motor.surum_bilgisi()
+    bilgi = engine_gateway.surum_bilgisi()
     for ad in ('ispcr', 'tarayici', 'cift', 'okuma_motoru', 'kaba_kuvvet'):
         p = bilgi.get(ad)
         tum &= _ok(yaz, 'ice aktarilan motor: %s' % ad, p is not None,
@@ -186,8 +186,8 @@ def calistir(yaz):
                 continue
             boylar = {}
             for k in b['uye_kons']:
-                for s_ in (k['dizi'], motor.rc(k['dizi'])):
-                    pr = motor.amplify(s_, d['F'], d['R'], max_mm=1, lo=40, hi=600)
+                for s_ in (k['dizi'], engine_gateway.rc(k['dizi'])):
+                    pr = engine_gateway.amplify(s_, d['F'], d['R'], max_mm=1, lo=40, hi=600)
                     if pr:
                         bp = min(pr, key=lambda x: x[3] + x[4])[2]
                         boylar[bp] = boylar.get(bp, 0) + 1
@@ -222,8 +222,8 @@ def calistir(yaz):
 
     # ---- 4 UC MOTOR KARSILASTIRMASI
     try:
-        om = motor.okuma_motoru
-        kk = motor.kaba_kuvvet
+        om = engine_gateway.okuma_motoru
+        kk = engine_gateway.kaba_kuvvet
         panel, _ = H.panel_oku()
         kut = H.kutular()
         farkli_om = farkli_hv = denenen = 0
@@ -243,7 +243,7 @@ def calistir(yaz):
                 F = d['F']
                 n_kk = n_om = n_es = 0
                 sonda_yeni = om.Sonda(F, False, 1, True)
-                sonda_eski = motor.okuma.Sonda(F, False, 1) if motor.okuma else None
+                sonda_eski = engine_gateway.okuma.Sonda(F, False, 1) if engine_gateway.okuma else None
                 for s in rd:
                     t = om.temizle(s)
                     for q in (t, om.rc(t)):
@@ -254,9 +254,9 @@ def calistir(yaz):
                             n_es += len(sonda_eski.bul(q))
                 qs = []
                 for s in rd:
-                    qs.append(motor.clean(s))
-                    qs.append(motor.clean(motor.rc(s)))
-                n_hv = int(motor.tarayici.Havuz(qs).bul(F, 1).size)
+                    qs.append(engine_gateway.clean(s))
+                    qs.append(engine_gateway.clean(engine_gateway.rc(s)))
+                n_hv = int(engine_gateway.tarayici.Havuz(qs).bul(F, 1).size)
                 denenen += 1
                 ref = n_kk if kk is not None else n_om
                 if kk is not None and n_om != n_kk:
