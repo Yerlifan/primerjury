@@ -60,7 +60,7 @@ class KutuOtorite:
 
     def __init__(self, kutu, yol, n=C.NUMUNE_OKUMA_SAYISI):
         self.kutu = kutu
-        rd, n0 = motor.okuma_motoru.kutu_yukle(
+        rd, n0 = engine_gateway.okuma_motoru.kutu_yukle(
             yol, nmax=(n or 0), seed=C.NUMUNE_TOHUM,
             minl=C.NUMUNE_OKUMA_MIN, maxl=C.NUMUNE_OKUMA_MAX)
         self.reads = rd
@@ -68,7 +68,7 @@ class KutuOtorite:
         self.suzgecten_gecen = n0
 
     def urun_veren(self, F, R, lo, hi, mm=C.NUMUNE_MAX_MM):
-        pos, n, boy = motor.okuma_motoru.kutu_pcr(
+        pos, n, boy = engine_gateway.okuma_motoru.kutu_pcr(
             self.reads, F, R, lo=lo, hi=hi, max_mm=mm, son2=True)
         return pos, n, dict(boy)
 
@@ -84,7 +84,7 @@ class KutuEski:
 
     def __init__(self, kutu, yol, n=C.NUMUNE_OKUMA_SAYISI):
         self.kutu = kutu
-        rd, n0 = motor.okuma_motoru.kutu_yukle(
+        rd, n0 = engine_gateway.okuma_motoru.kutu_yukle(
             yol, nmax=(n or 0), seed=C.NUMUNE_TOHUM,
             minl=C.NUMUNE_OKUMA_MIN, maxl=C.NUMUNE_OKUMA_MAX)
         self.reads = rd
@@ -93,7 +93,7 @@ class KutuEski:
     @staticmethod
     def _sonda(primer, uc5, max_mm, seed=13):
         import itertools
-        om = motor.okuma_motoru
+        om = engine_gateway.okuma_motoru
         sd = primer[:seed] if uc5 else primer[-seed:]
         off = 0 if uc5 else len(primer) - seed
         tohumlar = [''.join(x) for x in itertools.product(
@@ -120,7 +120,7 @@ class KutuEski:
         return bul
 
     def urun_veren(self, F, R, lo, hi, mm=C.NUMUNE_MAX_MM):
-        om = motor.okuma_motoru
+        om = engine_gateway.okuma_motoru
         fs = self._sonda(F, False, mm)
         rs = self._sonda(om.rc(R), True, mm)
         pos = 0
@@ -160,10 +160,10 @@ class KutuHavuzu:
         diziler = []
         self.okuma_id = []
         for i, s in enumerate(rd):
-            s = motor.clean(s)
+            s = engine_gateway.clean(s)
             diziler.append(s); self.okuma_id.append(i)
-            diziler.append(motor.rc(s)); self.okuma_id.append(i)
-        self.hv = motor.tarayici.Havuz(diziler) if diziler else None
+            diziler.append(engine_gateway.rc(s)); self.okuma_id.append(i)
+        self.hv = engine_gateway.tarayici.Havuz(diziler) if diziler else None
 
     def urun_veren_kaba(self, F, R, lo, hi, mm):
         """A SEEDLESS (brute force) scan - CORRECT for every mismatch cap.
@@ -178,11 +178,11 @@ class KutuHavuzu:
         if self.hv is None or self.n_okuma == 0:
             return 0, 0, {}
         enc, sid = self.hv.enc, self.hv.sid
-        revrc = motor.rc(R)
-        fs = motor.find_sites(enc, F, mm, need_tail=True, tail_pos=(-1, -2))
+        revrc = engine_gateway.rc(R)
+        fs = engine_gateway.find_sites(enc, F, mm, need_tail=True, tail_pos=(-1, -2))
         if not fs:
             return 0, self.n_okuma, {}
-        rs = motor.find_sites(enc, revrc, mm, need_tail=True, tail_pos=(0, 1))
+        rs = engine_gateway.find_sites(enc, revrc, mm, need_tail=True, tail_pos=(0, 1))
         if not rs:
             return 0, self.n_okuma, {}
         fpos = np.array([x[0] for x in fs]); rpos = np.array([x[0] for x in rs])
@@ -209,7 +209,7 @@ class KutuHavuzu:
             return 0, 0, {}
         if mm > 1:
             return self.urun_veren_kaba(F, R, lo, hi, mm)
-        m, boy = motor.cift.urunler(self.hv, F, R, lo=lo, hi=hi, mm=mm)
+        m, boy = engine_gateway.cift.urunler(self.hv, F, R, lo=lo, hi=hi, mm=mm)
         veren = set()
         for idx in m.nonzero()[0]:
             veren.add(self.okuma_id[idx])
@@ -262,12 +262,12 @@ class Numune:
             rk.append((k['kutu'], p, n))
         if not uy:
             return None
-        uye_alt = min(motor.wilson(p, n)[0] for _, p, n in uy)
+        uye_alt = min(engine_gateway.wilson(p, n)[0] for _, p, n in uy)
         # THE COVERAGE axis: the panel reports some targets as "13/13 bins" or "33/34 bins".
         # When a single member bin gives no product, uye_alt drops to 0 and every candidate
         # becomes indistinguishable; that is why coverage is measured SEPARATELY.
         kapsayan = [(a, p, n) for a, p, n in uy if n and p / n >= C.KAPSAM_ESIGI]
-        uye_alt_k = (min(motor.wilson(p, n)[0] for _, p, n in kapsayan)
+        uye_alt_k = (min(engine_gateway.wilson(p, n)[0] for _, p, n in kapsayan)
                      if kapsayan else 0.0)
         rp = sum(p for _, p, _ in rk)
         rn = sum(n for _, _, n in rk)
@@ -284,7 +284,7 @@ class Numune:
         # coverage and by the outside the domain proportion.
         # THIS IS NOT LOWERING the threshold; the 10x threshold stands, and a different
         # quantity is measured only on the rows where the threshold cannot be applied.
-        havuz_ust = motor.wilson(rp, rn)[1] if rn else None
+        havuz_ust = engine_gateway.wilson(rp, rn)[1] if rn else None
         enkotu = None
         # The meaningful denominator threshold for the "worst single competitor bin".
         #
@@ -300,7 +300,7 @@ class Numune:
         for kadi, p, n in rk:
             if n < esik:
                 continue
-            hi_ = motor.wilson(p, n)[1]
+            hi_ = engine_gateway.wilson(p, n)[1]
             if enkotu is None or hi_ > enkotu[1]:
                 enkotu = (kadi, hi_, p, n)
         return dict(

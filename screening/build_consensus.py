@@ -57,7 +57,7 @@ KNOWN TRAPS (all of them handled deliberately)
 import os, gzip, glob, time, json, math
 from collections import defaultdict, Counter
 from . import config as C
-from . import engine_gateway, hedefler as H, kontrol
+from . import engine_gateway, targets as H, checks
 from . import orientation
 
 K = 15                      # capa k-mer boyu
@@ -98,7 +98,7 @@ def _kmer_indeksi(sablon):
 
 
 def _rc_kalite(s, q):
-    return motor.rc(s), q[::-1]
+    return engine_gateway.rc(s), q[::-1]
 
 
 def _capala(okuma, kal, idx):
@@ -140,7 +140,7 @@ def kutu_konsensusu(reads, sablon):
     duz = [Counter() for _ in range(L)]
     kullanilan = ters = 0
     for s, q in reads:
-        s = motor.clean(s)
+        s = engine_gateway.clean(s)
         ileri = _capala(s, q, idx)
         geri_s, geri_q = _rc_kalite(s, q)
         geri = _capala(geri_s, geri_q, idx)
@@ -190,17 +190,17 @@ def _sablon_sec(kutu, kons_haritasi, reads):
         7 sense). On a reversed consensus, in-silico PCR silently gives 0 products.
 
     """
-    sn = yon.sinifi(kutu)
+    sn = orientation.sinifi(kutu)
     k = kons_haritasi.get(kutu)
     if k:
-        d, karar, cev = yon.kanonik(k['dizi'], sn)
+        d, karar, cev = orientation.kanonik(k['dizi'], sn)
         return d, 'mevcut konsensus (yon=%s%s)' % (karar, ', KANONIGE CEVRILDI' if cev else '')
     if not reads:
         return None, 'okuma yok'
     # a bin with no consensus (an orphan): the median of the longest reads becomes the template
     sirali = sorted(reads, key=lambda x: -len(x[0]))[:15]
     s = sirali[len(sirali) // 2][0]
-    d, karar, cev = yon.kanonik(motor.clean(s), yon.sinifi(kutu))
+    d, karar, cev = orientation.kanonik(engine_gateway.clean(s), orientation.sinifi(kutu))
     return d, ('sablon yok - en uzun okumalarin ortancasi (yon=%s%s)'
                % (karar, ', KANONIGE CEVRILDI' if cev else ''))
 
@@ -214,7 +214,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         yaz(u'   THE ORIENTATION TEST FAILED, so consensus generation WAS NOT STARTED.')
         yaz(u'   Run this first: python screening/build_canonical.py --kok .')
         return None
-    from .hepsi import yon_kapisi
+    from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'konsensus yeniden uretim')
     for _x in _m:
         yaz('  ' + _x)
@@ -227,7 +227,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         yaz(u'  Fix:    python3 screening/build_canonical.py --root . --rerun')
         raise SystemExit(2)
 
-    kontrol.hazirla()
+    checks.hazirla()
     cikti = os.path.join(C.CIKTI, 'konsensus_yeni')
     os.makedirs(cikti, exist_ok=True)
     kut = H.kutular()
@@ -256,7 +256,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         if os.path.exists(kp) and not yeniden:
             try:
                 _v = json.load(open(kp, encoding='utf-8'))
-                if not kontrol.ayar_uyuyor(_v):
+                if not checks.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 satirlar.append(json.load(open(kp, encoding='utf-8')))
                 yaz(u'[%d/%d] %-18s (from the previous run)' % (i, len(kut), k['kutu']))
@@ -288,7 +288,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         # THE OUTPUT IS CONVERTED TO CANONICAL - the last seat belt. Even when the template
         # is canonical, the output is measured once more here; if it comes out UNCERTAIN that
         # is written into the header.
-        _ck, _karar, _cev = yon.kanonik(r['uzlasi'], yon.sinifi(k['kutu']))
+        _ck, _karar, _cev = orientation.kanonik(r['uzlasi'], orientation.sinifi(k['kutu']))
         r['uzlasi'] = _ck
         satir['cikti_yon'] = _karar
         satir['cikti_cevrildi'] = 'EVET' if _cev else 'hayir'
@@ -299,7 +299,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
                         _karar, int(_cev)))
             for j in range(0, len(r['uzlasi']), 70):
                 fh.write(r['uzlasi'][j:j + 70] + '\n')
-        satir['_ayar'] = dict(kontrol.AYAR)
+        satir['_ayar'] = dict(checks.AYAR)
         with open(kp, 'w', encoding='utf-8') as fh:
             json.dump(satir, fh, ensure_ascii=False, default=str)
         satirlar.append(satir)

@@ -14,7 +14,7 @@ Yol 5'ten farki dort noktada:
      konsensusleri uzunluga gore kumelenir ve HER kumenin en uzunu ayri omurga
      olur (or. Methanothrix icin hem A1 1348 bp hem A2 4329 bp).
 
-  3. SUZGEC OLCUYE BAGLANDI. Yol 5 uretec.ayirt_edici_mi kullanir: "3' son baz
+  3. SUZGEC OLCUYE BAGLANDI. Yol 5 generator.ayirt_edici_mi kullanir: "3' son baz
      rakipte uymuyor mu". Buradaki suzgec dogrudan OLCUM KURALIDIR (<=1
      uyumsuzluk + 3' son 2 baz TAM, okuma_motoru.Sonda). Yani on suzgec ile
      nihai olcu ayni kurali kullanir; on suzgecte elenen bir aday olcumde
@@ -31,16 +31,21 @@ girmez.
 """
 import os, sys, json, time, argparse
 
-KOK = os.environ.get('_FL_KOK', '/tmp/fl/kok')
+# The project root. It used to default to /tmp/fl/kok, the path of the private
+# workspace this code grew in; on any other machine the module died at import
+# with FileNotFoundError. The default is now derived from this file's own
+# location, and _FL_KOK still overrides it.
+KOK = os.environ.get('_FL_KOK') or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 os.environ['_KURTARMA_KOK'] = KOK
 
-from screening import targets as H, motor, uretec as U, numune as N
+from screening import targets as H, engine_gateway, generator as U, sample as N
 import importlib.util as _iu
 _sp = _iu.spec_from_file_location('kt', os.path.join(KOK, 'verification', 'recovery_round.py'))
 kt = _iu.module_from_spec(_sp)
 _sp.loader.exec_module(kt)
-OM = motor.okuma_motoru
+OM = engine_gateway.okuma_motoru
 
 URUN_ALT, URUN_UST = 60, 400
 PENCERE, ADIM = 700, 300
@@ -79,7 +84,7 @@ def omurgalar(uye_kons):
 
 
 def ssu_sinir(dizi):
-    c = kt.capa_bul(motor, dizi)
+    c = kt.capa_bul(engine_gateway, dizi)
     bas = c.get('SSU_baslangic', c.get('SSU_orta'))
     if bas is None:
         return None, None
@@ -96,7 +101,7 @@ def baglanir(primer, diziler, geri=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--duration', '--sure', dest='sure', type=float, default=34.0)
-    ap.add_argument('--status', '--durum', dest='durum', default='/tmp/fl/cl_durum.json')
+    ap.add_argument('--status', '--durum', dest='durum', default=os.path.join(KOK, 'SONUCLAR', 'cok_lokus_durum.json'))
     ap.add_argument('--sig', type=int, default=900)
     ap.add_argument('--pre-candidate', '--on-aday', dest='on_aday', type=int, default=8)
     ap.add_argument('--primer-max', '--primer-ust', dest='primer_ust', type=int, default=1100)

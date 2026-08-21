@@ -17,8 +17,8 @@ etkilemez.
 # GIRDI  : omurga konsensus dizisi (hedefler.hedef_baglami()'nin sectigi en uzun
 #          uye konsensusu); config.py'deki UZUNLUK, URUN_IDEAL,
 #          URUN_MUTLAK_UST ve IZGARA_* sabitleri; primer olcumleri icin
-#          geometri.olc / geometri.hucre_gecti; dizi islemleri icin motor.rc,
-#          motor.encode, motor.find_sites.
+#          geometri.olc / geometri.hucre_gecti; dizi islemleri icin engine_gateway.rc,
+#          engine_gateway.encode, engine_gateway.find_sites.
 # CIKTI  : dosyaya yazmaz. aday_primerler() {'F': [...], 'R': [...]} sozlugu,
 #          tara_ve_topla() toplam cift sayisi + izgara sayaci + temsilci aday
 #          listesi, izgara_tablosu_sayactan() 144 satirlik tablo,
@@ -62,7 +62,7 @@ def aday_primerler(omurga, ilerle=None):
         mF = G.olc(s)
         if G.sabit_gecti(mF):
             F.append((i, k, s, mF))
-        r = motor.rc(s)
+        r = engine_gateway.rc(s)
         mR = G.olc(r)
         if G.sabit_gecti(mR):
             R.append((i, k, r, mR))
@@ -327,10 +327,10 @@ def ayirt_edici_mi(primer, uye_diziler, rakip_diziler, geri=False):
     def en_iyi(diziler, tam_uc):
         best = None
         for s in diziler:
-            for d in (s, motor.rc(s)):
-                enc = motor.encode(d)
+            for d in (s, engine_gateway.rc(s)):
+                enc = engine_gateway.encode(d)
                 for mm_tavan in (0, 1, 2, 3, 4):
-                    h = motor.find_sites(enc, primer, mm_tavan, need_tail=tam_uc,
+                    h = engine_gateway.find_sites(enc, primer, mm_tavan, need_tail=tam_uc,
                                          tail_pos=(-1,))
                     if h:
                         v = min(x[1] for x in h)

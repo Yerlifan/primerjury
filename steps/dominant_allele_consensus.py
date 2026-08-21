@@ -31,8 +31,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import alignment
 
-if hizalama.ARKA_UC is None:
-    sys.exit(hizalama.durum())
+if alignment.ARKA_UC is None:
+    sys.exit(alignment.durum())
 
 BAZLAR = "ACGT"
 
@@ -95,7 +95,7 @@ def main():
     dosyalar = sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta")))
     if not dosyalar:
         sys.exit(u'no consensus found: %s' % a.kons)
-    print(hizalama.durum())
+    print(alignment.durum())
     print(u'consensus files: %d' % len(dosyalar))
     for f in dosyalar:
         etiket = re.sub(r"_(ref|self)_konsensus\.fasta$", "", os.path.basename(f))
@@ -127,7 +127,7 @@ def main():
             print(u'   SKIPPED, no fastq: %s' % etiket)
             continue
         try:
-            A = hizalama.Hizalayici(seq=cekirdek, preset="map-ont")
+            A = alignment.Hizalayici(seq=cekirdek, preset="map-ont")
         except RuntimeError as e:
             sys.exit(str(e))
         if not A:
@@ -163,7 +163,7 @@ def main():
                 if h.strand == 1:
                     q, qp = r, h.q_st
                 else:
-                    q, qp = hizalama.revcomp(r), len(r) - h.q_en
+                    q, qp = alignment.revcomp(r), len(r) - h.q_en
                 rp = h.r_st
                 for ln, op in h.cigar:
                     if op == 0:

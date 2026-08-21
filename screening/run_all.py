@@ -31,8 +31,8 @@ report for every target; no change is made silently.
 #          uyelik_duyarlilik.tsv, konsensus_yeniden_uretim.tsv, adaylar.tsv and
 #          kontrol/hedef_*.json under KAPSAMLI_ARAMA_SONUC.
 #          It calls the stages itself: build_canonical.py (as a subprocess),
-#          konsensus_uret.calistir, panel_olcum.calistir,
-#          uyelik_denetimi.calistir, __main__.aramayi_kos.
+#          build_consensus.calistir, panel_measurement.calistir,
+#          membership_check.calistir, __main__.aramayi_kos.
 # OUTPUT : KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md (the path ozet_yaz returns);
 #          kontrol/hepsi_durum.json (the stage state). calistir() returns an exit
 #          code: 0 fine, 1 the user stopped it, 2 a gate did not pass.
@@ -62,7 +62,7 @@ def durum_oku():
     if os.path.exists(p):
         try:
             d = json.load(open(p, encoding='utf-8'))
-            if kontrol.ayar_uyuyor(d):
+            if checks.ayar_uyuyor(d):
                 return d
         except Exception:
             pass
@@ -70,8 +70,8 @@ def durum_oku():
 
 
 def durum_yaz(d):
-    kontrol.hazirla()
-    d['_ayar'] = dict(kontrol.AYAR)
+    checks.hazirla()
+    d['_ayar'] = dict(checks.AYAR)
     p = _durum_yolu()
     with open(p + '.gecici', 'w', encoding='utf-8') as fh:
         json.dump(d, fh, ensure_ascii=False, indent=1, default=str)
@@ -184,7 +184,7 @@ def kanonik_kos(yaz, sure, oncelik='ozgun'):
 
 # ---------------------------------------------------------------- asamalar
 def calistir(yaz, sure, cizgi, a):
-    kontrol.hazirla()
+    checks.hazirla()
     d = durum_oku()
     t0 = time.time()
 
@@ -213,7 +213,7 @@ def calistir(yaz, sure, cizgi, a):
 
     # ---- 1 kendini sinama (kapi gorevinde)
     yaz(u'\n[STAGE 1/7] Self-test')
-    if not getattr(a, 'sinama_atla', False) and not kendini_sina.calistir(yaz):
+    if not getattr(a, 'sinama_atla', False) and not self_test.calistir(yaz):
         yaz(u'\nSELF-TEST FAILED - no stage was run.')
         yaz(u'Fix the line marked *** FAILED *** above first.')
         return 2
@@ -243,7 +243,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'\n[STAGE 3/7] Consensus regeneration (from the raw reads)')
         from . import build_consensus
         try:
-            y = konsensus_uret.calistir(yaz, sure, yalniz=getattr(a, 'hedef', None))
+            y = build_consensus.calistir(yaz, sure, yalniz=getattr(a, 'hedef', None))
             d['bitmis'].append('konsensus')
             d['ciktilar']['konsensus'] = y
             durum_yaz(d)
@@ -279,7 +279,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'  then 21 pairs are measured against two criteria. One to two hours in total.')
         from . import panel_measurement
         try:
-            y = panel_olcum.calistir(yaz, sure, okuma_sayisi=0,
+            y = panel_measurement.calistir(yaz, sure, okuma_sayisi=0,
                                      yalniz=getattr(a, 'hedef', None))
             d['bitmis'].append('panel')
             d['ciktilar']['panel'] = y
@@ -297,7 +297,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'\n[STAGE 6/7] Membership audit and sensitivity analysis')
         from . import membership_check
         try:
-            y = uyelik_denetimi.calistir(yaz, sure,
+            y = membership_check.calistir(yaz, sure,
                                          okuma_sayisi=C.NUMUNE_OKUMA_SAYISI,
                                          yalniz=getattr(a, 'hedef', None))
             d['bitmis'].append('uyelik')

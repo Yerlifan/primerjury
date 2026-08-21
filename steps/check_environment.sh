@@ -120,10 +120,13 @@ done | sort -u | while read -r f; do printf "  %10s  %s\n" "$(du -h "$f" | cut -
 echo "(no line here means no raw fastq was found)"
 
 bar "7. Okuma uzunlugu (Bracken kmer_distrib secimi icin veriden olculur)"
-PT=""
-for c in "/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama" "/mnt/c/Users/yerli/Masaustu/PrimerTasarlama"; do
-  [ -d "$c" ] && PT="$c" && break
-done
+# The data directory. It used to be two hardcoded paths on one person's
+# desktop, so on any other machine this section silently found nothing. It is
+# taken from $PT when that is set, and otherwise from the project root, which
+# is derived from where this script sits.
+_BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PT="${PT:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
+[ -d "$PT" ] || PT=""
 if [ -n "$PT" ]; then
   echo "PrimerTasarlama: $PT"
   python3 - "$PT" <<'PY'

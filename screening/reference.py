@@ -54,7 +54,7 @@ def havuz_cikar(anahtarlar, sinif, onbellek_adi, ilerle=None):
     anah = [a.lower() for a in anahtarlar if a]
     out = []
     n = 0
-    for ad, seq in motor.read_fasta(db):
+    for ad, seq in engine_gateway.read_fasta(db):
         n += 1
         if ilerle and n % 200000 == 0:
             ilerle(n, len(out))
@@ -62,7 +62,7 @@ def havuz_cikar(anahtarlar, sinif, onbellek_adi, ilerle=None):
             continue
         low = ad.lower()
         if any(a in low for a in anah):
-            out.append((ad[:150], motor.clean(seq.upper())))
+            out.append((ad[:150], engine_gateway.clean(seq.upper())))
     pickle.dump(out, open(cache, 'wb'))
     return out
 
@@ -96,7 +96,7 @@ def toplu_cikar(istekler, ilerle=None):
             continue
         kutular = {ad: [] for ad, _ in isler}
         n = 0
-        for baslik, seq in motor.read_fasta(db):
+        for baslik, seq in engine_gateway.read_fasta(db):
             n += 1
             if ilerle and n % 100000 == 0:
                 ilerle(os.path.basename(db), n, sum(len(v) for v in kutular.values()))
@@ -107,7 +107,7 @@ def toplu_cikar(istekler, ilerle=None):
             for ad, anah in isler:
                 if any(a in low for a in anah):
                     if temiz is None:
-                        temiz = motor.clean(seq.upper())
+                        temiz = engine_gateway.clean(seq.upper())
                     kutular[ad].append((baslik[:150], temiz))
         for ad, _ in isler:
             pickle.dump(kutular[ad], open(_cache_yolu(ad), 'wb'))
@@ -119,7 +119,7 @@ def kapsam(havuz, F, R, lo, hi, max_mm=C.REFERANS_MAX_MM):
     boy = {}
     basliklar = []
     for ad, seq in havuz:
-        p = motor.amplify(seq, F, R, max_mm=max_mm, lo=lo, hi=hi)
+        p = engine_gateway.amplify(seq, F, R, max_mm=max_mm, lo=lo, hi=hi)
         if p:
             veren += 1
             b = min(p, key=lambda x: x[3] + x[4])[2]

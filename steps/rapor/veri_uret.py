@@ -37,12 +37,12 @@ def main():
     toplam = len(rows)
     gecen = [r for r in rows if r.get("ozgulluk_durum") == "GECTI"]
 
-    ta = alan_denetimi.taxid_alanlari(a.kons)
-    ht = alan_denetimi.hedef_taxidleri(a.hedefler)
+    ta = field_audit.taxid_alanlari(a.kons)
+    ht = field_audit.hedef_taxidleri(a.hedefler)
     cikarilan = []
     temiz = []
     for r in gecen:
-        uyumsuz, dag, bas = alan_denetimi.alan_dagilimi(
+        uyumsuz, dag, bas = field_audit.alan_dagilimi(
             r.get("hedef", ""), r.get("sinif", ""), taxid_alan=ta, hedef_taxid=ht)
         (cikarilan if uyumsuz else temiz).append(r)
     gecen = temiz

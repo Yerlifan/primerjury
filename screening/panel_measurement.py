@@ -44,7 +44,7 @@ satirinda hangi olcutun kullanildigi ACIKCA yazar.
 # ---------------------------------------------------------------------------
 import os, time, json, csv
 from . import config as C
-from . import engine_gateway, hedefler as H, numune as N, kontrol
+from . import engine_gateway, targets as H, sample as N, checks
 
 OLCUTLER = [1, 3]
 # ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
@@ -69,7 +69,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     # uyari vermeden 0 urun dondurur, yani saatler suren tam derinlikli olcum
     # butun satirlari "urun yok" diye kaydeder ve sonuc dosyasi ilk bakista
     # tutarli gorunur. Bu yuzden kapi kosunun basindadir, sonunda degil.
-    from .hepsi import yon_kapisi
+    from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'panel yeniden olcum')
     for _x in _m:
         yaz('  ' + _x)
@@ -82,7 +82,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
         yaz(u'  Fix:    python3 screening/build_canonical.py --root . --rerun')
         raise SystemExit(2)
 
-    kontrol.hazirla()
+    checks.hazirla()
     panel, panel_yolu = H.panel_oku()
     uyelik = H.uyelik_oku(); kons = H.konsensusler(); kut = H.kutular()
     if yalniz:
@@ -96,7 +96,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
                                    else u'%d reads/bin' % okuma_sayisi))
     yaz('  olcutler      : ' + '  |  '.join(olcut_metni(m) for m in OLCUTLER))
     yaz('  motor         : screening/read_engine.py %s'
-        % getattr(motor.okuma_motoru, '__version__', '?'))
+        % getattr(engine_gateway.okuma_motoru, '__version__', '?'))
     yaz(u'                  pigeonhole seeding - LOSSLESS, verified against brute_force.py')
     yaz(u'                  one to one. reads.py/Sonda IS NOT USED.')
     yaz('')
@@ -140,7 +140,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
         if os.path.exists(kp) and not yeniden:
             try:
                 _v = json.load(open(kp, encoding='utf-8'))
-                if not kontrol.ayar_uyuyor(_v):
+                if not checks.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 sonuclar.append(json.load(open(kp, encoding='utf-8')))
                 yaz(u'[%d/%d] %-38s  (taken from the previous run)' % (i, len(panel), d['hedef'][:38]))
@@ -192,7 +192,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
             (u'member %%%.1f-%%%.1f coverage %s | discrimination %s x pool / %s x worst'
              % (o1['uye_min'], o1['uye_max'], o1['uye_kapsam_pay'],
                 o1['kat_havuz'], o1['kat_enkotu'])) if o1 else 'OLCULEMEDI'))
-        r['_ayar'] = dict(kontrol.AYAR)
+        r['_ayar'] = dict(checks.AYAR)
         with open(kp, 'w', encoding='utf-8') as fh:
             json.dump(r, fh, ensure_ascii=False, indent=1, default=str)
         sonuclar.append(r)

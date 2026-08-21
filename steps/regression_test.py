@@ -108,7 +108,7 @@ def testler(a):
     ok = True
     for s in ("ATGC", "ACGTRYSWKM", "AAAA", "GCGCGC"):
         ok &= (E.rc(s) == ref_rc(s))
-    sina("rc() bagimsiz uygulamayla ayni", ok)
+    sina(u'rc() agrees with an independent implementation', ok)
     sina("rc(rc(x)) == x", all(E.rc(E.rc(s)) == s
                               for s in ("ATGCRYKM", "AACCGGTT")))
     sina("ATGC'nin ters tumleyeni GCAT", E.rc("ATGC") == "GCAT",
@@ -124,14 +124,14 @@ def testler(a):
          not E.composition_ok("CGCGATATCGCGATATCGA", ar)[0])
     sina("3' ucu G ile biten oligo gecer",
          E.composition_ok("CGCGATATCGCGATATCGG", ar)[0])
-    sina("bes ardisik ayni baz elenir",
+    sina(u'five identical bases in a row are eliminated',
          not E.composition_ok("CGCGAAAAACGCGATATCG", ar)[0])
     sina("son bes bazda dort G/C elenir",
          not E.composition_ok("ATATATATATATATAGCGCC", ar)[0])
     dusuk = "ATATATATATATATATATAC"
     sina("GC sert alt sinirinin altindaki oligo elenir (GC=%%%.0f)" % ref_gc(dusuk),
          not E.composition_ok(dusuk, ar)[0])
-    sina("gc_pct bagimsiz hesapla ayni",
+    sina(u'gc_pct agrees with an independent calculation',
          all(abs(E.gc_pct(s) - ref_gc(s)) < 1e-9
              for s in ("GGCC", "ATAT", "ACGTACGT")))
 
@@ -147,7 +147,7 @@ def testler(a):
                                        "kabul" if bek else "red"),
              (v is not None) == bek)
     v, _ = E.iupac_varyantlar("SAGCTAGCATCGATCGATCA", ar, uc="F")
-    sina("belirsiz pozisyon butun alellere acilir", v is not None and len(v) == 2)
+    sina(u'an ambiguous position expands to every allele', v is not None and len(v) == 2)
     v, _ = E.iupac_varyantlar("NAGCTAGCATCGATCGATCA", ar, uc="F")
     sina("kalipta N iceren pencere reddedilir", v is None)
 
@@ -170,11 +170,11 @@ def testler(a):
             y = ref_find(oligo, seq, ab.min_overlap)
             if x != y:
                 fark += 1
-    sina("find_bindings kuralin dogrudan uygulamasiyla ayni (400 deneme)",
+    sina(u'find_bindings agrees with a direct application of the rule (400 trials)',
          fark == 0, "ayrisan: %d" % fark)
-    sina("son iki bazda uyumsuzluk kabul edilmez",
+    sina(u'a mismatch in the last two bases is not accepted',
          ref_baglanir("ACGTACGTACGTACGTACGA", "ACGTACGTACGTACGTACGC") is None)
-    sina("kuyrukta tek uyumsuzluk kabul edilir",
+    sina(u'a single mismatch in the tail is accepted',
          ref_baglanir("ACGTACGTACGTACGTAAGC", "ACGTACGTACGTACGTACGC") == 1)
 
     print(u'\n5. THE PRODUCT GEOMETRY')
@@ -188,8 +188,8 @@ def testler(a):
     F = kalip[100:120]                 # ileri primer, arti zincir 100..119
     R = G.rc(kalip[260:280])           # geri primer, arti zincirin rc'si
     elde_urun = kalip[100:280]
-    sina("elle kurulan urun ileri primerle basliyor", elde_urun.startswith(F))
-    sina("elle kurulan urun geri primerin rc'siyle bitiyor",
+    sina(u'a product built by hand starts with the forward primer', elde_urun.startswith(F))
+    sina(u'a product built by hand ends with the rc of the reverse primer',
          elde_urun.endswith(G.rc(R)))
     beklenen = len(elde_urun)          # 180
 
@@ -204,24 +204,24 @@ def testler(a):
 
     bf, br = bagla(F), bagla(R)
     pl = G.product_len(bf, br, len(F), len(R), ap2)
-    sina("urun uzunlugu gercek kaliptaki amplikonla ayni (%d bp)" % beklenen,
+    sina(u'the product length matches the amplicon in the real template (%d bp)' % beklenen,
          pl == beklenen, "cikan: %s" % pl)
-    sina("ters konfigurasyon da denenir (primerler yer degistirince ayni)",
+    sina(u'the reverse configuration is tried too (swapping the primers gives the same)',
          G.product_len(br, bf, len(R), len(F), ap2) == beklenen)
     # A pair whose 3' ends point AWAY from one another: swapping the primers makes each
     # of them look BACKWARDS on its own strand
     Fk = G.rc(kalip[100:120])          # arti zincirin 100..119'unun rc'si
     Rk = kalip[260:280]
     bfk, brk = bagla(Fk), bagla(Rk)
-    sina("3' uclari birbirinden UZAKLASAN cift urun vermez",
+    sina(u'a pair whose 3\' ends FACE AWAY from one another gives no product',
          G.product_len(bfk, brk, len(Fk), len(Rk), ap2) is None)
     # If the product falls below the lower bound it is discarded in strict design, but
     # it is still seen in the competitor scan with pmin=1
     Ry = G.rc(kalip[140:160])          # the product is 100..159, that is 60 bp
     bry = bagla(Ry)
-    sina("kisa urun (60 bp) kati alt sinirda elenir",
+    sina(u'a short product (60 bp) is eliminated at the strict lower bound',
          G.product_len(bf, bry, len(F), len(Ry), ap2) is None)
-    sina("rakip taramasinda alt sinir 1'e indirilebiliyor",
+    sina(u'the lower bound can be dropped to 1 in a competitor scan',
          G.product_len(bf, bry, len(F), len(Ry), ap2, pmin=1) == 60)
 
     print("\n6. WILSON SINIRLARI")
@@ -230,28 +230,28 @@ def testler(a):
                  (1, 1), (0, 1), (37, 300), (500, 20000)):
         ok_alt &= abs(O.wilson_alt(k, n) - ref_wilson(k, n)) < 1e-12
         ok_ust &= abs(O.wilson_ust(k, n) - ref_wilson(k, n, ust=True)) < 1e-12
-    sina("wilson_alt bagimsiz uygulamayla ayni", ok_alt)
-    sina("wilson_ust bagimsiz uygulamayla ayni", ok_ust)
+    sina(u'wilson_alt agrees with an independent implementation', ok_alt)
+    sina(u'wilson_ust agrees with an independent implementation', ok_ust)
     sina("alt sinir <= nokta tahmini <= ust sinir",
          all(O.wilson_alt(k, n) <= k / n <= O.wilson_ust(k, n)
              for k, n in ((1, 10), (5, 10), (9, 10), (37, 300))))
-    sina("bilinen deger: wilson_alt(1,10)=0,01788",
+    sina(u'a known value: wilson_alt(1,10)=0,01788',
          abs(O.wilson_alt(1, 10) - 0.017876) < 1e-5)
 
     print("\n7. BASKIN ALEL CAGRISI")
-    sina("12'de esitlikte N cagrilir (kod yolu)",
+    sina(u'dominant_allele_consensus.py calls N on a tie (the code path)',
          "esitler" in open(os.path.join(HERE, "dominant_allele_consensus.py"),
                            encoding="utf-8").read())
-    sina("12 ic N'leri silmez, yalniz uclari kirpar",
+    sina(u'dominant_allele_consensus.py does not delete inner N, it only trims the ends',
          'ref[bas:son]' in open(os.path.join(HERE,
                                              "dominant_allele_consensus.py"),
                                 encoding="utf-8").read())
-    sina("12 okumalari buyuk harfe cevirir",
+    sina(u'dominant_allele_consensus.py converts the reads to upper case',
          '.strip().upper()' in open(os.path.join(
              HERE, "dominant_allele_consensus.py"), encoding="utf-8").read())
 
     print(u'\n8. THE INDISTINGUISHABILITY MEASUREMENT')
-    sina("N hicbir bazla eslesme sayilmaz", not D.baz_kesisir("N", "A"))
+    sina(u'N does not count as a match with any base', not D.baz_kesisir("N", "A"))
     sina("N ile N de eslesmez", not D.baz_kesisir("N", "N"))
     sina("Y ile C kesisir", D.baz_kesisir("Y", "C"))
     sina("Y ile G kesismez", not D.baz_kesisir("Y", "G"))
@@ -260,23 +260,23 @@ def testler(a):
     print(u'\n9. THE ALIGNMENT BACKEND')
     try:
         H = yukle("H", "alignment.py")
-        sina("hizalama arka ucu var", H.ARKA_UC is not None, str(H.ARKA_UC))
+        sina(u'there is an alignment backend', H.ARKA_UC is not None, str(H.ARKA_UC))
         ref = "".join(random.choice("ACGT") for _ in range(2000))
         A = H.Hizalayici(seq=ref, preset="map-ont")
         q = ref[500:900]
         ileri = [h for h in A.map(q)]
         ters = [h for h in A.map(H.revcomp(q))]
-        sina("ileri hizalama dogru konumda",
+        sina(u'the forward alignment is at the right position',
              ileri and ileri[0].r_st == 500 and ileri[0].r_en == 900,
              str(ileri[:1]))
-        sina("ters hizalama ayni konumda ve strand=-1",
+        sina(u'the reverse alignment is at the same position with strand=-1',
              ters and ters[0].r_st == 500 and ters[0].strand == -1,
              str(ters[:1]))
-        sina("ters zincirde sorgu koordinati ozgun sorguya gore",
+        sina(u'on the minus strand the query coordinate is relative to the original query',
              ters and ters[0].q_st == 0 and ters[0].q_en == len(q),
              str(ters[:1]))
     except Exception as e:
-        sina("hizalama arka ucu var", False, str(e)[:80])
+        sina(u'there is an alignment backend', False, str(e)[:80])
 
     print(u'\n10. CONSISTENCY BETWEEN THE RAW READ SCAN AND THE DESIGN RULE')
     T = "".join(random.choice("ACGT") for _ in range(400))
@@ -293,18 +293,18 @@ def testler(a):
                 r = ref_rc(r)
             fh.write("@o%d\n%s\n+\n%s\n" % (i, r, "I" * len(r)))
     tot, fh_, rh, both = O.okuma_taramasi(yol, F, R, 70, 300, 300)
-    sina("ham okumalarda urun bulunuyor (ileri ve ters yonlu okumalar)",
-         both > 200, "tot=%d F=%d R=%d urun=%d" % (tot, fh_, rh, both))
-    sina("ileri ve ters yonlu okumalarin ikisi de sayiliyor",
+    sina(u'a product is found in the raw reads (forward and reverse reads)',
+         both > 200, u'tot=%d F=%d R=%d product=%d' % (tot, fh_, rh, both))
+    sina(u'both the forward and the reverse reads are counted',
          abs(fh_ - rh) < 30, "F=%d R=%d" % (fh_, rh))
     tot2, _, _, both2 = O.okuma_taramasi(yol, F, ref_rc(T[250:271])[::-1],
                                          70, 300, 300)
-    sina("yanlis yonde yazilmis geri primer urun VERMEZ",
-         both2 < both * 0.2, "urun=%d (dogru yonde %d)" % (both2, both))
+    sina(u'a reverse primer written in the wrong orientation GIVES NO product',
+         both2 < both * 0.2, u'product=%d (in the right orientation %d)' % (both2, both))
 
     print(u'\n11. PRODUCT LENGTH IN THE EXTERNAL DATABASES')
     V = yukle("V", "external_databases.py")
-    sina("14 urun boyu iki 5' uc arasi (04 ile ayni olcu)",
+    sina(u'external_databases.py measures the product length between the two 5\' ends (the same measure as design_group_primers.py)',
          "(ur + lr - 1) - (uf - lf + 1) + 1" in open(
              os.path.join(HERE, "external_databases.py"),
              encoding="utf-8").read())
@@ -323,7 +323,7 @@ def testler(a):
     import subprocess as _sp, tempfile as _tf, textwrap as _tw
     k09 = open(os.path.join(HERE, "specificity.py"), encoding="utf-8").read()
     k08 = open(os.path.join(HERE, "batch_design.py"), encoding="utf-8").read()
-    sina("08 basliga 'grup' sutununu yaziyor",
+    sina(u'batch_design.py writes the \'grup\' column into the header',
          'df.write("grup\\ttaxid\\tetiket\\tuzunluk\\tkapsanan\\n")' in k08)
     try:
         i0 = k09.index("    dislanan = set()")
@@ -348,17 +348,17 @@ def testler(a):
              rc1 == 0 and "('A1-4', '1434102')" in o1, o1[-70:])
         rc2, o2 = cagir("taxid\tetiket\tuzunluk\tkapsanan\n"
                         "1434102\tA1-4_1434102\t1444\t0\n")
-        sina("eski 4 sutunlu bicimde SESSIZCE devam etmiyor, duruyor",
+        sina(u'it does NOT CARRY ON SILENTLY in the old 4 column format, it stops',
              rc2 != 0, "cikis=%d" % rc2)
         rc3, o3 = cagir("taxid\tgrup\tetiket\tuzunluk\tkapsanan\n"
                         "1434102\tA1-4\tA1-4_1434102\t1444\t0\n")
-        sina("sutun sirasi degisse de baslikla dogru okunuyor",
+        sina(u'even with the column order changed it is read correctly from the header',
              rc3 == 0 and "('A1-4', '1434102')" in o3, o3[-70:])
         rc4, o4 = cagir("grup\ttaxid\tetiket\tuzunluk\tkapsanan\n")
-        sina("yalniz baslikli dosya bos kume verir, hata vermez",
+        sina(u'a file with a header only gives an empty set, not an error',
              rc4 == 0 and "SONUC []" in o4, o4[-70:])
     except ValueError:
-        sina("09'da dislama blogu bulundu", False, "blok isaretleri degismis")
+        sina("09'da dislama blogu bulundu", False, u'the block markers have changed')
 
     print(u'\n13. EXTERNAL DATABASE SET MAPPING AND COVERAGE AUDIT')
     # The bug found on 2026-08-01: ROD_v1.2_operon_variants.fasta is eukaryote only
@@ -369,22 +369,22 @@ def testler(a):
     # again.
     DV = yukle("DV", "external_databases.py")
     MF = yukle("MF", "mfeprimer_layer.py")
-    sina("14 ve 19 DAR kumeyi ayni goruyor", DV.SINIF_DB == MF.SINIF_DB)
-    sina("14 ve 19 GENIS kumeyi ayni goruyor",
+    sina(u'external_databases.py and mfeprimer_layer.py see the NARROW set the same way', DV.SINIF_DB == MF.SINIF_DB)
+    sina(u'external_databases.py and mfeprimer_layer.py see the BROAD set the same way',
          DV.SINIF_DB_GENIS == MF.SINIF_DB_GENIS)
-    sina("dar ve genis kume kesismiyor (ayni db iki kez taranmaz)",
+    sina(u'the narrow and the broad set do not intersect (the same db is not scanned twice)',
          all(not (set(DV.SINIF_DB[s]) & set(DV.SINIF_DB_GENIS[s]))
              for s in DV.SINIF_DB))
-    sina("her sinif ayni veritabani kumesini goruyor",
+    sina(u'every class sees the same set of databases',
          len({tuple(sorted(set(DV.SINIF_DB[s]) | set(DV.SINIF_DB_GENIS[s])))
               for s in DV.SINIF_DB}) == 1)
     sina("ROD mantar siniflarinda da taraniyor",
          all("ROD_v1.2_operon_variants.fasta" in DV.SINIF_DB_GENIS[s]
              for s in ("F1", "F2")))
-    sina("fungi.18SrRNA hicbir sinifta unutulmamis",
+    sina(u'fungi.18SrRNA was not forgotten in any class',
          all("fungi.18SrRNA.fna" in (DV.SINIF_DB[s] + DV.SINIF_DB_GENIS[s])
              for s in DV.SINIF_DB))
-    sina("ref_all/ref_all2 taranmiyor (digerlerinin alt kumesi)",
+    sina(u'ref_all and ref_all2 are not scanned (they are a subset of the others)',
          all(not {"ref_all.fna", "ref_all2.fna"}
              & set(DV.SINIF_DB[s] + DV.SINIF_DB_GENIS[s])
              for s in DV.SINIF_DB))
@@ -418,21 +418,21 @@ def testler(a):
             subprocess.run(["makeblastdb", "-in", f, "-dbtype", "nucl"],
                            capture_output=True, text=True)
         dz = DV.sinif_konsensuslari(os.path.join(gec, "kons"), "F1")
-        sina("konsensus yalniz kendi sinifi icin okunuyor",
+        sina(u'a consensus is read only for its own class',
              len(dz) == 1 and DV.sinif_konsensuslari(
                  os.path.join(gec, "kons"), "B") == [])
         _, uz_yok, _ = DV.kapsam_olc(ilgisiz, dz, gec, "a", 2, 600)
         _, uz_var, kim_var = DV.kapsam_olc(ilgili, dz, gec, "b", 2, 600)
-        sina("ilgisiz veritabani KAPSAM_YOK veriyor", uz_yok < 400,
-             "en uzun hizalama %d bp" % uz_yok)
-        sina("akraba iceren veritabani KAPSANIYOR veriyor",
+        sina(u'an unrelated database gives KAPSAM_YOK', uz_yok < 400,
+             u'the longest alignment is %d bp' % uz_yok)
+        sina(u'a database holding a relative gives KAPSANIYOR',
              uz_var >= 400 and kim_var > 80,
              "en uzun %d bp %%%.1f" % (uz_var, kim_var))
-        sina("konsensus verilmezse kapsam OLCULMEDI diye isaretleniyor",
+        sina(u'with no consensus given, coverage is marked OLCULMEDI',
              DV.kapsam_olc(ilgili, [], gec, "c", 2, 600)[0] == "KAPSAM_OLCULMEDI")
         shutil.rmtree(gec, ignore_errors=True)
     else:
-        sina("blastn/makeblastdb kurulu", False, "kapsam testleri atlandi")
+        sina("blastn/makeblastdb kurulu", False, u'the coverage tests were skipped')
 
     print(u'\n14. SEPARATING THE OWN TAXON FROM A FOREIGN TAXON')
     # 2026-08-01: in the wide scan, some of the highest "off-target product" counts were
@@ -532,28 +532,28 @@ def testler(a):
                 satir[r["hedef"]] = r
         oz = satir.get("Methanothrix_soehngenii_turu", {})
         ev = satir.get("Arke_universal", {})
-        sina("ozgul hedefte 3 kendi + 3 yabanci urun ayriliyor",
+        sina(u'on a specific target 3 own and 3 foreign products are separated',
              oz.get("urun_kendi_taksonda") == "3"
              and oz.get("urun_yabanci_taksonda") == "3",
-             "kendi=%s yabanci=%s toplam=%s" % (oz.get("urun_kendi_taksonda"),
+             u'own=%s foreign=%s total=%s' % (oz.get("urun_kendi_taksonda"),
                                                 oz.get("urun_yabanci_taksonda"),
                                                 oz.get("hedef_disi_urun")))
-        sina("kendi + yabanci + bilinmiyor = ham toplam",
+        sina(u'own + foreign + unknown = the raw total',
              oz and (int(oz["urun_kendi_taksonda"])
                      + int(oz["urun_yabanci_taksonda"])
                      + int(oz["urun_takson_bilinmiyor"])
                      == int(oz["hedef_disi_urun"])))
-        sina("yabanci ornekler yalniz yabanci taksonlari gosteriyor",
+        sina(u'the foreign examples show foreign taxa only',
              oz and "YABANCI" in oz["yabanci_ornekler"]
              and "KENDI" not in oz["yabanci_ornekler"])
-        sina("evrensel hedefte hicbir urun yabanci sayilmiyor",
+        sina(u'on a universal target no product counts as foreign',
              ev.get("hedef_turu") == "evrensel"
              and ev.get("urun_yabanci_taksonda") == "0",
              "turu=%s yabanci=%s" % (ev.get("hedef_turu"),
                                      ev.get("urun_yabanci_taksonda")))
         shutil.rmtree(gec2, ignore_errors=True)
     else:
-        sina("blastn/makeblastdb kurulu", False, "takson testleri atlandi")
+        sina("blastn/makeblastdb kurulu", False, u'the taxon tests were skipped')
 
     print("\n15. YABANCI VURUSUN UZAKLIGI (SOYAGACI DERINLIGI)")
     # A foreign taxon is not a sufficient measure on its own: some targets are
@@ -582,7 +582,7 @@ def testler(a):
         sina("%s soyagaci cikariliyor (>=6 basamak)" % bicim,
              len(DV._soyagaci(SOY[bicim])) >= 6,
              "cikan: %s" % DV._soyagaci(SOY[bicim]))
-    sina("RefSeq basliginda soyagaci yok, bos liste doner",
+    sina(u'a RefSeq header carries no lineage, so an empty list comes back',
          DV._soyagaci("NR_104707.1 Methanothrix soehngenii GP6 16S ribosomal "
                       "RNA, partial sequence") == [])
     sina("UNITE'nin k__/p__ on ekleri temizleniyor",
@@ -609,22 +609,22 @@ def testler(a):
         d = DV._ortak_derinlik(ref, DV._soyagaci(yab))
         return "YAKIN" if d >= max(1, len(ref) - 2) else "UZAK"
 
-    sina("ayni ailedeki vurus YAKIN sayiliyor",
+    sina(u'a hit in the same family counts as NEAR',
          _karar([KENDI1], AYNI_AILE) == "YAKIN")
-    sina("ayni takim farkli aile UZAK sayiliyor",
+    sina(u'the same order but a different family counts as FAR',
          _karar([KENDI1], AYNI_TAKIM) == "UZAK")
-    sina("farkli siniftaki vurus UZAK sayiliyor",
+    sina(u'a hit in a different class counts as FAR',
          _karar([KENDI1], FARKLI_SINIF) == "UZAK")
     # THRESHOLD STABILITY: had the common prefix been used, the reference lineage would
     # shorten as the number of own hits grew and the same foreign hit would drift to
     # NEAR. The dominant lineage prevents that.
-    sina("karar kendi vurus sayisindan bagimsiz",
+    sina(u'the decision does not depend on its own hit count',
          len({_karar(k, AYNI_TAKIM) for k in ([KENDI1], [KENDI1, KENDI2],
                                               [KENDI1, KENDI2, KENDI1])}) == 1)
-    sina("baskin soyagaci derinligi kendi vurus sayisiyla kisalmiyor",
+    sina(u'the depth of the dominant lineage does not shorten with its own hit count',
          len(DV._baskin_soy([DV._soyagaci(KENDI1), DV._soyagaci(KENDI2)]))
          == len(DV._soyagaci(KENDI1)))
-    sina("kendi vurusu yoksa referans soyagaci bos",
+    sina(u'with no hit of its own the reference lineage is empty',
          DV._baskin_soy([]) == [])
 
     print(u'\n16. DECISION LEVEL AUDIT (27): SPECIES AND GENUS SPECIFICITY')
@@ -671,12 +671,12 @@ def testler(a):
         "5\tPetriella_musispora\ttur\t101201\t\tnot\tPetriella musispora\n"
         "1\tMicroascaceae_askomikot\ttur\t101201\t\tnot\t\n")
     _hd = {x["hedef"]: x for x in DZ.hedefleri_oku(_h, _ad, None)}
-    sina("hedef_tur verilince taxid adi DEGISTIRILIYOR, eklenmiyor",
+    sina(u'when hedef_tur is given the taxid name is REPLACED, not added to',
          _hd["Petriella_musispora"]["hedef_turler"] == {"Petriella musispora"},
          "cikan: %s" % _hd["Petriella_musispora"]["hedef_turler"])
-    sina("hedef_tur verilince cins de degisiyor",
+    sina(u'when hedef_tur is given the genus changes too',
          _hd["Petriella_musispora"]["cinsler"] == {"Petriella"})
-    sina("hedef_tur bos olan satir eski davranisi suruyor",
+    sina(u'a row with an empty hedef_tur keeps the old behaviour',
          _hd["Microascaceae_askomikot"]["hedef_turler"]
          == {"Trichoderma asperellum"})
     shutil.rmtree(_g6, ignore_errors=True)
@@ -693,7 +693,7 @@ def testler(a):
     sina("SILVA soyagacli basligi tur adi vermiyor (panele girmez)",
          DZ.tur_adi("FJ347531.1.916 Archaea;Halobacteriota;Methanosarcinia;"
                     "Methanosaetaceae;Methanothrix;uncultured archaeon") == "")
-    sina("'Ca. Nitrosocosmicus hydrocola' cins ve tur olarak ayriliyor",
+    sina(u'\'Ca. Nitrosocosmicus hydrocola\' is split into a genus and a species',
          DZ.ad_parcala("Ca. Nitrosocosmicus hydrocola")
          == ("Nitrosocosmicus", "hydrocola"))
     # In UNITE, 's__Trichoderma_sp' was being counted as a species name; for Trichoderma
@@ -710,17 +710,17 @@ def testler(a):
     # target's ONLY primer set dropped silently and the target appeared as CIFT_YOK.
     _ADL = ["Methanosarcina_barkeri_turu", "Proteiniphilum_cinsi",
             "Podospora_pseudopauciseta", "Proteolitik_sintrofik_bakteriler"]
-    sina("referans hedefi '_turu' ekli hedefe baglaniyor",
+    sina(u'a reference target is tied to a target carrying the \'_turu\' suffix',
          DZ.referans_esle("Methanosarcina_barkeri_referans", _ADL)
          == "Methanosarcina_barkeri_turu",
          "cikan: %s" % DZ.referans_esle("Methanosarcina_barkeri_referans", _ADL))
-    sina("birebir eslesen referans hedefi degismiyor",
+    sina(u'a reference target matching exactly does not change',
          DZ.referans_esle("Proteiniphilum_cinsi_referans", _ADL)
          == "Proteiniphilum_cinsi")
-    sina("kisaltilmis referans hedefi tam ada baglaniyor",
+    sina(u'a shortened reference target is tied to the full name',
          DZ.referans_esle("Proteolitik_sintrofik_referans", _ADL)
          == "Proteolitik_sintrofik_bakteriler")
-    sina("eslesmeyen referans hedefi None doner (sessiz dusmez)",
+    sina(u'a reference target with no match returns None (it does not drop silently)',
          DZ.referans_esle("Uydurma_referans", _ADL) is None)
 
     if shutil.which("blastn") and shutil.which("makeblastdb"):
@@ -787,20 +787,20 @@ def testler(a):
             sat = list(_csv3.DictReader(open(cik3, encoding="utf-8"),
                                         delimiter="\t"))
         kararlar = {x["cift_no"]: x for x in sat}
-        sina("ayirt eden cift TUR_OZGUL cikiyor",
+        sina(u'a pair that discriminates comes out TUR_OZGUL',
              kararlar.get("0", {}).get("karar") == "TUR_OZGUL",
              "cikan: %s" % kararlar.get("0", {}).get("karar"))
-        sina("ayirt etmeyen cift TUR_AYRIMI_YOK cikiyor",
+        sina(u'a pair that does not discriminate comes out TUR_AYRIMI_YOK',
              kararlar.get("1", {}).get("karar") == "TUR_AYRIMI_YOK",
              "cikan: %s" % kararlar.get("1", {}).get("karar"))
-        sina("TUR_OZGUL ciftte kardes turde urun sayisi sifir",
+        sina(u'on a TUR_OZGUL pair the product count in the sibling species is zero',
              kararlar.get("0", {}).get("diger_turde_urun") == "0")
-        sina("ayirt etmeyen ciftte kardes turler adiyla bildiriliyor",
+        sina(u'on a pair that does not discriminate the sibling species are reported by name',
              "harundinacea" in kararlar.get("1", {}).get("cogaltilan_turler", ""))
         sina("'sp.' kaydi panele alinmadi (panel 4 tur)",
              kararlar.get("0", {}).get("panel_tur_sayisi") == "4",
              "panel_tur_sayisi=%s" % kararlar.get("0", {}).get("panel_tur_sayisi"))
-        sina("capraz TUR sayisi bildiriliyor (urun sayisi degil)",
+        sina(u'the cross reacting SPECIES count is reported (not the product count)',
              kararlar.get("1", {}).get("capraz_tur_sayisi") == "3",
              "capraz_tur_sayisi=%s"
              % kararlar.get("1", {}).get("capraz_tur_sayisi"))
@@ -821,12 +821,12 @@ def testler(a):
             sat5 = {x["cift_no"]: x for x in
                     _csv5.DictReader(open(cik5, encoding="utf-8"),
                                      delimiter="\t")}
-        sina("esik 3'e cikinca 3 caprazli cift TUR_OZGUL_ESIKLI oluyor",
+        sina(u'with the threshold raised to 3, a pair with 3 cross reactions becomes TUR_OZGUL_ESIKLI',
              sat5.get("1", {}).get("karar") == "TUR_OZGUL_ESIKLI",
              "cikan: %s" % sat5.get("1", {}).get("karar"))
-        sina("caprazsiz cift esikten bagimsiz TUR_OZGUL kaliyor",
+        sina(u'a pair with no cross reaction stays TUR_OZGUL whatever the threshold',
              sat5.get("0", {}).get("karar") == "TUR_OZGUL")
-        sina("27 sifir cikis koduyla bitti", r3.returncode == 0,
+        sina(u'check_taxonomic_level.py finished with exit code zero', r3.returncode == 0,
              r3.stderr.strip()[-120:])
         # if the target species is absent from the panel, it must NOT say TUR_OZGUL
         open(os.path.join(g3, "hedefler.tsv"), "w").write(
@@ -909,28 +909,28 @@ def testler(a):
             sat6 = {x["cift_no"]: x for x in
                     _csv6.DictReader(open(cik6, encoding="utf-8"),
                                      delimiter="\t")}
-        sina("cins disina cikmayan cift CINS_OZGUL",
+        sina(u'a pair that does not leave the genus is CINS_OZGUL',
              sat6.get("0", {}).get("karar", "").startswith("CINS_OZGUL"),
              "cikan: %s" % sat6.get("0", {}).get("karar"))
-        sina("baska cinsi de cogaltan cift CINS_AYRIMI_YOK",
+        sina(u'a pair that amplifies another genus too is CINS_AYRIMI_YOK',
              sat6.get("1", {}).get("karar", "").startswith("CINS_AYRIMI_YOK"),
              "cikan: %s" % sat6.get("1", {}).get("karar"))
-        sina("cins duzeyinde OLCULEN kimlik hedef sayilmiyor",
+        sina(u'at genus level the MEASURED identity does not count as the target',
              "Fermentimonas" in sat6.get("1", {}).get("cogaltilan_turler", "")
              and "Fermentimonas" not in
              sat6.get("1", {}).get("cogaltilan_hedef_turler", ""))
-        sina("cins ici tur sayisi karara yaziliyor",
+        sina(u'the within genus species count is written into the decision',
              sat6.get("0", {}).get("karar", "").endswith("_3_4"),
              "cikan: %s" % sat6.get("0", {}).get("karar"))
         shutil.rmtree(g4, ignore_errors=True)
 
-        sina("hedef tur panelde yoksa TUR_OZGUL denmiyor",
+        sina(u'if the target species is not in the panel it is not called TUR_OZGUL',
              sat4 and all(x["karar"] != "TUR_OZGUL" for x in sat4)
              and any(x["karar"] == "HEDEF_TUR_PANELDE_YOK" for x in sat4),
              "kararlar: %s" % {x["karar"] for x in sat4})
         shutil.rmtree(g3, ignore_errors=True)
     else:
-        sina("blastn/makeblastdb kurulu", False, "duzey testleri atlandi")
+        sina("blastn/makeblastdb kurulu", False, u'the level tests were skipped')
 
     print(u'\n17. THE COMPETITOR SET IN A REFERENCE DESIGN (15)')
     # 2026-08-01: the Podospora reference design had been made with 29 competitor
@@ -940,7 +940,7 @@ def testler(a):
     # was being reported as if its specificity had been verified against competitors it
     # had never seen.
     RT = yukle("RT", "design_from_reference.py")
-    sina("15, tur adi tanimini 27'den aliyor (tek kaynak)",
+    sina(u'design_from_reference.py takes the species name definition from check_taxonomic_level.py (a single source)',
          RT.DZ.tur_adi("NR_1.1 Podospora comata CBS1 ITS")
          == "Podospora comata")
     g5 = tempfile.mkdtemp(prefix="reftas_")
@@ -971,14 +971,14 @@ def testler(a):
 
     kardes, kirp = RT.kardes_turleri_bul(
         [dar, genis], {"Podospora"}, {"Podospora pseudopauciseta"}, 60, 2)
-    sina("kardes turler VERIDEN bulunuyor (elle liste gerekmeden)",
+    sina(u'sibling species are found FROM THE DATA (with no hand written list)',
          len(kardes) == 9, "bulunan: %d -> %s" % (len(kardes),
                                                   sorted(kardes)[:3]))
-    sina("hedef turun kendisi rakip sayilmiyor",
+    sina(u'the target species itself does not count as a competitor',
          "Podospora pseudopauciseta" not in kardes)
     sina("'Podospora sp.' kardes tur sayilmiyor",
          not any(t.endswith(" sp") or t.endswith(" sp.") for t in kardes))
-    sina("tek veritabaniyla yalniz o dosyadaki kardesler bulunur",
+    sina(u'with a single database only the siblings in that file are found',
          len(RT.kardes_turleri_bul([dar], {"Podospora"},
                                    {"Podospora pseudopauciseta"}, 60, 2)[0])
          == 1)
@@ -999,16 +999,16 @@ def testler(a):
             fh.write(">NR_%d.1 %s 16S ribosomal RNA\n%s\n"
                      % (i, ad, "ACGT" * 60))
     bsec = RT.sec(bd, ["Bacteroides", "Parabacteroides"], 100)
-    sina("cins adi SOZCUK olarak araniyor, alt dize olarak degil",
+    sina(u'the genus name is searched for AS A WORD, not as a substring',
          len(bsec["Bacteroides"]) == 2,
-         "Bacteroides icin %d kayit" % len(bsec["Bacteroides"]))
+         u'%d records for Bacteroides' % len(bsec["Bacteroides"]))
     sina("Parabacteroides, Bacteroides uyesi sayilmiyor",
          all("Parabacteroides" not in b for b, _ in bsec["Bacteroides"]))
     sina("Acetobacteroides, Bacteroides uyesi sayilmiyor",
          all("Acetobacteroides" not in b for b, _ in bsec["Bacteroides"]))
-    sina("Parabacteroides kendi adiyla hala bulunuyor",
+    sina(u'Parabacteroides is still found under its own name',
          len(bsec["Parabacteroides"]) == 1)
-    sina("sec() birden cok veritabanindan toplayabiliyor",
+    sina(u'sec() can collect from more than one database',
          len(RT.sec([dar, genis], ["Podospora"], 100)["Podospora"]) == 13,
          "toplanan: %d"
          % len(RT.sec([dar, genis], ["Podospora"], 100)["Podospora"]))
@@ -1018,7 +1018,7 @@ def testler(a):
         print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')
         tsvler = sorted(glob.glob(os.path.join(HERE, a.aday, "*__*.tsv")))
         if not tsvler:
-            sina("aday TSV bulundu", False, a.aday)
+            sina(u'a candidate TSV was found', False, a.aday)
         else:
             toplam = hata = 0
             for t in tsvler[:6]:
@@ -1031,8 +1031,8 @@ def testler(a):
                     if "gecen satir" in line:
                         x = line.split(":")[1].split("/")
                         toplam += int(x[1]); hata += int(x[1]) - int(x[0])
-            sina("gercek ciftlerin tamami geometri denetimini geciyor",
-                 hata == 0, "sinanan=%d hatali=%d" % (toplam, hata))
+            sina(u'all of the real pairs pass the geometry audit',
+                 hata == 0, u'tested=%d faulty=%d' % (toplam, hata))
 
 
 def main():

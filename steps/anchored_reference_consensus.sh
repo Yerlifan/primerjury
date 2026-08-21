@@ -27,8 +27,8 @@
 #
 # Kullanım:
 #   bash anchored_reference_consensus.sh \
-#        --pt  "/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama" \
-#        --out "/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama/referans_konsensus" \
+#        --pt  /path/to/project \
+#        --out /path/to/project/referans_konsensus \
 #        [--groups F1,F2] [--threads N] [--sample 50] [--min-depth N]
 #        [--db ROD_v1.2_operon_variants.fasta]   REFERANS_DB icinde, virgulle
 # =====================================================================

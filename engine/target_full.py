@@ -10,7 +10,7 @@ The flow:
   3. The prefilter IS THE MEASUREMENT RULE (<=1 mismatch, okuma_motoru.Sonda).
      The last two bases at the 3' end condition IS NO LONGER APPLIED (the
      2026-08-08 decision), son2=False.
-  4. ARMS variants (uretec.arms_varyantlari) are added to the best candidates.
+  4. ARMS variants (generator.arms_varyantlari) are added to the best candidates.
      ARMS IS NOT a degenerate base: one defined base, one oligo.
   5. All of them are measured again AT PANEL DEPTH (n=3000).
   6. Both thresholds are written: the fixed dCq 3 and the abundance weighted
@@ -19,15 +19,20 @@ The flow:
 """
 import os, sys, json, time, math, argparse
 
-KOK = os.environ.get('_FL_KOK', '/tmp/fl/kok')
+# The project root. It used to default to /tmp/fl/kok, the path of the private
+# workspace this code grew in; on any other machine the module died at import
+# with FileNotFoundError. The default is now derived from this file's own
+# location, and _FL_KOK still overrides it.
+KOK = os.environ.get('_FL_KOK') or os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 os.environ['_KURTARMA_KOK'] = KOK
 
-from screening import targets as H, motor, uretec as U, numune as N
+from screening import targets as H, engine_gateway, generator as U, sample as N
 import importlib.util as _iu
 _sp = _iu.spec_from_file_location('kt', os.path.join(KOK, 'verification', 'recovery_round.py'))
 kt = _iu.module_from_spec(_sp); _sp.loader.exec_module(kt)
-OM = motor.okuma_motoru
+OM = engine_gateway.okuma_motoru
 
 URUN_ALT, URUN_UST = 60, 400
 PENCERE, ADIM = 700, 300
@@ -53,7 +58,7 @@ def omurgalar(uye_kons):
 
 
 def ssu_sinir(dizi):
-    c = kt.capa_bul(motor, dizi)
+    c = kt.capa_bul(engine_gateway, dizi)
     bas = c.get('SSU_baslangic', c.get('SSU_orta'))
     if bas is None:
         return None, None

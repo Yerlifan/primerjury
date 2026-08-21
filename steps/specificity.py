@@ -62,7 +62,7 @@ KURAL = Kural()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import alignment
 
-MAPPY = hizalama.ARKA_UC is not None
+MAPPY = alignment.ARKA_UC is not None
 
 
 def _girdi_parmak_izi(a):
@@ -207,8 +207,8 @@ def capraz_bulasma(hedef_kons_yolu, rakip_kons_yolu, rakip_fq, ornek=400,
                     if not l.startswith(">")).upper()
         return d.strip("N")
     try:
-        A_h = hizalama.Hizalayici(seq=_oku(hedef_kons_yolu), preset="map-ont")
-        A_r = hizalama.Hizalayici(seq=_oku(rakip_kons_yolu), preset="map-ont")
+        A_h = alignment.Hizalayici(seq=_oku(hedef_kons_yolu), preset="map-ont")
+        A_r = alignment.Hizalayici(seq=_oku(rakip_kons_yolu), preset="map-ont")
     except Exception:
         _BULASMA[anahtar] = (0, 0)
         return (0, 0)
@@ -469,7 +469,7 @@ def main():
             if m:
                 kons[(m.group(1), m.group(2))] = p2
         log(u'consensus inventory: %d files' % len(kons))
-        log(hizalama.durum())
+        log(alignment.durum())
         if not MAPPY:
             log(u'WARNING: there is no alignment backend, cross contamination cannot be measured. The fixed threshold (--rakip-wilson-max %.3f) will be used.'
                 % a.rakip_wilson_max)

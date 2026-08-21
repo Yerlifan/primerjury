@@ -295,7 +295,7 @@ def konsensusler():
         out.append(dict(kutu=kutu, grup=kutu.split('_')[0],
                         sinif=r['sinif'], taxid=kutu.split('_')[-1],
                         yol=yol, yon='SENSE', kaynak=r['kaynak'],
-                        dizi=motor.clean(seq.upper())))
+                        dizi=engine_gateway.clean(seq.upper())))
     return out
 
 

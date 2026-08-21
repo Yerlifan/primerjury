@@ -20,8 +20,8 @@
 #   ayırıyor.
 #
 # Kullanım:
-#   bash analyze_ambiguous_bases.sh --pt "/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama" \
-#        --out /mnt/c/Users/yerli/Masaüstü/PrimerTasarlama/N_analizi \
+#   bash analyze_ambiguous_bases.sh --pt /path/to/project \
+#        --out /path/to/project/N_analizi \
 #        [--threads N] [--min-depth N] [--het-fract 0.15] [--config r10.4_sup]
 # =====================================================================
 set -euo pipefail

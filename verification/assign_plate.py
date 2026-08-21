@@ -87,7 +87,7 @@ def geo_tm(kok, ciftler):
                 F, R = r[iF].strip().upper(), r[iR].strip().upper()
                 if not re.fullmatch(r'[ACGT]+', F or ''):
                     continue
-                out[r[iH].strip()] = (geo.tm(F), geo.tm(R))
+                out[r[iH].strip()] = (geometry_core.tm(F), geometry_core.tm(R))
             return out, None
     return None, u'geometry_core.py bulunamadi'
 
