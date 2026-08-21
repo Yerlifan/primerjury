@@ -72,36 +72,35 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     ad = satir['hedef']
     t0 = time.time()
     cizgi('=')
-    yaz('[%d/%d] HEDEF: %s' % (sira, toplam, ad))
+    yaz(u'[%d/%d] TARGET: %s' % (sira, toplam, ad))
     yaz('       gerekce: ' + '; '.join(g[1] for g in satir['gerekceler'])[:200])
-    yaz('       paneldeki cift: %s / %s  (%d bp)' % (satir['F'], satir['R'], satir['urun_bp']))
+    yaz(u'       pair in the panel: %s / %s  (%d bp)' % (satir['F'], satir['R'], satir['urun_bp']))
     cizgi('=')
 
     om = baglam['omurga']
     if om is None:
-        yaz('  ATLANDI: bu hedefin uye konsensusu bulunamadi (uyelik kaynagi: %s).'
+        yaz(u'  SKIPPED: no member consensus found for this target (membership source: %s).'
             % baglam['uyelik_kaynagi'])
         return dict(hedef=ad, durum='ATLANDI - uye konsensusu yok',
                     uyelik_kaynagi=baglam['uyelik_kaynagi'])
 
-    yaz('  omurga konsensus : %s (%d bp)' % (om['kutu'], len(om['dizi'])))
-    yaz('  uye kutu / rakip : %d / %d      uye konsensus / rakip: %d / %d'
+    yaz(u'  backbone consensus : %s (%d bp)' % (om['kutu'], len(om['dizi'])))
+    yaz(u'  member bins / competitors : %d / %d      member consensus / competitor: %d / %d'
         % (len(baglam['uye_kutu']), len(baglam['rakip_kutu']),
            len(baglam['uye_kons']), len(baglam['rakip_kons'])))
 
     # ---------------- TABAN: paneldeki mevcut cift AYNI motorla olculur
-    yaz('\n  [0] Paneldeki mevcut cift ayni motorla olculuyor (karsilastirma tabani)')
+    yaz(u'\n  [0] Measuring the existing panel pair with the same engine (comparison baseline)')
     taban = numune.olc(satir['F'], satir['R'], baglam['uye_kutu'], baglam['rakip_kutu'],
                        lo=C.URUN_IDEAL[0], hi=C.URUN_MUTLAK_UST)
     if taban:
-        yaz('      mevcut cift: uye %%%.1f-%%%.1f | kapsam %s kutu (>=%d%%) | havuz %s'
+        yaz(u'      existing pair: member %%%.1f-%%%.1f | coverage %s bins (>=%d%%) | pool %s'
             % (taban['uye_min'], taban['uye_max'], taban['uye_kapsam_pay'],
                int(100 * C.KAPSAM_ESIGI), taban['havuz']))
-        yaz('                   ayrim %s x (havuz) / %s x (en kotu kutu)   |   '
-            'yalniz kapsanan kutular: %s x / %s x'
+        yaz(u'                   discrimination %s x (pool) / %s x (worst bin)   |   covered bins only: %s x / %s x'
             % (taban['kat_havuz'], taban['kat_enkotu'],
                taban['kat_havuz_kapsayan'], taban['kat_enkotu_kapsayan']))
-        yaz('      -> Bir adayin "daha iyi" sayilmasi icin BU sayilari gecmesi gerekir.')
+        yaz(u'      -> A candidate only counts as "better" if it beats THESE numbers.')
         uyari = uyelik_uyarisi(satir, taban)
         if uyari:
             yaz('')
@@ -111,7 +110,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         yaz('      mevcut cift olculemedi (uye kutusu yok).')
 
     # ---------------- ASAMA A: pencereler + geometri
-    yaz('\n  [A] Pencere uretimi ve geometri olcumu (18-25 bp, her pozisyon, iki yon)')
+    yaz(u'\n  [A] Window generation and geometry measurement (18-25 bp, every position, both orientations)')
     ta = time.time()
 
     def ilerA(n):
@@ -120,7 +119,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
 
     ad_p = U.aday_primerler(om['dizi'], ilerle=ilerA)
     yaz('      taranan pencere : %d' % ad_p['taranan_pencere'])
-    yaz('      degismez kurallari gecen: ileri %d, geri %d   (%s)'
+    yaz(u'      passing the invariant rules: forward %d, reverse %d   (%s)'
         % (len(ad_p['F']), len(ad_p['R']), sure(time.time() - ta)))
 
     if not ad_p['F'] or not ad_p['R']:
@@ -128,7 +127,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                     pencere=ad_p['taranan_pencere'])
 
     # ---------------- ASAMA B: cift kurma + izgara
-    yaz('\n  [B] Es primer kombinasyonlari (urun %d-%d bp) ve 144 hucreli parametre izgarasi'
+    yaz(u'\n  [B] Compatible primer combinations (product %d-%d bp) and the 144-cell parameter grid'
         % (C.URUN_IDEAL[0], C.URUN_MUTLAK_UST))
     tb = time.time()
 
@@ -137,7 +136,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
 
     top = U.tara_ve_topla(ad_p, hucre_basina=8, ilerle=ilerB)
     cl = top['temsilciler']
-    yaz('      kurala uyan cift : %d  (tamami sayildi, ust sinir yok)   (%s)'
+    yaz(u'      pairs matching the rules : %d  (all counted, no upper limit)   (%s)'
         % (top['toplam'], sure(time.time() - tb)))
     if top['toplam'] == 0:
         return dict(hedef=ad, durum='COZUM YOK - urun boyu penceresinde hic cift yok',
@@ -152,25 +151,25 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         ornekler.setdefault(adh, '%s / %s (%d bp)' % (c['F'], c['R'], c['urun']))
     for x in izgara:
         x['ornek'] = ornekler.get(x['ad'], '')
-    yaz('      izgara: %d/%d hucrede en az bir aday var'
+    yaz(u'      grid: at least one candidate in %d of %d cells'
         % (sum(1 for x in izgara if x['hayatta']), len(izgara)))
     for x in izgara[:4]:
         yaz('        %-62s %8d aday' % (x['ad'], x['hayatta']))
-    yaz('      temsilci aday (her izgara hucresinden ornek): %d' % len(cl))
+    yaz(u'      representative candidates (one sample per grid cell): %d' % len(cl))
 
     # ---------------- ASAMA C: numune taramasi
     secili = sec_ornekle(cl, C.HUNI['numuneye_giden'])
-    yaz('\n  [C] Numunenin ham okumalarinda in-silico PCR  (%d aday x %d kutu)'
+    yaz(u'\n  [C] In-silico PCR against the raw sample reads  (%d candidates x %d bins)'
         % (len(secili), len(baglam['uye_kutu']) + len(baglam['rakip_kutu'])))
     tc = time.time()
     olculen = numunede_olc(secili, numune, baglam, tc, yaz)
-    yaz('\n      numune olcumu biten aday: %d   (%s)' % (len(olculen), sure(time.time() - tc)))
+    yaz(u'\n      candidates with a finished in-sample measurement: %d   (%s)' % (len(olculen), sure(time.time() - tc)))
     olculen.sort(key=puan)
 
     # ---------------- ASAMA B2: ARMS - EN IYI adaylar uzerinde
-    yaz("\n  [B2] ARMS varyantlari (ayirt edici 3' son baz + -2/-3 kasitli uyumsuzluk)")
-    yaz('       Numunede en iyi olculen adaylar uzerinde denenir; varyantlar da')
-    yaz('       AYNI olcume sokulur, boylece kazanc gercekten olculur.')
+    yaz(u'\n  [B2] ARMS variants (discriminating 3\' terminal base plus a deliberate mismatch at -2/-3)')
+    yaz(u'       Tried on the candidates that measured best in the sample. The variants go')
+    yaz(u'       through the SAME measurement, so the gain is genuinely measured.')
     arms = []
     if baglam['rakip_kons'] and olculen:
         uye_d = [k['dizi'] for k in baglam['uye_kons']][:4]
@@ -205,20 +204,20 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
             olculen.sort(key=puan)
     else:
         yaz('      atlandi (hafif mod, rakip konsensus yok ya da olculen aday yok)')
-    yaz('      NOT: kasitli uyumsuzluk DEJENERE BAZ DEGILDIR (tek tanimli baz, 1 oligo);')
-    yaz('           ama sablonla tam eslesmez - ayri bir toplanti maddesidir.')
+    yaz(u'      NOTE: a deliberate mismatch is NOT a DEGENERATE BASE (one defined base, one oligo);')
+    yaz(u'           but it does not match the template exactly, which is a separate agenda item.')
 
     en_iyi = olculen[:C.HUNI['referansa_giden']]
 
     # ---------------- ASAMA D: geometri detayi + referans kapsam
-    yaz('\n  [D] Cift geometrisi (hairpin/dimer dG, 60 C) + referans kapsam / rakip ayrimi')
+    yaz(u'\n  [D] Pair geometry (hairpin/dimer dG at 60 C) plus reference coverage and competitor discrimination')
     taxad = H.taxid_adlari()
     cinsler, rakip_cins = REF.uye_ve_rakip_anahtar(baglam, taxad)
     uye_havuz = REF.havuz_cikar(cinsler, baglam['siniflar'][0],
                                 'uye_' + ad) if cinsler and not hafif else []
     rak_havuz = REF.havuz_cikar(rakip_cins, baglam['siniflar'][0],
                                 'rakip_' + ad) if rakip_cins and not hafif else []
-    yaz('      referans havuzu: uye %d dizi (%s) | rakip %d dizi (%s)'
+    yaz(u'      reference pool: %d member sequences (%s) | %d competitor sequences (%s)'
         % (len(uye_havuz), ', '.join(cinsler[:4]), len(rak_havuz), ', '.join(rakip_cins[:4])))
 
     for i, c in enumerate(en_iyi, 1):
@@ -243,7 +242,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
             print('      ... %d/%d' % (i, len(en_iyi)), end='\r', flush=True)
 
     gecen = [c for c in en_iyi if c['cift']['cift_gecti']]
-    yaz('      cift yapisi (dTm/heterodimer/dG) gecen: %d/%d' % (len(gecen), len(en_iyi)))
+    yaz(u'      passing pair structure (dTm/heterodimer/dG): %d/%d' % (len(gecen), len(en_iyi)))
 
     # ---------------- ASAMA E: kuresel ozgulluk
     son = gecen[:C.HUNI['kusele_giden']] if gecen else en_iyi[:3]
@@ -290,7 +289,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         adaylar=[rapor.aday_ozet(c) for c in en_iyi],
         sure_sn=round(time.time() - t0, 1),
     )
-    yaz('\n  BITTI: %s  (%s)' % (ad, sure(time.time() - t0)))
+    yaz(u'\n  DONE: %s  (%s)' % (ad, sure(time.time() - t0)))
     return sonuc
 
 
@@ -426,8 +425,8 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         raise SystemExit(2)
 
     sorunlu, panel, panel_yolu = H.sorunlu_hedefler()
-    yaz('\nPanel dosyasi : %s' % panel_yolu)
-    yaz('Paneldeki cift: %d     sorunlu bulunan: %d' % (len(panel), len(sorunlu)))
+    yaz(u'\nPanel file  : %s' % panel_yolu)
+    yaz(u'Pairs in the panel: %d     found problematic: %d' % (len(panel), len(sorunlu)))
     for d in sorunlu:
         yaz('  [%-5s] %-36s %s' % (d['etiketler'], d['hedef'][:36],
                                    '; '.join(g[1] for g in d['gerekceler'])[:90]))
@@ -457,14 +456,14 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
     for b in baglamlar.values():
         for k in b['uye_kutu'] + b['rakip_kutu']:
             gerekli[k['kutu']] = k
-    yaz('\nHam okuma havuzlari kuruluyor: %d kutu x %d okuma' % (len(gerekli), a.okuma))
+    yaz(u'\nBuilding raw read pools: %d bins x %d reads' % (len(gerekli), a.okuma))
 
     def ilerK(i, n, ad):
         print('   ... %d/%d  %s          ' % (i, n, ad), end='\r', flush=True)
 
     tk = time.time()
     numune = N.Numune(list(gerekli.values()), n=a.okuma, ilerle=ilerK)
-    yaz('\nHavuzlar hazir (%s)' % sure(time.time() - tk))
+    yaz(u'\nPools ready (%s)' % sure(time.time() - tk))
 
     if not a.hafif:
         taxad = H.taxid_adlari()
@@ -488,10 +487,10 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         except Exception as e:
             yaz('\nReferans havuzu cikarilamadi (%s) - referans adimi atlanacak.' % e)
 
-    yaz('\nTAHMINI SURE: hedef basina ~%s; %d hedef -> ~%s'
+    yaz(u'\nESTIMATED TIME: ~%s per target; %d targets -> ~%s'
         % (sure(600 if not a.hafif else 90), len(liste),
            sure((600 if not a.hafif else 90) * len(liste))))
-    yaz('Kesintiye dayaniklidir: pencereyi kapatip yeniden acabilirsiniz, (3) ile devam eder.\n')
+    yaz(u'Resumable: you can close the window and reopen it, then continue with (3).\n')
 
     for i, d in enumerate(liste, 1):
         try:
@@ -509,7 +508,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
 
     yolar = rapor.uret(kontrol.hepsi(), panel, panel_yolu, yaz)
     cizgi('=')
-    yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+    yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
     yaz('  SONUCLAR:')
     for p in yolar:
         yaz('    %s' % p)
@@ -559,22 +558,22 @@ def main(argv=None):
                      aday_ust=C.HUNI['numuneye_giden'])
     kontrol.hazirla()
     cizgi('=')
-    yaz('  KAPSAMLI PRIMER ARAMASI - PrimerJury paneli')
-    yaz('  baslangic: %s     mod: %s' % (time.strftime('%Y-%m-%d %H:%M:%S'), a.mod))
-    yaz('  cikti klasoru: %s' % C.CIKTI)
+    yaz(u'  COMPREHENSIVE PRIMER SEARCH - the PrimerJury panel')
+    yaz(u'  start: %s     mode: %s' % (time.strftime('%Y-%m-%d %H:%M:%S'), a.mod))
+    yaz(u'  output directory: %s' % C.CIKTI)
     cizgi('=')
 
     from . import self_test
     if a.mod == 'ozet':
         from . import run_all as HP
         rc = HP.yalniz_ozet(yaz, sure, cizgi)
-        yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+        yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return rc
 
     if a.mod == 'hepsi':
         from . import run_all as HP
         rc = HP.calistir(yaz, sure, cizgi, a)
-        yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+        yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return rc
 
     if a.mod == 'uyelik':
@@ -585,13 +584,13 @@ def main(argv=None):
         uyelik_denetimi.calistir(yaz, sure,
                                  okuma_sayisi=(a.okuma or C.NUMUNE_OKUMA_SAYISI),
                                  yalniz=a.hedef, yeniden=a.yeniden)
-        yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+        yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return 0
 
     if a.mod == 'konsensus':
         from . import build_consensus
         konsensus_uret.calistir(yaz, sure, yalniz=a.hedef, yeniden=a.yeniden)
-        yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+        yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return 0
 
     if not a.sinama_atla and not kendini_sina.calistir(yaz):
@@ -605,7 +604,7 @@ def main(argv=None):
         from . import panel_measurement
         panel_olcum.calistir(yaz, sure, okuma_sayisi=a.okuma if a.okuma else 0,
                              yalniz=a.hedef, yeniden=a.yeniden)
-        yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
+        yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
         return 0
 
     return aramayi_kos(a, yaz, sure, cizgi)

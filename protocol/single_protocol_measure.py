@@ -295,7 +295,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         gunluk.write(s + '\n'); gunluk.flush()
 
     yaz('=' * 78)
-    yaz('  TEK PROTOKOL - panelin tamami ayni kuralla yeniden olculuyor')
+    yaz(u'  SINGLE PROTOCOL - the whole panel measured again under one rule')
     yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
 
@@ -333,16 +333,16 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         sys.exit('HATA: uyelik_yeniden_turetme_uyelik_*.tsv bulunamadi.\n'
                  '      Once verification/full_chain.py -> secenek U kosulmalidir.')
     uyelik = uyelik_oku(uy_yol)
-    yaz('  uyelik kaynagi : %s' % os.path.basename(uy_yol))
-    yaz('  cift sayisi    : %d  (panel %d + ek %d)' % (len(ciftler), len(panel), len(ek)))
-    yaz('  asil olcut     : <=%d uyumsuzluk + 3\' son 2 baz TAM' % PROTOKOL['olcut_asil'])
+    yaz(u'  membership source : %s' % os.path.basename(uy_yol))
+    yaz(u'  pairs             : %d  (panel %d + extra %d)' % (len(ciftler), len(panel), len(ek)))
+    yaz(u'  main criterion    : <=%d mismatches and an EXACT match at the last two 3\' bases' % PROTOKOL['olcut_asil'])
     yaz('  yan olcut      : <=%d uyumsuzluk + 3\' son 2 baz TAM' % PROTOKOL['olcut_yan'])
-    yaz('  derinlik       : kutu basina en cok %d okuma (SATIR BAZINDA ISTISNA YOK)' % okuma_tavani)
-    yaz('  karisik kutu   : %s sayilir' % karisik_kural.upper())
-    yaz('  esik           : %s, en kotu tek rakip kutu uzerinden'
+    yaz(u'  depth             : at most %d reads per bin (NO PER-ROW EXCEPTIONS)' % okuma_tavani)
+    yaz(u'  mixed bins        : counted as %s' % karisik_kural.upper())
+    yaz(u'  threshold         : %s, judged on the single worst competitor bin'
         % _C.esik_metni())
-    yaz('  esik kokeni    : %s' % _C.ESIK_KOKENI)
-    yaz('  UYARI          : %s' % _C.ESIK_VERIM_NOTU)
+    yaz(u'  threshold origin  : %s' % _C.ESIK_KOKENI)
+    yaz(u'  WARNING           : %s' % _C.ESIK_VERIM_NOTU)
     yaz('')
 
     # --- kutular -------------------------------------------------------
@@ -390,24 +390,24 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
             for k in b['uye'] + b['rakip']:
                 gerekli[k['kutu']] = k
     if eksik_uyari:
-        yaz('  UYARI: uyelik tablosundaki %d kutu adi fastq klasorunde bulunamadi: %s'
+        yaz(u'  WARNING: %d bin names from the membership table were not found in the fastq directory: %s'
             % (len(eksik_uyari), ', '.join(sorted(eksik_uyari)[:6])))
-        yaz('         (A1-1 orneginin dosyalari alt cizgili adlandirilmis; betik')
-        yaz('          bunu kendi icinde duzeltir, yine de bulunamayanlar yukarida.)')
-    yaz('  okunacak kutu  : %d' % len(gerekli))
+        yaz(u'         (the files for the A1-1 sample are named with underscores; the script')
+        yaz(u'          corrects that internally, but anything still missing is listed above.)')
+    yaz(u'  bins to read      : %d' % len(gerekli))
     yaz('')
     # --- havuz kurulumu -------------------------------------------------
     def ilerK(i, n, ad):
-        print('   ... okuma havuzu %d/%d  %s          ' % (i, n, ad), end='\r', flush=True)
+        print(u'   ... read pool %d/%d  %s          ' % (i, n, ad), end='\r', flush=True)
 
     t0 = time.time()
-    yaz('Okuma havuzlari kuruluyor (%d kutu). Bu adimda ekranda yalniz kutu adlari' % len(gerekli))
-    yaz('akar, takilmis DEGILDIR; asil olcum bundan sonra baslar ve her cift ayri kaydedilir.')
+    yaz(u'Building read pools (%d bins). Only bin names scroll past on screen during' % len(gerekli))
+    yaz(u'this step; it is NOT stuck. The real measurement starts after this and each pair is saved separately.')
     nm = N.Numune(list(gerekli.values()), n=okuma_tavani, ilerle=ilerK, otorite=True)
     top_okuma = sum(h.n_okuma for h in nm.havuz.values())
     yaz(u'\nPools ready: %d bins, %d reads  (%s)' % (len(gerekli), top_okuma, sure_metni(time.time() - t0)))
     tahmin = len(ciftler) * 2 * max(1.0, top_okuma / 20000.0)
-    yaz('TAHMINI OLCUM SURESI: ~%s   (kesintiye dayaniklidir, ayni secenekle devam eder)'
+    yaz(u'ESTIMATED MEASUREMENT TIME: ~%s   (resumable; the same command continues)'
         % sure_metni(tahmin))
     yaz('')
 
@@ -516,11 +516,11 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         json.dump(r, open(kp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
         sonuc.append(r)
         gecen = time.time() - tb
-        print('        gecen %s | tahmini kalan %s'
+        print(u'        elapsed %s | estimated remaining %s'
               % (sure_metni(gecen), sure_metni(gecen / i * (len(ciftler) - i))), flush=True)
 
     yaz('')
-    yaz('Olcum bitti (%s). Ciktilar yaziliyor...' % sure_metni(time.time() - tb))
+    yaz(u'Measurement finished (%s). Writing outputs...' % sure_metni(time.time() - tb))
     raporla(CIKTI, sonuc, dict(uyelik=os.path.basename(uy_yol), okuma=okuma_tavani,
                                karisik=karisik_kural, panel=os.path.basename(panel_yolu)), yaz)
     rc = cikti_denetle(yaz, 'P (TEK PROTOKOL)', [
@@ -676,9 +676,9 @@ def raporla(CIKTI, sonuc, meta, yaz):
     # iki sayidan turer; yayimlanmasi butun karar kurallarini denetlenebilir kilar.
     yolk = os.path.join(CIKTI, 'kutu_bazli_ham_sayilar.tsv')
     with open(yolk, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# HAM SAYILAR - her verdikt bu iki sutundan turer.\n')
-        fh.write(u'# k = urun veren okuma, n = kutudaki okuma. oran = k/n.\n')
-        fh.write(u'# Wilson: uye tarafi ALT sinir, rakip tarafi UST sinir (z=1,96).\n')
+        fh.write(u'# RAW NUMBERS - every verdict is derived from these two columns.\n')
+        fh.write(u'# k = reads that gave a product, n = reads in the bin. ratio = k/n.\n')
+        fh.write(u'# Wilson: LOWER bound on the member side, UPPER bound on the competitor side (z=1.96).\n')
         fh.write(basli)
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'olcut_mm', 'kutu', 'grup', 'k', 'n', 'oran_%'])
@@ -701,7 +701,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
         (gecen if d == 'ESIK USTU' else kalan if d == 'ESIK ALTI' else olculemeyen).append(r)
     yol2 = os.path.join(CIKTI, 'SIPARIS_LISTESI.tsv')
     with open(yol2, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# TEK SIPARIS LISTESI - tek protokolle uretildi.\n')
+        fh.write(u'# SINGLE ORDER LIST - produced with one protocol.\n')
         fh.write(basli)
         # --- 2026-08-06: esik alti satirlar LISTEDEN CIKARILMAZ, siniflandirilir.
         _snf = {}
@@ -712,15 +712,15 @@ def raporla(CIKTI, sonuc, meta, yaz):
         _kos = [x for x in _snf.values() if x[0] == u'KOSULLU']
         _oner = [x for x in _snf.values() if x[0] == u'ONERILMEZ']
         fh.write(u'#\n')
-        fh.write(u'# ================  UC SAYI, AYRI AYRI  ================\n')
-        fh.write(u'#   KESIN     : %d cift = %d oligo   (dCq >= %.1f, ya da evrensel/kapsam)\n'
+        fh.write(u'# ================  THREE NUMBERS, SEPARATELY  ================\n')
+        fh.write(u'#   CERTAIN     : %d pairs = %d oligos   (dCq >= %.1f, or universal/coverage)\n'
                  % (len(_kesin), 2 * len(_kesin), _C.ESIK_DCQ))
-        fh.write(u'#   KOSULLU   : %d cift = %d oligo   (dCq %.1f-%.1f - siparis edilebilir AMA dogrulama sart)\n'
+        fh.write(u'#   CONDITIONAL : %d pairs = %d oligos   (dCq %.1f-%.1f - orderable BUT validation is required)\n'
                  % (len(_kos), 2 * len(_kos), _S.KOSULLU_ALT_DCQ, _C.ESIK_DCQ))
-        fh.write(u'#   ONERILMEZ : %d cift             (dCq < %.1f - listede kalir, gerekcesi yazili)\n'
+        fh.write(u'#   NOT ADVISED : %d pairs              (dCq < %.1f - stays on the list, with its reason written out)\n'
                  % (len(_oner), _S.KOSULLU_ALT_DCQ))
-        fh.write(u'# Esigi gecemeyen satir SESSIZCE SILINMEZ; karar sizindir.\n')
-        fh.write(u'# (arac sayimi: esik ustu %d, esik alti %d, olculemeyen %d)\n'
+        fh.write(u'# A row that fails the threshold is NEVER DELETED SILENTLY; the decision is yours.\n')
+        fh.write(u'# (tool counts: above threshold %d, below threshold %d, not measurable %d)\n'
                  % (len(gecen), len(kalan), len(olculemeyen)))
         fh.write(u'# "OLCUTE DUYARLI" isaretli satirlar mm<=1 de gecip mm<=3 te cokuyor - kirilgandir.\n')
         fh.write(u'#\n')
@@ -826,7 +826,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                  u'3. Ayrinti icin `panel_tek_protokol.tsv`.\n')
     yaz(u'  written: %s' % yol3)
     yaz('')
-    yaz('  ESIGI GECEN: %d cift (%d oligo)   ESIK ALTI: %d   OLCULEMEYEN: %d'
+    yaz(u'  PASSED THE THRESHOLD: %d pairs (%d oligos)   BELOW THRESHOLD: %d   NOT MEASURABLE: %d'
         % (len(gecen), 2 * len(gecen), len(kalan), len(olculemeyen)))
 
 
