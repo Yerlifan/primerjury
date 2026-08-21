@@ -37,7 +37,7 @@ ozet() {   # $1 = kok klasor, gerisi = desenler
 uret() {
   echo "# PrimerJury file manifest"
   echo "# uretildi: $(date '+%Y-%m-%d %H:%M:%S')"
-  echo "# BETIK bolumu iki tarafta BIREBIR AYNI olmali."
+  echo "# The SCRIPT section must be EXACTLY THE SAME on both sides."
   echo "[BETIK]"
   ozet "$HERE" '[0-9][0-9]_*.py' '[0-9][0-9]_*.sh' 'field_audit.py' \
        'alignment.py' 'run.sh' 'heavy_jobs.sh' 'sync.sh' \
@@ -65,7 +65,7 @@ if [ "$DOGRULA" = 1 ]; then
   ESKI_T=$(mktemp); YENI_T=$(mktemp)
   kes "$MANIFEST" | sort -k2 > "$ESKI_T"
   kes "$YENI"     | sort -k2 > "$YENI_T"
-  echo "=== BETIK bolumu karsilastirmasi ==="
+  echo "=== comparing the [BETIK] section ==="
   FARK=0
   # yalniz birinde olanlar
   comm -23 <(cut -d' ' -f3- "$ESKI_T" | sort) <(cut -d' ' -f3- "$YENI_T" | sort) \
@@ -82,6 +82,6 @@ fi
 uret | tee "$MANIFEST"
 echo
 echo "yazildi: $MANIFEST"
-echo "Bu dosyayi bana gonderin; ben kendi tarafimdaki ozetlerle karsilastirir,"
+echo "Send me this file; I will compare it against the digests on my side,"
 echo "If a file has diverged, this says which one and which side is newer."
 echo "For the next check: bash sync.sh --dogrula"

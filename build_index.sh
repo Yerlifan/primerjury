@@ -60,7 +60,7 @@ VARSAYILAN="SILVA_138.2_SSURef_NR99.fasta"   # argumansiz cagri = eski davranis
 # ---- --list / --yardim
 if [ "${1:-}" = "--list" ] || [ "${1:-}" = "-l" ]; then
   echo "REFERANS_DB icindeki indekslenebilir dosyalar:"
-  printf '%-42s %10s  %s\n' "DOSYA" "MB" "INDEKS"
+  printf '%-42s %10s  %s\n' "FILE" "MB" "INDEX"
   for f in "$DB"/*.fasta "$DB"/*.fna; do
     [ -f "$f" ] || continue
     printf '%-42s %10s  %s\n' "$(basename "$f")" \
@@ -231,20 +231,20 @@ else
   # --- Dogrulama 1: dosya boyu birebir ayni olmali (U->T tek bayt degisimi)
   E=$(stat -c%s "$FASTA"); Y=$(stat -c%s "$TMP")
   if [ "$E" -ne "$Y" ]; then
-    echo "HATA: boyut uyusmuyor (eski=$E yeni=$Y). Degisiklik yapilmadi."; rm -f "$TMP"; exit 1
+    echo "ERROR: the size does not match (old=$E new=$Y). Nothing was changed."; rm -f "$TMP"; exit 1
   fi
   yaz "  OK  boyut ayni: $E bayt"
 
   # --- Dogrulama 2: baslik sayisi degismemis olmali
   BE=$(grep -c '^>' "$FASTA"); BY=$(grep -c '^>' "$TMP")
   if [ "$BE" -ne "$BY" ]; then
-    echo "HATA: baslik sayisi uyusmuyor ($BE vs $BY)."; rm -f "$TMP"; exit 1
+    echo "ERROR: the header count does not match ($BE vs $BY)."; rm -f "$TMP"; exit 1
   fi
   yaz "  OK  baslik sayisi ayni: $BE"
 
   # --- Dogrulama 3: basliklar bayt-bayt korunmus olmali
   if ! diff -q <(grep '^>' "$FASTA") <(grep '^>' "$TMP") >/dev/null; then
-    echo "HATA: basliklar degismis! Degisiklik yapilmadi."; rm -f "$TMP"; exit 1
+    echo "ERROR: the headers changed. Nothing was changed."; rm -f "$TMP"; exit 1
   fi
   yaz "  OK  basliklar birebir korundu"
 

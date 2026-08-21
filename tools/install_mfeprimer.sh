@@ -95,7 +95,7 @@ if [ -z "$SEC" ]; then
   echo "ERROR: no Linux amd64 asset was found. Pick the right file from the list above,"
   echo "download it by hand, then do these two steps:"
   echo "  chmod +x <file> && mv <file> \"$HEDEF\""
-  echo "  \"$HEDEF\" --version    # ciktida 'mfeprimer' gecmeli"
+  echo "  \"$HEDEF\" --version    # the output must mention 'mfeprimer'"
   exit 1
 fi
 
@@ -149,9 +149,9 @@ if [ -z "$BULUNAN" ]; then
   echo
   echo "ERROR: not one of the downloaded files identified itself as MFEprimer."
   echo "This is the same failure seen before, and it must not pass silently."
-  echo "Indirilenler: $GECICI"
-  find "$GECICI" -type f -size +1M -printf "  %p  %s bayt\n" 2>/dev/null
-  echo "Dosya turleri:"; find "$GECICI" -type f -size +1M -exec file {} \; 2>/dev/null | head
+  echo "Downloaded: $GECICI"
+  find "$GECICI" -type f -size +1M -printf "  %p  %s bytes\n" 2>/dev/null
+  echo "File types:"; find "$GECICI" -type f -size +1M -exec file {} \; 2>/dev/null | head
   exit 1
 fi
 
@@ -159,8 +159,8 @@ mkdir -p "$PROJE/tools"
 cp "$BULUNAN" "$HEDEF"
 chmod +x "$HEDEF"
 echo
-echo "kuruldu: $HEDEF"
-echo "kimlik : $("$HEDEF" --version 2>&1 | head -1)"
+echo "installed: $HEDEF"
+echo "identity : $("$HEDEF" --version 2>&1 | head -1)"
 echo
 echo "verification/mfeprimer_layer.py finds this file on its own, as tools/mfeprimer."
 echo "Note: tools/linux-x64 is NOT MFEprimer. It need not be deleted, but it is not used."
