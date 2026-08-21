@@ -1176,7 +1176,7 @@ def main():
         except EOFError:
             c = u''
         if c.upper() not in (u'E', u'EVET'):
-            yaz(u'  Vazgecildi, hicbir sey kosulmadi.')
+            yaz(u'  Abandoned, nothing was run.')
             gunluk.close()
             return 0
 
@@ -1207,7 +1207,7 @@ def main():
                 durum[kod] = dict(durum='bitti', sure=0, cikis=0,
                                   imza=girdi_imzasi(kok, a), sebep=a['_sebep'],
                                   zaman=time.strftime('%Y-%m-%d %H:%M'))
-            yaz(u'\n>> %s  %s\n   ATLANDI - %s' % (kod, a['ad'], a['_sebep']))
+            yaz(u'\n>> %s  %s\n   SKIPPED - %s' % (kod, a['ad'], a['_sebep']))
             kaydet()
             continue
 
@@ -1221,7 +1221,7 @@ def main():
                                     u'onun ciktisini GIRDI olarak kullaniyor; bos '
                                     u'girdiyle kosmak inandirici ama anlamsiz bir '
                                     u'sonuc uretirdi.' % u', '.join(engel))
-            yaz(u'\n>> %s  %s\n   ATLANDI (bagimli) - %s'
+            yaz(u'\n>> %s  %s\n   SKIPPED (it depends on another stage) - %s'
                 % (kod, a['ad'], durum[kod]['sebep']))
             kaydet()
             continue
@@ -1287,7 +1287,7 @@ def main():
             durum[kod] = dict(durum='bitti', sure=sure, cikis=rc, sebep=mesaj,
                               uyarili=uyarili, imza=girdi_imzasi(kok, a),
                               zaman=time.strftime('%Y-%m-%d %H:%M'))
-            yaz(u'   << %s BITTI (%s) - %s' % (kod, sn_metni(sure), mesaj))
+            yaz(u'   << %s FINISHED (%s) - %s' % (kod, sn_metni(sure), mesaj))
         kaydet()
 
     ozet = ozet_yaz(kok, sec, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yolu)
@@ -1302,7 +1302,7 @@ def main():
         if atlanan_b:
             yaz(u'   Not run because they depend on it: %s' % u', '.join(atlanan_b))
     else:
-        yaz(u'  BUTUN ASAMALAR BASARILI.')
+        yaz(u'  EVERY STAGE SUCCEEDED.')
     yaz(u'  Total elapsed time: %s' % sn_metni(time.time() - baslangic))
     yaz(u'')
     yaz(u'  LOOK AT THIS FIRST : %s' % os.path.relpath(ozet, kok).replace('\\', '/'))

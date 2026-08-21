@@ -1544,7 +1544,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
         % (kl_ust, sure_metni(_hiz_cift)))
     yaz(u'  (average query %d bp); total alignment cost ~%s.'
         % (int(_oq), sure_metni(_cift * _hiz_cift)))
-    yaz(u'  2026-08-05: liste 1000 -> %d GERI indirildi. Siralama olcutu ters'
+    yaz(u'  2026-08-05: the list was brought BACK DOWN from 1000 to %d. The ordering criterion is the reverse'
         % kl_ust)
     yaz(u'  frekans + uzunluk normalizasyonuna gecti; olculen en kotu kazanan sirasi')
     yaz(u'  35, so there is %d-fold headroom. The saving is ~%s (measured: with 1000'
@@ -1637,7 +1637,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                             onbellek = None
                     if onbellek and str(onbellek.get('durum', '')).startswith('TAMAM'):
                         bulgular[NT_ETIKET] = onbellek
-                        yaz(u'     NCBI nt: onceki kosudan alindi')
+                        yaz(u'     NCBI nt: taken from the previous run')
                     else:
                         # O-3: ag hatasi SONUC DEGILDIR - onbelleklenmez, her
                         # kosuda yeniden denenir. Yoksa tek Wi-Fi kesintisi
@@ -1886,7 +1886,7 @@ def raporla(CIKTI, sonuc, var, yaz):
     r = os.path.join(CIKTI, 'KIMLIK_DOGRULAMA_RAPORU.md')
     with open(r, 'w', encoding='utf-8') as fh:
         fh.write(u'# Independent verification of identity claims\n\n')
-        fh.write(u'Uretim: %s · betik %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
+        fh.write(u'Generated: %s, script %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         fh.write(u'Local databases used (%d): %s\n\n'
                  % (len(var), ', '.join(e for e, _, _ in var)))
         fh.write(u'Additionally **NCBI nt** is queried as a separate layer. All the local sets are specific to particular loci (S')
@@ -1922,9 +1922,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                      % (SIRA_UYARI_ESIGI, n400, len(siralar)))
             fh.write(u'| winner entered via the "expected taxon guarantee" | %d queries |\n\n' % gar)
             if n400:
-                fh.write(u'> **UYARI.** %d sorguda kazanan %d. siranin otesinden geldi. '
-                         u'Kesme noktasi hala baglayici olabilir; `--kisa-liste` degerini '
-                         u'buyutup (orn. %d) tekrarlayin.\n\n'
+                fh.write(u'> **WARNING.** In %d queries the winner came from beyond position %d. The cut off may still be binding; raise `--kisa-liste` (to %d, say) and repeat'
                          % (n400, SIRA_UYARI_ESIGI, boy * 2))
             elif n100:
                 fh.write(u'> %d of the winners came from outside the first %d, which means **the old list of 60 WOULD HAVE MISSED those hits**. All of them'
@@ -1978,9 +1976,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                                  % (e, v['durum'], v['en_iyi'] or '-',
                                     '-' if v.get('kimlik') is None else '%%%s' % vir(v['kimlik']),
                                     _ks))
-                    fh.write(u'\n  > *Kazanan sira*: en yuksek kimligi veren kaydin kisa '
-                             u'listedeki TOHUM sirasi. Kucuk sayilar kesme noktasinin '
-                             u'baglayici olmadigini gosterir.\n\n')
+                    fh.write(u'\n  > *Winning position*: the SEED position, in the short list, of the record that gave the highest identity. Small numbers show that the cut off is not binding.\n\n')
                 if s['dogru_ifade']:
                     fh.write(u'- **DOGRU IFADE:** %s\n' % s['dogru_ifade'])
                 ae = {k: v for k, v in (s.get('ayirt_edici') or {}).items() if v}

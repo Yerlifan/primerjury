@@ -382,7 +382,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
             # Eski imzali kuresel_tarama (siniflandirici parametresi yok).
             # Bu SESSIZ bir dususe donusmemeli: taksonomik ayrim yapilmadigi
             # raporda acikca gorunur ('2_klad_ayrimi' sutunu HAYIR olur).
-            yaz(u'  UYARI: kuresel_tarama eski imzali - taksonomik ayrim YOK')
+            yaz(u'  WARNING: kuresel_tarama has the old signature, so there is NO taxonomic separation')
             res = KT.tara(adaylar, db=db, durum_yolu=dy)
         for h, r in res.items():
             if r.get('hata'):
@@ -728,7 +728,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
         if _ent_c:
             p['ENTREZ_QUERY'] = _ent_c
             if ad in HARITA:
-                yaz(u'  [%s] kendi taksonu dislandi: txid%s' % (ad[:40], HARITA[ad]))
+                yaz(u'  [%s] its own taxon was excluded: txid%s' % (ad[:40], HARITA[ad]))
         # ORGANISM dict'e KONULMAZ: coklu organizma TEKRARLANAN alan demektir ve
         # bir dict tek anahtar tutar. Ikili listesi olarak eklenir.
         alanlar = list(p.items()) + [('ORGANISM', o) for o in orgs]
@@ -783,7 +783,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                 out[ad] = dict(durum='BASARISIZ',
                                not_=u'NCBI isi %d yoklamada bitmedi (hala kuyrukta). '
                                     u'Sonuc BILINMIYOR - temiz sayilmadi.' % tur_ust)
-                yaz(u'  [%s] NCBI: is bitmedi (kuyruk). ELLE yola dusun.' % ad)
+                yaz(u'  [%s] NCBI: the job did not finish (queued). Fall back to the manual route.' % ad)
                 continue
             n = len(re.findall(r'product length\s*=\s*\d+', son, re.I))
             hedefsiz = bool(re.search(r'no significant|not find any target', son, re.I))
@@ -903,7 +903,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                 % (ad, n_unint, n_target, u' (no organism restriction)' if _kusur else u''))
         except Exception as e:
             out[ad] = dict(durum='BASARISIZ', not_=u'%s: %s' % (type(e).__name__, e))
-            yaz(u'  [%s] NCBI BASARISIZ (%s) - elle yola dusun' % (ad, type(e).__name__))
+            yaz(u'  [%s] NCBI FAILED (%s), fall back to the manual route' % (ad, type(e).__name__))
     return out
 
 
@@ -1385,7 +1385,7 @@ def raporla(cikti, satirlar, yaz):
         ayrinti.setdefault(kg, {})
         ayrinti[kg][s['karar']] = ayrinti[kg].get(s['karar'], 0) + 1
     with open(r, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Dogrulama turu\n\nUretim: %s · betik %s\n\n'
+        fh.write(u'# Verification round\n\nGenerated: %s, script %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         if VURUS_ESIGI != 0:
             fh.write(u'> **WARNING: the hit threshold is not the default.** This run used `PT_VURUS_ESIGI=%d` (the default is 0). Before ordering' % VURUS_ESIGI)
@@ -1597,12 +1597,12 @@ def main():
             1 for x in open(kyol_, encoding='utf-8') if x.strip() and not x.startswith('#')) <= 1:
         yaz('')
         yaz('  ' + '!' * 70)
-        yaz(u'  D ASAMASI CALISTIRILMADI - GIRDI BOS')
+        yaz(u'  STAGE D WAS NOT RUN - THE INPUT IS EMPTY')
         yaz(u'  Cause: stage K (recovery) produced no rows at all, so')
         yaz(u'  NO pairs to verify. This is NOT a failure of D; it is a knock-on from K,')
         yaz(u'  falling is a KNOCK-ON effect of that.')
         yaz(u'  What to do: first find out why stage K produced no rows.')
-        yaz(u'  D kendi basina saglamdir - elle hazirlanmis girdiyle sinandi.')
+        yaz(u'  D is sound on its own; it was tested with a hand prepared input.')
         yaz('  ' + '!' * 70)
         g.close()
         return 7           # 7 = ARDISIK COKUS (girdi bos), 5 = kendi girdisi eksik
@@ -1700,7 +1700,7 @@ def main():
         ncbi = ncbi_yukle(a.ncbi_yukle, yaz)
         yaz(u'  %d rows loaded' % len(ncbi))
     elif a.yalniz_yerel or a.ncbi == 'yok':
-        yaz(u'--- KATMAN 4: NCBI ATLANDI (istek uzerine) ---')
+        yaz(u'--- LAYER 4: NCBI SKIPPED (by request) ---')
     elif a.ncbi == 'oto':
         yaz(u'--- KATMAN 4: NCBI OTOMATIK (URL API) ---')
         yaz(u'  Not: blastn -remote KULLANILMIYOR (45 sn tavanini asiyor).')

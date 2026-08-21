@@ -101,7 +101,7 @@ def main():
         etiket = re.sub(r"_(ref|self)_konsensus\.fasta$", "", os.path.basename(f))
         m = re.match(r"((?:A1|A2|B|F1|F2)-\d+)_(\d+)$", etiket)
         if not m:
-            print("   ATLANDI, etiket cozulemedi: %s" % etiket)
+            print(u'   SKIPPED, the label could not be resolved: %s' % etiket)
             continue
         grp, taxid = m.group(1), m.group(2)
         ref = oku_fasta(f)
@@ -131,7 +131,7 @@ def main():
         except RuntimeError as e:
             sys.exit(str(e))
         if not A:
-            print("   ATLANDI, indeks kurulamadi: %s" % etiket)
+            print(u'   SKIPPED, the index could not be built: %s' % etiket)
             continue
         say = [[0, 0, 0, 0] for _ in cekirdek]
         okumalar = {}
@@ -234,8 +234,7 @@ def main():
                          dusuk_derinlik=dusuk, belirsiz_cogunluk=belirsiz,
                          kirpma_bas=bas + 1, kirpma_son=son,
                          girdideki_ic_N=ic_n))
-        print("   %-26s okuma=%5d hizalanan=%5d uzunluk=%5d kapsanan=%5d "
-              "dusuk_derinlik=%4d belirsiz=%4d"
+        print(u'   %-26s reads=%5d aligned=%5d length=%5d covered=%5d low_depth=%4d ambiguous=%4d'
               % (etiket, n, hiz, len(dizi), kaps, dusuk, belirsiz))
     if ozet:
         with open(os.path.join(a.out, "ozet.tsv"), "w", newline="",

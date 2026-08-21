@@ -75,7 +75,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
         yaz('  ' + _x)
     if not _ok:
         yaz('')
-        yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
+        yaz(u'  *** INPUT VERIFICATION FAILED - THIS STAGE WAS NOT STARTED ***')
         yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
         yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
         yaz(u'  so the whole run would silently produce a wrong result.')
@@ -89,15 +89,15 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
         panel = [d for d in panel if yalniz.lower() in d['hedef'].lower()]
 
     yaz('=' * 78)
-    yaz('  PANELIN DUZELTILMIS MOTORLA YENIDEN OLCUMU')
+    yaz(u'  RE-MEASURING THE PANEL WITH THE CORRECTED ENGINE')
     yaz('=' * 78)
     yaz(u'  pairs         : %d' % len(panel))
-    yaz('  okuma derinligi: %s' % ('TAM (kutudaki butun okumalar)' if not okuma_sayisi
+    yaz(u'  read depth: %s' % (u'FULL (every read in the bin)' if not okuma_sayisi
                                    else u'%d reads/bin' % okuma_sayisi))
     yaz('  olcutler      : ' + '  |  '.join(olcut_metni(m) for m in OLCUTLER))
     yaz('  motor         : screening/read_engine.py %s'
         % getattr(motor.okuma_motoru, '__version__', '?'))
-    yaz('                  guvercin yuvasi tohumlamasi - KAYIPSIZ, brute_force.py ile')
+    yaz(u'                  pigeonhole seeding - LOSSLESS, verified against brute_force.py')
     yaz('                  birebir dogrulanmis. reads.py/Sonda KULLANILMIYOR.')
     yaz('')
 
@@ -143,7 +143,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
                 if not kontrol.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 sonuclar.append(json.load(open(kp, encoding='utf-8')))
-                yaz('[%d/%d] %-38s  (onceki kosudan alindi)' % (i, len(panel), d['hedef'][:38]))
+                yaz(u'[%d/%d] %-38s  (taken from the previous run)' % (i, len(panel), d['hedef'][:38]))
                 continue
             except Exception:
                 pass   # bayat/bozuk: silmeye calisma, uzerine yazilacak
@@ -210,7 +210,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     yollar = rapor_yaz(hepsi or sonuclar, panel_yolu, top_okuma, okuma_sayisi)
     yaz('')
     yaz('=' * 78)
-    yaz('  YENIDEN OLCUM BITTI (%s)' % sure(time.time() - t0))
+    yaz(u'  RE-MEASUREMENT FINISHED (%s)' % sure(time.time() - t0))
     for p in yollar:
         yaz('    %s' % p)
     yaz('=' * 78)

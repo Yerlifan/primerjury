@@ -417,7 +417,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         yaz('  ' + _x)
     if not _ok:
         yaz('')
-        yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
+        yaz(u'  *** INPUT VERIFICATION FAILED - THIS STAGE WAS NOT STARTED ***')
         yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
         yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
         yaz(u'  so the whole run would silently produce a wrong result.')
@@ -498,7 +498,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
             kontrol.yaz(d['hedef'], s)
             rapor.uret(kontrol.hepsi(), panel, panel_yolu, lambda *x: None)
         except KeyboardInterrupt:
-            yaz('\n\nKULLANICI DURDURDU. Biten hedefler kayitli; (3) ile devam edin.')
+            yaz(u'\n\nSTOPPED BY THE USER. The finished targets are saved; continue with (3).')
             break
         except Exception:
             yaz(u'\n  ERROR (%s) - this target was skipped, the others continue:' % d['hedef'])
@@ -551,7 +551,7 @@ def main(argv=None):
                 print('   %-46s %s' % (d['hedef'][:46],
                                        '<- sorunlu' if d['hedef'] in sor else ''))
         except Exception as e:
-            print('Hedef listesi okunamadi:', e)
+            print(u'The target list could not be read:', e)
         return 0
 
     kontrol.ayar_kur(okuma=a.okuma, hafif=bool(a.hafif),
@@ -579,7 +579,7 @@ def main(argv=None):
     if a.mod == 'uyelik':
         from . import membership_check
         if not a.sinama_atla and not kendini_sina.calistir(yaz):
-            yaz('\nKENDINI SINAMA BASARISIZ - denetim baslatilmadi.')
+            yaz(u'\nTHE SELF TEST FAILED - the audit was not started.')
             return 2
         uyelik_denetimi.calistir(yaz, sure,
                                  okuma_sayisi=(a.okuma or C.NUMUNE_OKUMA_SAYISI),

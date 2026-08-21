@@ -119,8 +119,8 @@ def main():
     ciftler = oku(kok, tmk)
     print('=' * 78)
     print('  PLAKA ATAMASI ONERISI   %s' % time.strftime('%Y-%m-%d %H:%M'))
-    print('  Tm kaynagi: %s' % (u'panelin kendi motoru (geometry_core.py)' if tmk
-                                else u'TABLO (%s) - dikkat, tablo degeri bayat olabilir' % uyari))
+    print('  Tm kaynagi: %s' % (u'the panel\'s own engine (geometry_core.py)' if tmk
+                                else u'TABLE (%s) - careful, the table value can be stale' % uyari))
     print('=' * 78)
     if not ciftler:
         print(u'  the pair could not be read.')
@@ -147,7 +147,7 @@ def main():
         print(u'    plate %-3s Ta %-4s  %d pairs, %d clashes' % (g[0], g[1], len(uy), n))
         for a1, u1, a2, u2 in ay:
             print('        %s (%d) / %s (%d)' % (a1, u1, a2, u2))
-    print('    TOPLAM CAKISMA: %d' % top)
+    print(u'    TOTAL CLASHES: %d' % top)
 
     # her cift hangi gruplarda kosabilir
     izin = {}
@@ -199,7 +199,7 @@ def main():
                          eniyi[c['hedef']][0], eniyi[c['hedef']][1]))
     else:
         print(u'  Under the current Ta constraints no distribution that reduces the clashes')
-        print('  BULUNAMADI (%d deneme). Secenekler:' % a.deneme)
+        print(u'  NOT FOUND (%d attempts). The options are:' % a.deneme)
         print('    - cakismayi kabul edip RAPORDA gerekcesiyle yazmak')
         print(u'      (qPCR separation is done with the melt curve; the gel is a secondary check)')
         print(u'    - redesign one of the clashing pairs and shift its product length')

@@ -489,7 +489,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                         yaz(u'  WARNING: the %s checkpoint was written with an OLD settings seal (missing: %s). It was accepted because the shared keys match'
                             % (c['hedef'][:40], ', '.join(sorted(set(AYAR) - set(_e))) or '-'))
                     sonuc.append(v)
-                    yaz('[%2d/%2d] %-46s  (onceki kosudan alindi)' % (i, len(ciftler), c['hedef'][:46]))
+                    yaz(u'[%2d/%2d] %-46s  (taken from the previous run)' % (i, len(ciftler), c['hedef'][:46]))
                     continue
             except Exception:
                 pass
@@ -497,7 +497,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         r = dict(c); r['_ayar'] = _ayar_of(c); r['olcum'] = {}
         if not b or not b['uye']:
             r['hata'] = 'uyelik yok ya da uye kutu bulunamadi'
-            yaz('[%2d/%2d] %-46s  ATLANDI (%s)' % (i, len(ciftler), c['hedef'][:46], r['hata']))
+            yaz(u'[%2d/%2d] %-46s  SKIPPED (%s)' % (i, len(ciftler), c['hedef'][:46], r['hata']))
         else:
             for mm in (PROTOKOL['olcut_asil'], PROTOKOL['olcut_yan']):
                 o = nm.olc(c['F'], c['R'], b['uye'], b['rakip'],
@@ -727,7 +727,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'#   (CALISMA_KAYDI §1.7, hosgoru 1-2). O yuzden ayri sutunda:\n')
         fh.write(u'#   TOPLANTI_OLCUTU_capraz_kutu = how many competitor bins give >=%%%d product.\n'
                  % int(TOPLANTI_CAPRAZ_TABAN))
-        fh.write(u'#   Iki olcut birbirinin yerine GECMEZ.\n')
+        fh.write(u'#   The two criteria DO NOT STAND IN for one another.\n')
         fh.write(u'# dCq_karsiligi: laboratuvarin konustugu birim. dCq = log2(kat),\n')
         fh.write(u'#   %%100 verim varsayimiyla. 10x = 3,32 dongu. Literaturde ozgulluk\n')
         fh.write(u'#   gecme olcutu dCq >= 3 (NEB). Gercek verim olculunce duzeltilmeli.\n')
@@ -800,7 +800,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
     yol3 = os.path.join(CIKTI, 'PROTOKOL_VE_RAPOR.md')
     with open(yol3, 'w', encoding='utf-8') as fh:
         fh.write(u'# Tek protokolle panel olcumu\n\n')
-        fh.write(u'Uretim: %s · betik surumu %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
+        fh.write(u'Generated: %s, script version %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         fh.write(u'## Sonuc\n\n')
         fh.write(u'- Pairs PASSING the threshold (%.0fx): **%d** -> **%d oligos**\n' % (E, len(gecen), 2 * len(gecen)))
         fh.write(u'- Pairs BELOW the threshold: **%d**\n' % len(kalan))
