@@ -1,72 +1,70 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-NUMUNE ICI IN SILICO PCR  (surum 3)
+IN-SILICO PCR INSIDE THE SAMPLE  (version 3)
 
-NE YAPAR
-Elimizdeki nanopore okumalarini gercek bir PCR kalibi gibi kullanir. Her primer cifti
-icin, numunedeki her organizmanin okumalarinda urun olusup olusmadigini sayar. Hedefte
-yuksek, rakiplerde sifira yakin olmasi beklenir. Karar rakip oranina gore verilir.
+WHAT IT DOES
+It uses the nanopore reads we have as if they were a real PCR template. For every
+primer pair it counts whether a product forms in the reads of every organism in
+the sample. It is expected to be high on the target and near zero in competitors.
+The decision is made on the competitor ratio.
 
-NEDEN UC SURUM OLDU, HER SURUMDE NE YANLISTI
-Bu dosyanin gecmisi, ayni sorunun uc farkli sekilde yanlis cozulmesidir. Uc hatanin
-UCU DE ayni yone calisiyordu ya da en tehlikeli yone: kotu bir primeri temiz gostermek.
+WHY THERE WERE THREE VERSIONS, AND WHAT WAS WRONG IN EACH
+  Version 1 counted a BLAST hit as a binding. blastn-short reports a local
+    alignment; whether the primer's 3' end is inside it is not asked. So a hit
+    covering only the middle of the primer counted as a binding, and the numbers
+    came out too high.
 
-  Surum 0, elle yazilmis eslestirme
-    Primerin son sekiz bazinin BIREBIR eslesmesi tohum olarak araniyordu. Rakipte o sekiz
-    bazin icinde tek bir fark varsa arama o bolgeyi hic gormuyordu. Gercek capraz
-    reaksiyonlar kaciriliyordu.
-
-  Surum 1, blastn'e devir
-    Eslestirme blastn'e verildi ama karar kurallari eksik yazildi. Uc ucun hedefe uymasi
-    HIC kontrol edilmiyordu, benzerlik yuzdesi okunup kullanilmiyordu, iki primerin
-    birbirine bakmasi aranmiyordu. Bu sefer ters yone hata yapiliyordu: olmayan capraz
-    reaksiyonlar var gorunuyor, iyi primerler eleniyordu.
-
-  Surum 2, fiziksel kurallar eklendi ama BLAST'in davranisi hesaba katilmadi
-    Kural olarak "hizalama primerin 3' ucunu icermeli" kondu. Ama blastn-short en yuksek
-    PUANLI hizalamayi bildirir, hizalamanin tamamini degil. Uyumsuzluga eksi uc, uyuma
-    arti bir puan verir. Primerin sondan ucuncu bazinda bir uyumsuzluk varsa, son uc bazi
-    hizalamaya katmak puani dusurur, BLAST da onlari atar ve q1-17 diye bildirir.
-    Gercek durum: son iki baz tam uyuyor, ortada tek fark var, primer baglanir ve uzar.
-    Kod ise "3' uc hizalamada yok" deyip baglanmayi yok sayiyordu.
-    Ornek, Podospora cifti kendi hedefinde:
-        okuma  ACTCGTCGAAGGAGCTTTAC
+  Version 2 added the physical rules but did not account for BLAST's behaviour.
+    The rule "the alignment must include the primer's 3' end" was added. But
+    blastn-short reports the HIGHEST SCORING alignment, not the whole alignment.
+    It gives minus three for a mismatch and plus one for a match. If there is a
+    mismatch at the third base from the end, including the last three bases lowers
+    the score, so BLAST drops them and reports q1-17.
+    The real situation: the last two bases match exactly, there is a single
+    difference in the middle, and the primer binds and extends.
+    The code said "the 3' end is not in the alignment" and ignored the binding.
+    An example, the Podospora pair on its own target:
+        read   ACTCGTCGAAGGAGCTTTAC
         primer ACTCGTCGAAGGAGCTTCAC
-    BLAST bunu q1-17 bildirdi, surum 2 "baglanma yok" dedi. Yanlis.
+    BLAST reported this as q1-17 and version 2 said "no binding". Wrong.
 
-SURUM 3'UN COZUMU, KABA KUVVET
-Veritabanimiz 23.6 milyon baz. BLAST'in var olma sebebi milyarlarca bazlik veritabanlarinda
-kaba kuvvetten kacinmaktir; bu olcekte boyle bir zorunluluk yok. Bu yuzden artik her okuma
-uzerinde HER pozisyon tek tek denenir. Tohum yok, puanlama yok, kirpma yok, kacirma yok.
-Karsilastirma numpy ile vektorel yapildigi icin butun numune yaklasik yarim dakikada taranir.
-blastn ayri bir gorusu olarak korunur (--blast secenegi) ama karar vermez.
+VERSION 3'S ANSWER: BRUTE FORCE
+Our database is 23.6 million bases. BLAST exists to avoid brute force on databases
+of billions of bases; at this scale there is no such necessity. So EVERY position
+on every read is now tried one at a time. No seed, no scoring, no truncation, no
+misses. Because the comparison is vectorised with numpy, the whole sample is
+scanned in about half a minute. blastn is kept as a separate opinion (the --blast
+option) but it does not decide.
 
-URUN KURALI, PCR'in fizigi
-  Her primer icin
-    a. son iki baz hedefe birebir uymali (uzama oradan baslar)
-    b. son bes bazda en fazla bir uyumsuzluk
-    c. primerin tamaminda en fazla uc uyumsuzluk
-  Iki primer birlikte
-    d. biri arti zincire, digeri eksi zincire baglanmali
-    e. 3' uclari BIRBIRINE bakmali
-    f. aradaki mesafe urun araliginda olmali
+THE PRODUCT RULE, the physics of PCR
+  For each primer
+    a. the last two bases must match the target exactly (extension starts there)
+    b. at most one mismatch in the last five bases
+    c. at most three mismatches over the whole primer
+  For the two primers together
+    d. one must bind the plus strand and the other the minus strand
+    e. their 3' ends must FACE ONE ANOTHER
+    f. the distance between them must be inside the product range
 
-KARAR
-Oranlar okuma sayisina bolunerek bulunur ama ham oran kucuk orneklemde yaniltir: on yedi
-okumasi olan bir taksonda tek okuma yuzde alti eder. Bu yuzden kararda Wilson alt siniri
-kullanilir, yani oranin istatistiksel olarak guvenilen en dusuk degeri.
-Iki ayri eksen raporlanir:
-  CAPRAZ   rakiplerde urun olusuyor mu
-  KAPSAMA  hedeflenen organizmalarin hepsinde urun olusuyor mu
-Kapsama degerlendirilirken her taksonun "ulasilabilirligi" kendi verisinden olculur: o
-takson herhangi bir primer ciftiyle yuksek oran veriyorsa, okumalari saglamdir; ayni
-taksonda baska bir cift dusuk oran veriyorsa bu okuma eksikligi degil, o ciftin hatasidir.
+THE DECISION
+The ratios are found by dividing by the read count, but a raw ratio misleads on a
+small sample: in a taxon with seventeen reads, one read is six percent. So the
+Wilson lower bound is used in the decision, that is, the lowest value of the ratio
+that is statistically defensible.
+Two separate axes are reported:
+  CROSS REACTION  does a product form in the competitors
+  COVERAGE        does a product form in all of the targeted organisms
+When coverage is evaluated, each taxon's "reachability" is measured from its own
+data: if that taxon gives a high ratio with any primer pair, its reads are sound;
+if another pair gives a low ratio in the same taxon, that is not a shortage of
+reads but a fault of that pair.
 
-Calistirma:
+Run:
   python3 blast_ispcr.py --root /path/to/project
-  python3 blast_ispcr.py --selftest      (butun kurallarin bilinen cevapli sinavi)
+  python3 blast_ispcr.py --selftest      (a known-answer test of every rule)
   python3 blast_ispcr.py --root ... --blast   (a second opinion via blastn, slow)
+
 """
 import argparse, csv, glob, math, os, random, re, shutil, statistics, subprocess, sys, tempfile, time
 from collections import defaultdict
@@ -89,10 +87,10 @@ def log(m):
 def arac_var(ad): return shutil.which(ad) is not None
 def guvenli(ad): return re.sub(r"[^A-Za-z0-9]+", "_", ad).strip("_")
 
-AYIRAC = 0          # okumalar arasina konan, hicbir baza esit olmayan bayt
+AYIRAC = 0          # a byte placed between reads that equals no base
 
-# Hangi primer ciftinin hedefi hangi taksondur. Liste verilenler grup primeridir,
-# listedeki HER uyede urun beklenir.
+# Which taxon each primer pair targets. Where a list is given, that is a group
+# primer and a product is expected in EVERY member of the list.
 HEDEF_TAXID = {
     "AD01_mazei":              ["2209"],
     "AD01b_Mmazei_tur":        ["2209"],
@@ -113,16 +111,18 @@ HEDEF_TAXID = {
     "Dysgonomonadaceae_ailesi":   ["2829812","1642647","1642646","285070"],
     "Bacteroidaceae_ailesi":      ["818","28116"],
     "Asetoklastik_metanojenler_asetattan_metan": ["2209","2208","2210","3078083","1434102","2223"],
-    # 224719 (Methanobrevibacter sp. AbM4) 28 Temmuz'da eklendi. Numunede 4723 okuma,
-    # tartismasiz H2/CO2 metanojeni, ama uye listesinde yoktu; grup bu yuzden eksik
-    # bir soruya "tam kapsama" cevabi veriyordu. tasarim asamasiyla ayni olmali.
+    # 224719 (Methanobrevibacter sp. AbM4) was added on 28 July. It has 4723 reads in
+    # the sample and is an unarguable H2/CO2 methanogen, but it was not in the member
+    # list; the group was therefore answering "full coverage" to an incomplete question.
+    # It must match the design stage.
     "Hidrojenotrofik_metanojenler_H2_CO2_den_metan": ["118126","83986","394967","2201","83984","224719"],
     "Metilotrofik_metanojen_metil_bilesiklerinden_metan": ["1406512"],
     "Sakarolitik_bakteriler_seker_parcalayan": ["818","28116","214856"],
     "Podospora_pseudopauciseta": ["2093780"],
-    # 28 Temmuz'da eklendi. Toplantinin "proteolitik / sintrofik" talebinin numunedeki
-    # karsiligi. Iki ayri filum, tek ciftle kapsanmasi beklenmiyor; olcum bunu
-    # soylesin diye grup TANIMLI hale getirildi. tasarim asamasiyla ayni olmali.
+    # Added on 28 July. The sample's counterpart to the meeting's "proteolytic /
+    # syntrophic" request. Two separate phyla, not expected to be covered by one pair;
+    # the group was DEFINED so that the measurement could say so. It must match the
+    # design stage.
     "Proteolitik_sintrofik_bakteriler": ["456827","1197717"],
 }
 
@@ -152,7 +152,10 @@ def isim(tx): return ISIMLER.get(tx, f"taxid {tx}")
 
 # ------------------------------------------------------------------ veri yukleme
 def okumalari_yukle(kok, okuma_basina=300, en_az_uzunluk=300):
-    """Her taksondan sabit sayida okuma alir. Ayni tohum kullanildigi icin tekrarlanabilir."""
+    """Takes a fixed number of reads from each taxon. Reproducible, because the same seed
+        is used.
+
+    """
     dosyalar = defaultdict(list)
     for p in glob.glob(f"{kok}/SONUCLAR/fastq files/*/*reads_*.fastq"):
         m = re.search(r"reads_(\d+)\.fastq$", os.path.basename(p))
@@ -175,9 +178,10 @@ def okumalari_yukle(kok, okuma_basina=300, en_az_uzunluk=300):
 
 def primerleri_oku(yollar):
     """
-    Iki dosya bicimini de okur:
-      A) 'Oligo adi' / 'Dizi 5-3' sutunlari, isim sonu _F ve _R  (siparis listeleri)
-      B) 'grup' / 'F' / 'R' sutunlari                            (grup ve universal listesi)
+        It reads both file formats:
+          A) 'Oligo adi' / 'Dizi 5-3' columns, names ending _F and _R  (the order lists)
+          B) 'grup' / 'F' / 'R' columns                              (the group and universal list)
+
     """
     ciftler = {}
     for yol in yollar:
@@ -207,10 +211,11 @@ def primerleri_oku(yollar):
 # ------------------------------------------------------------------ kaba kuvvet tarama
 def kalip_kur(okumalar_listesi, en_uzun_primer):
     """
-    Butun okumalari tek bir bayt dizisine ekler, aralarina hicbir baza esit olmayan
-    ayiraclar koyar. Boylece butun numune tek bir vektorel gecisle taranabilir ve
-    hicbir pencere iki okumaya birden yayilmaz.
-    Doner: (buyuk_dizi, baslangic_indeksleri)
+        It appends every read into one byte string, putting separators between them that
+        equal no base. That way the whole sample can be scanned in one vectorised pass and
+        no window can span two reads.
+        Returns: (big_string, start_indices)
+
     """
     ayirac = np.full(en_uzun_primer, AYIRAC, dtype=np.uint8)
     parcalar = []; baslangic = []; p = 0
@@ -224,10 +229,13 @@ def kalip_kur(okumalar_listesi, en_uzun_primer):
 
 def baglanma_yerleri(W, primer, ters, en_fazla_uyumsuz=3, uc_pencere=5, uc_pencere_uyumsuz=1):
     """
-    Primerin butun baglanma yerlerini bulur. Tohum yoktur, her pencere denenir.
-    ters=False : primer dogrudan kaliba oturur (arti zincir), 3' uc pencerenin SONUNDA
-    ters=True  : primerin ters tumleyeni oturur (eksi zincir), 3' uc pencerenin BASINDA
-    Doner: pencere baslangic indeksleri
+        Finds every binding site of the primer. There is no seed; every window is tried.
+        ters=False : the primer sits on the template directly (the plus strand), and its
+                     3' end is at the END of the window
+        ters=True  : the primer's reverse complement sits (the minus strand), and its
+                     3' end is at the START of the window
+        Returns: the window start indices
+
     """
     k = len(primer)
     pk = kod(rc(primer) if ters else primer)
@@ -245,10 +253,12 @@ def baglanma_yerleri(W, primer, ters, en_fazla_uyumsuz=3, uc_pencere=5, uc_pence
 
 def tek_primer_orani(W, baslangic, n_okuma, primer):
     """
-    Primerin TEK BASINA kac okumada baglanma yeri buldugunu doner.
-    Hedefte urun cikmadiginda sebebi ayirt etmek icin gereklidir:
-      iki primer de dusukse  -> o bolge okumalarda yok, primerin sucu degil
-      biri dusuk digeri yuksekse -> o primer bu organizmaya uymuyor, gercek kacirma
+        Returns in how many reads the primer finds a binding site ON ITS OWN.
+        It is needed to tell apart the reasons when no product comes out on a target:
+          both primers low        -> that region is not in the reads, and it is not the
+                                     primer's fault
+          one low and one high    -> that primer does not fit this organism, a real miss
+
     """
     yer = np.concatenate([baglanma_yerleri(W, primer, False),
                           baglanma_yerleri(W, primer, True)])
@@ -258,17 +268,20 @@ def tek_primer_orani(W, baslangic, n_okuma, primer):
 
 def kapsayan_okuma(W, baslangic, F, R):
     """
-    Iki primerden EN AZ BIRININ baglandigi ayri okuma sayisi.
+        The number of distinct reads AT LEAST ONE of the two primers binds.
 
-    NEDEN GEREKLI
-    Capraz orani, rakibin butun okumalarina bolunuyordu. Lokusu kapsayan okuma sayisi
-    hicbir yerde hesaplanmadigi icin esik pratikte "rakipte en fazla su kadar okumada
-    urun" demeye donusuyordu. Boyle bir olcut, "lokusu kapsayan 5 okumanin 5'inde urun"
-    ile "lokusu kapsayan 130 okumanin 5'inde urun" arasindaki farki goremez; birincisi
-    rakipte tam cogalma demektir ve TEMIZ yazilmamalidir.
+        WHY IT IS NEEDED
+        The cross reaction ratio was being divided by all of the competitor's reads.
+        Because the number of reads covering the locus was computed nowhere, the threshold
+        turned in practice into "a product in at most this many reads of the competitor".
+        Such a criterion cannot see the difference between "a product in 5 of the 5 reads
+        covering the locus" and "a product in 5 of the 130 reads covering the locus"; the
+        first means full amplification in the competitor and must not be written CLEAN.
 
-    Bu sayi paydadir: urunun gorunebilecegi okuma sayisi. Bir okumada primerlerden
-    hicbiri baglanmiyorsa o okuma lokusa hic ulasmamistir ve paydada yeri yoktur.
+        This number is the denominator: the number of reads in which the product could
+        appear. If neither primer binds in a read, that read never reached the locus and
+        has no place in the denominator.
+
     """
     yer = np.concatenate([baglanma_yerleri(W, F, False), baglanma_yerleri(W, F, True),
                           baglanma_yerleri(W, R, False), baglanma_yerleri(W, R, True)])
@@ -277,9 +290,12 @@ def kapsayan_okuma(W, baslangic, F, R):
 
 def urun_boyu(arti_5, kp, eksi_3, kq, en_kisa, en_uzun):
     """
-    arti_5 : arti zincire baglanan primerin 5' ucu (pencere basi), 3' ucu arti_5+kp-1
-    eksi_3 : eksi zincire baglanan primerin 3' ucu (pencere basi), 5' ucu eksi_3+kq-1
-    Urun icin uc uclarin birbirine bakmasi ve mesafenin aralikta olmasi gerekir.
+        arti_5 : the 5' end of the primer binding the plus strand (the window start); its
+                 3' end is arti_5+kp-1
+        eksi_3 : the 3' end of the primer binding the minus strand (the window start); its
+                 5' end is eksi_3+kq-1
+        For a product the two ends must face one another and the distance must be in range.
+
     """
     if arti_5 + kp - 1 > eksi_3: return None
     boy = (eksi_3 + kq - 1) - arti_5 + 1
@@ -287,8 +303,9 @@ def urun_boyu(arti_5, kp, eksi_3, kq, en_kisa, en_uzun):
 
 def cift_tara(W, baslangic, okuma_boylari, F, R, en_kisa, en_uzun):
     """
-    Bir primer cifti icin, hangi okumalarda urun olustugunu ve urun boylarini doner.
-    Doner: (urun_veren_okuma_sayisi, [boylar])
+        For one primer pair, returns which reads gave a product and the product lengths.
+        Returns: (reads_with_product, [lengths])
+
     """
     kf, kr = len(F), len(R)
     yer = {("F", False): baglanma_yerleri(W, F, False),
@@ -327,7 +344,7 @@ def cift_tara(W, baslangic, okuma_boylari, F, R, en_kisa, en_uzun):
         if bulundu: sayi += 1; boylar.append(bulundu)
     return sayi, boylar
 
-# ------------------------------------------------------------------ istatistik ve karar
+# ------------------------------------------------------------------ statistics and the decision
 def wilson_alt(k, n, z=1.96):
     """Oranin guvenilen en dusuk degeri. Kucuk orneklemde ham orana guvenilmez."""
     if n <= 0: return 0.0
@@ -345,44 +362,51 @@ def capraz_etiketi(rakip_alt, hedef_alt):
 
 def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
     """
-    Doner: dict(capraz, kapsama, hedef_alt, rakip_tx, rakip_alt, eksik, olculemeyen,
-                capraz_ham, capraz_kapsamali, rakip_alt_kapsamali, ayrilik)
+        Returns: dict(capraz, kapsama, hedef_alt, rakip_tx, rakip_alt, eksik, olculemeyen,
+                    capraz_ham, capraz_kapsamali, rakip_alt_kapsamali, ayrilik)
 
-    IKI PAYDA, IKI KARAR
-    capraz_ham        : payda taksonun butun ornek okumalari
-    capraz_kapsamali  : payda lokusu kapsayan okumalar (kapsayan_okuma ile olculur)
-    Ikisi ayrilirsa KATI olani alinir ve ayrilik dondurulur. Sessizce birine gecmek
-    1 numarali kurali ihlal ederdi. Kapsamali payda verilmezse yalnizca ham hesaplanir
-    ve bu, capraz_kapsamali'nin bos olmasindan anlasilir.
+        TWO DENOMINATORS, TWO DECISIONS
+        capraz_ham        : the denominator is all the taxon's sampled reads
+        capraz_kapsamali  : the denominator is the reads covering the locus (measured with
+                            kapsayan_okuma)
+        If the two diverge, the STRICTER one is taken and the divergence is returned.
+        Switching silently to one of them would violate rule number 1. If no covering
+        denominator is given only the raw one is computed, and that is visible from
+        capraz_kapsamali being empty.
 
-    KAPSAMA UC DEGERLI
-    Okumasi HIC olmayan hedef, olculmemis hedeftir; TAM da EKSIK de degildir. Onceki
-    surumde boyle hedefler eksik listesine hic girmiyordu ve liste bosalinca kapsama
-    TAM yaziliyordu, yani hic olculmemis bir hedef icin tam kapsama iddia ediliyordu.
+        COVERAGE IS THREE VALUED
+        A target with NO reads at all is an unmeasured target; it is neither COMPLETE nor
+        MISSING. In the earlier version such targets never entered the missing list, and
+        once that list emptied the coverage was written COMPLETE, that is, full coverage
+        was claimed for a target that had never been measured.
+
     """
     hset = set(hedefler)
-    # HEDEF ORANININ PAYDASI DA LOKUSU KAPSAYAN OKUMALAR OLMALI (29 Temmuz).
+    # THE DENOMINATOR OF THE TARGET RATIO MUST ALSO BE THE READS COVERING THE LOCUS (29 July).
     #
-    # Onceki surumde payda taksonun BUTUN okumalariydi. Rakip tarafinda bu hata
-    # zaten duzeltilmisti (kapsayan payda), hedef tarafinda duzeltilmemisti; iki
-    # taraf ASIMETRIK olcuyordu.
+    # In the earlier version the denominator was ALL of the taxon's reads. That mistake
+    # had already been fixed on the competitor side (the covering denominator) but not
+    # on the target side; the two sides were measuring ASYMMETRICALLY.
     #
-    # Somut zarari: numunenin okuma kutuphanesi karisik, hem kisa 16S amplikonlari
-    # hem tam operon okumalari var. Olculdu: M. mazei'nin 102.006 okumasinin yalnizca
-    # 9.257'si (>=2000 bp) operonu kapsiyor. 16S-23S ARA BOLGESINE oturan bir cift,
-    # kendi hedefinde mukemmel calissa bile butun okumalarin ancak %9'unda urun
-    # verir ve "hedefinde urun yok" diye ELENIR. Oysa gercek qPCR genomik DNA
-    # uzerinde kosar, kisa amplikon kutuphanesi uzerinde degil.
+    # The concrete harm: the sample's read library is mixed, holding both short 16S
+    # amplicons and full operon reads. Measured: of M. mazei's 102,006 reads only 9,257
+    # (>=2000 bp) cover the operon. A pair sitting in the 16S-23S INTERGENIC REGION
+    # gives a product in only 9% of all reads even when it works perfectly on its own
+    # target, and is DISCARDED as "no product on its target". But a real qPCR runs on
+    # genomic DNA, not on a short amplicon library.
     #
-    # Methanosarcina turleri 16S'te ayrilmiyor; ayrim tam da bu ara bolgeye bagli.
-    # Yani bu payda hatasi, projenin en kritik hedeflerini yapisal olarak eliyordu.
+    # Methanosarcina species do not separate in 16S; the separation depends on exactly
+    # that intergenic region. So this denominator mistake was structurally discarding
+    # the project's most critical targets.
     #
-    # Kapsayan payda verilmediginde eski davranis surer (geriye donuk uyumlu).
+    # When no covering denominator is given, the old behaviour continues (backward
+    # compatible).
     def _hedef_oran(t):
         n = sayimlar.get(t, 0)
         ham = toplamlar.get(t, 0)
         if not kapsayanlar: return wilson_alt(n, ham)
-        # Kapsayan sayisi urun verenden kucuk cikamaz; cikiyorsa olcum tutarsizdir.
+        # The covering count cannot come out smaller than the count giving a product; if it
+        # does, the measurement is inconsistent.
         kap = max(kapsayanlar.get(t, 0), n)
         return wilson_alt(n, kap)
     hedef_alt = min((_hedef_oran(t) for t in hedefler), default=0.0)
@@ -396,8 +420,9 @@ def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
         a = wilson_alt(n, toplamlar.get(tx, 0))
         if a > rakip_alt: rakip_alt, rakip_tx = a, tx
         if kapsayanlar:
-            # payda kapsayan okuma sayisi. Kapsayan sayisi urun veren sayisindan
-            # kucuk cikamaz; cikiyorsa olcum tutarsizdir, guvenli tarafta kalinir.
+            # the denominator is the number of covering reads. The covering count cannot come
+            # out smaller than the count giving a product; if it does, the measurement is
+            # inconsistent and the safe side is taken.
             kn = max(kapsayanlar.get(tx, 0), n)
             ak = wilson_alt(n, kn)
             if ak > rakip_alt_k: rakip_alt_k, rakip_tx_k = ak, tx
@@ -413,7 +438,7 @@ def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
     else:
         capraz = capraz_ham; ayrilik = ""
 
-    # Okumasi hic olmayan hedef OLCULMEMISTIR, eksik de degildir tam da degildir.
+    # A target with no reads at all HAS NOT BEEN MEASURED; it is neither missing nor complete.
     olculemeyen = [t for t in hedefler if toplamlar.get(t, 0) == 0]
     eksik = []
     for t in hedefler:
@@ -430,21 +455,26 @@ def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
     elif len(hedefler) <= 1: kapsama = "-"
     else: kapsama = "TAM"
 
-    # KARARIN SAYISI ILE KARARIN ADI AYNI HESAPTAN GELMELI (29 Temmuz duzeltmesi).
+    # THE NUMBER BEHIND A DECISION AND THE NAME OF THAT DECISION MUST COME FROM THE
+    # SAME CALCULATION (the 29 July fix).
     #
-    # Onceki surumde rakip_tx KAPSAMALI galipten, rakip_alt ise HAM galipten
-    # geliyordu. Ikisi farkli taksonlar oldugunda cikan cumle sacmaydi:
-    # "en iyi rakip Y, alt sinir 0.071" -- isim Y'nin, sayi X'in.
+    # In the earlier version rakip_tx came from the COVERING winner while rakip_alt came
+    # from the RAW winner. When those were different taxa the sentence came out
+    # nonsensical: "the best competitor is Y, the lower bound is 0.071" - the name
+    # belonging to Y and the number to X.
     #
-    # Daha agiri: 100_TASARIM eleme kapisinda `ra = okuma_karari["rakip_alt"]`
-    # kullaniyordu, yani HAM sayiyi. Somut olcum: rakibin 1000 okumasindan yalnizca
-    # 6'si lokusu kapsiyor ve 6'sinin ALTISINDA da urun var. Ham oran 6/1000 ->
-    # alt sinir 0.0028; kapsamali oran 6/6 -> alt sinir 0.6097. Karar dogru sekilde
-    # "VAR" cikiyor ama eleme kapisi 0.0028'i 0.04 esigiyle karsilastirdigi icin
-    # aday ELENMIYOR ve ekrana "esik 0.02" yazarken esigin ALTINDA bir sayi
-    # basiliyordu. Rakipte TAM cogalma, temiz gibi geciyordu.
+    # Worse: the design stage's elimination gate (in the source study, not imported
+    # here) used `ra = okuma_karari["rakip_alt"]`, that is, the RAW number. A concrete
+    # measurement: only 6 of a competitor's 1000 reads
+    # cover the locus, and ALL SIX of those 6 give a product. The raw ratio 6/1000 gives
+    # a lower bound of 0.0028; the covering ratio 6/6 gives 0.6097. The decision came out
+    # correctly as "VAR", but because the elimination gate compared 0.0028 against a
+    # threshold of 0.04, the candidate WAS NOT eliminated, and while the screen said
+    # "threshold 0.02" it was printing a number BELOW the threshold. FULL amplification in
+    # a competitor was passing as clean.
     #
-    # Artik karara hangi payda yol actiysa, adi ve sayisi O paydadan aliniyor.
+    # Now the name and the number of a decision both come from THE denominator that led
+    # to that decision.
     if capraz_k and capraz_k == capraz and rakip_tx_k:
         karar_tx, karar_alt, karar_payda = rakip_tx_k, rakip_alt_k, "kapsayan"
     else:
@@ -453,7 +483,7 @@ def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
     return dict(capraz=capraz, kapsama=kapsama, hedef_alt=hedef_alt,
                 hedef_alt_ham=hedef_alt_ham,
                 rakip_tx=karar_tx,
-                # rakip_alt ARTIK KARARLA TUTARLI olandir. Ham deger ayri alanda.
+                # rakip_alt is NOW the one CONSISTENT WITH THE DECISION. The raw value is in a separate field.
                 rakip_alt=karar_alt,
                 rakip_alt_ham=rakip_alt, rakip_alt_kapsamali=rakip_alt_k,
                 rakip_tx_ham=rakip_tx, rakip_tx_kapsamali=rakip_tx_k,
@@ -464,9 +494,10 @@ def karar_ver(hedefler, sayimlar, toplamlar, erisilebilir, kapsayanlar=None):
 # ------------------------------------------------------------------ birim testleri
 def birim_testleri(yazdir=True):
     """
-    Karar veren her fonksiyonun bilinen cevapli sinavi. Disaridan hicbir arac gerekmez.
-    Testlerin cogu "capraz VAR mi dogru buluyor" tarafini zorlar, cunku yanlis cevabin
-    pahali yonu odur: kotu bir primeri temiz gostermek.
+        A known-answer test of every deciding function. No external tool is needed.
+        Most of the tests push the "does it correctly find a cross reaction" side, because
+        that is the expensive direction to be wrong in: showing a bad primer as clean.
+
     """
     hata = [0]
     def K(ad, bulunan, beklenen):
@@ -542,15 +573,16 @@ def birim_testleri(yazdir=True):
       kapsayan_okuma(W3, bas3, "ACGTACGTACGTACGTACGT", "TTTTTTTTTTTTTTTTTTTT"), 0)
 
     if yazdir: print(u'  --- the decision (this function had never been tested before)')
-    # 1. Okumasi HIC olmayan hedef. Onceki surum bunu eksik listesine sokmuyordu,
-    #    liste bosalinca kapsama TAM yaziliyordu: hic olculmemis hedef icin tam
-    #    kapsama iddiasi.
+    # 1. A target with NO reads at all. The earlier version did not put this on the
+    #    missing list, and once the list emptied the coverage was written as COMPLETE:
+    #    a claim of full coverage for a target that was never measured.
     k1 = karar_ver(["83986", "118126", "394967", "2201"], {"2223": 1}, {"2223": 300}, {})
     K("okumasi olmayan hedefte kapsama TAM yazilmaz", k1["kapsama"], "OLCULEMEDI")
     K("olculemeyen hedefler listelenir", len(k1["olculemeyen"]), 4)
 
-    # 2. Rakip lokusu cok az kapsiyor ama kapsadigi her okumada urun veriyor.
-    #    Ham payda ile TEMIZ, kapsayan payda ile VAR cikar. Kati olan alinmali.
+    # 2. The competitor covers the locus very little but gives a product in every read
+    #    it does cover. CLEAN under the raw denominator, VAR under the covering one.
+    #    The stricter one has to be taken.
     hed = {"818": 150}; top = {"818": 300, "28116": 300}
     say = dict(hed); say["28116"] = 5
     k2 = karar_ver(["818"], say, top, {}, {"28116": 6, "818": 300})
@@ -558,41 +590,45 @@ def birim_testleri(yazdir=True):
     K("kapsayan payda ile capraz gorunur", k2["capraz_kapsamali"], "VAR")
     K("kati olan karar alinir", k2["capraz"], "VAR")
     K("ayrilik loga yazilmak uzere dondurulur", bool(k2["ayrilik"]), True)
-    # 29 TEMMUZ: KARARIN SAYISI KARARIN PAYDASINDAN GELMELI.
-    # Onceki surumde rakip_alt HAM paydadan geliyordu; 100_TASARIM eleme kapisi o
-    # sayiyi 0.04 esigiyle karsilastirdigi icin, rakipte TAM cogalma gosteren aday
-    # ELENMIYORDU. Bu madde tam o kapiyi kilitler.
+    # 29 JULY: THE NUMBER BEHIND A DECISION MUST COME FROM THAT DECISION'S DENOMINATOR.
+    # In the earlier version rakip_alt came from the RAW denominator, and because the
+    # design stage's elimination gate compared that number against a threshold of 0.04, a
+    # candidate showing FULL amplification in a competitor WAS NOT ELIMINATED. This item
+    # locks exactly that gate.
     K("karar kapsayan paydadan geldi", k2["karar_paydasi"], "kapsayan")
     K("rakip_alt kararla tutarli (ham degil)", k2["rakip_alt"] == k2["rakip_alt_kapsamali"], True)
     K("rakip_alt eleme esigini asiyor", k2["rakip_alt"] >= 0.04, True)
     K("ham deger ayri alanda korunuyor", k2["rakip_alt_ham"] < 0.04, True)
-    # Isim ve sayi ayni taksondan gelmeli
+    # The name and the number must come from the same taxon
     K("rakip adi ile sayisi ayni kaynaktan", k2["rakip_tx"], k2["rakip_tx_kapsamali"])
 
-    # 4. HEDEF PAYDASI DA KAPSAYAN OKUMA OLMALI (29 Temmuz).
-    # Ara bolgeye oturan bir cift: hedefin 1000 okumasindan yalnizca 90'i lokusu
-    # kapsiyor ve 90'inin 88'inde urun var. Ham payda 88/1000 -> 0.07 (elenir),
-    # kapsayan payda 88/90 -> 0.92 (mukemmel). Kisa 16S amplikonlari paydayi
-    # sisirdigi icin M. mazei/barkeri gibi ara bolge hedefleri yapisal olarak
-    # eleniyordu.
+    # 4. THE TARGET'S DENOMINATOR MUST ALSO BE COVERING READS (29 July).
+    # A pair sitting in the intergenic region: only 90 of a target's 1000 reads cover
+    # the locus, and 88 of those 90 give a product. The raw denominator gives 88/1000 ->
+    # 0.07 (eliminated), the covering denominator 88/90 -> 0.92 (perfect). Because the
+    # short 16S amplicons inflated the denominator, intergenic targets such as M. mazei
+    # and M. barkeri were being eliminated structurally.
     k4 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {}, {"818": 90})
     K("hedef orani kapsayan paydayla hesaplanir", k4["hedef_alt"] > 0.80, True)
     K("ham payda ayri alanda korunuyor", k4["hedef_alt_ham"] < 0.12, True)
     # Kapsayan payda verilmezse eski davranis surer
     k5 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {})
     K("kapsayan payda yoksa ham davranis surer", abs(k5["hedef_alt"] - k5["hedef_alt_ham"]) < 1e-9, True)
-    # Tutarsiz olcum: kapsayan sayisi urun verenden kucukse guvenli tarafa gecilir
+    # An inconsistent measurement: if the covering count is smaller than the count
+    # giving a product, the safe side is taken
     k6 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {}, {"818": 10})
     K("kapsayan sayisi urunden kucukse alt sinir 1'i asmaz", k6["hedef_alt"] <= 1.0, True)
 
-    # 3. Ayni sayilar, ama rakip lokusu genis kapsiyor. Ikisi de TEMIZ, ayrilik yok.
+    # 3. The same numbers, but the competitor covers the locus widely. Both are CLEAN,
+    # there is no divergence.
     k3 = karar_ver(["818"], say, top, {}, {"28116": 250, "818": 300})
     K("genis kapsamada iki payda da TEMIZ", (k3["capraz_ham"], k3["capraz_kapsamali"]),
       ("TEMIZ", "TEMIZ"))
     K("ayrilik yoksa bos", k3["ayrilik"], "")
 
-    # 4. Kapsayan sayisi urun veren sayisindan kucuk gelirse olcum tutarsizdir;
-    #    payda urun veren sayisina cekilir, oran 1'i asmaz.
+    # 4. If the covering count comes out smaller than the count giving a product the
+    #    measurement is inconsistent; the denominator is pulled to the count giving a
+    #    product, so the ratio does not exceed 1.
     k4 = karar_ver(["818"], say, top, {}, {"28116": 2, "818": 300})
     K("tutarsiz kapsama oraninda alt sinir 1'i asmaz", k4["rakip_alt_kapsamali"] <= 1.0, True)
     return hata[0]
@@ -600,10 +636,11 @@ def birim_testleri(yazdir=True):
 # ------------------------------------------------------------------ blastn ikinci gorus
 def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
     """
-    Ayni soruyu blastn ile de sorar. blastn hizalamayi puanina gore KIRPTIGI icin
-    3' uca yakin uyumsuzluklari olan baglanmalari bildirmez; bu yuzden bu sayim
-    genellikle kaba kuvvet taramasindan DUSUK cikar ve karar icin kullanilmaz.
-    Amac yalnizca iki bagimsiz yontemin ayni yone isaret ettigini gormektir.
+        Asks the same question with blastn as well. Because blastn TRUNCATES an alignment
+        by its score, it does not report bindings with mismatches near the 3' end; so this
+        count generally comes out LOWER than the brute force scan and is not used for the
+        decision. The point is only to see that two independent methods point the same way.
+
     """
     if not (arac_var("blastn") and arac_var("makeblastdb")):
         log("blastn bulunamadi, ikinci gorus atlandi"); return {}
@@ -635,7 +672,7 @@ def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
         if "_" not in q: continue
         taban, rol = q.rsplit("_", 1); rol = rol.upper()
         if rol not in ("F","R"): continue
-        if qe != qlen: continue                      # BLAST kirpmasi, 3' uc yok
+        if qe != qlen: continue                      # BLAST truncated it; there is no 3' end
         hit[taban][s][rol].append((ss, se, strand, qlen))
     sonuc = defaultdict(lambda: defaultdict(int))
     for taban, okumalar in hit.items():
@@ -716,8 +753,9 @@ def main():
     t0 = time.time()
     sayimlar = {}; boy_bilgisi = {}; kapsayanlar = {}
     toplamlar = {tx: len(v) for tx, v in veri.items()}
-    # Hedef listelerinde gecip numunede okumasi olmayan taksonlar. Bunlar icin hicbir
-    # olcum yapilamaz; "olculmedi" ile "temiz cikti" ayni sonuca varmamali.
+    # Taxa that appear in the target lists but have no reads in the sample. No
+    # measurement can be made for them; "not measured" and "came out clean" must not
+    # arrive at the same conclusion.
     hedefte_gecen = {t for hs in HEDEF_TAXID.values() for t in hs}
     okumasiz = sorted(hedefte_gecen - set(toplamlar))
     if okumasiz:
@@ -731,9 +769,10 @@ def main():
         for tx, (W, bas, boylar) in kalipler.items():
             n, urunler = cift_tara(W, bas, boylar, F, R, a.en_kisa, a.en_uzun)
             if n: s[tx] = n; b[tx] = int(statistics.median(urunler))
-        # Capraz oraninin paydasi icin lokusu kapsayan okuma sayisi. Yalnizca urun
-        # veren taksonlar ve hedefler icin hesaplanir; digerlerinde paya zaten sifir
-        # oldugu icin payda karari degistirmez.
+        # The number of reads covering the locus, for the denominator of the cross reaction
+        # ratio. It is computed only for the taxa and targets that give a product;
+        # elsewhere the numerator is zero anyway, so the denominator does not change the
+        # decision.
         ilgili = set(s) | set(HEDEF_TAXID.get(taban, []))
         kap = {}
         for tx in ilgili:
@@ -796,9 +835,9 @@ def main():
         kap = kapsayanlar.get(taban, {})
         for tx, k in rakipler[:6]:
             n = toplamlar.get(tx, 0); kn = max(kap.get(tx, 0), k)
-            # Iki oran yan yana yazilir. Aralarindaki fark, rakibin lokusu ne kadar
-            # kapsadigini gosterir; buyuk fark "az okumada urun" ile "kapsayan
-            # okumalarin hepsinde urun" ayrimidir.
+            # The two ratios are written side by side. The gap between them shows how much of
+            # the locus the competitor covers; a large gap is the difference between "a product
+            # in few reads" and "a product in every covering read".
             log(f"    rakip  {isim(tx):<34} {k:>4}/{n:<4} oran {k/max(1,n):.3f}"
                 f"  |  kapsayan {kn:>4} icinde oran {k/max(1,kn):.3f}"
                 f"  urun {b.get(tx,0)} bp")
