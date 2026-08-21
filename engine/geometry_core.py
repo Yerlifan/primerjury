@@ -1,32 +1,33 @@
-# ---------------------------------------------------------------------------
-# geometry_core.py — paneldeki 21 hedefin 42 primerinin qPCR GEOMETRI denetimi; her primer
-#          icin Tm/GC/hairpin/dimer hesaplanip kural ihlalleri listelenir.
+# -------------------------------------------------------------------------
+# geometry_core.py - the qPCR GEOMETRY audit of the 42 primers of the panel's 21
+#          targets; Tm, GC, hairpin and dimer are computed for every primer and the
+#          rule violations are listed.
 #
-# GİRDİ  : dosya okumaz. Denetlenecek 21 hedef x (F, R) listesi P sabitinde
-#          dosyanin kendi icine gomuludur. Disaridan yalniz primer3 gerekir.
-# ÇIKTI  : calisilan dizine geo.json (her primer icin olculen ham degerler ve
-#          ihlal listesi) yazar; ayrica ekrana satir satir GECTI / IHLAL tablosu
-#          basar.
-# ÇAĞRAN : screening/self_test.py bu dosyayi AYRI BIR SUREC olarak
-#          gecici bir dizinde calistirir, urettigi geo.json'u okur ve
-#          screening/geometry.py'nin ayni 42 primer icin verdigi
-#          gc/tm/hp/hd/son5/uc degerleriyle BIREBIR karsilastirir. Tek bir
-#          deger bile tutmazsa kendini sinama duser ve kosu baslamaz. Bu
-#          sinama her olcum tusunun basinda kosar: full_chain.py asamalari
-#          1, 2, 3, 4, 5, 6, 7, 9 ve dogrudan tus 8. Dosya menuden DOGRUDAN
-#          cagrilmaz; referans/altin standart olarak durur.
+# INPUT  : it reads no file. The list of 21 targets x (F, R) to audit is embedded in
+#          the file itself, in the P constant. From outside, only primer3 is needed.
+# OUTPUT : it writes geo.json into the working directory (the raw measured values
+#          and the violation list for every primer), and prints a line by line
+#          PASSED / VIOLATION table to the screen.
+# CALLED BY: screening/self_test.py runs this file AS A SEPARATE PROCESS in a
+#          temporary directory, reads the geo.json it produces, and compares it
+#          EXACTLY against the gc/tm/hp/hd/son5/uc values screening/geometry.py
+#          gives for the same 42 primers. If even one value does not match, the
+#          self test fails and the run does not start. That test runs at the head of
+#          every measuring key: full_chain.py stages 1, 2, 3, 4, 5, 6, 7, 9 and key 8
+#          directly. The file is not called DIRECTLY from the menu; it stands as the
+#          reference, the gold standard.
 #
-# ÖLÇÜLDÜ - HANGI KOPYA CALISIYOR: self_test.py, yapilandirma.BETIK_YOLLARI
-# sirasini gezip ILK buldugu geometry_core.py'yi alir. Sira engine,
-# engine, engine'dir ve engine'nde geometry_core.py
-# YOKTUR; dolayisiyla fiilen engine/geometry_core.py calistirilir. Bu dosya
-# ile o dosya BAYT BAYT AYNIDIR (ayni md5), bu yuzden sonuc degismez - ama
-# ikisinden biri degistirilirse sinama sessizce digerini olcmeye devam eder.
-# ---------------------------------------------------------------------------
+# WHICH COPY RUNS: self_test.py walks the config.BETIK_YOLLARI order and takes the
+# FIRST geometry_core.py it finds. In the source study that list held three
+# directories and two of them carried a copy of this file, so editing one could leave
+# the test silently measuring the other. In this repository BETIK_YOLLARI is a single
+# entry, engine/, and there is exactly one geometry_core.py; the ambiguity is gone.
+# Keep it that way.
+# -------------------------------------------------------------------------
 import primer3, json, sys
-# Panelin 21 hedefi ve her hedefin (ileri, geri) primer cifti. Denetim bu sabit
-# liste uzerinde kosar; boylece sonuc her calistirmada aynidir ve
-# screening/geometry.py ile karsilastirilabilir bir altin standart olur.
+# The panel's 21 targets and each target's (forward, reverse) primer pair. The audit
+# runs over this fixed list, so the result is the same on every run and it makes a
+# gold standard comparable against screening/geometry.py.
 P = [
  ("Metanojen_universal","GTGGAGCTTGCGGTTTAATTG","CAGGATGCTTCACAGTACGAAC"),
  ("Methanothrix_cinsi","GAGAGGTACTTCAGGGGTAGG","CTAGCTTTCGTCCCTTGCC"),
@@ -50,30 +51,31 @@ P = [
  ("Methanothrix_soehngenii_turu","AATGTAGCAATACATGGCGAACTG","TTCCAGCAATCGAGACCTATCG"),
  ("Methanosarcina_mazei_turu","GCCCTTGGGACCGGCATAA","TCGCTGGCTAGTAGGTACATTACA"),
 ]
-# Termodinamik kosullar. Tm bir dizinin degil, dizi + TAMPON'un ozelligidir:
-# tuz ve dNTP derisimi degisince Tm de degisir. Bu degerler kullanilan qPCR
-# karisimini (QuantiNova SYBR Green) temsil eder; config.py'de ayni
-# degerler P3 sabitinde "geometry_core.py ile birebir" notuyla tekrarlanmistir. Bu
-# sayilar gercek reaksiyondan saparsa asagidaki 58-62 Tm penceresi anlamsizlasir.
-#   mv_conc   = 50   mM tek degerlikli katyon (Na+/K+)
-#   dv_conc   = 1.5  mM iki degerlikli katyon (Mg++)
+# The thermodynamic conditions. A Tm is a property not of a sequence but of the
+# sequence PLUS THE BUFFER: change the salt or dNTP concentration and the Tm changes
+# too. These values represent the qPCR mix in use (QuantiNova SYBR Green); the same
+# values are repeated in config.py in the P3 constant with the note "identical to
+# geometry_core.py". If these numbers drift from the real reaction, the 58-62 Tm
+# window below stops meaning anything.
+#   mv_conc   = 50   mM monovalent cation (Na+/K+)
+#   dv_conc   = 1.5  mM divalent cation (Mg++)
 #   dntp_conc = 0.6  mM dNTP
-#   dna_conc  = 50   nM oligo derisimi
+#   dna_conc  = 50   nM oligo concentration
 KW=dict(mv_conc=50, dv_conc=1.5, dntp_conc=0.6, dna_conc=50)
 # Erime sicakligi (nearest-neighbor, primer3).
 def tm(p): return round(primer3.calc_tm(p, **KW),2)
 # GC yuzdesi.
 def gc(p): return round(100.0*sum(p.count(c) for c in 'GC')/len(p),1)
-# Hairpin (sac tokasi): primerin KENDI uzerine katlanmasinin erime sicakligi.
+# Hairpin: the melting temperature of the primer folding back ON ITSELF.
 def hp(p): return round(primer3.calc_hairpin(p, **KW).tm,1)
-# Homodimer: primerin KENDI kopyasiyla eslesmesinin erime sicakligi.
+# Homodimer: the melting temperature of the primer pairing with ITS OWN copy.
 def hd(p): return round(primer3.calc_homodimer(p, **KW).tm,1)
-# Heterodimer: F ile R'nin BIRBIRIYLE eslesmesinin erime sicakligi.
+# Heterodimer: the melting temperature of F and R pairing WITH ONE ANOTHER.
 def het(a,b): return round(primer3.calc_heterodimer(a,b, **KW).tm,1)
-# ---------------------------------------------------------------------------
-# viol — tek bir primerin ihlal ettigi kurallarin listesi. Bos liste = GECTI.
-# Her kuralin neden var oldugu ve qPCR'deki karsiligi asagida satir satir.
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# viol - the list of rules a single primer violates. An empty list = PASSED.
+# Why each rule exists, and what it corresponds to in qPCR, is written out below.
+# -------------------------------------------------------------------------
 def viol(p):
     v=[]
     # UZUNLUK 18-25 baz. 18'in altinda primer genomda/toplulukta rastgele de
@@ -81,62 +83,63 @@ def viol(p):
     # yukselir, katlanma ve yanlis baglanma sansi artar, sentez maliyeti buyur.
     if not (18<=len(p)<=25): v.append("uz %d"%len(p))
     g=gc(p)
-    # GC %40-60. G/C ciftinin uc hidrojen bagi vardir, A/T'nin iki. Cok dusuk GC
-    # -> dupleks 60 C'de tutunamaz, verim duser; cok yuksek GC -> primer hedef
-    # disi GC zengini bolgelere de yapisir ve sablon 95 C'de tam acilmayabilir.
+    # GC 40-60%. A G/C pair has three hydrogen bonds, an A/T two. Too low a GC and the
+    # duplex cannot hold at 60 C, so the yield drops; too high a GC and the primer also
+    # sticks to off-target GC rich regions, while the template may not open fully at 95 C.
     if not (40<=g<=60): v.append("GC %%%.1f"%g)
     t=tm(p)
-    # Tm PENCERESI 58-62 C. Panelin tamami TEK bir protokolde, ayni cihaz
-    # programiyla (60 C annealing hedefi) kosacaktir. Bir primerin Tm'i
-    # pencerenin altina duserse o kuyuda baglanma zayiflar (yalanci negatif),
-    # ustune cikarsa 60 C'de hedef disi bolgelere de baglanir (yalanci pozitif).
-    # Pencere dar tutulur ki 21 hedefin hepsi ayni kosuda calisabilsin.
+    # THE Tm WINDOW 58-62 C. The whole panel will run in ONE protocol, under the same
+    # instrument program (a 60 C annealing target). If a primer's Tm falls below the
+    # window, binding weakens in that well (a false negative); above it, the primer binds
+    # off-target regions at 60 C too (a false positive). The window is kept narrow so
+    # that all 21 targets can run in the same conditions.
     if not (58<=t<=62): v.append("Tm %.2f"%t)
-    # HAIRPIN esigi 45 C. Primer kendi uzerine katlanip sac tokasi yaparsa, o
-    # yapi annealing sicakliginda (60 C civari) hala ayakta oldugunda primer
-    # sablona baglanmak yerine kendisiyle mesgul olur -> verim duser, Cq gecikir.
-    # Esik annealing sicakliginin belirgin altina cekilmistir; 45 C'nin ustunde
-    # eriyen bir yapi guvenli sayilmaz. SYBR Green'de bu olcut ELEYICIDIR.
+    # THE HAIRPIN THRESHOLD 45 C. If a primer folds back on itself into a hairpin and
+    # that structure is still standing at the annealing temperature (around 60 C), the
+    # primer is busy with itself instead of binding the template; the yield drops and
+    # the Cq is delayed. The threshold is set well below the annealing temperature; a
+    # structure melting above 45 C does not count as safe. Under SYBR Green this
+    # criterion is ELIMINATING.
     if hp(p)>=45: v.append("hairpin Tm %.1f"%hp(p))
-    # HOMODIMER esigi 45 C. Primerin kendi kopyasiyla eslesmesi primer-dimer
-    # uretir. Primer-dimer hem primeri ve dNTP'yi tuketir hem de SYBR Green
-    # cift ipligin TAMAMINI boyadigi icin hedef yokken bile SINYAL VERIR;
-    # erime egrisinde dusuk Tm'li ikinci bir tepe olarak gorunur. Prob temelli
-    # bir kimyada uyari sayilabilecek bu olcut SYBR'de eleyicidir.
+    # THE HOMODIMER THRESHOLD 45 C. A primer pairing with its own copy produces a
+    # primer-dimer. A primer-dimer consumes both the primer and the dNTPs, and because
+    # SYBR Green stains ALL double stranded DNA it GIVES A SIGNAL even with no target
+    # present; it appears on the melt curve as a second peak at a low Tm. In a probe
+    # based chemistry this criterion might count as a warning; under SYBR it eliminates.
     if hd(p)>=45: v.append("homodimer Tm %.1f"%hd(p))
-    # 3' SON BAZ G ya da C olmali ("GC clamp"). Polimeraz primeri 3' ucundan
-    # uzatir; o uctaki uc hidrojen bagli G/C, primerin uzatmanin basladigi yerde
-    # saglam oturmasini saglar. 3' ucu A/T olan primer uctan "solur" ve verim
-    # degisken olur.
+    # THE LAST BASE AT THE 3' END must be G or C (a "GC clamp"). The polymerase extends
+    # the primer from its 3' end, and a G/C with its three hydrogen bonds at that end
+    # keeps the primer seated firmly where extension starts. A primer with A/T at the 3'
+    # end "breathes" at the tip and the yield becomes variable.
     if p[-1] not in 'GC': v.append("3' uc %s (G/C degil)"%p[-1])
     n5=sum(1 for c in p[-5:] if c in 'GC')
-    # 3' SON 5 BAZDA EN COK 3 G/C. Bir onceki kuralin karsi agirligi. 3' ucu
-    # G/C ile fazla doldurmak ("GC clamp"i abartmak) primerin YALNIZCA son
-    # birkac bazi tutan hedef disi bolgelerde bile saglam yapismasina yol acar;
-    # uc oturdugu icin polimeraz uzatmaya baslar ve ozgul olmayan urun cikar.
-    # Yani: ucta yeterli tutus olsun (bir onceki kural), ama fazlasi olmasin.
+    # AT MOST 3 G/C IN THE LAST 5 BASES AT THE 3' END. The counterweight to the previous
+    # rule. Filling the 3' end with too much G/C (overdoing the "GC clamp") makes the
+    # primer stick firmly even to off-target regions that hold only its last few bases;
+    # because the tip is seated, the polymerase starts extending and a non-specific
+    # product comes out. So: enough grip at the tip (the previous rule), but no more.
     if n5>3: v.append("3' son 5 bazda %d G/C"%n5)
-    # DEJENERE BAZ yasak. ACGT disi bir harf (N, R, Y...) primerin tek bir oligo
-    # degil oligo KARISIMI olarak sentezlenmesi demektir: her bir varyantin
-    # etkin derisimi duser, Tm tek bir sayi olmaktan cikar ve yukaridaki
-    # termodinamik hesaplarin hepsi anlamini yitirir.
+    # A DEGENERATE BASE is forbidden. A letter outside ACGT (N, R, Y and so on) means
+    # the primer is synthesised not as one oligo but as a MIXTURE of oligos: the
+    # effective concentration of each variant drops, the Tm stops being a single number,
+    # and every thermodynamic calculation above loses its meaning.
     if any(c not in 'ACGT' for c in p): v.append("dejenere baz")
     return v
 
-# ---------------------------------------------------------------------------
-# BURADAN ASAGISI GOSTERI BOLUMUDUR - yalniz betik DOGRUDAN calistirildiginda
-# kosar. 2026-08-11 duzeltmesi: bu bolum eskiden ICE AKTARIMDA da kosuyordu.
-# Sonucu:
-#   1) geometry_core.py'yi import eden her betik, ekrana yukaridaki P listesinin (2
-#      Agustos panelinin) 63 satirlik geometri dokumunu basiyordu. O listede
-#      Petrimonas ve Bacteroidales gibi ciftlerin ESKI dizileri var; konsolu
-#      ya da gunlugu okuyan biri onlari GUNCEL saniyordu.
-#   2) import, calisilan dizine geo.json YAZIYORDU. Ice aktarmanin dosya
-#      yazmasi beklenmeyen bir yan etkidir.
-# self_test.py bu dosyayi AYRI BIR SUREC olarak (cwd=gecici dizin)
-# calistirip geo.json okuyor; orada __name__ == "__main__" oldugu icin
-# davranis DEGISMEZ. Yalniz "import geo" sessizlesti.
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# EVERYTHING BELOW THIS IS THE DEMONSTRATION SECTION - it runs only when the script
+# is run DIRECTLY. The 2026-08-11 fix: this section used to run ON IMPORT as well.
+# The consequences:
+#   1) Every script importing geometry_core.py printed the 63 line geometry dump of
+#      the P list above (the panel of 2 August) to the screen. That list holds the
+#      OLD sequences of pairs such as Petrimonas and Bacteroidales, and anyone
+#      reading the console or the log took them for CURRENT ones.
+#   2) The import WROTE geo.json into the working directory. An import writing a
+#      file is an unexpected side effect.
+# self_test.py runs this file AS A SEPARATE PROCESS (cwd=a temporary directory) and
+# reads geo.json; there __name__ == "__main__", so the behaviour IS UNCHANGED. Only
+# "import geo" went quiet.
+# -------------------------------------------------------------------------
 if __name__ == "__main__":
     rows=[]
     for name,f,r in P:
@@ -146,23 +149,25 @@ if __name__ == "__main__":
                              ihlal=viol(p)))
         # ---- CIFT DUZEYI KURALLAR (tek primere bakarak gorunmezler) ----
         d=abs(tm(f)-tm(r)); h=het(f,r); pv=[]
-        # dTm < 1.5 C. F ve R AYNI kuyuda, AYNI annealing sicakliginda calisir.
-        # Tm'leri ayrisirsa dusuk Tm'li primer o sicaklikta zayif baglanir; bir
-        # iplik digerinden hizli cogalir (asimetrik amplifikasyon), verim ve Cq
-        # tekrarlanabilirligi bozulur.
+        # dTm < 1.5 C. F and R work in the SAME well at the SAME annealing temperature. If
+        # their Tm values diverge, the primer with the lower Tm binds weakly at that
+        # temperature; one strand amplifies faster than the other (asymmetric
+        # amplification), and the yield and the reproducibility of the Cq both suffer.
         if d>=1.5: pv.append("dTm %.2f"%d)
-        # HETERODIMER esigi 45 C. F ve R birbirine yapisirsa olusan primer-dimer,
-        # homodimerle ayni zarari verir ama daha siktir: iki farkli dizi bulusur.
-        # SYBR Green'de dogrudan sahte sinyal kaynagidir.
+        # THE HETERODIMER THRESHOLD 45 C. If F and R stick to one another, the primer-dimer
+        # that forms does the same damage as a homodimer but more often: two different
+        # sequences meet. Under SYBR Green it is a direct source of false signal.
         if h>=45: pv.append("heterodimer Tm %.1f"%h)
         rows.append(dict(hedef=name,primer="CIFT",dizi="dTm=%.2f  het=%.1f"%(d,h),uz="",gc="",tm="",hp="",hd="",uc="",gc5="",ihlal=pv))
-    # geo.json CALISILAN DIZINE yazilir (mutlak yol yok). self_test.py bu dosyayi
-    # gecici bir dizinde cwd=td vererek calistirir ve ciktiyi oradan okur; bu yuzden
-    # goreli yol kasitlidir, proje agacini kirletmez.
+    # geo.json is written INTO THE WORKING DIRECTORY (there is no absolute path).
+    # self_test.py runs this file in a temporary directory with cwd=td and reads the
+    # output from there, which is why the relative path is deliberate; it does not
+    # pollute the project tree.
     json.dump(rows,open('geo.json','w'))
-    # Ekran ciktisi. CIFT satirinda hem cift duzeyi ihlaller hem de o hedefin iki
-    # primerinin ihlalleri TEK satirda toplanir: karar hedef bazinda verilir, bir
-    # hedefin tek primeri bile duserse o hedef siparise giremez.
+    # The screen output. On a PAIR line, both the pair level violations and the
+    # violations of that target's two primers are gathered on ONE line: the decision is
+    # made per target, and if even one primer of a target fails, that target cannot go
+    # to order.
     for r in rows:
         if r['primer']=='CIFT':
             pr = [x['ihlal'] for x in rows if x['hedef']==r['hedef'] and x['primer']!='CIFT']
