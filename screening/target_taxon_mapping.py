@@ -310,8 +310,8 @@ def xlsx_yaz(xlsx, satirlar):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--r2', required=True)
-    ap.add_argument('--capraz', required=True)
-    ap.add_argument('--ciftler', required=True)
+    ap.add_argument('--cross', '--capraz', dest='capraz', required=True)
+    ap.add_argument('--pairs', '--ciftler', dest='ciftler', required=True)
     ap.add_argument('--taxid', required=True)
     ap.add_argument('--md', required=True)
     ap.add_argument('--xlsx', required=True)

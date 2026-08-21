@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  install.sh  --  TEK KURULUM KAPISI
+#  install.sh  --  single installation entry point
 #
 #  Installs the tools, the reference databases, the Kraken2 database and the
 #  QIIME2/PICRUSt2 environment. Replaces four separate installers that used to
@@ -16,15 +16,15 @@
 #  Prefer the top-level entry point, which wraps this file in English:
 #     ./primerjury install all
 #
-#  Direct use (subcommands are still Turkish; being translated):
-#     bash install.sh durum                 # status: MEASURES what is installed, changes nothing
-#     bash install.sh araclar               # tools:  kraken2, bracken, minimap2, samtools, blast, seqkit
-#     bash install.sh veritabani            # databases: SILVA + UNITE + PR2 + ROD + RefSeq (12 identity sources)
-#     bash install.sh veritabani --yalniz refseq,pr2     # only these
-#     bash install.sh kraken-indir          # prebuilt Kraken2 database (k fixed at 35)
-#     bash install.sh kraken-kur --kmer 31  # build your OWN Kraken2 database with your OWN k
+#  Direct use (Turkish subcommand names still work as aliases):
+#     bash install.sh status                 # status: MEASURES what is installed, changes nothing
+#     bash install.sh tools               # tools:  kraken2, bracken, minimap2, samtools, blast, seqkit
+#     bash install.sh databases            # databases: SILVA + UNITE + PR2 + ROD + RefSeq (12 identity sources)
+#     bash install.sh databases --only refseq,pr2     # only these
+#     bash install.sh kraken-download          # prebuilt Kraken2 database (k fixed at 35)
+#     bash install.sh kraken-build --kmer 31  # build your OWN Kraken2 database with your OWN k
 #     bash install.sh qiime                 # QIIME2 + PICRUSt2 + SILVA classifier
-#     bash install.sh hepsi                 # all of the above (Kraken2 asked separately)
+#     bash install.sh all                 # all of the above (Kraken2 asked separately)
 #
 #  THREE DESIGN DECISIONS
 #  ----------------------
@@ -88,10 +88,10 @@ ortam_denetimi() {
 # adresler yazildigi gunku surumlerdir. Betik indirdigi dosyayi dogruladigi icin
 # eskimis bir adres sessiz hataya donusmez: ya 404 alir ya dogrulamayi geceremez.
 # Baska bir surum istiyorsaniz --url ile verin, ornek:
-#     bash install.sh veritabani --yalniz silva_ssu --url https://.../BASKA.fasta.gz
+#     bash install.sh databases --only silva_ssu --url https://.../BASKA.fasta.gz
 #
 # Kraken2 veritabani adresi BILEREK gomulu degildir; guncel liste her surumde
-# degisir ve yanlis veritabani saatler harcatir. Bkz. kraken-indir.
+# degisir ve yanlis veritabani saatler harcatir. See kraken-download.
 # ---------------------------------------------------------------------------
 SILVA_TABAN="https://www.arb-silva.de/fileadmin/silva_databases/release_138.2/Exports"
 declare -A URL=(
@@ -190,7 +190,7 @@ indir_ve_dogrula() {
   if ! wget -c -q --show-progress -O "$gz" "$url"; then
     hata "$anahtar INDIRILEMEDI: $url"
     bilgi "  adres eskimis olabilir. Guncelini bulup su sekilde verin:"
-    bilgi "    bash install.sh veritabani --yalniz $anahtar --url <YENI_ADRES>"
+    bilgi "    bash install.sh databases --only $anahtar --url <YENI_ADRES>"
     EKSIK+=("$anahtar (indirilemedi)")
     rm -f "$gz"
     return 1
@@ -302,7 +302,7 @@ komut_durum() {
       [ -f "$d/opts.k2d" ] && bilgi "    k-mer bilgisi icin: bash tools/kraken_tool.sh vt-kimlik"
     done <<< "$bulunan"
   else
-    printf '   \033[31mYOK\033[0m  -> bash install.sh kraken-indir   ya da   bash install.sh kraken-kur\n'
+    printf '   \033[31mYOK\033[0m  -> bash install.sh kraken-download   ya da   bash install.sh kraken-build\n'
   fi
 
   renk "KIMLIK DOGRULAMA KAPSAMI"
@@ -362,8 +362,8 @@ komut_veritabani() {
   local yalniz="" ozel_url=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --yalniz) yalniz="$2"; shift 2 ;;
-      --url)    ozel_url="$2"; shift 2 ;;
+      --only|--yalniz) yalniz="$2"; shift 2 ;;
+      --url)           ozel_url="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -396,7 +396,7 @@ komut_veritabani() {
       renk "UNITE (mantar ITS)"
       uyar "UNITE indirme adresi her surumde DOI ile degisir; koda gomulemez."
       bilgi "1) $UNITE_SAYFA adresinden guncel 'General FASTA release' baglantisini kopyalayin"
-      bilgi "2) bash install.sh veritabani --yalniz unite --url <KOPYALADIGINIZ_ADRES>"
+      bilgi "2) bash install.sh databases --only unite --url <KOPYALADIGINIZ_ADRES>"
       bilgi "   Betik indirdikten sonra kayit sayisini ve alfabesini DOGRULAR."
       EKSIK+=("unite (adres elle verilmeli)")
     fi
@@ -424,7 +424,7 @@ komut_kraken_indir() {
   bilgi "   tar -xzf *.tar.gz"
   bilgi
   uyar "HAZIR veritabanlari k=35, l=31 ile kurulmustur. K-MER UZUNLUGUNU"
-  uyar "SECEMEZSINIZ. Kendi k-mer'inizi istiyorsaniz: bash install.sh kraken-kur"
+  uyar "SECEMEZSINIZ. Kendi k-mer'inizi istiyorsaniz: bash install.sh kraken-build"
   bilgi
   bilgi "Kurduktan sonra kimligini DOGRULAYIN (hangi surum, hangi k-mer):"
   bilgi "   bash tools/kraken_tool.sh vt-kimlik"
@@ -435,12 +435,12 @@ komut_kraken_kur() {
   local KMER=35 MINI=31 BOSLUK=7 KUTUP="" DB="$HOME/k2db_ozel" IS=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --kmer)      KMER="$2"; shift 2 ;;
-      --minimizer) MINI="$2"; shift 2 ;;
-      --bosluk)    BOSLUK="$2"; shift 2 ;;
-      --kutuphane) KUTUP="$2"; shift 2 ;;
-      --db)        DB="$2"; shift 2 ;;
-      --is)        IS="$2"; shift 2 ;;
+      --kmer)               KMER="$2"; shift 2 ;;
+      --minimizer)          MINI="$2"; shift 2 ;;
+      --spaces|--bosluk)    BOSLUK="$2"; shift 2 ;;
+      --library|--kutuphane) KUTUP="$2"; shift 2 ;;
+      --db)                 DB="$2"; shift 2 ;;
+      --threads|--is)       IS="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -477,13 +477,13 @@ komut_kraken_kur() {
 
    FARKLI k ILE IKI VERITABANI KURUP KARSILASTIRMAK
    ------------------------------------------------
-       bash install.sh kraken-kur --kmer 35 --db ~/k2db_k35
-       bash install.sh kraken-kur --kmer 31 --db ~/k2db_k31
+       bash install.sh kraken-build --kmer 35 --db ~/k2db_k35
+       bash install.sh kraken-build --kmer 31 --db ~/k2db_k31
        bash tools/kraken_tool.sh esik      # esik taramasi
        bash tools/kraken_tool.sh tablo     # dort sutunlu karsilastirma
 EOF
   if ! command -v kraken2-build >/dev/null 2>&1; then
-    hata "kraken2-build bulunamadi. Once: bash install.sh araclar"
+    hata "kraken2-build bulunamadi. Once: bash install.sh tools"
     EKSIK+=("kraken2-build"); return 1
   fi
 
@@ -575,26 +575,28 @@ ozet() {
     return 1
   fi
   printf '   \033[32mKurulum tamam.\033[0m Hicbir adim atlanmadi.\n'
-  bilgi "durumu gormek icin: bash install.sh durum"
+  bilgi "durumu gormek icin: bash install.sh status"
   bilgi "log: $LOG"
   return 0
 }
 
 # ===========================================================================
-KOMUT="${1:-durum}"; shift 2>/dev/null || true
+KOMUT="${1:-status}"; shift 2>/dev/null || true
 ortam_denetimi "$KOMUT"
+# Subcommands are English; the original Turkish names stay as aliases so that
+# existing notes and habits keep working.
 case "$KOMUT" in
-  durum)         komut_durum ;;
-  araclar)       komut_araclar; ozet ;;
-  veritabani)    komut_veritabani "$@"; ozet ;;
-  kraken-indir)  komut_kraken_indir ;;
-  kraken-kur)    komut_kraken_kur "$@"; ozet ;;
-  qiime)         komut_qiime; ozet ;;
-  hepsi)         komut_araclar; komut_veritabani; komut_qiime
+  status|durum)               komut_durum ;;
+  tools|araclar)              komut_araclar; ozet ;;
+  databases|db|veritabani)    komut_veritabani "$@"; ozet ;;
+  kraken-download|kraken-indir) komut_kraken_indir ;;
+  kraken-build|kraken-kur)    komut_kraken_kur "$@"; ozet ;;
+  qiime)                      komut_qiime; ozet ;;
+  all|hepsi)                  komut_araclar; komut_veritabani; komut_qiime
                  renk "KRAKEN2"
                  bilgi "Kraken2 veritabani AYRI secim ister (hazir indir mi, k-mer secip kur mu):"
-                 bilgi "   bash install.sh kraken-indir     # hazir, k=35 sabit"
-                 bilgi "   bash install.sh kraken-kur --kmer 31"
+                 bilgi "   bash install.sh kraken-download     # hazir, k=35 sabit"
+                 bilgi "   bash install.sh kraken-build --kmer 31"
                  ozet ;;
   *)
     sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'

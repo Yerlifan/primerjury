@@ -82,8 +82,8 @@ def dizi_sutunlari(basliklar):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--kok', required=True)
-    ap.add_argument('--yaz', action='store_true')
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--write', '--yaz', dest='yaz', action='store_true')
     a = ap.parse_args()
     wb = openpyxl.load_workbook(a.xlsx, data_only=True)
 

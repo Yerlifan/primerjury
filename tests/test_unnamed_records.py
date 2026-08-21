@@ -78,7 +78,7 @@ def kd_yukle(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default=VARSAYILAN_KOK)
+    p.add_argument('--root', '--kok', dest='kok', default=VARSAYILAN_KOK)
     a = p.parse_args()
     kd = kd_yukle(a.kok)
 

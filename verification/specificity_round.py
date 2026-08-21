@@ -1530,32 +1530,50 @@ def girdi_denetle(yaz, ad, dosyalar):
 # 4 = kendi ciktisi bos. Ayrim onemlidir: yanlis asamayi ayiklamaya calismak
 # saatler kaybettirir.
 # ---------------------------------------------------------------------------
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(description='Kurtarilan ciftlerin uc katmanli dogrulanmasi')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--ncbi', choices=['oto', 'elle', 'yok'], default='elle',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle',
                    help='oto: NCBI URL API; elle: yapistirilabilir girdi uret; yok: atla')
-    p.add_argument('--ncbi-yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
-    p.add_argument('--organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
+    p.add_argument('--ncbi-load', '--ncbi-yukle', dest='ncbi_yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
+    p.add_argument('--organism', '--organizma', dest='organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
     # D-13c (2026-08-07, OLCULDU): ENTREZ_QUERY ile hedefin KENDI taksonu
     # dislanabilir; o zaman sayfada kalan her urun tanimi geregi hedef disidir.
     # DIKKAT - olculmus tuzak: ciplak 'NOT txidN[Organism]' filtreyi TERSINE
     # CEVIRIR (yalniz o taksonu getirir). Dogru bicim 'all[filter] NOT
     # txidN[Organism]'. Kod bu oneki kendisi ekler.
-    p.add_argument('--ncbi-haric-taxid', default='',
+    p.add_argument('--ncbi-exclude-taxid', '--ncbi-haric-taxid', dest='ncbi_haric_taxid', default='',
                    help="NCBI'de DISLANACAK taxid (ornek: 2157). ENTREZ_QUERY'ye "
                         "'all[filter] NOT txid<N>[Organism]' olarak gonderilir.")
-    p.add_argument('--yalniz-yerel', action='store_true', help='yalniz katman 2 (yerel DB)')
-    p.add_argument('--mfe-yok', action='store_true',
+    p.add_argument('--local-only', '--yalniz-yerel', dest='yalniz_yerel', action='store_true', help='yalniz katman 2 (yerel DB)')
+    p.add_argument('--no-mfe', '--mfe-yok', dest='mfe_yok', action='store_true',
                    help='MFEprimer katmanini atla')
-    p.add_argument('--kume-ust', type=int, default=0,
+    p.add_argument('--cluster-max', '--kume-ust', dest='kume_ust', type=int, default=0,
                    help='yalniz en kucuk N veritabani (hizli sinama)')
-    p.add_argument('--parc', action='store_true',
+    p.add_argument('--parc-set', '--parc', dest='parc', action='store_true',
                    help='SILVA LSU Parc kumesini de tara (yavas, ozgullukte gerekmez)')
-    p.add_argument('--siparis', action='store_true',
+    p.add_argument('--order', '--siparis', dest='siparis', action='store_true',
                    help='kurtarilanlar yerine SIPARIS LISTESINDEKI ciftleri dogrula '
                         '(siparis oncesi Primer-BLAST kontrolu icin)')
-    p.add_argument('--siparis-hepsi', action='store_true',
+    p.add_argument('--order-all', '--siparis-hepsi', dest='siparis_hepsi', action='store_true',
                    help='--siparis ile: KOSULLU ve ONERILMEZ satirlari da al')
     # -----------------------------------------------------------------------
     # --tumu  (2026-08-07)
@@ -1565,16 +1583,17 @@ def main():
     # butun indeksli veritabanlarina, SILVA dahil.
     # --siparis kipi DEGISMEDI; --tumu onun uzerine kurulu ayri bir bayraktir.
     # -----------------------------------------------------------------------
-    p.add_argument('--tumu', action='store_true',
+    p.add_argument('--all', '--tumu', dest='tumu', action='store_true',
                    help='paneldeki BUTUN ciftler (KESIN+EVRENSEL+KOSULLU+'
                         'ONERILMEZ) butun indeksli veritabanlarina, SILVA dahil')
-    p.add_argument('--ncbi-yalniz-siparis', action='store_true',
+    p.add_argument('--ncbi-order-only', '--ncbi-yalniz-siparis', dest='ncbi_yalniz_siparis', action='store_true',
                    help='--tumu ile: KATMAN 4 (NCBI) yalniz siparis listesindeki '
                         '(KESIN/EVRENSEL) ciftlere kosar. Listede olmayanlar '
                         'yalniz yerel + MFEprimer katmanlarini gorur. NCBI cift '
                         'basina ~75 sn + 10 sn bekleme oldugu icin sure kalemi.')
-    p.add_argument('--sifirla', action='store_true')
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
+    a = _ing_deger(a)
 
     # --tumu = --siparis + --siparis-hepsi. Ayri bir yol DEGIL, var olan
     # yolun genis girdi kumesi. Boylece --siparis kipinin davranisi degismez.

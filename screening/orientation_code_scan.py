@@ -89,7 +89,7 @@ def sinifla(metin):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--kok', required=True)
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
     ap.add_argument('--out', required=True)
     a = ap.parse_args()
     satirlar = []

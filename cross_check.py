@@ -3420,27 +3420,46 @@ MODUL_ADLARI = collections.OrderedDict([
 ])
 
 
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(
         description=u'PrimerJury paneli - bagimsiz, salt okunur capraz kontrol')
-    p.add_argument('--kok', default='.', help=u'proje kok klasoru')
-    p.add_argument('--cikti', default=None, help=u'rapor klasoru (varsayilan KONTROL_SONUC)')
-    p.add_argument('--moduller', default='hepsi',
+    p.add_argument('--root', '--kok', dest='kok', default='.', help=u'proje kok klasoru')
+    p.add_argument('--output', '--cikti', dest='cikti', default=None, help=u'rapor klasoru (varsayilan KONTROL_SONUC)')
+    p.add_argument('--modules', '--moduller', dest='moduller', default='hepsi',
                    help=u'kosulacak moduller, virgulle: 1,2,3 ... ya da "hepsi"')
-    p.add_argument('--m1-kip', dest='m1_kip', default='hizli',
-                   choices=['yok', 'hizli', 'tam'],
+    p.add_argument('--m1-mode', '--m1-kip', dest='m1_kip', default='hizli',
+                   choices=['none', 'quick', 'full', 'yok', 'hizli', 'tam'],
                    help=u'M1 kimlik taramasinin kapsami (varsayilan hizli)')
-    p.add_argument('--m1-yalniz', dest='m1_yalniz', default=None,
+    p.add_argument('--m1-only', '--m1-yalniz', dest='m1_yalniz', default=None,
                    help=u'yalniz bu kutular (virgulle), ornek: F2-1_500148,F2-4_500148')
-    p.add_argument('--m1-tavan', dest='m1_tavan', type=int, default=0,
+    p.add_argument('--m1-cap', '--m1-tavan', dest='m1_tavan', type=int, default=0,
                    help=u'M1 icin en fazla kac kutu (0 = hepsi)')
-    p.add_argument('--sifirla', action='store_true',
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true',
                    help=u'kontrol noktalarini yok say, her seyi yeniden hesapla')
-    p.add_argument('--kontrol-noktasi-yok', dest='kn_yok', action='store_true',
+    p.add_argument('--no-checkpoint', '--kontrol-noktasi-yok', dest='kn_yok', action='store_true',
                    help=u'kontrol noktasi hic kullanma')
-    p.add_argument('--kendini-sina', dest='kendini_sina', action='store_true',
+    p.add_argument('--self-test', '--kendini-sina', dest='kendini_sina', action='store_true',
                    help=u'her module bilerek bozuk girdi verip hatayi yakaladigini goster')
     a = p.parse_args()
+    a = _ing_deger(a)
 
     kok = os.path.abspath(a.kok)
     cikti = a.cikti or os.path.join(kok, u'KONTROL_SONUC')

@@ -99,10 +99,10 @@ def kutu_adi(yol):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--kok', required=True)
-    ap.add_argument('--cikti', default='konsensus_kanonik')
-    ap.add_argument('--yeniden', action='store_true')
-    ap.add_argument('--oncelik', default='ozgun', choices=sorted(ONCELIK))
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--output', '--cikti', dest='cikti', default='konsensus_kanonik')
+    ap.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true')
+    ap.add_argument('--priority', '--oncelik', dest='oncelik', default='ozgun', choices=sorted(ONCELIK))
     a = ap.parse_args()
 
     h = yon.kendini_sina()

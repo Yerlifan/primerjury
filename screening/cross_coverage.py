@@ -42,7 +42,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--fastq', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--dizin', default='')
+    ap.add_argument('--dir-path', '--dizin', dest='dizin', default='')
     ap.add_argument('--nmax', type=int, default=3000)
     a = ap.parse_args()
     out = json.load(open(a.out)) if os.path.exists(a.out) else {}

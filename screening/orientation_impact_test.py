@@ -86,8 +86,8 @@ def ispcr_var(dizi, F, R, mm=3):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--kok', required=True)
-    ap.add_argument('--klasor', default='referans_konsensus/konsensus')
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--dir', '--klasor', dest='klasor', default='referans_konsensus/konsensus')
     ap.add_argument('--mm', type=int, default=3)
     a = ap.parse_args()
 

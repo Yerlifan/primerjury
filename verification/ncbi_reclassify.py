@@ -133,8 +133,8 @@ def sinav():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--sina', action='store_true',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--selftest', '--sina', dest='sina', action='store_true',
                    help='yalniz ad kurali sinavini kos, dosya okuma')
     a = p.parse_args()
     if a.sina:

@@ -161,9 +161,9 @@ def tara(kok, klasorler):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--kok', required=True)
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--klasor', action='append', default=[])
+    ap.add_argument('--dir', '--klasor', dest='klasor', action='append', default=[])
     a = ap.parse_args()
     kl = a.klasor or ['consensus sequences',
                       'referans_konsensus/konsensus',

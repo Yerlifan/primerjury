@@ -10,7 +10,7 @@
 #      bash build_index.sh                                  # SSU (eski davranis)
 #      bash build_index.sh SILVA_138.2_LSURef_NR99.fasta    # REFERANS_DB icinden ad
 #      bash build_index.sh /tam/yol/baska.fasta             # tam yol da olur
-#      bash build_index.sh --liste                          # aday dosyalari goster
+#      bash build_index.sh --list                          # aday dosyalari goster
 #      CPU=8 MEMPCT=60 bash build_index.sh <dosya>          # kaynak ayari
 #      SINA_F=... SINA_R=... SINA_AD=... bash build_index.sh <dosya>   # kendi sinama cifti
 #
@@ -57,8 +57,8 @@ MFE="$KOK/tools/mfeprimer"
 
 VARSAYILAN="SILVA_138.2_SSURef_NR99.fasta"   # argumansiz cagri = eski davranis
 
-# ---- --liste / --yardim
-if [ "${1:-}" = "--liste" ] || [ "${1:-}" = "-l" ]; then
+# ---- --list / --yardim
+if [ "${1:-}" = "--list" ] || [ "${1:-}" = "-l" ]; then
   echo "REFERANS_DB icindeki indekslenebilir dosyalar:"
   printf '%-42s %10s  %s\n' "DOSYA" "MB" "INDEKS"
   for f in "$DB"/*.fasta "$DB"/*.fna; do
@@ -81,7 +81,7 @@ elif [ -f "$DB/$GIRDI" ]; then
   FASTA="$DB/$GIRDI"
 else
   echo "HATA: FASTA bulunamadi: $GIRDI"
-  echo "Adaylari gormek icin: bash $(basename "${BASH_SOURCE[0]}") --liste"
+  echo "Adaylari gormek icin: bash $(basename "${BASH_SOURCE[0]}") --list"
   exit 1
 fi
 AD="$(basename "$FASTA")"

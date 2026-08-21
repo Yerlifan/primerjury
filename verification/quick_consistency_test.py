@@ -656,8 +656,8 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
 # sonuclarini EZMEZ.
 def main():
     p = argparse.ArgumentParser(description='Zincirin hizli dogruluk testi')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--tavan-dk', type=int, default=15,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--cap-minutes', '--tavan-dk', dest='tavan_dk', type=int, default=15,
                    help='asama basina zaman tavani (dakika)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

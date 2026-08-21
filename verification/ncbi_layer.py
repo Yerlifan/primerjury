@@ -53,13 +53,13 @@ SURUM = '1.0 (2026-08-10)'
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--organizma', default='',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--organism', '--organizma', dest='organizma', default='',
                    help='NCBI organizma kisiti (bos = tum nt). BOS BIRAKIN: '
                         'genel kisit butun urunleri "target templates" hanesine '
                         'itiyor (olculdu).')
-    p.add_argument('--bekleme', type=int, default=20)
-    p.add_argument('--tur-ust', type=int, default=60)
+    p.add_argument('--wait', '--bekleme', dest='bekleme', type=int, default=20)
+    p.add_argument('--species-max', '--tur-ust', dest='tur_ust', type=int, default=60)
     a = p.parse_args()
 
     kok = os.path.abspath(a.kok)

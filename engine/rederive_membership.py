@@ -337,9 +337,9 @@ def kutu_adi(dosya):
 # -------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--kok', default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ap.add_argument('--root', '--kok', dest='kok', default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument('--nmax', type=int, default=3000)
-    ap.add_argument('--sifirla', action='store_true', help='kontrol noktalarini sil, bastan kos')
+    ap.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true', help='kontrol noktalarini sil, bastan kos')
     a = ap.parse_args()
     KOK = a.kok
     CIK = os.path.join(KOK, 'engine_SONUC')

@@ -63,14 +63,14 @@ def uyelik_dosyasi(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--hedef', required=True)
-    p.add_argument('--kalip', required=True,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--target', '--hedef', dest='hedef', required=True)
+    p.add_argument('--template', '--kalip', dest='kalip', required=True,
                    help='olculen kimlikte aranacak metin, orn: Petriella')
-    p.add_argument('--sinif', default='',
+    p.add_argument('--class', '--sinif', dest='sinif', default='',
                    help='kutu sinifi (F2 gibi); bos ise siparis listesinden okunur')
-    p.add_argument('--yaz', action='store_true')
-    p.add_argument('--panel-satiri', default='',
+    p.add_argument('--write', '--yaz', dest='yaz', action='store_true')
+    p.add_argument('--panel-row', '--panel-satiri', dest='panel_satiri', default='',
                    help='panel kaynagina satir ekle: PLAKA:Ta  (orn P1:55)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

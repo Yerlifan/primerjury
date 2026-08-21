@@ -198,8 +198,8 @@ def yalniz_urun_boyu(kok, yaz_mi):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--yaz', action='store_true',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--write', '--yaz', dest='yaz', action='store_true',
                    help='panel tablosunun Tm ve dTm sutunlarini da guncelle '
                         '(once yedek alinir)')
     a = p.parse_args()

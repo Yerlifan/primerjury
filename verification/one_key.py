@@ -1048,27 +1048,45 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
     return yol
 
 
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     global CANLILIK_SN
     p = argparse.ArgumentParser(description=u'TEK TUS - butun zinciri sirayla kosar')
-    p.add_argument('--kok', default='.')
+    p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--plan', action='store_true', help=u'yalniz plani yaz, kosma')
-    p.add_argument('--onayla', action='store_true',
+    p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
                    help=u'plani gosterip onay BEKLEMEDEN kos (bat bunu verir)')
-    p.add_argument('--yeniden', action='store_true',
+    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
                    help=u'bitmis asamalari da yeniden kos')
-    p.add_argument('--yalniz', default='', help=u'yalniz bu asamalar, orn: 8HS')
-    p.add_argument('--atla', default='', help=u'bu asamalari atla, orn: IG')
-    p.add_argument('--ncbi', choices=['oto', 'elle', 'yok'], default='oto')
-    p.add_argument('--organizma',
+    p.add_argument('--only', '--yalniz', dest='yalniz', default='', help=u'yalniz bu asamalar, orn: 8HS')
+    p.add_argument('--skip', '--atla', dest='atla', default='', help=u'bu asamalari atla, orn: IG')
+    p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto')
+    p.add_argument('--organism', '--organizma', dest='organizma',
                    default='Bacteria (taxid:2) OR Archaea (taxid:2157) OR Fungi (taxid:4751)')
-    p.add_argument('--siparis-16', action='store_true',
+    p.add_argument('--order-16', '--siparis-16', dest='siparis_16', action='store_true',
                    help=u'D asamasi 22 cift yerine yalniz 16 siparis ciftini sinar')
-    p.add_argument('--vt', default=os.environ.get('VT_A', ''),
+    p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 veritabani yolu')
-    p.add_argument('--on-kontrol-atla', action='store_true',
+    p.add_argument('--skip-precheck', '--on-kontrol-atla', dest='on_kontrol_atla', action='store_true',
                    help=u'ON KONTROLU ATLA - tavsiye edilmez, ekrana yazilir')
-    p.add_argument('--canlilik', type=int, default=CANLILIK_SN,
+    p.add_argument('--liveness', '--canlilik', dest='canlilik', type=int, default=CANLILIK_SN,
                    help=u'kac saniyede bir canlilik isareti')
     A = p.parse_args()
     CANLILIK_SN = max(2, A.canlilik)
