@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Engine gateway — the single import point for the low-level sequence code.
+"""Engine gateway, the single import point for the low-level sequence code.
 
 Loads ispcr / reads / scanner / pair from engine/ and re-exports the functions
 the rest of the package uses (rc, clean, encode, read_fasta, find_sites,
@@ -24,7 +24,7 @@ Betikler oturuma bagli mutlak yollar (sys.path.insert('/tmp/wk2/...')) iceriyor;
 ice aktarmadan once o yollar gecerli hale getirilir.
 """
 # ---------------------------------------------------------------------------
-# engine_gateway.py — projede zaten calisan olcum kodunu ice aktaran tek kapi; hicbir
+# engine_gateway.py, projede zaten calisan olcum kodunu ice aktaran tek kapi; hicbir
 #            algoritmayi yeniden yazmaz, yalnizca disari acar.
 #
 # GIRDI  : yapilandirma.BETIK_YOLLARI altindaki engine/ispcr.py,

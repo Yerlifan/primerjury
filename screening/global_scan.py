@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Global specificity scan — the most expensive step, run last.
+"""Global specificity scan, the most expensive step, run last.
 
 WHAT IT DOES
     Scans a full reference database (SILVA SSURef NR99, ~500k records; UNITE or
@@ -9,7 +9,7 @@ WHAT IT DOES
 
     This is a RAW SCANNER. It counts every product it finds; deciding which of
     those are genuinely off-target is the caller's job (see
-    verification/specificity_round.py). Keeping the two apart is deliberate — a
+    verification/specificity_round.py). Keeping the two apart is deliberate, a
     scanner that also judged would make its own bugs invisible.
 
 EFFICIENCY
@@ -47,7 +47,7 @@ Kesinti dayanikliligi: her parca bitince ara sonuc diske yazilir; program
 yeniden baslatilinca kalinan parcadan devam eder.
 """
 # ---------------------------------------------------------------------------
-# global_scan.py — hayatta kalan son adaylari REFERANS_DB'deki tam
+# global_scan.py, hayatta kalan son adaylari REFERANS_DB'deki tam
 #                     veritabanina karsi tarar; aramanin en pahali adimidir.
 #
 # GIRDI  : aday listesi ({'ad','F','R','lo','hi'}); veritabani olarak

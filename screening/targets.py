@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Targets — read FROM FILE, never hard-coded.
+"""Targets, read FROM FILE, never hard-coded.
 
 Loads target definitions and the "problem" list from the panel tables. There is
 no built-in list: a hard-coded target set silently diverges from the tables the
@@ -8,7 +8,7 @@ rest of the pipeline reads, and the two then disagree without any error.
 Consensus sequences are served ONLY from the canonical, orientation-normalised
 directory. The raw consensus directory is mixed-orientation (measured: 71
 antisense / 27 sense) and a reverse-oriented consensus yields ZERO products in
-in-silico PCR, silently — measured loss 100%.
+in-silico PCR, silently, measured loss 100%.
 
 --- ozgun aciklama ---
 Panelden hedefleri ve 'sorunlu' olanlari DOSYADAN okur. Sabit liste yoktur.
@@ -22,7 +22,7 @@ Sorunlu sayilma gerekceleri (hepsi panel dosyasindan turetilir):
   P  plaka ici jel cakismasi  -> "PLAKA ICI JEL AYRIMI" sutununda AYRILMAZ
 """
 # ---------------------------------------------------------------------------
-# targets.py — paketin veri okuma katmani: panel, uyelik, kutu ve konsensus
+# targets.py, paketin veri okuma katmani: panel, uyelik, kutu ve konsensus
 #               listelerini dosyalardan cikarir ve her hedef icin uye/rakip
 #               kumesini cozer.
 #

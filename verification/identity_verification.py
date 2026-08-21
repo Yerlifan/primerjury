@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Identity verification — tests reported identity claims INDEPENDENTLY.
+"""Identity verification, tests reported identity claims INDEPENDENTLY.
 
 WHY THE METHOD IS DELIBERATELY DIFFERENT
     This round repeats NONE of the methods that produced the claims:
@@ -18,7 +18,7 @@ METHOD: SEED + ALIGNMENT (BLAST-like, taxonomy-free)
     1  k-mer seeds are taken from the query consensus; the database is streamed
        and short-listed by seed count.
     2  EVERY short-listed record is fully aligned (Levenshtein DP, infix).
-    3  Identity is measured TWICE — over the whole overlap, and over the
+    3  Identity is measured TWICE, over the whole overlap, and over the
        DISCRIMINATING WINDOW: the columns where the best reference records
        differ from one another. Conserved regions (18S, 5.8S, LSU core) fall
        outside that window, so a claim resting on falsely high conserved-region
@@ -40,7 +40,7 @@ VERDICTS
 UNNAMED RECORDS CANNOT BECOME A NAME
     A 99% match to "Uncultured bacterium clone 4B-11" says your sequence
     overlaps environmental clones. It is not a species. Such records return
-    ADLANDIRILAMIYOR (referans adsiz) and never a taxon — see ad_coz().
+    ADLANDIRILAMIYOR (referans adsiz) and never a taxon, see ad_coz().
 
     Output also lists the five nearest organisms, deduplicated by ORGANISM
     rather than by record, so the list shows what else is close instead of the
@@ -87,7 +87,7 @@ Panel dosyalarina YAZMAZ; KIMLIK_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# identity_verification.py — raporlanan kimlik iddialarini dis referans
+# identity_verification.py, raporlanan kimlik iddialarini dis referans
 # veritabanlarina karsi TOHUM + HIZALAMA ile bagimsiz olarak sinar.
 #
 # GİRDİ  : REFERANS_DB/ altindaki yerel FASTA kumeleri (VTB listesi; ikiz ve
