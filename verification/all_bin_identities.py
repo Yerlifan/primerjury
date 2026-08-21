@@ -1,101 +1,106 @@
 # -*- coding: utf-8 -*-
-u"""G ASAMASI - TUM KUTU KIMLIKLERININ BAGIMSIZ DOGRULANMASI
+"""STAGE G - AN INDEPENDENT VERIFICATION OF EVERY BIN IDENTITY
 
-NEDEN VAR
+WHY IT EXISTS
+-------------
+Stage `I` tests 12 CLAIMS, but those claims were the identities WE SUSPECTED. The
+identity of the bins we did not suspect was never verified independently. Yet
+those bins also determine the member and competitor sets, which means they affect
+EVERY DISCRIMINATION RATIO. The silent majority was never checked at all. This
+stage closes that.
+
+THE SCOPE
 ---------
-`I` asamasi 12 IDDIAYI sinar - ama o iddialar bizim SUPHELENDIGIMIZ kimliklerdi.
-Suphelenmedigimiz kutularin kimligi hic bagimsiz dogrulanmadi. Oysa o kutular da
-uyelik ve rakip kumelerini belirliyor, yani HER AYRIM KATINI etkiliyorlar.
-Sessiz cogunluk hic kontrol edilmedi. Bu asama onu kapatir.
+EVERY bin that enters a panel measurement: all the bins that take part in any
+discrimination calculation as the MEMBER or the COMPETITOR of a target. Bins that
+take part in no calculation are SKIPPED, and the fact that they were skipped is
+WRITTEN INTO THE OUTPUT (no silent skipping).
 
-KAPSAM
-------
-Panel olcumlerine giren HER kutu: bir hedefin UYESI ya da RAKIBI olarak herhangi
-bir ayrim hesabina katilan butun kutular. Hicbir hesaba katilmayan kutular
-ATLANIR ve atlandiklari cikitiya YAZILIR (sessiz atlama yok).
-
-YONTEM - `I` ILE BIREBIR AYNI, YENIDEN YAZILMADI
-------------------------------------------------
-Bu betik karar mantigini KENDI YAZMAZ; identity_verification.py'nin fonksiyonlarini
-CAGIRIR:
-    kp_yolu()            - kontrol noktasi anahtari (ONBELLEK PAYLASIMI)
-    kl_degerlendir()     - kisa liste -> hizalama -> isabet + kazanan_sira
-    kisa_liste()         - tek sorgulu tarayici (dogrulama icin)
+THE METHOD - EXACTLY THE SAME AS `I`, NOT REWRITTEN
+---------------------------------------------------
+This script does not write the decision logic ITSELF; it CALLS the functions of
+identity_verification.py:
+    kp_yolu()            - the checkpoint key (THE SHARED CACHE)
+    kl_degerlendir()     - short list -> alignment -> hits plus kazanan_sira
+    kisa_liste()         - the single query scanner (for verification)
     ad_coz(), savunulabilir_duzey(), cins_cek(), hizala(), ayirt_edici_pencere()
-    literature_check.py - literatur katmani
-Yani: 500'luk kisa liste, hepsi hizalanir, en az IKI bagimsiz veritabani
-uyusmasi, en iyi UC isabet, savunulabilir duzey + onerilen ad, kazanan sira.
+    literature_check.py - the literature layer
+So: a 500 item short list, all of it aligned, AT LEAST TWO independent databases
+agreeing, the best THREE hits, the defensible level plus the suggested name, and
+the winning rank.
 
-VERITABANI KAPSAMI - ALAN FILTRESI YOKTUR
------------------------------------------
-HER kutuya 12 yerel veritabaninin HEPSI sorulur. Alan (bakteri/arke/mantar)
-filtresi UYGULANMAZ.
+DATABASE COVERAGE - THERE IS NO DOMAIN FILTER
+---------------------------------------------
+ALL 12 local databases are asked about EVERY bin. No domain filter (bacteria,
+archaea, fungi) IS APPLIED.
 
-  Neden: alani KRAKEN ETIKETINE gore secmek tehlikelidir - bu asamanin varlik
-  sebebi zaten Kraken etiketlerinin yanlis olabilmesi. "Bakteri kutusuna mantar
-  veritabani sormaya gerek yok" demek, kutunun bakteri OLDUGUNU varsaymaktir;
-  tam da sinamak istedigimiz sey odur. Bu yuzden BUTUN veritabanlari sorulur ve
-  alakasiz olanlar SONUCTA dusurulur (isabet yoksa "sonuc yok" diye isaretlenir),
-  sorgudan ONCE elenmez.
+  Why: choosing the domain from THE KRAKEN LABEL is dangerous, because the reason
+  this stage exists is that Kraken labels can be wrong. Saying "there is no need to
+  ask a fungal database about a bacterial bin" assumes the bin IS bacterial, and
+  that is exactly what we are trying to test. So EVERY database is asked and the
+  irrelevant ones are dropped IN THE RESULT (marked "no result" when there is no
+  hit); they are not ruled out BEFORE the query.
 
-  Kutunun alani ETIKETTEN DEGIL OLCUMDEN cikar: hangi veritabanlarinin gercekten
-  isabet verdigi 'alan_olcumden' sutununa yazilir.
+  The bin's domain comes FROM THE MEASUREMENT, NOT FROM THE LABEL: which databases
+  actually gave a hit is written into the 'alan_olcumden' column.
 
-Bir veritabani bir kutu icin sonuc dondurmediyse bu "temiz" SAYILMAZ:
-  TAMAM          - tarandi, isabet var
-  SONUC YOK      - tarandi, hicbir kayit tohum tutturmadi (alan disi olabilir)
-  DOSYA YOK      - veritabani diskte yok
-  SORULMADI (..) - sebebi yazilir
-Her kutu satirinda 12 veritabaninin 12'si de gorunur.
+If a database returned no result for a bin, that DOES NOT COUNT as "clean":
+  TAMAM          - scanned, there is a hit
+  SONUC YOK      - scanned, no record matched a seed (it may be outside the domain)
+  DOSYA YOK      - the database is not on disk
+  SORULMADI (..) - the reason is written out
+All 12 of the 12 databases appear on every bin row.
 
-KAPSAM MUHASEBESI - TAVAN SORUNU TEKRARLANMASIN
------------------------------------------------
-Erisim testinde gercek bir tavan sorunu yasandi: ilk kosu 120 001 kayitta
-kesiyordu, SILVA SSU NR99 / LSU Parc / UNITE ITS fiilen budanmis taraniyordu.
-Burada her veritabani icin TARANAN kayit sayisi sayilir ve BEKLENEN_KAYIT ile
-karsilastirilir; esit degilse 'kapsam' sutunu EKSIK yazar ve uyari basilir.
+COVERAGE ACCOUNTING - SO THE CAP PROBLEM DOES NOT RECUR
+-------------------------------------------------------
+A real cap problem happened in the access test: the first run cut off at 120 001
+records, and SILVA SSU NR99 / LSU Parc / UNITE ITS were effectively being scanned
+truncated.
 
-HIZ - TOPLU TARAMA
-------------------
-Kutu basina ayri akis: 94 tekil konsensus x 12 vtb = 1128 tam veritabani akisi.
-Kabul edilemez. Bunun yerine bir veritabani akisi AYNI ANDA butun kume
-sorgularina hizmet eder (tohum -> sorgu ters indeksi). Uretilen kisa liste,
-tek sorgulu kisa_liste() ile BIREBIR AYNIDIR ve bu sinamayla kanitlanir.
+A separate pass per bin: 94 distinct consensuses x 12 databases = 1128 full
+database passes. Unacceptable. Instead, one database pass serves every query in
+the batch AT THE SAME TIME (a seed -> query inverted index). The short list it
+produces is EXACTLY THE SAME as the single query kisa_liste(), and that is proven
+by a test.
 
-Panel dosyalarina YAZMAZ; TUM_KIMLIK_SONUC/ altina yazar.
+It WRITES NOTHING into the panel files; it writes under TUM_KIMLIK_SONUC/.
+
 """
 
 # -------------------------------------------------------------------------
-# all_bin_identities.py — panel olcumlerine giren HER kutunun kimligini dis
-# referans veritabanlarina karsi bagimsiz olarak dogrular ("sessiz cogunluk").
+# all_bin_identities.py verifies the identity of EVERY bin that enters a panel
+# measurement, independently, against external reference databases ("the silent
+# majority").
 #
-# GİRDİ  : REFERANS_DB/ altindaki 12 yerel FASTA kumesi (hepsi, alan filtresi YOK),
-#          konsensus_kanonik/ ve panel + uyelik tablolari (screening.targets),
-#          KIMLIK_SONUC/kontrol/ (I asamasiyla ORTAK onbellek),
-#          istege bagli NCBI nt.
-# ÇIKTI  : TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (kutu basina TEK satir),
+# INPUT  : the 12 local FASTA sets under REFERANS_DB/ (all of them, with NO domain
+#          filter), konsensus_kanonik/ and the panel plus membership tables
+#          (screening.targets), KIMLIK_SONUC/kontrol/ (a cache SHARED with stage I),
+#          optionally NCBI nt.
+# OUTPUT : TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (ONE row per bin),
 #          TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md,
 #          TUM_KIMLIK_SONUC/kutu_*.json, kosu_gunlugu.txt.
-#          Panel dosyalarina YAZMAZ.
-# ÇAĞRAN : verification/full_chain.py -> G tusu
-#          (bat icinde: wsl -e python3 "verification/all_bin_identities.py" --kok .)
+#          It WRITES NOTHING into the panel files.
+# CALLED BY: verification/full_chain.py -> key G
+#          (python3 verification/all_bin_identities.py --root .)
 #
-# I ASAMASINDAN FARKI: I, bizim SUPHELENDIGIMIZ 12 iddiayi sinar. G, suphesiz
-# saydigimiz kutulari da sinar - oysa o kutular da uyelik ve rakip kumelerini
-# belirliyor, yani HER AYRIM KATINI etkiliyorlar.
+# HOW IT DIFFERS FROM STAGE I: I tests the 12 claims WE SUSPECT. G also tests the
+# bins we take to be beyond suspicion, and those bins determine the member and
+# competitor sets, which means they affect EVERY DISCRIMINATION RATIO.
 #
-# YONTEM YENIDEN YAZILMADI: karar mantigi identity_verification.py'den CAGRILIR
-# (kp_yolu, kl_degerlendir, savunulabilir_duzey, ad_coz, cins_cek, hizala,
-# ayirt_edici_pencere). Yani 500'luk kisa liste, hepsinin hizalanmasi, en az IKI
-# bagimsiz veritabani uyusmasi ve en iyi uc isabet kurallari BIREBIR aynidir.
-# Iki ayri uygulama olsaydi iki farkli hukum ureten iki farkli arac olurdu.
+# THE METHOD IS NOT REWRITTEN: the decision logic is CALLED from
+# identity_verification.py (kp_yolu, kl_degerlendir, savunulabilir_duzey, ad_coz,
+# cins_cek, hizala, ayirt_edici_pencere). So the 500 item short list, aligning all
+# of it, requiring AT LEAST TWO independent databases to agree, and the best three
+# hits rules are EXACTLY the same. Two separate implementations would be two
+# separate tools producing two separate verdicts.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, re, argparse, heapq, collections
 
 VERSIYON = '1.0 (2026-08-04)'
 
-# Erisim dogrulamasindan (ERISIM_SONUC/erisim_dogrulama.tsv, 'TAMAMI' kosusu)
-# alinan GERCEK kayit sayilari. Taranan bunlardan azsa kapsam EKSIK demektir.
+# The REAL record counts taken from the access verification
+# (ERISIM_SONUC/erisim_dogrulama.tsv, the 'TAMAMI' run). If fewer than these were
+# scanned, the coverage is INCOMPLETE.
 BEKLENEN_KAYIT = {
     'SILVA SSU NR99': 510495, 'SILVA LSU NR99': 95279, 'SILVA LSU Parc': 1312521,
     'UNITE ITS': 2069189, 'PR2 SSU': 240201, 'ROD operon': 60320,
@@ -104,10 +109,10 @@ BEKLENEN_KAYIT = {
 }
 
 
-# identity_verification.py bir betiktir (paket degil), o yuzden dosya yolundan modul
-# olarak yuklenir. Karar mantigi ORADAN gelir; burada yeniden yazilmaz.
+# identity_verification.py is a script (not a package), so it is loaded as a module
+# from its file path. The decision logic comes FROM THERE; it is not rewritten here.
 def _K(kok):
-    """identity_verification.py'yi modul olarak yukle - karar mantigi ORADAN gelir."""
+    """Load identity_verification.py as a module - the decision logic comes FROM THERE."""
     import importlib.util
     yol = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'identity_verification.py')
     sp = importlib.util.spec_from_file_location('kimlik_dogrulama', yol)
@@ -117,21 +122,23 @@ def _K(kok):
     return m
 
 
-# --------------------------------------------------------------- KUTU ENVANTERI
-# ---------------------------------------------------------------------------
-# KAPSAM: bir hedefin UYESI ya da RAKIBI olarak herhangi bir ayrim hesabina
-# katilan butun kutular. Hicbir hesaba girmeyen kutular sinanmaz - ama SESSIZCE
-# atlanmaz: atlananlar listesine sebebiyle yazilir ve hem TSV hem markdown
-# raporunda gorunur.
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------- THE BIN INVENTORY
+# -------------------------------------------------------------------------
+# THE SCOPE: every bin that takes part in any discrimination calculation as the
+# MEMBER or the COMPETITOR of a target. Bins that enter no calculation are not
+# tested, but they are not skipped SILENTLY: they go onto the skipped list with
+# their reason and appear in both the TSV and the markdown report.
+# -------------------------------------------------------------------------
 def kutu_envanteri(kok, K):
-    """Panel olcumlerine giren HER kutu + hangi hedefin uyesi/rakibi oldugu.
+    """EVERY bin entering a panel measurement, plus which target it is a member or
+        competitor of.
 
-    Donen: (katilan, atlanan, uye, rakip, kons)
-      katilan : sirali kutu adlari
-      atlanan : [(kutu, sebep)]
-      uye     : kutu -> [hedef, ...]
-      rakip   : kutu -> [hedef, ...]
+        Returns: (katilan, atlanan, uye, rakip, kons)
+          katilan : the bin names, ordered
+          atlanan : [(bin, reason)]
+          uye     : bin -> [target, ...]
+          rakip   : bin -> [target, ...]
+
     """
     sys.path.insert(0, kok)
     from screening import targets as H
@@ -158,15 +165,16 @@ def kutu_envanteri(kok, K):
 
 # --------------------------------------------------------------- TOPLU TARAMA
 class _TersMetin(str):
-    u"""Karsilastirmasi TERS cevrilmis metin.
+    """Text whose comparison is REVERSED.
 
-    Kisa listenin siralama olcutu: tohum sayisi AZALAN, esitlikte baslik ARTAN.
-    Bellegi sinirli tutmak icin 'ust' boyutlu bir MIN-HEAP kullaniyoruz; heap'in
-    atacagi eleman "en kotu" olmali. Tohum sayisinda en kucuk, ESITLIKTE BASLIGI
-    EN BUYUK olan en kotudur - bu yuzden baslik karsilastirmasi ters cevrilir.
-    Ters cevrilmezse kesme noktasindaki ESIT TOHUMLU kayitlar tek sorgulu
-    kisa_liste() ile farkli secilir ve iki yol ayrisir (olculdu: 455. sirada
-    ayrisiyordu).
+        The short list's ranking criterion: seed count DESCENDING, header ASCENDING on
+        a tie. To keep memory bounded we use a MIN-HEAP of size 'ust', and the element
+        the heap throws away has to be "the worst". The worst is the one with the
+        smallest seed count and, ON A TIE, THE LARGEST HEADER, which is why the header
+        comparison is reversed. Without the reversal, records with EQUAL SEED COUNTS at
+        the cut off are chosen differently from the single query kisa_liste() and the
+        two routes diverge (measured: they diverged at position 455).
+
     """
     __slots__ = ()
 
@@ -183,40 +191,43 @@ class _TersMetin(str):
         return str.__le__(self, o)
 
 
-# ---------------------------------------------------------------------------
-# TOPLU TARAMA - tek veritabani akisinda BUTUN kume sorgulari.
+# -------------------------------------------------------------------------
+# THE BULK SCAN - EVERY query in the batch in one database pass.
 #
-# Kutu basina ayri akis olsaydi 94 konsensus x 12 veritabani = 1128 tam dosya
-# gecisi gerekirdi; kabul edilemez. Burada tohum -> sorgu ters indeksi kurulur ve
-# her kaydin k-mer kumesi bir kez cikarilip indekse carpilir.
+# A separate pass per bin would need 94 consensuses x 12 databases = 1128 full file
+# passes, which is unacceptable. Here a seed -> query inverted index is built, and
+# each record's k-mer set is extracted once and multiplied against the index.
 #
-# URETILEN KISA LISTE, tek sorgulu kisa_liste() ile BIREBIR AYNI OLMAK ZORUNDA:
-# iki yol ayni girdide farkli liste cikarirsa I ve G asamalari ayni kutu icin
-# farkli hukum verebilir. Siralama olcutu ikisinde de "tohum sayisi AZALAN,
-# esitlikte baslik ARTAN"dir; _TersMetin sinifi bu esitlik kuralini min-heap
-# icinde de korumak icin vardir (olculdu: ters cevrilmezse 455. sirada ayrisiyor).
+# THE SHORT LIST PRODUCED MUST BE EXACTLY THE SAME as the single query
+# kisa_liste(): if the two routes produce different lists on the same input, stages
+# I and G can give different verdicts for the same bin. The ranking criterion in
+# both is "seed count DESCENDING, header ASCENDING on a tie"; the _TersMetin class
+# exists to preserve that tie rule inside a min-heap too (measured: without the
+# reversal they diverge at position 455).
 #
-# ALAN FILTRESI YOKTUR: hangi sorgu olursa olsun her kayit degerlendirilir.
-# ---------------------------------------------------------------------------
+# THERE IS NO DOMAIN FILTER: whatever the query, every record is evaluated.
+# -------------------------------------------------------------------------
 def toplu_kisa_liste(K, yol, sorgular, ust, ilerle=None):
-    u"""BIR veritabani akisinda BUTUN sorgular icin kisa liste kur.
+    """Build the short list for EVERY query in ONE database pass.
 
-    sorgular: {ad: dizi}. Donen: ({ad: kisa_liste}, taranan_kayit_sayisi)
+        sorgular: {name: sequence}. Returns: ({name: short_list}, records_scanned)
 
-    Tohum -> sorgu ters indeksi kurulur; her kayit icin kaydin 16-mer kumesi bir
-    kez cikarilir ve indekse carpilir. Sonuc, her sorgu icin tek tek
-    kisa_liste() cagirmakla AYNIDIR (sinamada kanitlanir): 'tohum sayisi' her iki
-    yolda da "sorgunun kac ayri tohumu bu kayitta gecti" demektir.
+        A seed -> query inverted index is built; for each record the record's 16-mer
+        set is extracted once and multiplied against the index. The result is THE SAME
+        as calling kisa_liste() for each query separately (proven by a test): 'seed
+        count' means "how many distinct seeds of the query occurred in this record" on
+        both routes.
 
-    ALAN FILTRESI YOK: hangi sorgu olursa olsun her kayit degerlendirilir.
+        THERE IS NO DOMAIN FILTER: whatever the query, every record is evaluated.
+
     """
     import math
     k = K.K_TOHUM
-    # TEK SORGULU kisa_liste() ILE AYNI OLCUT (idf + BM25). Iki yol ayni girdide
-    # ayni kisa listeyi cikarmak ZORUNDA; gerekce identity_verification.py basindaki
-    # "SIRALAMA OLCUTU" bolumunde.
+    # THE SAME CRITERION AS THE SINGLE QUERY kisa_liste() (idf plus BM25). The two
+    # routes MUST produce the same short list on the same input; the reasoning is in the
+    # "THE RANKING CRITERION" section at the top of identity_verification.py.
     tohum_sira = {}                          # ad -> sirali tohum listesi
-    tohum_sahip = {}                         # tohum -> [(ad, indeks), ...]
+    tohum_sahip = {}                         # seed -> [(name, index), ...]
     for ad, q in sorgular.items():
         th = sorted(K.tohumlar(q) | K.tohumlar(K.rc(q)))
         tohum_sira[ad] = th
@@ -232,7 +243,7 @@ def toplu_kisa_liste(K, yol, sorgular, ust, ilerle=None):
     N = 0
     if not tohum_kume:
         return {ad: [] for ad in sorgular}, 0
-    for bas, diz in K.fasta_akisi(yol):      # TAVAN YOK - dosya sonuna kadar
+    for bas, diz in K.fasta_akisi(yol):      # NO CAP - to the end of the file
         n += 1
         if ilerle and n % 20000 == 0:
             ilerle(n)
@@ -253,7 +264,7 @@ def toplu_kisa_liste(K, yol, sorgular, ust, ilerle=None):
         for ad, s in tut.items():
             d_ = df[ad]
             for i in s:
-                d_[i] += 1                   # TERS FREKANS: ayni akista bedava
+                d_[i] += 1                   # INVERSE FREQUENCY: free in the same pass
             on = len(s) / norm               # ON ELEME (idf henuz bilinmiyor)
             h = yigin[ad]
             if len(h) < havuz:
@@ -273,34 +284,36 @@ def toplu_kisa_liste(K, yol, sorgular, ust, ilerle=None):
     return cikti, n
 
 
-# --------------------------------------------------------------- KUTU HUKMU
+# --------------------------------------------------------------- THE BIN VERDICT
 # -------------------------------------------------------------------------
-# EN AZ IKI BAGIMSIZ VERITABANI SARTI - NEDEN VAR
+# THE AT-LEAST-TWO-INDEPENDENT-DATABASES RULE - WHY IT EXISTS
 #
-# Tek bir veritabaninin en iyi isabeti bir kimlik iddiasi icin YETMEZ. Her kume
-# kendi tarihsel yanliliklarini tasir: bir kume nadir cinsleri tekrarsizlastirma
-# sirasinda silmis olabilir (olculdu: SILVA LSURef NR99 icinde Petriella kaydi 0,
-# ayni surumun Parc kumesinde 82), bir digeri ayni kaydi eskimis bir adla tasiyor
-# olabilir. Tek kaynaga dayanan bir hukum, o kaynagin hatasini KIMLIK diye
-# raporlardi.
+# The best hit of a single database IS NOT ENOUGH for an identity claim. Every set
+# carries its own historical biases: one may have deleted rare genera during
+# dereplication (measured: SILVA LSURef NR99 holds 0 Petriella records while the
+# Parc set of the same release holds 82), another may carry the same record under an
+# outdated name. A verdict resting on one source would report that source's mistake
+# as AN IDENTITY.
 #
-# Bu yuzden hukum, veritabanlarinin UYUSMASINA baglanir: ayni cinsi en iyi isabet
-# olarak veren BAGIMSIZ veritabani sayisi >=2 ise DOGRULANDI, 1 ise
-# "DOGRULANAMADI (tek kaynak)", hicbiri birlesmiyorsa DOGRULANAMADI.
+# So the verdict is tied to the databases AGREEING: if the number of INDEPENDENT
+# databases giving the same genus as their best hit is >=2 it is DOGRULANDI, if it
+# is 1 it is "DOGRULANAMADI (tek kaynak)", and if none agree it is DOGRULANAMADI.
 #
-# UYDURMA TEYIT URETILMEZ: kanit yetersizse bosluk bosluk olarak raporlanir.
-# Bagimsizlik da denetlenir - VTB listesinde ikiz (bayt bayt ayni) ve altkume
-# olan kumeler oylamadan cikarilmistir, yoksa ayni kayit iki kez oy verirdi.
+# NO CONFIRMATION IS INVENTED: where the evidence is insufficient, a gap is reported
+# as a gap. Independence is enforced too; sets in the VTB list that are twins (byte
+# for byte identical) or subsets have been taken out of the vote, or the same record
+# would vote twice.
 #
-# Uyusma CINS duzeyinde aranir: tur duzeyi tek harflik ad farkiyla bile ayrilir ve
-# gercek bir uyusmayi yapay olarak bozar.
+# Agreement is sought at GENUS level: species level separates on a one letter name
+# difference and would break a real agreement artificially.
 # -------------------------------------------------------------------------
 def kutu_hukmu(K, bulgular, lokus_tab):
-    u"""Bir kutunun kimligi: en az IKI bagimsiz veritabani uyusmali.
+    """A bin's identity: AT LEAST TWO independent databases must agree.
 
-    `I` ile ayni sart. Uyusma CINS duzeyinde aranir (tur duzeyi tek harfle
-    degisebiliyor); ayni cinsi en iyi isabet olarak veren BAGIMSIZ veritabani
-    sayisi >= 2 ise DOGRULANDI.
+        The same requirement as `I`. Agreement is sought at GENUS level (species level
+        can change by a single letter); if the number of INDEPENDENT databases giving
+        the same genus as their best hit is >= 2, it is DOGRULANDI.
+
     """
     havuz = []
     for et, v in bulgular.items():
@@ -342,11 +355,12 @@ def kutu_hukmu(K, bulgular, lokus_tab):
     return adl, hukum, uyusan_cins, uyusan_vtb, lokus, oy
 
 
-# Mevcut kayitli kimlik (Kraken taxid adi) ile olculen kimlik ayni cinsi mi
-# gosteriyor. "Candidatus" oneki karsilastirmadan once dusurulur; kayitli ad yoksa
-# sonuc UYUSMADI degil KAYIT YOK olur - iki durum ayni sey degildir.
+# Do the recorded identity (the Kraken taxid name) and the measured identity point
+# at the same genus? The "Candidatus" prefix is dropped before comparing; if there
+# is no recorded name the result is not UYUSMADI but KAYIT YOK, and the two are not
+# the same thing.
 def ayni_mi(kayitli, dogrulanan_cins, adl):
-    u"""Mevcut kayitli kimlik ile dogrulanan kimlik ayni cinsi mi gosteriyor?"""
+    """Do the recorded identity and the verified identity point at the same genus?"""
     if not kayitli or kayitli in ('?', '-'):
         return 'KAYIT YOK', u'taxid_adlari.tsv icinde bu taxid icin ad yok'
     if not dogrulanan_cins:
@@ -357,35 +371,36 @@ def ayni_mi(kayitli, dogrulanan_cins, adl):
     return 'HAYIR', u'kayitli "%s" -> olculen "%s"' % (kayitli, dogrulanan_cins)
 
 
-# --------------------------------------------------------------- KOSU
+# --------------------------------------------------------------- THE RUN
 # -------------------------------------------------------------------------
-# SURUCU. Kutular kumeler halinde (varsayilan 24) islenir; her veritabani icin
-# TEK akis acilir ve o akis kumedeki butun kutulara hizmet eder.
+# THE DRIVER. The bins are processed in batches (24 by default); ONE pass is opened
+# per database and that pass serves every bin in the batch.
 #
-# ALAN FILTRESI YOKTUR ve bu bilincli bir karardir. Alani Kraken etiketine gore
-# secmek - "bakteri kutusuna mantar veritabani sormaya gerek yok" - kutunun
-# bakteri OLDUGUNU varsaymaktir; oysa bu asamanin varlik sebebi tam da o
-# etiketlerin yanlis olabilmesi. Butun veritabanlari sorulur, alakasizlar SONUCTA
-# dusurulur. Kutunun alani ETIKETTEN DEGIL OLCUMDEN cikar (alan_olcumden sutunu).
+# THERE IS NO DOMAIN FILTER, and that is a deliberate decision. Choosing the domain
+# from the Kraken label - "there is no need to ask a fungal database about a
+# bacterial bin" - assumes the bin IS bacterial, when the whole reason this stage
+# exists is that those labels can be wrong. Every database is asked, and the
+# irrelevant ones are dropped IN THE RESULT. The bin's domain comes FROM THE
+# MEASUREMENT, NOT FROM THE LABEL (the alan_olcumden column).
 #
-# SONUC DONDURMEYEN VERITABANI "TEMIZ" SAYILMAZ: SONUC YOK / DOSYA YOK /
-# SORULMADI diye ayri isaretlenir ve her kutu satirinda 12 kaynagin 12'si de
-# gorunur.
+# A DATABASE THAT RETURNS NO RESULT DOES NOT COUNT AS "CLEAN": it is marked
+# separately as SONUC YOK / DOSYA YOK / SORULMADI, and all 12 of the 12 sources
+# appear on every bin row.
 #
-# KAPSAM MUHASEBESI: her veritabani icin TARANAN kayit sayisi sayilir ve
-# BEKLENEN_KAYIT ile karsilastirilir. Erisim testinde gercek bir tavan sorunu
-# yasandi - ilk kosu 120 001 kayitta kesiyordu ve SILVA SSU NR99, LSU Parc,
-# UNITE ITS fiilen budanmis taraniyordu. Burada akiticida tavan yoktur ve eksik
-# kapsam sessiz kalmaz, uyari basar.
+# COVERAGE ACCOUNTING: for each database the number of records SCANNED is counted
+# and compared against BEKLENEN_KAYIT. A real cap problem happened in the access
+# test: the first run cut off at 120 001 records and SILVA SSU NR99, LSU Parc and
+# UNITE ITS were effectively being scanned truncated. There is no cap in the
+# streamer here, and incomplete coverage does not stay quiet, it prints a warning.
 #
-# ONBELLEK I ILE PAYLASILIR: kontrol noktalari KIMLIK_SONUC/kontrol altinda ve
-# ayni anahtarla durur, yani ayni kutu iki asamada iki kez taranmaz.
+# THE CACHE IS SHARED WITH I: the checkpoints live under KIMLIK_SONUC/kontrol under
+# the same key, so the same bin is never scanned twice across the two stages.
 # -------------------------------------------------------------------------
 def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kutu):
     K = _K(kok)
     CIKTI = os.path.join(kok, 'TUM_KIMLIK_SONUC')
-    # ONBELLEK PAYLASIMI: kontrol noktalari `I` ile AYNI klasorde ve AYNI
-    # anahtarla durur. Ayni kutu iki asamada iki kez taranmaz.
+    # CACHE SHARING: the checkpoints live in THE SAME directory as `I` and under
+    # THE SAME key. The same bin is never scanned twice across the two stages.
     KONTROL = os.path.join(kok, 'KIMLIK_SONUC', 'kontrol')
     os.makedirs(CIKTI, exist_ok=True)
     os.makedirs(KONTROL, exist_ok=True)
@@ -416,11 +431,11 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     if tavan_kutu:
         katilan = katilan[:tavan_kutu]
 
-    # --- VERITABANI KAPSAMI: HEPSI, ALAN FILTRESI YOK ---
+    # --- DATABASE COVERAGE: ALL OF THEM, NO DOMAIN FILTER ---
     var, yok = [], []
     for e, d, t, kullan, _n in K.VTB:
         if not kullan:
-            continue                       # ikiz/altkume - bagimsiz kaynak degil
+            continue                       # a twin or subset - not an independent source
         p = os.path.join(kok, 'REFERANS_DB', d)
         (var if os.path.exists(p) else yok).append((e, d, t))
     lokus_tab = {e: t for e, _d, t, _k, _n in K.VTB}
@@ -456,11 +471,11 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     _oq = sum(_uz) / float(len(_uz))
     _ref = 2000.0
     _bir = 6.7e-6 * min(_oq, _ref) + 4.11e-9 * min(_oq, _ref) * max(_oq, _ref)
-    # Olculmus sabitler (bu betigin kendi kodu, sentetik kume, 2026-08-04):
-    #   toplu tarama : ~6 400 kayit/sn (24 sorgu es zamanli)
-    #   tek sorgulu  : ~2 200 kayit/sn (1 sorgu)  -> toplu ~70 kat verimli
-    # Kullanicinin makinesi farkli olabilir; her veritabani satiri GERCEK sureyi
-    # basar, yani tahmin kosu ilerledikce kendini duzeltir.
+    # Measured constants (this script's own code, a synthetic set, 2026-08-04):
+    #   the bulk scan  : ~6 400 records/s (24 queries at once)
+    #   a single query : ~2 200 records/s (1 query)  -> the bulk pass is ~70x as efficient
+    # The user's machine may differ; every database line prints the REAL time, so the
+    # estimate corrects itself as the run goes on.
     TARAMA_HIZI = 6400.0
     _hiz = n_tekil * len(var) * kl_ust * _bir
     _kume = max(1, (n_tekil + kume_boyu - 1) // kume_boyu)
@@ -481,7 +496,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     yaz(u'    scans share a cache with stage `I`.')
     yaz('')
 
-    # --- KOSU: kume kume, veritabani veritabani ---
+    # --- THE RUN: batch by batch, database by database ---
     sonuc, tb = [], time.time()
     bekleyen = []
     for k in katilan:
@@ -496,7 +511,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     yaz(u'  taken from the previous run: %d bins | to scan: %d bins'
         % (len(sonuc), len(bekleyen)))
 
-    kapsam_kayit = {}          # etiket -> (taranan, beklenen, kapsam)
+    kapsam_kayit = {}          # label -> (scanned, expected, coverage)
     for ki in range(0, len(bekleyen), kume_boyu):
         kume = bekleyen[ki:ki + kume_boyu]
         yaz('')
@@ -505,7 +520,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                len(kume), ', '.join(kume[:6]) + (' ...' if len(kume) > 6 else '')))
         bulgular = {k: {} for k in kume}
         for et, dosya, _t in var:
-            # onbellekte olmayanlari topla (I ile ORTAK anahtar)
+            # collect the ones not in the cache (a key SHARED with I)
             kalan = {}
             for k in kume:
                 q = kons[k][:4000]
@@ -535,7 +550,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
             for k, q in kalan.items():
                 kl = kls.get(k) or []
                 if not kl:
-                    # SONUC YOK - "temiz" DEGIL, ayri isaretlenir
+                    # NO RESULT - NOT "clean"; it is marked separately
                     res = dict(durum=u'SONUC YOK', kayit=0, kisa_liste_boyu=kl_ust,
                                hizalanan=0, isabet=[], kazanan_sira=None,
                                kazanan_kaynak=None, sira_uyarisi=None,
@@ -584,17 +599,18 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     return 0 if sonuc else 1
 
 
-# ---------------------------------------------------------------------------
-# Tek kutunun satirini kurar: kayitli kimlik, dogrulanan kimlik, uyusma durumu,
-# savunulabilir duzey, en iyi uc isabet, literatur katmani ve KAYNAK MUHASEBESI.
+# -------------------------------------------------------------------------
+# It builds one bin's row: the recorded identity, the verified identity, the
+# agreement state, the defensible level, the best three hits, the literature layer
+# and THE SOURCE ACCOUNTING.
 #
-# Kaynak muhasebesi 12 yerel + NCBI nt satirinin HEPSINI icerir; bir kaynak hic
-# denenmediyse "SORULMADI (BILINMEYEN) - HATA, bildirin" yazilir. Sessiz eksik
-# birakmaktansa gurultulu bir hata basmak tercih edilmistir.
+# The source accounting holds ALL of the 12 local plus NCBI nt rows; if a source was
+# never tried it says "SORULMADI (BILINMEYEN) - HATA, bildirin". Printing a noisy
+# error was preferred over leaving a silent gap.
 #
-# Satirda ayrica bu kutunun HANGI hedeflerin uyesi ya da rakibi oldugu durur:
-# kimlik degisirse hangi olcumlerin yeniden yapilmasi gerektigi buradan okunur.
-# ---------------------------------------------------------------------------
+# The row also holds WHICH targets this bin is a member or a competitor of: if the
+# identity changes, which measurements have to be redone is read from here.
+# -------------------------------------------------------------------------
 def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_kip,
                KONTROL, CIKTI, yaz, var, yok):
     u"""Tek kutunun satiri: kayitli kimlik, dogrulanan kimlik, uyusma, kaynak muhasebesi."""
@@ -624,7 +640,7 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
     adl, hukum, cins, uyusan_vtb, lokus, oy = kutu_hukmu(K, bulgular, lokus_tab)
     uym, uym_not = ayni_mi(kayitli, cins, adl)
 
-    # --- LITERATUR KATMANI (I ile ayni) ---
+    # --- THE LITERATURE LAYER (the same as I) ---
     try:
         import importlib.util as _lu
         _lp = _lu.spec_from_file_location(
@@ -658,7 +674,7 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
     sonucsuz = [e for e, v in detay.items() if v['durum'] == 'SONUC YOK']
     sorulmayan = [e for e, v in detay.items()
                   if str(v['durum']).startswith('SORULMADI') or v['durum'] == 'DOSYA YOK']
-    # ALAN OLCUMDEN: hangi veritabanlari fiilen isabet verdi
+    # THE DOMAIN FROM THE MEASUREMENT: which databases actually gave a hit
     alan = sorted({lokus_tab.get(e, '?') for e, v in detay.items()
                    if str(v['durum']).startswith('TAMAM')})
 
@@ -677,9 +693,10 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
         uye_hedefler=sorted(uye.get(kutu, [])), rakip_hedefler=sorted(rakip.get(kutu, [])))
 
 
-# --------------------------------------------------------------- RAPOR
-# UYUSMAYANLAR EN BASA, sonra belirsizler, en sonda uyusanlar; esitlikte cok hedef
-# etkileyen kutu once. Rapor okuyan kisi once en cok is cikaracak satiri gorsun.
+# --------------------------------------------------------------- THE REPORT
+# THE DISAGREEING ONES FIRST, then the uncertain ones, and the agreeing ones last;
+# on a tie, the bin affecting more targets comes first. Whoever reads the report
+# should see the row that creates the most work first.
 def _sirala(s):
     """UYUSMAYANLAR EN BASA. Sonra belirsizler, sonra uyusanlar."""
     o = {'HAYIR': 0, 'BELIRSIZ': 1, 'KAYIT YOK': 2, 'EVET': 3}
@@ -687,15 +704,16 @@ def _sirala(s):
             s['kutu'])
 
 
-# ---------------------------------------------------------------------------
-# Iki cikti: kutu basina tek satirlik TSV ve markdown rapor.
+# -------------------------------------------------------------------------
+# Two outputs: a one row per bin TSV and a markdown report.
 #
-# Markdown raporun sonunda ETKI OZETI durur: kac kutunun kimligi degisti, bu kac
-# hedefin uyelik/rakip kumesini etkiliyor ve yeniden olcum gerekip gerekmedigi.
-# Uyelik kumesi degisen hedefte omurga konsensus da degisebilir, yani primer ve
-# ayrim degerleri yeniden hesaplanmalidir - bu betik o hesabi KENDISI yapmaz,
-# yalnizca gerektigini bildirir ve panel dosyalarina dokunmaz.
-# ---------------------------------------------------------------------------
+# At the end of the markdown report stands THE IMPACT SUMMARY: how many bins changed
+# identity, how many targets' member or competitor sets that affects, and whether a
+# re-measurement is needed. On a target whose member set changes, the backbone
+# consensus can change too, which means the primer and discrimination values have to
+# be recomputed. This script DOES NOT do that calculation itself; it only reports
+# that it is needed, and it does not touch the panel files.
+# -------------------------------------------------------------------------
 def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             kl_ust, nt_kip):
     sonuc = sorted(sonuc, key=_sirala)
@@ -710,14 +728,14 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         w.writerow(['kutu', 'taxid', 'MEVCUT_KAYITLI_KIMLIK', 'DOGRULANAN_KIMLIK',
                     'UYUSUYOR_MU', 'uyusma_notu', 'HUKUM',
                     'SAVUNULABILIR_DUZEY', 'ONERILEN_AD', 'adlandirma_gerekcesi',
-                    # HIZALANAN UZUNLUK, kimlik yuzdesinin yaninda ZORUNLU.
-                    # (2026-08-11) Yuzde tek basina yaniltiyor: ayni kutuya
-                    # SILVA LSU Parc'ta Petriella setifera %100, RefSeq mantar
-                    # ITS'te Petriella musispora %100 cikti. Ikisi de %100
-                    # cunku iki AYRI lokusta, iki AYRI uzunlukta hizalandilar.
-                    # Uzunluk gorunmeden "%100" okuyan herkes turun kesin
-                    # oldugunu sanir. Veri zaten uretiliyordu (hiz_uzunluk),
-                    # yalnizca tabloya yazilmiyordu.
+                    # THE ALIGNED LENGTH IS REQUIRED beside the identity percentage.
+                    # (2026-08-11) The percentage alone misleads: for the same bin,
+                    # Petriella setifera came out at 100% in SILVA LSU Parc and
+                    # Petriella musispora at 100% in the RefSeq fungal ITS. Both are
+                    # 100% because they were aligned at two DIFFERENT loci over two
+                    # DIFFERENT lengths. Anyone reading "100%" without seeing the
+                    # length believes the species is settled. The data was already
+                    # being produced (hiz_uzunluk); it just was not written to the table.
                     'en_iyi_isabet', 'en_iyi_kimlik_%', 'en_iyi_hiz_uzunluk', 'en_iyi_vtb',
                     'ikinci_isabet', 'ikinci_kimlik_%', 'ikinci_hiz_uzunluk', 'ikinci_vtb',
                     'ucuncu_isabet', 'ucuncu_kimlik_%', 'ucuncu_hiz_uzunluk', 'ucuncu_vtb',
@@ -867,10 +885,10 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         yaz(u'  >>> WARNING: database with INCOMPLETE coverage: %s' % ', '.join(eksik))
 
 
-# Komut satiri: --kisa-liste (varsayilan I ile ayni), --kume bir akista kac kutu,
-# --nt NCBI katmani (varsayilan "yok": kutu basina ayri BLAST kuyrugu gunlerce
-# surer; I asamasindan kalan onbellek yine kullanilir), --yalniz / --tavan-kutu
-# sinama icin alt kume.
+# The command line: --kisa-liste (the same default as I), --kume how many bins per
+# pass, --nt the NCBI layer (the default is "yok": a separate BLAST queue per bin
+# would take days; the cache left over from stage I is still used), --yalniz and
+# --tavan-kutu a subset for testing.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
