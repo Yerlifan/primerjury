@@ -300,10 +300,10 @@ def sure_metni(sn):
         return u'?'
     sn = float(sn)
     if sn < 90:
-        return u'%d saniye' % int(round(sn))
+        return u'%d s' % int(round(sn))
     if sn < 5400:
-        return u'%d dakika' % int(round(sn / 60.0))
-    return u'%s saat' % vir(sn / 3600.0, 1)
+        return u'%d min' % int(round(sn / 60.0))
+    return u'%s h' % vir(sn / 3600.0, 1)
 
 
 # =========================================================================
@@ -512,7 +512,12 @@ def xlsx_sayfalari(yol):
         zero.
 
     """
-    if not os.path.exists(yol):
+    # yol None olabilir: kokte hicbir panel xlsx dosyasi yoksa Kaynaklar.panel_xlsx
+    # None kalir. Onceden dogrudan os.path.exists(None) cagriliyordu ve TypeError
+    # butun modulu dusuruyordu; kendini sinamada 2 IC TUTARLILIK tam bu yuzden
+    # ekilen hatayi yakalayamiyordu. Dosya yoksa bu bir "kaynak yok" durumudur,
+    # cokme degil.
+    if not yol or not os.path.exists(yol):
         return None
     try:
         import openpyxl
@@ -1112,7 +1117,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
               'tam'   -> every offline database (SILVA SSU/LSU, UNITE, PR2, ROD included)
 
     """
-    M = u'1 KIMLIK'
+    M = u'1 IDENTITY'
     t_basla = time.time()
 
     if kip == u'yok':
@@ -1759,7 +1764,7 @@ def _ad_norm(s):
 
 
 def modul_2_ic_tutarlilik(kay, rap):
-    M = u'2 IC TUTARLILIK'
+    M = u'2 INTERNAL CONSISTENCY'
 
     # (kaynak_adi, yol, anahtar_sutun, {kanonik_alan: sutun_adi}, tip)
     # tip: 'primer' | 'sayi' | 'metin'
@@ -1805,7 +1810,7 @@ def modul_2_ic_tutarlilik(kay, rap):
             for kanonik, sutun in alanlar.items():
                 if sutun not in r:
                     rap.ekle(M, u'M2-SUTUN-YOK', UYARI,
-                             u'the "%s" column must be present in the %s file' % (kaynak, sutun),
+                             u'the "%s" column must be present in the %s file' % (sutun, kaynak),
                              u'there is no such column, so this field DID NOT ENTER the comparison',
                              yol)
                     continue
@@ -1933,7 +1938,7 @@ def modul_2_ic_tutarlilik(kay, rap):
 # -------------------------------------------------------------------------
 
 def modul_3_uyelik(kay, rap):
-    M = u'3 UYELIK'
+    M = u'3 MEMBERSHIP'
 
     ciftler = tsv_oku(kay.ciftler)
     uyelik = tsv_oku(kay.hedef_uyelik)
@@ -2069,7 +2074,7 @@ LIT_TABAN = 3.32
 
 
 def modul_4_literatur(kay, rap):
-    M = u'4 LITERATUR'
+    M = u'4 LITERATURE'
 
     lit = metin_oku(kay.literatur)
     if lit is None:
@@ -2256,7 +2261,7 @@ _TAVANLAR = (500, 1000, 3000, 120001, 200000, 100, 50)
 
 
 def modul_5_desenler(kay, rap):
-    M = u'5 HATA DESENLERI'
+    M = u'5 ERROR PATTERNS'
 
     siparis = tsv_oku(kay.nihai_siparis)
     ciftler = tsv_oku(kay.ciftler)
@@ -2643,7 +2648,7 @@ KVALUE_BEKLENEN = 9
 
 
 def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
-    M = u'6 VERITABANI'
+    M = u'6 DATABASE'
 
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama_m6')
     if K is None:
@@ -2845,16 +2850,23 @@ def _baglanma_sinamasi(K, yol, lokus, tavan=20000):
 _KATEGORI = (
     (u'ORGANIZMA YOK', re.compile(
         r'numunede\s*(hic\s*)?yok|t[uü]r\s*numunede\s*yok|cins\s*numunede\s*yok|'
-        r'organizma\s*yok|etiket\s*[cç][uü]r[uü]t[uü]ld[uü]', re.I)),
+        r'organizma\s*yok|etiket\s*[cç][uü]r[uü]t[uü]ld[uü]'
+        r'|not\s*in\s*the\s*sample|no\s*such\s*organism'
+        r'|absent\s*from\s*the\s*sample|label\s*refuted', re.I)),
     (u'AYRIM YOK', re.compile(
         r'e[sş]ik\s*alt|ayr[iı]m\s*(kat[iı]\s*)?(yok|tan[iı]ms[iı]z|0[,.]0)|'
-        r'ayr[iı]lam[iı]yor|ayr[iı]m\s*e[sş]ik', re.I)),
+        r'ayr[iı]lam[iı]yor|ayr[iı]m\s*e[sş]ik'
+        r'|below\s*(the\s*)?threshold|no\s*discrimination'
+        r'|discrimination\s*(is\s*)?(undefined|zero)'
+        r'|cannot\s*be\s*separated', re.I)),
     (u'LOKUS YOK', re.compile(
         r'lokus|ba[sş]ka\s*b[oö]lge|ay[iı]rt\s*edici\s*b[oö]lge\s*yok|'
-        r'ITS.*yetersiz|farkl[iı]\s*lokus', re.I)),
+        r'ITS.*yetersiz|farkl[iı]\s*lokus'
+        r'|locus|another\s*region|no\s*discriminating\s*region', re.I)),
     (u'UYE KUMESI AYRISIK', re.compile(
         r'heterojen|ayr[iı][sş][iı]k|birbirine\s*%?\s*\d+[,.]?\d*\s*[-, ]\s*\d+|'
-        r'kutu\s*heterojen|[uü]ye\s*k[uü]mesi\s*ayr', re.I)),
+        r'kutu\s*heterojen|[uü]ye\s*k[uü]mesi\s*ayr'
+        r'|heterogen|split\s*member\s*set', re.I)),
 )
 
 
@@ -2886,7 +2898,7 @@ def _toplanti_istekleri(metin):
 
 
 def modul_7_kapsam(kay, rap):
-    M = u'7 TAKSON KAPSAMI'
+    M = u'7 TAXON COVERAGE'
 
     toplanti = metin_oku(kay.toplanti)
     if toplanti is None:
@@ -2941,8 +2953,16 @@ def modul_7_kapsam(kay, rap):
     kapatilmamis = 0
     kategori_sayaci = collections.Counter()
     for bolum, istek, durum in istekler:
+        # Kaynak belge (TOPLANTI_KARARLARI_SON_DURUM.md) Turkce yazilmis bir
+        # teslim dosyasidir, ama ayni belgenin Ingilizce yazilmis hali de
+        # denetlenebilmelidir. OLCULDU: kendini sinamanin 7. maddesi Ingilizce
+        # bir durum satiri ekiyordu ("**Not achieved.** No reason recorded") ve
+        # desen yalnizca Turkceyi tanidigi icin satir "yapilamadi" sayilmiyor,
+        # modul ekilen hatayi hic gormuyordu. Iki dil de taninir.
         yapilamadi = bool(re.search(
-            r'yap[iı]lamad[iı]|sipari[sş]\s*edilmez|panelden\s*[cç][iı]kar', durum, re.I))
+            r'yap[iı]lamad[iı]|sipari[sş]\s*edilmez|panelden\s*[cç][iı]kar'
+            r'|not\s*achieved|could\s*not\s*be\s*done|not\s*ordered'
+            r'|removed\s*from\s*the\s*panel', durum, re.I))
         if not yapilamadi:
             continue
         kategoriler = [ad for ad, d in _KATEGORI if d.search(durum)]
@@ -3038,17 +3058,17 @@ def raporla(kay, rap, cikti, kosulan, sureler):
     L = []
     L.append(u'# CAPRAZ KONTROL RAPORU')
     L.append(u'')
-    L.append(u'PrimerJury qPCR paneli - bagimsiz, salt okunur denetim.')
+    L.append(u'The PrimerJury qPCR panel: an independent, read only audit.')
     L.append(u'')
     L.append(u'| | |')
     L.append(u'|---|---|')
-    L.append(u'| Tarih | %s |' % time.strftime('%Y-%m-%d %H:%M'))
-    L.append(u'| Betik | cross_check.py %s |' % VERSIYON)
-    L.append(u'| Kok klasor | `%s` |' % kay.kok)
-    L.append(u'| Kosan moduller | %s |' % (u', '.join(kosulan) or u'-'))
-    L.append(u'| Cikis kodu | **%d** |' % kod)
+    L.append(u'| Date | %s |' % time.strftime('%Y-%m-%d %H:%M'))
+    L.append(u'| Script | cross_check.py %s |' % VERSIYON)
+    L.append(u'| Root directory | `%s` |' % kay.kok)
+    L.append(u'| Modules that ran | %s |' % (u', '.join(kosulan) or u'-'))
+    L.append(u'| Exit code | **%d** |' % kod)
     L.append(u'')
-    L.append(u'## Ozet')
+    L.append(u'## Summary')
     L.append(u'')
     L.append(u'| Ciddiyet | Sayi |')
     L.append(u'|---|---:|')
@@ -3262,7 +3282,7 @@ def kendini_sina(kay, cikti):
     def kur_m1(g):
         # THE ERROR: the consensus file named in the index IS NOT on disk.
         os.remove(os.path.join(g, 'konsensus_kanonik', 'A-1_111.kanonik.fa'))
-        return u'INDEKS.tsv bir konsensus dosyasi gosteriyor ama dosya silindi'
+        return u'INDEKS.tsv names a consensus file but the file was deleted'
 
     def kur_m2(g):
         # THE ERROR: the forward primer of the same target DIFFERS between two files.
@@ -3270,7 +3290,7 @@ def kendini_sina(kay, cikti):
         s = metin_oku(yol).replace(u'ACGTACGTACGTACGTACGT', u'AAAAACGTACGTACGTACGT', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(s)
-        return u'Hedef_A ileri primeri SIPARIS_LISTESI icinde farkli yazildi'
+        return u'the forward primer of Hedef_A was written differently in SIPARIS_LISTESI'
 
     def kur_m3(g):
         # THE ERROR: a pair's member set was EMPTIED but its dCq is still there.
@@ -3278,7 +3298,7 @@ def kendini_sina(kay, cikti):
         s = metin_oku(yol).replace(u'\t111,222\t', u'\t\t', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(s)
-        return u'Hedef_A uye_taksonlar sutunu bosaltildi, dCq korundu'
+        return u'the uye_taksonlar column of Hedef_A was emptied, the dCq was kept'
 
     def kur_m4(g):
         # THE ERROR: required_dCq was pulled to a wrong value by hand (4.30 -> 2.00).
@@ -3286,14 +3306,14 @@ def kendini_sina(kay, cikti):
         s = metin_oku(yol).replace(u'\t4,30\tGECER', u'\t2,00\tGECER', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(s)
-        return u'gerekli_dCq 4,30 yerine 2,00 yazildi (log2(R)+4,3 kuralina aykiri)'
+        return u'gerekli_dCq was written as 2,00 instead of 4,30, against the log2(R)+4.3 rule'
 
     def kur_m5(g):
         # THE ERROR: the target's OWN member (111) was put on the off-target list.
         yol = os.path.join(g, 'HEDEF_DISI_AYRINTI_2026-08-07.tsv')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'hedef\ttaxid\tnot\nHedef_A\t111\tits own member was counted as off-target\n')
-        return u'Hedef_A kendi uyesi olan 111 taxid\'i hedef disi listesine eklendi'
+        return u'taxid 111, a member of Hedef_A itself, was added to its off target list'
 
     def kur_m6(g):
         # THE ERROR: a database's k-mer count is 3^9 = 19683 (the broken index signature).
@@ -3302,27 +3322,27 @@ def kendini_sina(kay, cikti):
         yol = os.path.join(g, 'REFERANS_DB', ilk + u'.log')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'Binary index v5 created: kvalue=9, kmer_count=19683\n')
-        return u'%s indeks gunlugu kmer_count=19683 (3^9, bozuk indeks imzasi)' % ilk
+        return u'the %s index log says kmer_count=19683 (3^9, the signature of a broken index)' % ilk
 
     def kur_m7(g):
         # THE ERROR: the reason for an unmet target falls into no category.
         yol = os.path.join(g, 'TOPLANTI_KARARLARI_SON_DURUM.md')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'## Decision 1\n\n| Requested species | Status |\n|---|---|\n| *Taxon C* | **Not achieved.** No reason recorded |\n')
-        return u'Karsilanmayan bir hedefin sebebi dort kategoriden hicbirine girmiyor'
+        return u'the reason for an unmet target falls into none of the four categories'
 
     SINAVLAR = [
-        (u'1 KIMLIK', kur_m1, u'M1-KONSENSUS-YOK',
+        (u'1 IDENTITY', kur_m1, u'M1-KONSENSUS-YOK',
          lambda kk, rr: modul_1_kimlik(kk, rr, KontrolNoktasi(u'', etkin=False),
                                        kip=u'hizli')),
-        (u'2 IC TUTARLILIK', kur_m2, u'M2-CELISKI', lambda kk, rr: modul_2_ic_tutarlilik(kk, rr)),
-        (u'3 UYELIK', kur_m3, u'M3-UYELIK-BOS', lambda kk, rr: modul_3_uyelik(kk, rr)),
-        (u'4 LITERATUR', kur_m4, u'M4-ESIK-YANLIS', lambda kk, rr: modul_4_literatur(kk, rr)),
-        (u'5 HATA DESENLERI', kur_m5, u'M5-D2-UYE-HEDEF-DISI',
+        (u'2 INTERNAL CONSISTENCY', kur_m2, u'M2-CELISKI', lambda kk, rr: modul_2_ic_tutarlilik(kk, rr)),
+        (u'3 MEMBERSHIP', kur_m3, u'M3-UYELIK-BOS', lambda kk, rr: modul_3_uyelik(kk, rr)),
+        (u'4 LITERATURE', kur_m4, u'M4-ESIK-YANLIS', lambda kk, rr: modul_4_literatur(kk, rr)),
+        (u'5 ERROR PATTERNS', kur_m5, u'M5-D2-UYE-HEDEF-DISI',
          lambda kk, rr: modul_5_desenler(kk, rr)),
-        (u'6 VERITABANI', kur_m6, u'M6-KMER-BOZUK',
+        (u'6 DATABASE', kur_m6, u'M6-KMER-BOZUK',
          lambda kk, rr: modul_6_veritabani(kk, rr, baglanma_sinamasi=True)),
-        (u'7 TAKSON KAPSAMI', kur_m7, u'M7-KATEGORISIZ-BOSLUK',
+        (u'7 TAXON COVERAGE', kur_m7, u'M7-KATEGORISIZ-BOSLUK',
          lambda kk, rr: modul_7_kapsam(kk, rr)),
     ]
 
@@ -3348,11 +3368,11 @@ def kendini_sina(kay, cikti):
             yakalandi = beklenen_kod in kodlar
             if yakalandi:
                 gecen += 1
-            durum = u'YAKALADI' if yakalandi else (
-                u'COKTU (%s)' % cokme if cokme else u'YAKALAYAMADI')
+            durum = u'CAUGHT IT' if yakalandi else (
+                u'CRASHED (%s)' % cokme if cokme else u'DID NOT CATCH IT')
             yaz(u'  [%s] %-22s  planted error: %s' % (
                 u'OK ' if yakalandi else u'ERROR', ad, ekilen))
-            yaz(u'        beklenen bulgu kodu: %s  ->  %s  (%s)'
+            yaz(u'        expected finding code: %s  ->  %s  (%s)'
                 % (beklenen_kod, durum, sure_metni(time.time() - t0)))
             ayrinti.append(dict(modul=ad, ekilen=ekilen, beklenen=beklenen_kod,
                                 durum=durum, yakalandi=yakalandi,
@@ -3379,9 +3399,9 @@ def kendini_sina(kay, cikti):
 # SURUCU
 # ===========================================================================
 MODUL_ADLARI = collections.OrderedDict([
-    (u'1', u'1 KIMLIK'), (u'2', u'2 IC TUTARLILIK'), (u'3', u'3 UYELIK'),
-    (u'4', u'4 LITERATUR'), (u'5', u'5 HATA DESENLERI'), (u'6', u'6 VERITABANI'),
-    (u'7', u'7 TAKSON KAPSAMI'),
+    (u'1', u'1 IDENTITY'), (u'2', u'2 INTERNAL CONSISTENCY'), (u'3', u'3 MEMBERSHIP'),
+    (u'4', u'4 LITERATURE'), (u'5', u'5 ERROR PATTERNS'), (u'6', u'6 DATABASE'),
+    (u'7', u'7 TAXON COVERAGE'),
 ])
 
 
