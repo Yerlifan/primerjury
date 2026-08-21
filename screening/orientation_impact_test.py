@@ -92,9 +92,9 @@ def main():
     a = ap.parse_args()
 
     yollar = sorted(glob.glob(os.path.join(a.kok, a.klasor, '**', '*.fasta'), recursive=True))
-    print('Kaynak klasor : %s  (%d dosya)' % (a.klasor, len(yollar)))
-    print('Olcut         : uyumsuzluk <= %d, 3\' son 2 baz tam, urun 40-600 bp' % a.mm)
-    print('Motor         : yalniz ARTI IPLIK taranir (projenin motorlarinin davranisi)\n')
+    print(u'Source directory: %s  (%d files)' % (a.klasor, len(yollar)))
+    print(u'Criterion       : mismatches <= %d, last 2 bases at the 3\' end exact, product 40-600 bp' % a.mm)
+    print(u'Engine          : only the PLUS STRAND is scanned (the behaviour of this project\'s engines)')
 
     testler = [(ad, sn, F, R) for sn, (ad, F, R) in CIFT.items()] + \
               [(ad, sn, F, R) for ad, sn, F, R in EK]
@@ -122,7 +122,7 @@ def main():
               % (ad[:28], sn, dogru, top, ters, top, kayip,
                  'ters yon urunu SIFIRLIYOR' if ters == 0 and dogru > 0
                  else ('etkilenmedi' if dogru == ters else 'kismi kayip')))
-    print('\nTOPLAM  dogru yonde %d urun,  ters yonde %d urun,  kayip %d (%.1f%%)'
+    print(u'\nTOTAL  %d products in the correct orientation,  %d in the reverse orientation,  %d lost (%.1f%%)'
           % (tp_d, tp_t, tp_d - tp_t, 100.0 * (tp_d - tp_t) / max(tp_d, 1)))
 
     if ISPCR:
@@ -139,7 +139,7 @@ def main():
                 n += 1
                 d += int(ispcr_var(s, F, R, a.mm))
                 t += int(ispcr_var(om.rc(s), F, R, a.mm))
-        print('  %s: dogru %d/%d, ters %d/%d  -> ayni sonuc' % (ad, d, n, t, n))
+        print(u'  %s: correct %d/%d, reversed %d/%d  -> same answer' % (ad, d, n, t, n))
 
 
 if __name__ == '__main__':

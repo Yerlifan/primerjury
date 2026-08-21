@@ -98,7 +98,7 @@ def main():
     ebeveyn, rutbe, ad, nrep = agac_kur(a.kraken, a.desen_rapor)
     if not ebeveyn:
         sys.exit("rapor bulunamadi: %s" % a.kraken)
-    print("rapor: %d, agactaki takson: %d" % (nrep, len(ebeveyn)))
+    print(u'reports: %d, taxa in the tree: %d' % (nrep, len(ebeveyn)))
 
     # atalar zinciri, bir kez hesaplanir
     ata_onbellek = {}
@@ -271,10 +271,9 @@ def main():
     print("guven esigi: %g" % a.confidence)
     tt = sum(x["okuma"] for x in ozet)
     ts = sum(x["tasinan"] for x in ozet)
-    print("toplam okuma: %d, rutbesi degisen: %d (%.2f%%)"
+    print(u'total reads: %d, rank changed: %d (%.2f%%)'
           % (tt, ts, 100.0 * ts / tt if tt else 0))
-    print("\nBu raporlar Bracken'a dogrudan verilebilir. Veritabani ve ham "
-          "fastq gerekmez; hesap Kraken2'nin kendi k-mer ciktisindan yapilir.")
+    print(u'\nThese reports can be handed straight to Bracken. No database and no raw fastq are needed; the calculation comes from Kraken2\'s own k-mer output.')
 
 
 def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
@@ -293,7 +292,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
     Amac tur duzeyindeki sahte ayrimi cins duzeyinde toplamak, okuma
     kaybetmek degil; dolayisiyla cins_okuma artarken sinifsiz'in dusuk
     kaldigi en yuksek esik secilmelidir."""
-    print("\nESIK TARAMASI (dosya basina en fazla %d okuma)" % a.tarama_okuma)
+    print(u'\nTHRESHOLD SCAN (at most %d reads per file)' % a.tarama_okuma)
     print("%8s %10s %10s %10s %10s %10s"
           % ("esik", "okuma", "tur(S)", "cins(G)", "ust_rutbe", "sinifsiz"))
     satirlar = []
@@ -370,9 +369,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
                            delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(satirlar)
     print("\nyazildi: %s" % os.path.join(a.out, "esik_taramasi.tsv"))
-    print("Esigi buradan secin: cins(G) sutunu yukselirken sinifsiz sutunu "
-          "hala dusukse o esik uygundur. Sectiginiz degeri --confidence ile "
-          "verip --tarama'siz calistirin.")
+    print(u'Choose the threshold here: if the genus(G) column is rising while the unclassified column is still low, that threshold is suitable. Pass the value you chose with --confidence and run without --tarama.')
     return 0
 
 

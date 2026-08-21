@@ -123,11 +123,11 @@ def main():
                                 else u'TABLO (%s) - dikkat, tablo degeri bayat olabilir' % uyari))
     print('=' * 78)
     if not ciftler:
-        print('  cift okunamadi.')
+        print(u'  the pair could not be read.')
         return 1
 
     gruplar = sorted(set((c['plaka'], c['ta']) for c in ciftler))
-    print('  cift %d, plaka grubu %d' % (len(ciftler), len(gruplar)))
+    print(u'  pair %d, plate group %d' % (len(ciftler), len(gruplar)))
 
     def maliyet(atama):
         t = 0
@@ -144,7 +144,7 @@ def main():
         uy = [c for c in ciftler if simdi[c['hedef']] == g]
         n, ay = cakismalar(uy)
         top += n
-        print('    plaka %-3s Ta %-4s  %d cift, %d cakisma' % (g[0], g[1], len(uy), n))
+        print(u'    plate %-3s Ta %-4s  %d pairs, %d clashes' % (g[0], g[1], len(uy), n))
         for a1, u1, a2, u2 in ay:
             print('        %s (%d) / %s (%d)' % (a1, u1, a2, u2))
     print('    TOPLAM CAKISMA: %d' % top)
@@ -198,13 +198,13 @@ def main():
                       % (c['hedef'][:44], simdi[c['hedef']][0], simdi[c['hedef']][1],
                          eniyi[c['hedef']][0], eniyi[c['hedef']][1]))
     else:
-        print('  Mevcut Ta kisitlari altinda cakismayi azaltan bir dagilim')
+        print(u'  Under the current Ta constraints no distribution that reduces the clashes')
         print('  BULUNAMADI (%d deneme). Secenekler:' % a.deneme)
         print('    - cakismayi kabul edip RAPORDA gerekcesiyle yazmak')
-        print('      (qPCR ayrimi erime egrisiyle yapilir, jel ikincil kontroldur)')
-        print('    - cakisan ciftlerden birini yeniden tasarlayip urun boyunu kaydirmak')
+        print(u'      (qPCR separation is done with the melt curve; the gel is a secondary check)')
+        print(u'    - redesign one of the clashing pairs and shift its product length')
     print()
-    print('  Bu bir ONERIDIR, uygulanmadi. Plaka degistirmek deney duzenini')
+    print(u'  This is a SUGGESTION and was not applied. Changing a plate alters the experimental')
     print('  degistirir; karari insan verir.')
     print('=' * 78)
     return 0

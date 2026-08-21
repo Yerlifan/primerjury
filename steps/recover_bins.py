@@ -286,19 +286,16 @@ def main():
         uyum = "iki_olcum_uyustu" if not nedenler else (
             "ayrisan_olcum(%s)" % "+".join(nedenler))
         print("\niki yarinin karsilastirmasi (%d baz ortusuyor)" % ortak)
-        print("   ikame farki : %.4f   (esik %.4f)" % (f, a.ayrisma_esigi))
+        print(u'   substitution difference : %.4f   (threshold %.4f)' % (f, a.ayrisma_esigi))
         print("   indel farki : %.4f   (bilgi amacli, karara girmiyor)" % fi)
-        print("   kapsama     : %.4f   (esik %.4f)" % (kaps, a.min_kapsam))
-        print("   sonuc       : %s" % uyum)
+        print(u'   containment             : %.4f   (threshold %.4f)' % (kaps, a.min_kapsam))
+        print(u'   result                  : %s' % uyum)
         if fi > a.indel_uyari:
-            print("   NOT: indel farki homopolimer uzunlugundan gelir. Kalip "
-                  "tabanli yontem kalip uzunlugunu duzeltmez. Tasarim kurallari "
-                  "dortten uzun ayni baz dizisini zaten reddettigi icin primerler "
-                  "bu bolgelere oturmaz, ama konsensus uzunlugu kesin degildir.")
+            print(u'   NOTE: the indel difference comes from homopolymer length. A template based method does not correct template length. The design rules already reject a run of more than four identical bases, so no primer sits on those regions, but the consensus length is not exact.')
     else:
         uyum = "yari_kurulamadi"
         f = fi = 1.0; kaps = 0.0
-        print("\nUYARI: yarilardan biri konsensus vermedi, ayrisma olculemedi")
+        print(u'\nWARNING: one of the halves produced no consensus, so the split could not be measured')
 
     kapsanan = len(tam) - tam.count("N")
     yol = os.path.join(a.out, "%s_baskin_konsensus.fasta" % a.etiket)
@@ -313,9 +310,7 @@ def main():
     print("yazildi: %s" % yol)
     print("uzunluk=%d kapsanan=%d" % (len(tam), kapsanan))
     if uyum.startswith("ayrisan_olcum"):
-        print("\nDIKKAT: iki yari IKAME duzeyinde ayristi. Bu kutu tek bir "
-              "organizmadan gelmiyor olabilir; konsensus kullanilmadan once "
-              "incelenmeli.")
+        print(u'\nCAUTION: the two halves split at the SUBSTITUTION level. This bin may not come from a single organism, and should be inspected before its consensus is used.')
         return 1
     return 0
 

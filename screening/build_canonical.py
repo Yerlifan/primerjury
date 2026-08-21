@@ -177,17 +177,12 @@ def main():
                             uzunluk=m['uzunluk'])
                        for m in manifest if m['durum'] == 'yazildi'])
     open(os.path.join(cik, 'OKUBENI.txt'), 'w', encoding='utf-8').write(
-        'KANONIK KONSENSUS KLASORU\n'
-        'Gecerli dosyalar: *.kanonik.fa  (liste: INDEKS.tsv)\n'
-        'Bu klasorde *_kanonik.fasta uzantili KALINTI dosyalar olabilir - bunlar ilk\n'
-        'kosunun hatali adlandirilmis ciktisidir, bagli klasorde silinemedi. YOKSAYIN.\n'
-        'Her tuketici INDEKS.tsv okumalidir, glob KULLANMAMALIDIR.\n'
-        'Kanonik yon: SENSE. Tanim ve olcut: screening/orientation.py\n')
+        u'CANONICAL CONSENSUS DIRECTORY\nValid files: *.kanonik.fa  (listed in INDEKS.tsv)\nThis directory can hold LEFTOVER files ending in *_kanonik.fasta. Those are the\nmisnamed output of the first run and could not be deleted on a mounted drive. IGNORE THEM.\nEvery consumer must read INDEKS.tsv and must NOT use glob.\nCanonical orientation: SENSE. Definition and criterion: screening/orientation.py\n')
 
     yazilan = [m for m in manifest if m['durum'] == 'yazildi']
     cevrilen = [m for m in yazilan if m['cevrildi'] == 'EVET']
-    print('\nkanonik klasor : %s' % cik)
-    print('yazilan kutu   : %d' % len(yazilan))
+    print(u'\ncanonical directory : %s' % cik)
+    print(u'bins written        : %d' % len(yazilan))
     print('  cevrildi     : %d (ANTISENSE -> SENSE)' % len(cevrilen))
     print('  zaten sense  : %d' % (len(yazilan) - len(cevrilen)))
     print('BELIRSIZ       : %d (yazilmadi, BELIRSIZ.tsv)' % len(belirsiz))
@@ -203,7 +198,7 @@ def main():
         for ad, dizi, karar, cev in kayitlar:
             if cev:
                 kotu += 1
-    print('\nDOGRULAMA: kanonik klasorde hala cevrilmesi gereken dosya =', kotu,
+    print(u'\nVERIFICATION: files in the canonical directory that still need flipping =', kotu,
           '(0 olmali)' if kotu == 0 else '*** SORUN ***')
     return 0 if kotu == 0 else 1
 
