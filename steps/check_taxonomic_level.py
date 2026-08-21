@@ -2,58 +2,63 @@
 # -*- coding: utf-8 -*-
 """
 check_taxonomic_level.py
-TOPLANTI KARARININ DOĞRUDAN SINANMASI: her hedef, kararın istediği düzeyde
-(tür ya da cins) ayrım yapıyor mu?
+TESTING THE PANEL DECISION DIRECTLY: does every target separate at the level the
+decision asked for (species or genus)?
 
-Karar:
-  tür özgül  : Methanosarcina mazei, Methanothrix soehngenii,
-               Methanosarcina barkeri, Podospora pseudopauciseta,
-               Dictyostelium discoideum, Trichoderma asperellum
-  cins özgül : Bacteroides, Alistipes, Proteiniphilum, Petrimonas
-Bu liste elle yazılmaz; hedefler.tsv'nin "duzey" sütunundan okunur.
+The decision:
+  species specific : Methanosarcina mazei, Methanothrix soehngenii,
+                     Methanosarcina barkeri, Podospora pseudopauciseta,
+                     Dictyostelium discoideum, Trichoderma asperellum
+  genus specific   : Bacteroides, Alistipes, Proteiniphilum, Petrimonas
+This list is not written by hand; it is read from the "duzey" column of
+hedefler.tsv.
 
-NEDEN AYRI BİR ÖLÇÜM GEREKİYOR
-09 numunedeki rakiplere karşı sınıyor, 14 dış veritabanlarında hedef dışı
-ürün arıyor. İkisi de "bu çift kendi cinsinin ÖTEKİ TÜRLERİNDEN ayırıyor mu"
-sorusunu sormuyor. Tür özgüllüğü tam olarak bu sorudur ve ancak kardeş
-türlerden kurulu bir panele karşı yanıtlanabilir.
+WHY A SEPARATE MEASUREMENT IS NEEDED
+steps/specificity.py tests against the competitors in the sample, and
+steps/external_databases.py looks for off-target products in external databases.
+Neither asks "does this pair separate its target from the OTHER SPECIES OF ITS OWN
+GENUS". Species specificity is exactly that question, and it can only be answered
+against a panel built from sibling species.
 
-YÖNTEM
-Her hedefin cinsi, beyan edilen taxid adından çıkarılır. Referans
-veritabanları taranıp o cinse ait, TÜR ADI BELLİ olan bütün kayıtlar
-toplanır ve bir panel oluşturulur. Panele karşı blastn koşulur, ürünler
-14'ün ürün kuralıyla (aynı referans, ters zincirler, 3' uçları karşı
-karşıya, ürün boyu aralıkta) ve aynı bağlanma kuralıyla sayılır. Ürün
-oluşan kayıtlar türe göre ayrılır.
+THE METHOD
+Each target's genus is taken from the declared taxid's name. The reference
+databases are scanned, every record of that genus WITH A KNOWN SPECIES NAME is
+collected, and a panel is built. blastn is run against the panel, and the products
+are counted with external_databases.py's product rule (the same reference, opposite
+strands, 3' ends facing one another, the product length in range) and the same
+binding rule. The records that give a product are grouped by species.
 
-Panelde YALNIZ tür adı belli kayıtlar kullanılır. SILVA gibi "uncultured
-archaeon" ağırlıklı çevresel veritabanları tür ayrımı paneline giremez;
-tür kimliği taşımayan bir kayıt, tür ayrımını ne doğrular ne çürütür.
+The panel uses ONLY records with a known species name. Environmental databases
+dominated by "uncultured archaeon", such as SILVA, cannot enter a species
+separation panel; a record carrying no species identity neither confirms nor
+refutes a species separation.
 
-KARAR
-  duzey=tur : hedef türde ürün var ve aynı cinsin hiçbir başka türünde ürün
-              yoksa TUR_OZGUL. Toplantı kararı 1-2 çapraz türü hoş gördüğü
-              için, çapraz TÜR sayısı eşiğin altındaysa TUR_OZGUL_ESIKLI
-              (eşik --capraz-tur-esik ile değişir, varsayılan 2). Eşiğin
-              üstündeyse TUR_AYRIMI_YOK. Ölçü çapraz TÜR sayısıdır, o
-              türlerde oluşan ürün sayısı değil.
-              Hedef tür panelde hiç yoksa HEDEF_TUR_PANELDE_YOK; bu durumda
-              tür özgüllüğü gösterilemez, çürütülemez de.
-  duzey=cins: cins içi kapsama bildirilir (kaç tür çoğaltılıyor). Cins
-              DIŞINDA ürün olup olmadığı 14'ün işidir, burada tekrarlanmaz.
+THE VERDICT
+  duzey=tur : if there is a product in the target species and none in any other
+              species of the same genus, TUR_OZGUL. Since the panel decision
+              tolerates 1-2 cross reacting species, when the number of cross
+              reacting SPECIES is below the threshold it is TUR_OZGUL_ESIKLI (the
+              threshold changes with --capraz-tur-esik, default 2). Above the
+              threshold it is TUR_AYRIMI_YOK. The measure is the number of cross
+              reacting SPECIES, not the number of products formed in them.
+              If the target species is absent from the panel altogether,
+              HEDEF_TUR_PANELDE_YOK; species specificity can then be neither shown
+              nor refuted.
+  duzey=cins: the within-genus coverage is reported (how many species are
+              amplified). Whether a product forms OUTSIDE the genus is
+              external_databases.py's job and is not repeated here.
 
-Kullanım:
-  python3 check_taxonomic_level.py --hedefler hedefler.tsv \
-      --adlar taxid_adlari.tsv --final primer_final --db REFERANS_DB \
-      --kimlik primer_final/hedef_kimlik.tsv \
-      --out primer_final/duzey_denetimi.tsv
+Usage:
+  python3 check_taxonomic_level.py --hedefler hedefler.tsv       --adlar taxid_adlari.tsv --final primer_final --db REFERANS_DB       --kimlik primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
+
 """
 import argparse, collections, csv, os, re, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-# Bagimlilik BILEREK: baglanma ve urun kurali 14 ile BIREBIR ayni olmali.
-# Ayri bir kopya yazmak, iki olcumun sessizce ayrismasina kapi acar.
+# The dependency is DELIBERATE: the binding and product rule must be EXACTLY the
+# same as in steps/external_databases.py. Writing a separate copy opens the door to
+# the two measurements drifting apart silently.
 import importlib.util as _il
 _s = _il.spec_from_file_location("_dv", os.path.join(HERE, "external_databases.py"))
 DV = _il.module_from_spec(_s)
@@ -65,10 +70,10 @@ except SystemExit:
 finally:
     sys.argv = _yedek
 
-# Tur adi tasiyan veritabanlari. SILVA disarida: NR99 kayitlarinin buyuk
-# cogunlugu 'uncultured archaeon/bacterium' ile biter ve tur kimligi
-# tasimaz. Panele alinsalardi, tur ayrimi olcumu tur adi olmayan
-# kayitlarla seyreltilirdi.
+# The databases that carry species names. SILVA is left out: the great majority of
+# NR99 records end in 'uncultured archaeon/bacterium' and carry no species identity.
+# Had they been taken into the panel, the species separation measurement would have
+# been diluted with records that have no species name.
 PANEL_DB = [
     "archaea.16S.fna",
     "bacteria.16S.fna",
@@ -80,16 +85,16 @@ PANEL_DB = [
     "PR2_SSU_taxo_long.fasta",
 ]
 
-# 'sp', 'spp', 'cf', 'aff' TUR ADI DEGILDIR.
-#   OLCULDU (2026-08-01): UNITE'te 's__Trichoderma_sp' bicimindeki kayitlar
-#   tur adi sayiliyordu ve panelde ayri bir "tur" gibi duruyordu; yalniz
-#   Trichoderma icin 16910, Marasmius icin 1712, Podospora icin 1326 kayit.
-#   Tur adi belli olmayan bir kayitta urun olusmasi, tur ayriminin
-#   basarisiz oldugunu GOSTERMEZ; hangi tur oldugu bilinmiyor. Bunlar
-#   panele girerse hem panel tur sayisi sisiyor hem de yanlis
-#   TUR_AYRIMI_YOK karari uretilebiliyor.
-#   (RefSeq bicimindeki 'Trichoderma sp.' zaten noktali oldugu icin
-#   duzenli ifadeye takilmiyordu; kacan yalniz alt cizgili bicimlerdi.)
+# 'sp', 'spp', 'cf' and 'aff' ARE NOT SPECIES NAMES.
+#   MEASURED (2026-08-01): records of the form 's__Trichoderma_sp' in UNITE were
+#   being counted as species names and stood in the panel as a separate "species";
+#   16910 records for Trichoderma alone, 1712 for Marasmius, 1326 for Podospora.
+#   A product forming in a record whose species is not known DOES NOT SHOW that the
+#   species separation failed; which species it is, is unknown. If these enter the
+#   panel, the panel's species count inflates and a wrong TUR_AYRIMI_YOK verdict can
+#   be produced.
+#   (The RefSeq form 'Trichoderma sp.' already carries a full stop and so did not
+#   catch on the regular expression; the ones escaping were only the underscored forms.)
 GURULTU = {"uncultured", "unidentified", "environmental", "sample", "clone",
            "isolate", "strain", "voucher", "candidatus", "bacterium",
            "archaeon", "fungal", "endophyte", "culture", "enrichment",
@@ -97,13 +102,14 @@ GURULTU = {"uncultured", "unidentified", "environmental", "sample", "clone",
 
 
 def tur_adi(baslik):
-    """Baslktan 'Cins tur' ikilisini cikarir; yoksa bos doner.
+    """Extracts the 'Genus species' binomial from a header; empty if there is none.
 
-    RefSeq : 'NR_104707.1 Methanothrix soehngenii GP6 16S ...'
-    UNITE  : '...;s__Thelephora_albomarginata|SH...'
-    ROD    : '...;Drosophila;Drosophila_melanogaster|size=1'
-    PR2    : '...|Unruhdinium|Unruhdinium_kevei'
-    SILVA  : '... ;Methanothrix;uncultured archaeon'  -> bos
+        RefSeq : 'NR_104707.1 Methanothrix soehngenii GP6 16S ...'
+        UNITE  : '...;s__Thelephora_albomarginata|SH...'
+        ROD    : '...;Drosophila;Drosophila_melanogaster|size=1'
+        PR2    : '...|Unruhdinium|Unruhdinium_kevei'
+        SILVA  : '... ;Methanothrix;uncultured archaeon'  -> empty
+
     """
     if not baslik:
         return ""
@@ -115,21 +121,20 @@ def tur_adi(baslik):
         if (m and m.group(1).lower() not in GURULTU
                 and m.group(2).lower() not in GURULTU):
             return "%s %s" % (m.group(1), m.group(2))
-    # sonra bosluklu RefSeq bicimi: kimlikten sonraki iki kelime
+    # then the space separated RefSeq form: the two words after the accession
     #
-    # BASLIKTA NOKTALI VIRGUL OLMASI TEK BASINA ELEME SEBEBI DEGIL.
-    #   OLCULDU (2026-08-01): RefSeq ITS kayitlari
+    # A SEMICOLON IN THE HEADER IS NOT ON ITS OWN A REASON TO DISCARD.
+    #   MEASURED (2026-08-01): RefSeq ITS records have the form
     #   'NR_172285.1 Petriella musispora CBS 745.69 ITS region; from TYPE
-    #   material' bicimindedir. Onceki surumde baslikta noktali virgul
-    #   varsa bu dal hic calismiyordu, dolayisiyla fungi.ITS.fna ve
-    #   fungi.28SrRNA.fna'daki TIP MATERYALI kayitlarinin tur adi
-    #   cikarilamiyor ve panele alinmiyorlardi. Panel tam da bu kayitlara
-    #   en cok ihtiyac duyulan yerdi: tur ayriminin altin standardi tip
-    #   susu dizileridir. (Olculdu: yalniz Petriella icin 35 kayit boyle
-    #   dusuyordu.)
-    # SILVA'nin soyagacli basliklari bu daldan zaten gecemez, cunku
-    # ikinci kelime noktali virgul icerir ve asagidaki duzenli ifadeye
-    # takilir; ayri bir korumaya gerek yok.
+    #   material'. In the earlier version, if the header held a semicolon this
+    #   branch never ran, so the species name of the TYPE MATERIAL records in
+    #   fungi.ITS.fna and fungi.28SrRNA.fna could not be extracted and they were
+    #   not taken into the panel. Those are exactly the records the panel needs
+    #   most: type strain sequences are the gold standard of species separation.
+    #   (Measured: 35 records fell out this way for Petriella alone.)
+    # SILVA's lineage headers cannot pass this branch anyway, because their
+    # second word holds a semicolon and catches on the regular expression below;
+    # no separate guard is needed.
     kelime = baslik.split()
     if len(kelime) >= 3:
         g, t = kelime[1], kelime[2]
@@ -151,17 +156,18 @@ def ad_parcala(ad):
 
 
 def referans_esle(ref_hedef, hedef_adlari):
-    """primer_referans.tsv'deki hedef adini hedefler.tsv adina baglar.
+    """Links the target name in primer_referans.tsv to the name in hedefler.tsv.
 
-    SADECE '_referans' EKINI SOYMAK YETMIYOR.
-      OLCULDU (2026-08-01): 'Methanosarcina_barkeri_referans' -> soyulunca
-      'Methanosarcina_barkeri' cikiyor, oysa hedefler.tsv'deki ad
-      'Methanosarcina_barkeri_turu'. Eslesme tutmayinca hedefin TEK
-      primer takimi (de novo hicbir cifti yok) sessizce dusuyor ve hedef
-      CIFT_YOK gorunuyordu. Sessiz dusme, olcumu yapilmamis bir hedefi
-      "cift bulunamadi" gibi gosterir.
-    Bu yuzden once birebir, sonra on ek eslesmesi denenir; hicbiri
-    tutmazsa None doner ve cagiran taraf bunu YUKSEK SESLE bildirir.
+        STRIPPING THE '_referans' SUFFIX ALONE IS NOT ENOUGH.
+          MEASURED (2026-08-01): 'Methanosarcina_barkeri_referans' strips to
+          'Methanosarcina_barkeri', while the name in hedefler.tsv is
+          'Methanosarcina_barkeri_turu'. When the match fails, the target's ONLY
+          primer set (it has no de novo pair at all) drops silently and the target
+          appears as CIFT_YOK. A silent drop makes a target that was never measured
+          look as though no pair could be found.
+        So an exact match is tried first, then a prefix match; if neither holds it
+        returns None and the caller reports that LOUDLY.
+
     """
     kok = re.sub(r"_referans$", "", ref_hedef)
     if kok in hedef_adlari:
@@ -204,21 +210,20 @@ def hedefleri_oku(hedefler_tsv, adlar_tsv, kimlik_tsv):
                 cinsler.add(c)
             if c and t:
                 turler.add("%s %s" % (c, t))
-        # ISTEGE BAGLI 7. SUTUN: hedef_tur
-        # Bazi hedeflerde beyan edilen taxid, numunede bulunan organizmaya
-        # karsilik gelmiyor ve dogru turun bizim taxid_adlari.tsv'mizde
-        # karsiligi olmayabiliyor. Ornek: kutulari 101201 (Trichoderma
-        # asperellum) diye etiketli olan hedefin olculen kimligi Petriella
-        # musispora'dir. Taxid UYDURULMAZ; tur adi bu sutunda dogrudan
-        # yazilir ve hedefin kendi ad kumesine eklenir. Sutun bossa hicbir
-        # sey degismez, eski davranis surer.
-        # Sutun EKLEMEZ, DEGISTIRIR. Konulma sebebi taxid'in adinin yanlis
-        # olmasidir; adi eklemek yanlis adi da tutmak olurdu. Olculdu:
-        # Petriella_musispora satirinda in_taxid, kutularin Kraken2
-        # etiketleri olan 101201/2034170/63577'dir (numune destegi bunlarla
-        # olculur). Ekleme yapilsaydi hedef tur kumesine Trichoderma
-        # asperellum, atroviride ve breve de girerdi ve Trichoderma
-        # cogaltan bir cift "hedef turde urun var" sayilirdi.
+        # AN OPTIONAL 7TH COLUMN: hedef_tur
+        # On some targets the declared taxid does not correspond to the organism found in
+        # the sample, and the right species may have no entry in our taxid_adlari.tsv. An
+        # example: the measured identity of the target whose bins are labelled 101201
+        # (Trichoderma asperellum) is Petriella musispora. A TAXID IS NEVER INVENTED; the
+        # species name is written directly in this column and added to the target's own name
+        # set. When the column is empty nothing changes and the old behaviour continues.
+        # The column REPLACES rather than ADDS. It exists because the taxid's name is wrong,
+        # and adding the name would mean keeping the wrong name too. Measured: on the
+        # Petriella_musispora row, in_taxid holds the bins' Kraken2 labels,
+        # 101201/2034170/63577 (the in-sample support is measured with those). Had it added,
+        # Trichoderma asperellum, atroviride and breve would have entered the target species
+        # set too, and a pair amplifying Trichoderma would have counted as "there is a
+        # product in the target species".
         if len(p) > 6 and p[6].strip():
             cinsler, turler = set(), set()
             for parca in p[6].split(","):
@@ -272,10 +277,10 @@ def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
                             if ta and ta.split()[0].lower() == c.lower():
                                 sec = (c, ta)
                             elif ta:
-                                # Cins adi baslikta geciyor ama ikili ad
-                                # baska bir cinse ait (su adi, notu, konak
-                                # bilgisi olabilir). Panele alinmaz; SESSIZ
-                                # DUSMEZ, sayilir ve bildirilir.
+                                # The genus name appears in the header but the binomial
+                                # belongs to another genus (it may be a strain name, a note
+                                # or host information). It is not taken into the panel; it
+                                # DOES NOT DROP SILENTLY, it is counted and reported.
                                 dusen_baska_cins[c] += 1
                             else:
                                 dusen_tursuz[c] += 1
@@ -292,8 +297,8 @@ def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
                 else:
                     kirpilan[(c, t)] += 1
         gunluk.append("panel: %-34s %d kayit alindi" % (dbad, alinan))
-    # SESSIZ KIRPMA YOK: kirpilan ve tur adi olmadigi icin dusen kayitlar
-    # bildirilir, yoksa panel eksikligi tam kapsama gibi okunur.
+    # NO SILENT TRIMMING: the records trimmed, and the ones dropped for having no
+    # species name, are reported; otherwise a gap in the panel reads as full coverage.
     for (c, t), n in sorted(kirpilan.items(), key=lambda x: -x[1])[:10]:
         gunluk.append("panel KIRPILDI: %s / %s icin %d kayit alinmadi"
                       % (c, t, n))
@@ -379,9 +384,9 @@ def get_args():
     p.add_argument("--evalue", type=float, default=1000.0)
     p.add_argument("--is-parcacigi", type=int, default=4)
     p.add_argument("--tur-basina-en-fazla", type=int, default=200)
-    # Toplanti karari: "1-2 capraz tur olursa onlarda tur ozgul sayilir".
-    # Deger burada sabit yazilmaz, secenek olarak durur; degistirilirse
-    # ciktinin basinda hangi esikle calisildigi yaziliyor.
+    # The panel decision: "where there are 1-2 cross reacting species, it still counts
+    # as species specific". The value is not hard coded here but stands as an option; if
+    # it is changed, which threshold the run used is written at the top of the output.
     p.add_argument("--capraz-tur-esik", type=int, default=2,
                    help="number of cross-reacting SPECIES tolerated at species-level specificity "
                         "(urun sayisi degil); varsayilan 2")
@@ -409,8 +414,8 @@ def main():
             ciftler[r["hedef"]].append((r["ileri_dizi"], r["geri_dizi"],
                                         "de novo"))
     if a.referans and os.path.exists(a.referans):
-        # hedefler.tsv'deki BUTUN adlar (duzey ayrimi yapmadan), cunku
-        # referans setinde duzey=grup hedefleri de var
+        # ALL the names in hedefler.tsv (without distinguishing the level), because the
+        # reference set also holds targets at level=group
         tum_ad = []
         for line in open(a.hedefler, encoding="utf-8"):
             if line.startswith("#") or not line.strip():
@@ -492,7 +497,7 @@ def main():
             print(u'      blastn/makeblastdb failed, skipped')
             continue
         kimlik_tur = {k: t for k, t, _ in kayitlar}
-        # hedef tur kumesi: beyan edilen tur(ler) + olculen tur
+        # the target species set: the declared species plus the measured species
         hedef_turler = set(h["hedef_turler"])
         if h["olculen_tur"]:
             hedef_turler.add(h["olculen_tur"])
@@ -501,13 +506,13 @@ def main():
             tur_urun = collections.Counter()
             for ref, n in per.items():
                 tur_urun[kimlik_tur.get(ref, "?")] += n
-            # HANGI hedef turde urun olustugu yazilir. Hedef tur kumesi
-            # beyan edilen adi VE olculen kimligi birlikte iceriyor; ikisi
-            # ayrisabilir. Ornek: Zoopagomycota_mantari'nin beyan edilen
-            # turu Dictyostelium discoideum, olculen kimligi ise esik alti
-            # bir Marasmius. Hangisinde urun olustugu yazilmazsa,
-            # TUR_OZGUL_ESIKLI karari "Dictyostelium'a ozgul" diye
-            # okunabilir; oysa Marasmius'a ozgul olabilir.
+            # WHICH target species the product formed in is written out. The target
+            # species set holds the declared name AND the measured identity together,
+            # and the two can diverge. An example: the declared species of
+            # Zoopagomycota_mantari is Dictyostelium discoideum while its measured
+            # identity is a below-threshold Marasmius. Without writing which one the
+            # product formed in, a TUR_OZGUL_ESIKLI verdict could be read as "specific
+            # to Dictyostelium", when it may be specific to Marasmius.
             cogaltilan_hedef = sorted(t for t in tur_urun if t in hedef_turler)
             hedefte = sum(n for t, n in tur_urun.items() if t in hedef_turler)
             digerde = sum(n for t, n in tur_urun.items()
@@ -515,12 +520,12 @@ def main():
             digerler = sorted({t for t in tur_urun if t not in hedef_turler})
             hedef_panelde = bool(hedef_turler & set(panel_turler))
             if h["duzey"] == "tur":
-                # CAPRAZ TUR SAYISI, urun sayisi degil. Toplanti karari
-                # "1-2 capraz tur olursa yine tur ozgul sayilir" diyor;
-                # olcu KAC FARKLI TUR cogaltildigidir, o turlerde kac urun
-                # olustugu degil. Sifir capraz ile esik ici durum ayri
-                # kararlar olarak yazilir; ikisini tek etikete katlamak,
-                # daha zayif olan cifti daha guclusuyle esitlerdi.
+                # THE NUMBER OF CROSS REACTING SPECIES, not the number of products. The
+                # panel decision says "where there are 1-2 cross reacting species it still
+                # counts as species specific"; the measure is HOW MANY DIFFERENT SPECIES
+                # were amplified, not how many products formed in them. Zero cross reactions
+                # and a within-threshold situation are written as separate verdicts; folding
+                # the two into one label would equate the weaker pair with the stronger one.
                 if not hedef_panelde:
                     karar = "HEDEF_TUR_PANELDE_YOK"
                 elif hedefte == 0:
@@ -532,19 +537,17 @@ def main():
                 else:
                     karar = "TUR_AYRIMI_YOK"
             else:
-                # CINS DUZEYI. Onceki surum yalnizca "panelin kac turunde
-                # urun olusuyor" diye sayiyordu; bu, cins DISINDA urun
-                # olusmasini gizliyordu.
-                #   OLCULDU (2026-08-01): Proteiniphilum_cinsi'nin bes
-                #   ciftinden ikisi Fermentimonas caenicola'yi da
-                #   cogaltiyor, ki bu baska bir cinstir. Eski sayim ikisini
-                #   de CINS_ICI_3_3 diye yaziyordu, yani cins ozgullugunu
-                #   ihlal eden cift, en genis kapsamli cift gibi
-                #   gorunuyordu.
-                # Kabul olcutu "cins ozgul" oldugu icin BEYAN EDILEN cinsin
-                # disinda urun olmamasi gerekir. Olculen kimlik burada
-                # hedef sayilmaz: Proteiniphilum istenmisse Fermentimonas
-                # capraz cogaltmadir, kutulardaki organizma o olsa bile.
+                # GENUS LEVEL. The earlier version counted only "in how many species of
+                # the panel does a product form", which hid products forming OUTSIDE the
+                # genus.
+                #   MEASURED (2026-08-01): two of Proteiniphilum_cinsi's five pairs also
+                #   amplify Fermentimonas caenicola, which is another genus. The old count
+                #   wrote both as CINS_ICI_3_3, so a pair violating genus specificity
+                #   looked like the pair with the widest coverage.
+                # Since the acceptance criterion is "genus specific", no product may form
+                # outside the DECLARED genus. The measured identity does not count as the
+                # target here: if Proteiniphilum was asked for, Fermentimonas is a cross
+                # reaction, even when the organism in the bins is that one.
                 tum_cogaltilan = sorted(t for t in tur_urun if t)
                 ici = [t for t in tum_cogaltilan
                        if t.split()[0] in h["cinsler"]]
@@ -586,10 +589,9 @@ def main():
     print("-" * 118)
     for h in hedefler:
         satir = [x for x in sonuc if x["hedef"] == h["hedef"]]
-        # Tur listesi KARAR BASINA toplanir. Hedef genelinde toplanirsa,
-        # ayrimi basaran TUR_OZGUL satirinin yanina baska bir ciftin
-        # cogalttigi turler yaziliyor ve o cift de ayrim yapmiyor gibi
-        # okunuyordu.
+        # The species list is gathered PER VERDICT. Gathered across the target as a whole,
+        # the species amplified by another pair were being written beside the TUR_OZGUL row
+        # that did achieve the separation, and that pair read as if it separated nothing.
         gruplu = collections.defaultdict(list)
         for x in satir:
             gruplu[x["karar"]].append(x)
