@@ -481,7 +481,7 @@ def ozet_yaz(durum, sure, gecen):
     yeniden5 = _asama5_yeniden()
     asgari = getattr(C, 'ENKOTU_ASGARI_OKUMA', 150)
 
-    A('# Ozet — her sey sirayla kosuldu')
+    A(u'# The summary, everything that was run, in order')
     A('')
     A('Baslangic: %s · bitis: %s · sure: %s'
       % (durum.get('baslangic', '?'), time.strftime('%Y-%m-%d %H:%M:%S'), sure(gecen)))
@@ -493,48 +493,34 @@ def ozet_yaz(durum, sure, gecen):
                               ('konsensus_yeniden_uretim.tsv', kons),
                               ('adaylar.tsv', aday)) if not v]
     if eksik:
-        A('> **Eksik cikti dosyalari:** %s — ilgili bolumler bos gorunecek.'
+        A(u'> **Missing output files:** %s. The sections that use them will look empty.'
           % ', '.join('`%s`' % e for e in eksik))
         A('')
 
     # ============================================================ 0. EN ONEMLI
-    A('## 0. ONCE BUNU OKUYUN — hangi sayi hangi kosulda olculdu')
+    A(u'## 0. READ THIS FIRST: which number was measured under which conditions')
     A('')
-    A('Bu kosuda ayni cift **uc ayri yerde** olculdu ve sayilar **birbirinden '
-      'farkli cikti**. Sebep bulundu; ikisi de dogru ama **karsilastirilamaz**:')
+    A(u'In this run the same pair was measured **in three separate places** and the numbers **came out different from one another**. The reason was found; both are right but they are **not comparable**:')
     A('')
-    A('| | Asama 5 (panel yeniden olcum) | Asama 6-7 (uyelik + arama tabani) |')
+    A(u'| | Stage 5 (the panel remeasurement) | Stages 6 and 7 (membership plus the search baseline) |')
     A('|---|---|---|')
-    A('| okuma derinligi | **TAM** (kutu basina ortanca ~3 000, en fazla ~46 000) | **300 okuma/kutu** |')
-    A('| uyumsuzluk olcutu | `<=1` ve `<=3` (iki ayri satir) | `<=1` |')
-    A('| uyelik tanimi | ayni (`hedef_uyelik.tsv`) | ayni |')
-    A('| motor | ayni (`read_engine.py`) | ayni |')
+    A(u'| read depth | **FULL** (a median of about 3 000 per bin, at most about 46 000) | **300 reads per bin** |')
+    A(u'| mismatch criterion | `<=1` and `<=3` (two separate rows) | `<=1` |')
+    A(u'| membership definition | the same (`hedef_uyelik.tsv`) | the same |')
+    A(u'| engine | the same (`read_engine.py`) | the same |')
     A('')
     A('**Farkin iki sebebi var:**')
     A('')
-    A('1. **Wilson araligi derinlikle daralir.** Uye icin ALT sinir, rakip icin '
-      'UST sinir kullaniliyor; okuma arttikca alt sinir yukselir, ust sinir '
-      'duser, oran **buyur**. Alttaki uye yuzdeleri neredeyse ayni oldugu halde '
-      'oranlarin farkli cikmasinin sebebi budur — olcum degil, **belirsizlik payi** '
-      'degisiyor.')
-    A('2. **"En kotu tek kutu" olcusu kosu sirasinda derinlige gore kayiyordu.** '
-      'Esik "en buyuk kutunun yarisi" idi; tam derinlikte en buyuk kutu ~46 000 '
-      'okuma olunca esik ~23 000 oluyor ve **10-33 rakip kutudan yalnizca 1-5\'i** '
-      'olcume giriyordu. Ayni cift 300 okumayla olculunce esik 150 olup **hepsi** '
-      'giriyordu. Yani asama 5\'in "en kotu kutu" sayisi aslinda "**en derin '
-      'kutu**" demekti ve gercek en kotu rakip disarida kalmis olabilir.')
+    A(u'1. **The Wilson interval narrows with depth.** The LOWER bound is used for a member and the UPPER bound for a competitor; as the reads grow the lower bound rises, the upper bound falls, and the ratio **grows**. That is why the ratios come out different although the member percentages below them are almost the same: what changes is not the measurement but the **margin of uncertainty**.')
+    A(u'2. **The "worst single bin" measure was sliding with depth during the run.** The threshold was "half of the largest bin"; at full depth, with the largest bin at about 46 000 reads, the threshold became about 23 000 and **only 1 to 5 of the 10 to 33 competitor bins** entered the measurement. Measured with 300 reads the threshold became 150 and **all of them** entered. So stage 5\'s "worst bin" number really meant "**the deepest bin**", and the true worst competitor may have been left outside.')
     A('')
-    A('Bu ikinci sorun **duzeltildi** (esik artik mutlak: %d okuma). Kutu bazli '
-      'ham sayilar kayitli oldugu icin asama 5 **yeniden kosulmadan** dogru '
-      'degerler asagida hesaplandi.' % asgari)
+    A(u'That second problem **was fixed** (the threshold is absolute now: %d reads). Because the raw per bin counts are recorded, the correct values below were computed **without rerunning stage 5**.' % asgari)
     A('')
-    A('### Karsilastirilabilir hale getirilmis tablo')
+    A(u'### The table made comparable')
     A('')
-    A('`Asama 5 (duzeltilmis)` sutunu, asama 5\'in kendi tam derinlikli '
-      'sayilarini asama 6 ile **ayni kutu esigiyle** yeniden hesaplar. '
-      'Kalan fark yalnizca derinlikten gelir.')
+    A(u'The `Stage 5 (corrected)` column recomputes stage 5\'s own full depth numbers **with the same bin threshold** as stage 6. The difference that is left comes from depth alone.')
     A('')
-    A('| hedef | A5 havuz (tam) | A5 en kotu (kosudaki) | **A5 en kotu (duzeltilmis)** | A6/A7 havuz (300) | A6/A7 en kotu (300) | A5 olcume giren rakip kutu |')
+    A(u'| target | S5 pool (full) | S5 worst (as run) | **S5 worst (corrected)** | S6 and S7 pool (300) | S6 and S7 worst (300) | competitor bins entering S5 |')
     A('|---|---|---|---|---|---|---|')
     p1 = {r['hedef']: r for r in panel if (r.get('olcut') or '').startswith('<=1')}
     ubak = {}
@@ -553,24 +539,18 @@ def ozet_yaz(durum, sure, gecen):
             _oran_metni(u6.get('ayrim_en_kotu_x')),
             yd.get('giren_kutu', '?'), yd.get('rakip_kutu', '?')))
     A('')
-    A('> **Hangisine bakmali?** Karar icin **`A5 en kotu (duzeltilmis)`** sutununu '
-      'kullanin: en derin veriyle, butun rakip kutulari kapsayarak, muhafazakar '
-      'yonde hesaplanmistir. `A6/A7` sutunlari adaylarin **kendi aralarinda** '
-      'siralanmasi icindir — hepsi ayni 300 okuma kosulunda olculdugu icin '
-      'birbirleriyle karsilastirilabilirler, ama A5 ile karsilastirilamazlar.')
+    A(u'> **Which one should you look at?** Use the **`S5 worst (corrected)`** column for a decision: it is computed on the deepest data, covering every competitor bin, in the conservative direction. The `S6 and S7` columns are for ranking the candidates **among themselves**; since they were all measured under the same 300 read condition they can be compared with one another, but not with S5.')
     A('')
 
     # ============================================================ 1. yeni aday
-    A('## 1. Panelin mevcut ciftinden DAHA IYI aday bulundu mu?')
+    A(u'## 1. Was a candidate better than the panel\'s current pair found?')
     A('')
     if not aramalar:
-        A('*Arama kontrol dosyalari bulunamadi.*')
+        A(u'*The search checkpoint files were not found.*')
     else:
-        A('Her hedefte paneldeki **mevcut cift** ile **en iyi aday** '
-          '**AYNI kosullarda** (300 okuma/kutu, `<=1` uyumsuzluk, ayni uyelik, '
-          'ayni motor) olculdu — bu sutunlar dogrudan karsilastirilabilir.')
+        A(u'For every target the **current pair** in the panel and the **best candidate** were measured **under THE SAME conditions** (300 reads per bin, `<=1` mismatch, the same membership, the same engine), so these columns can be compared directly.')
         A('')
-        A('| # | hedef | mevcut cift | en iyi aday | daha iyi mi | kazanc | 10x esigi | ARMS | izgara hucresi |')
+        A(u'| # | target | current pair | best candidate | is it better | gain | 10x threshold | ARMS | grid cell |')
         A('|---|---|---|---|---|---|---|---|---|')
         iyi = kotu = anlamsiz = belirsiz = 0
         sira = 0
@@ -599,8 +579,7 @@ def ozet_yaz(durum, sure, gecen):
 
             if rakip_yok:
                 anlamsiz += 1
-                A('| %d | %s | *rakip kutusu yok* | *rakip kutusu yok* | '
-                  '**oran anlamsiz** | - | - | %s | %s |'
+                A(u'| %d | %s | *no competitor bin* | *no competitor bin* | **the ratio is meaningless** | - | - | %s | %s |'
                   % (sira, h[:38], arms, hucre))
                 continue
             try:
@@ -626,36 +605,25 @@ def ozet_yaz(durum, sure, gecen):
                 '**EVET**' if daha else 'hayir', kazanc,
                 'gecti' if esikte else '**ALTINDA**', arms, hucre))
         A('')
-        A('**Sonuc: %d hedefte daha iyi aday VAR, %d hedefte mevcut cift korunmali, '
-          '%d hedefte oran anlamsiz (evrensel - rakip kutusu yok), %d olculemedi.**'
+        A(u'**Result: a better candidate EXISTS for %d targets, the current pair should be kept for %d, the ratio is meaningless for %d (universal, with no competitor bin), and %d could not be measured.**'
           % (iyi, kotu, anlamsiz, belirsiz))
         A('')
-        A('> **`10x esigi` sutununu atlamayin.** "Daha iyi" demek "yeterli" demek '
-          'DEGILDIR: bir aday mevcut cifti gecip hala 10x esiginin altinda '
-          'kalabilir. Ornegin taban 0,12x iken aday 13,5x ise hem daha iyi hem '
-          'esigi geciyor; taban 0,19x iken aday 1,04x ise daha iyi ama **hala '
-          'kullanilamaz**.')
+        A(u'> **Do not skip the `10x threshold` column.** "Better" DOES NOT mean "enough": a candidate can beat the current pair and still stay below the 10x threshold. If the baseline is 0.12x and the candidate 13.5x it is both better and above the threshold; if the baseline is 0.19x and the candidate 1.04x it is better but **still unusable**.')
         A('')
-        A('> **Evrensel hedeflerde** (Arke_universal, Bakteri_universal, '
-          'Mantar_universal F1/F2) uyelik tanimi geregi rakip kutusu yoktur; '
-          'ayrim orani tanimsizdir ve bu hedefler **kapsam** olcusuyle '
-          'degerlendirilmelidir (kac kutuda urun veriyor). Oran sutunlarina '
-          'bakmayin.')
+        A(u'> **On the universal targets** (Arke_universal, Bakteri_universal, Mantar_universal F1 and F2) there is no competitor bin by the definition of membership; the discrimination ratio is undefined and those targets have to be judged by **coverage** (in how many bins they give a product). Do not look at the ratio columns.')
         A('')
-        A('> Her adayin bedeli (hangi kural gevsetildi, ARMS gerekti mi, urun '
-          'boyu protokolu nasil etkiler, 60 C\'de kosulabilir mi) '
-          '`KAPSAMLI_ARAMA_RAPORU.md` icindeki hedef basliklarinda yazili.')
+        A(u'> The cost of every candidate (which rule was relaxed, whether ARMS was needed, how the product length affects the protocol, whether it can be run at 60 C) is written under the target headings inside `KAPSAMLI_ARAMA_RAPORU.md`.')
     A('')
 
     # ============================================================ 2. panel degisimi
-    A('## 2. Panelin sayilari ne degisti (asama 5)')
+    A(u'## 2. What changed in the panel\'s numbers (stage 5)')
     A('')
     if not panel:
-        A('*Panel yeniden olcumu kosulmadi ya da cikti bulunamadi.*')
+        A(u'*The panel remeasurement was not run, or its output was not found.*')
     else:
         degisen = [r for r in panel if (r.get('DEGISIM') or '').startswith(('YUKARI', 'ASAGI'))]
-        A('- Olculen satir: **%d** (her cift iki olcutle)' % len(panel))
-        A('- Degeri **%%30\'dan fazla degisen** satir: **%d**' % len(degisen))
+        A(u'- Rows measured: **%d** (each pair under two criteria)' % len(panel))
+        A(u'- Rows whose value **changed by more than %%30**: **%d**' % len(degisen))
         kayip = []
         for r in panel:
             try:
@@ -666,9 +634,9 @@ def ozet_yaz(durum, sure, gecen):
                 pass
         if kayip:
             kayip.sort(reverse=True)
-            A('- Eski (hatali) okuma motorunun **en cok kacirdigi** hedefler:')
+            A(u'- The targets the old (faulty) read engine **missed most**:')
             A('')
-            A('| hedef | olcut | eski motorun kaybi |')
+            A(u'| target | criterion | what the old engine lost |')
             A('|---|---|---|')
             for k, h, o in kayip[:8]:
                 A('| %s | %s | %%%.1f |' % (h, o, k))
@@ -677,17 +645,17 @@ def ozet_yaz(durum, sure, gecen):
     A('')
 
     # ============================================================ 3. below threshold
-    A('## 3. 10x esiginin ALTINA dusen ciftler')
+    A(u'## 3. The pairs that fell BELOW the 10x threshold')
     A('')
     dusen = [r for r in panel if r.get('ESIK_ALTINA_DUSTU')]
     if not panel:
-        A('*Panel yeniden olcumu kosulmadi.*')
+        A(u'*The panel remeasurement was not run.*')
     elif not dusen:
-        A('Yeni olcumde 10x esiginin altina **dusen cift yok**.')
+        A(u'In the new measurement **no pair falls** below the 10x threshold.')
     else:
-        A('**%d satir** esigin altina dustu — toplantida konusulmali:' % len(dusen))
+        A(u'**%d rows** fell below the threshold and have to be discussed at the meeting:' % len(dusen))
         A('')
-        A('| hedef | olcut | panelde | yeni | uye kapsam |')
+        A(u'| target | criterion | in the panel | new | member coverage |')
         A('|---|---|---|---|---|')
         for r in dusen:
             A('| %s | %s | %s | %s x | %s |' % (
@@ -696,10 +664,10 @@ def ozet_yaz(durum, sure, gecen):
     A('')
 
     # ============================================================ 4. uyelik
-    A('## 4. Uyelik tanimi — hangi sayi tanima bagli')
+    A(u'## 4. The membership definition: which number depends on the definition')
     A('')
     if not uyelik:
-        A('*Uyelik denetimi kosulmadi.*')
+        A(u'*The membership audit was not run.*')
     else:
         oyn, tani = {}, {}
         for r in uyelik:
@@ -712,60 +680,56 @@ def ozet_yaz(durum, sure, gecen):
             if r.get('TANI') and r['TANI'] != 'SORUN YOK':
                 tani[h] = r['TANI']
         riskli = sorted(((v, k) for k, v in oyn.items() if v and v > 1.5), reverse=True)
-        A('- Tanim degisince ayrim orani **1,5 kattan fazla oynayan** hedef: **%d**'
+        A(u'- Targets whose discrimination ratio **moves by more than 1.5 fold** when the definition changes: **%d**'
           % len(riskli))
         if riskli:
             A('')
-            A('| hedef | tanim degisince ayrim kac kat oynuyor |')
+            A(u'| target | how many fold the discrimination moves when the definition changes |')
             A('|---|---|')
             for v, k in riskli[:10]:
                 A('| %s | %.1fx |' % (k, v))
         if tani:
             A('')
-            A('| hedef | tani |')
+            A(u'| target | diagnosis |')
             A('|---|---|')
             for k, v in tani.items():
                 A('| %s | %s |' % (k, v))
         A('')
-        A('Ayrinti: `UYELIK_DENETIMI.md` · Duzeltme yeri: `screening/hedef_uyelik.tsv`')
+        A(u'Detail: `UYELIK_DENETIMI.md` . Where to correct it: `screening/hedef_uyelik.tsv`')
     A('')
 
     # ============================================================ 5. konsensus
     A('## 5. Konsensusler')
     A('')
     if not kons:
-        A('*Konsensus yeniden uretimi kosulmadi.*')
+        A(u'*The consensus reproduction was not run.*')
     else:
         deg = [r for r in kons if (r.get('eski_ile_farkli') or '0') not in ('0', '')]
         kalite = konsensus_kalite()
         gecen_k = sum(1 for v in kalite.values() if v[0])
-        A('- Yeniden uretilen kutu: **%d**' % len(kons))
-        A('- Eski konsensusla **farkli baz** iceren kutu: **%d**' % len(deg))
-        A('- Arama omurgasi olarak kullanilabilir kalitede: **%d**' % gecen_k)
+        A(u'- Bins reproduced: **%d**' % len(kons))
+        A(u'- Bins holding a **different base** from the old consensus: **%d**' % len(deg))
+        A(u'- Of a quality usable as a search backbone: **%d**' % gecen_k)
         if deg:
             A('')
-            A('| kutu | farkli baz | N %% | iki yontem ayrildi |')
+            A(u'| bin | different bases | N %% | the two methods disagreed |')
             A('|---|---|---|---|')
             for r in deg[:12]:
                 A('| %s | %s | %s | %s |' % (r['kutu'], r['eski_ile_farkli'],
                                              r['N_yuzde'], r['yontemler_ayrildi']))
         A('')
-        A('Ayrinti: `KONSENSUS_YENIDEN_URETIM.md`')
+        A(u'Detail: `KONSENSUS_YENIDEN_URETIM.md`')
     A('')
 
     # ============================================================ 6. what is next
     A('## 6. Sirada ne var')
     A('')
-    A('1. **1. bolum** — daha iyi aday bulunan hedeflerde bedeli okuyup karar verin.')
-    A('2. **3. bolumdeki esik alti ciftler** — toplantida konusulmali.')
-    A('3. **4. bolumdeki oynak hedefler** — hangi uyelik tanimiyla bildirildikleri '
-      'panelde acikca yazilmali.')
-    A('4. Panel xlsx\'ine isleme: `screening/update_panel.py` bunun icin '
-      'yazildi ama **menude degildir** — bilerek elle calistirilir, cunku '
-      'teslim dosyasini degistirir ve o dosyaya baska oturumlar da yaziyor.')
+    A(u'1. **Section 1**: on the targets where a better candidate was found, read the cost and decide.')
+    A(u'2. **The pairs below the threshold in section 3**: they have to be discussed at the meeting.')
+    A(u'3. **The unstable targets in section 4**: which membership definition they were reported under has to be written in the panel plainly.')
+    A(u'4. Writing into the panel xlsx: `screening/update_panel.py` was written for that but **it is not in the menu**. It is run by hand on purpose, because it changes the delivery file and other sessions write to that file too.')
     A('')
-    A('> Bu arac hicbir karari kendiliginden vermez ve panel dosyalarini '
-      'kendiliginden degistirmez. Olcer, bedelini yazar, secimi size birakir.')
+    A(u'> This tool decides nothing by itself and changes no panel file by itself. It measures, it writes down the cost, and it leaves the choice to you.')
     A('')
     with open(yol, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))

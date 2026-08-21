@@ -1116,25 +1116,25 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     t_basla = time.time()
 
     if kip == u'yok':
-        rap.atla(M, u'M1-KAPALI', u'her kutu icin tur duzeyi kimlik olcumu',
+        rap.atla(M, u'M1-KAPALI', u'a species level identity measurement for every bin',
                  u'--m1-kip yok verildi, modul bilerek kapatildi', u'-')
         return
 
     # --- import the decision logic from verification (it IS NOT REWRITTEN here)
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama')
     if K is None:
-        rap.atla(M, u'M1-MOTOR', u'identity_verification.py hizalama motoru yuklenebilmeli',
+        rap.atla(M, u'M1-MOTOR', u'identity_verification.py\'s alignment engine must be loadable',
                  hata, kay.kimlik_dogrulama)
         return
     T, hata2 = modul_yukle(kay.tum_kutu, 'tum_kutu_kimlikleri')
     if T is None:
-        rap.atla(M, u'M1-MOTOR2', u'all_bin_identities.py toplu tarama yuklenebilmeli',
+        rap.atla(M, u'M1-MOTOR2', u'all_bin_identities.py\'s bulk scan must be loadable',
                  hata2, kay.tum_kutu)
         return
     try:
         import numpy  # noqa: F401  (hizala() numpy'siz cok yavas)
     except ImportError:
-        rap.atla(M, u'M1-NUMPY', u'numpy kurulu olmali (hizalama motoru kullaniyor)',
+        rap.atla(M, u'M1-NUMPY', u'numpy must be installed (the alignment engine uses it)',
                  u'numpy ice aktarilamadi', u'-')
         return
 
@@ -1147,14 +1147,14 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     # --- the bin inventory: the CANONICAL consensus index (all of it SENSE)
     ind = tsv_oku(kay.konsensus_indeks, yorum=None)
     if ind is None:
-        rap.atla(M, u'M1-ENVANTER', u'konsensus_kanonik/INDEKS.tsv okunabilmeli',
-                 u'dosya yok', kay.konsensus_indeks)
+        rap.atla(M, u'M1-ENVANTER', u'konsensus_kanonik/INDEKS.tsv must be readable',
+                 u'there is no such file', kay.konsensus_indeks)
         return
     if not ind:
         rap.ekle(M, u'M1-ENVANTER-BOS', KRITIK,
-                 u'kanonik konsensus indeksi kutu icermeli',
-                 u'indeks BOS - hicbir kutu okunamadi', kay.konsensus_indeks,
-                 u'build_canonical.py ile indeksi yeniden uretin')
+                 u'the canonical consensus index must hold bins',
+                 u'the index is EMPTY, not one bin could be read', kay.konsensus_indeks,
+                 u'reproduce the index with build_canonical.py')
         return
 
     kutular = []
@@ -1162,16 +1162,16 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         yol = os.path.join(kay.konsensus_kok, r.get('dosya', u''))
         if not os.path.exists(yol):
             rap.ekle(M, u'M1-KONSENSUS-YOK', CIDDI,
-                     u'indekste yazan konsensus dosyasi diskte bulunmali',
-                     u'%s -> dosya yok' % r.get('dosya'), kay.konsensus_indeks,
-                     u'Kutu olculemez; indeks ile klasor ayrismis.')
+                     u'the consensus file named in the index must be present on disk',
+                     u'%s -> there is no such file' % r.get('dosya'), kay.konsensus_indeks,
+                     u'The bin cannot be measured; the index and the directory have drifted apart.')
             continue
         try:
             with io.open(yol, encoding='utf-8', errors='replace') as fh:
                 diz = u''.join(s.strip() for s in fh if not s.startswith(u'>')).upper()
         except IOError as e:
             rap.ekle(M, u'M1-KONSENSUS-OKUNAMADI', CIDDI,
-                     u'konsensus dosyasi okunabilmeli', u'%s: %s' % (r.get('dosya'), e),
+                     u'the consensus file must be readable', u'%s: %s' % (r.get('dosya'), e),
                      yol)
             continue
         kutular.append(dict(kutu=r.get('kutu'), sinif=r.get('sinif'),
@@ -1184,8 +1184,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     if tavan:
         kutular = kutular[:tavan]
     if not kutular:
-        rap.atla(M, u'M1-KUTU-YOK', u'en az bir kutu olculmeli',
-                 u'suzgecten sonra kutu kalmadi', kay.konsensus_indeks)
+        rap.atla(M, u'M1-KUTU-YOK', u'at least one bin must be measured',
+                 u'no bin was left after the filter', kay.konsensus_indeks)
         return
 
     yaz(u'M1: %d bins, mode=%s' % (len(kutular), kip))
@@ -1236,8 +1236,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             kb['kume_boyutlari'] = []
             kb['okuma_sorgu'] = None
             rap.ekle(M, u'M1-FASTQ-YOK', UYARI,
-                     u'her kutunun ham okuma dosyasi bulunmali',
-                     u'%s icin FASTQ yok - karisim ve hata orani OLCULEMEDI' % kb['kutu'],
+                     u'the raw read file of every bin must be present',
+                     u'there is no FASTQ for %s, so the mixture and the error rate COULD NOT BE MEASURED' % kb['kutu'],
                      os.path.join(kay.fastq, grup))
         else:
             okumalar, eps = _okuma_ornekle(fq)
@@ -1297,18 +1297,16 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             kb['sorgu_kaynagi'] = u'HAM OKUMA (baskin kume medoidi)'
             kb['sorgu'] = K.temizle(kb['okuma_sorgu'])
             rap.ekle(M, u'M1-N-YUKSEK', UYARI,
-                     u'konsensusun N orani %%%s altinda olmali' % vir(N_ESIGI, 0),
-                     u'%s: N orani %%%s - konsensus kullanilmadi, ham okumaya donuldu '
-                     u'(saflik: %s)' % (kb['kutu'], vir(kb['n_oran'], 1), kb.get('saflik')),
+                     u'the N ratio of the consensus must be below %%%s' % vir(N_ESIGI, 0),
+                     u'%s: the N ratio is %%%s, so the consensus was not used and the raw reads were used instead (purity: %s)' % (kb['kutu'], vir(kb['n_oran'], 1), kb.get('saflik')),
                      kb['yol'],
-                     u'Bu kutu konsensus uzerinden "adlandirilamaz" gorunur; '
-                     u'okuma bazli olcum esas alinmalidir.')
+                     u'This bin looks "unnameable" through the consensus; the read based measurement is the one to go by.')
         elif kb['n_oran'] > N_ESIGI:
             kb['sorgu_kaynagi'] = u'KONSENSUS (N yuksek ama okuma yok)'
             kb['sorgu'] = kb['dizi']
             rap.ekle(M, u'M1-N-YUKSEK-OKUMASIZ', CIDDI,
-                     u'N orani yuksek kutuda ham okumaya donulebilmeli',
-                     u'%s: N orani %%%s ama okuma sorgusu uretilemedi'
+                     u'in a bin with a high N ratio it must be possible to fall back on the raw reads',
+                     u'%s: the N ratio is %%%s but a read query could not be produced'
                      % (kb['kutu'], vir(kb['n_oran'], 1)), kb['yol'])
         else:
             kb['sorgu_kaynagi'] = u'KONSENSUS'
@@ -1330,9 +1328,9 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         yol = os.path.join(kay.refdb, dosya)
         if not os.path.exists(yol):
             rap.ekle(M, u'M1-VTB-YOK', CIDDI,
-                     u'VTB listesindeki veritabani dosyasi diskte bulunmali',
+                     u'the database file in the list must be present on disk',
                      u'%s (%s) yok' % (etiket, dosya), kay.refdb,
-                     u'Bu veritabani hicbir kutu icin oy kullanamadi.')
+                     u'This database could not vote for any bin.')
             continue
         anahtar = md5_metin(u'M1B', VERSIYON, etiket, dosya_imzasi(yol), KL_UST,
                             ON_PENCERE, KESIN_UST, ADAY_HAVUZU_KONTROL,
@@ -1353,8 +1351,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                                               ilerle=lambda n: can2.vur(n))
         except MemoryError:
             rap.atla(M, u'M1-VTB-BELLEK', u'%s taranabilmeli' % etiket,
-                     u'bellek yetmedi (MemoryError) - kutu sayisini --m1-tavan ile '
-                     u'dusurun ya da veritabanini ayri kosun', yol)
+                     u'out of memory (MemoryError), so lower the bin count with --m1-tavan or run the database on its own', yol)
             continue
         except Exception as e:
             # ERRORS ARE NOT SWALLOWED: which database could not be scanned, and why, is reported.
@@ -1370,10 +1367,10 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         bekl = getattr(T, 'BEKLENEN_KAYIT', {}).get(etiket)
         if bekl and taranan < bekl:
             rap.ekle(M, u'M1-KAPSAM-EKSIK', CIDDI,
-                     u'%s taramasi %d kaydin tamamini gormeli' % (etiket, bekl),
-                     u'yalnizca %d kayit tarandi (%%%s)'
+                     u'the %s scan must see all %d records' % (etiket, bekl),
+                     u'only %d records were scanned (%%%s)'
                      % (taranan, vir(100.0 * taranan / bekl, 1)), yol,
-                     u'Budanmis tarama, gercek en iyi isabeti kacirabilir.')
+                     u'A pruned scan can miss the real best hit.')
 
         # --- a two stage alignment for each bin
         t1 = time.time()
@@ -1455,8 +1452,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     yaz(u'M1/C: verdict and Kraken comparison...')
     kharita = _kraken_haritasi(kay.kraken)
     if not kharita:
-        rap.atla(M, u'M1-KRAKEN-YOK', u'Kraken2 raporlari okunabilmeli',
-                 u'"kraken results" altinda rapor bulunamadi', kay.kraken)
+        rap.atla(M, u'M1-KRAKEN-YOK', u'the Kraken2 reports must be readable',
+                 u'no report was found under "kraken results"', kay.kraken)
     kraken_onbellek = {}
 
     satirlar = []
@@ -1487,8 +1484,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             else:
                 k_etiket = u'RAPORDA YOK'
                 rap.ekle(M, u'M1-KRAKEN-TAXID-YOK', UYARI,
-                         u'kutunun taxid\'i kendi barkod raporunda bulunmali',
-                         u'%s: taxid %s, %s raporunda yok'
+                         u'a bin\'s taxid must be present in its own barcode report',
+                         u'%s: taxid %s is not in the %s report'
                          % (kb['kutu'], kb['taxid'], os.path.basename(krapor)), krapor)
         else:
             k_etiket = u'RAPOR ESLESMEDI'
@@ -1496,10 +1493,10 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         if not isabetler:
             olculemeyen.append(kb['kutu'])
             rap.ekle(M, u'M1-OLCULEMEDI', CIDDI,
-                     u'her kutu icin en az bir veritabani isabeti olmali',
-                     u'%s: hicbir veritabaninda isabet yok - OLCULEMEDI' % kb['kutu'],
+                     u'there must be at least one database hit for every bin',
+                     u'%s: there is no hit in any database, so it COULD NOT BE MEASURED' % kb['kutu'],
                      kb['yol'],
-                     u'Sessizce atlanmadi; bu kutu icin kimlik iddiasi YOKTUR.')
+                     u'It was not skipped silently; there is NO identity claim for this bin.')
             satirlar.append(dict(
                 kutu=kb['kutu'], kraken_etiket=k_etiket, kraken_guven=k_guven,
                 olculen=u'OLCULEMEDI', duzey=u'OLCULEMEDI', kimlik=None,
@@ -1544,22 +1541,18 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         en_iyi, tepe = _band_sec(list(vtb_en_iyi.values()))
         if en_iyi is not tepe:
             rap.ekle(M, u'M1-KISA-HIZALAMA', BILGI,
-                     u'en iyi isabet, kimlik ve hizalanan uzunluk birlikte '
-                     u'degerlendirilerek secilmeli',
-                     u'%s: en yuksek kimlik %s%% ama yalnizca %s bp uzerinden '
-                     u'(%s); gurultu bandi icinde kalan %s bp\'lik %s%% '
-                     u'isabet secildi (%s)'
+                     u'the best hit must be chosen by weighing the identity and the aligned length together',
+                     u'%s: the highest identity is %s%% but over only %s bp (%s); the %s%% hit over %s bp, which stays inside the noise band, was chosen (%s)'
                      % (kb['kutu'], vir(tepe['kimlik'], 2), tepe.get('hiz_uz'),
                         tepe['kayit'], en_iyi.get('hiz_uz'),
                         vir(en_iyi['kimlik'], 2), en_iyi['kayit']), kb['yol'])
         if (en_iyi.get('hiz_uz') or 0) < ASGARI_HIZ_UZ:
             rap.ekle(M, u'M1-HIZALAMA-KISA', CIDDI,
-                     u'kimlik hukmu en az %d bp uzerinden verilmeli' % ASGARI_HIZ_UZ,
-                     u'%s: en iyi isabet yalnizca %s bp uzerinden olculdu (%s%%, %s)'
+                     u'the identity verdict must be given over at least %d bp' % ASGARI_HIZ_UZ,
+                     u'%s: the best hit was measured over only %s bp (%s%%, %s)'
                      % (kb['kutu'], en_iyi.get('hiz_uz'), vir(en_iyi['kimlik'], 2),
                         en_iyi['kayit']), kb['yol'],
-                     u'Kisa pencerede korunmus bolge her akrabaya yuksek kimlik '
-                     u'verir; bu bir tur atamasi icin yeterli kanit degildir.')
+                     u'In a short window a conserved region gives every relative a high identity; that is not enough evidence for a species assignment.')
         # Hukum siralamasi da secilen isabeti basa alsin.
         isabetler = [en_iyi] + [h for h in isabetler if h is not en_iyi]
         # THE SECOND BEST: a species DIFFERENT from the best one (a second record of
@@ -1581,13 +1574,12 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             # alignment. That is not a contradiction, it is the length against identity
             # trade-off, and the reader should not have to guess it, so it is written out.
             rap.ekle(M, u'M1-RAKIP-DAHA-YUKSEK', UYARI,
-                     u'secilen en iyi isabetin kimligi rakibinkinden dusuk olmamali',
-                     u'%s: secilen isabet %s%% (%s bp, %s), rakip %s%% (%s bp, %s) - '
-                     u'rakip daha yuksek kimlikli ama daha KISA hizalama uzerinden'
+                     u'the identity of the best hit chosen must not be lower than its rival\'s',
+                     u'%s: the hit chosen is %s%% (%s bp, %s) and the rival %s%% (%s bp, %s), so the rival has a higher identity but over a SHORTER alignment'
                      % (kb['kutu'], vir(en_iyi['kimlik'], 2), en_iyi.get('hiz_uz'),
                         en_iyi['kayit'], vir(ikinci['kimlik'], 2),
                         ikinci.get('hiz_uz'), ikinci['kayit']), kb['yol'],
-                     u'Tur atamasi bu iki kayit arasinda karara baglanmamalidir.')
+                     u'A species assignment must not be settled between these two records.')
 
         # --- the defensible level: identity_verification.py's rule (NOT REWRITTEN)
         sav = K.savunulabilir_duzey(isabetler, en_iyi.get('lokus') or 'SSU')
@@ -1624,8 +1616,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                                if (h.get('cins') or u'?') != kazanan_cins) or u'-'
         if uyusan < 2:
             rap.ekle(M, u'M1-TEK-KAYNAK', UYARI,
-                     u'bir kimlik iddiasi en az IKI bagimsiz veritabaninda dogrulanmali',
-                     u'%s: "%s" yalnizca %d veritabanindan destekli (uyusmayanlar: %s)'
+                     u'an identity claim must be confirmed in at least TWO independent databases',
+                     u'%s: "%s" is supported by only %d database (the ones that disagree: %s)'
                      % (kb['kutu'], ad, uyusan, uyusmayan), kb['yol'])
 
         # --- ad degisti mi (raporda gosterilecek asil sutun)
@@ -1641,13 +1633,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             ad_degisti = u'EVET'
         if ad_degisti == u'EVET':
             rap.ekle(M, u'M1-AD-DEGISTI', CIDDI,
-                     u'olculen kimlik ile Kraken2 etiketi ayni cinse isaret etmeli',
+                     u'the measured identity and the Kraken2 label must point at the same genus',
                      u'%s: Kraken "%s" -> olculen "%s" (%%%s, %s%s)'
                      % (kb['kutu'], k_etiket, ad, vir(en_iyi['kimlik'], 2),
                         en_iyi['vtb'],
                         u', TIP KAYDI' if en_iyi['tip'] == u'EVET' else u''),
                      krapor or kb['yol'],
-                     u'Rapora gosterilecek asil satir budur: Kraken etiketi olcumle degisti.')
+                     u'This is the row to show in the report: the Kraken label changed with the measurement.')
 
         satirlar.append(dict(
             kutu=kb['kutu'], kraken_etiket=k_etiket, kraken_guven=k_guven,
@@ -1668,11 +1660,10 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
 
         if kb.get('saflik') == u'KARISIK':
             rap.ekle(M, u'M1-KARISIK-KUTU', CIDDI,
-                     u'bir kutu tek bir organizma icermeli',
+                     u'a bin must hold a single organism',
                      u'%s: %s' % (kb['kutu'], kb.get('saflik_sebep')),
                      kb.get('fastq') or kb['yol'],
-                     u'Karisik kutudan turetilen konsensus ve ondan turetilen '
-                     u'butun ayrim hesaplari supheli.')
+                     u'The consensus derived from a mixed bin, and every discrimination calculation derived from that, is suspect.')
 
     rap.tablolar[u'M1 kimlik tablosu'] = satirlar
     rap.olcum[u'M1 kutu sayisi'] = u'%d olculdu, %d OLCULEMEDI' % (
@@ -1730,10 +1721,9 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         rap.olcum[u'M1 TAM TARAMA TAHMINI'] = u'olculmedi (%s)' % e
     if kip == u'hizli':
         rap.ekle(M, u'M1-KISMI-KAPSAM', BILGI,
-                 u'kimlik hukmu butun offline veritabanlariyla verilmeli',
-                 u'"hizli" kipte yalniz %d kucuk RefSeq kumesi tarandi; SILVA SSU/LSU, '
-                 u'UNITE, PR2, ROD taranmadi' % len(HIZLI_VTB), kay.refdb,
-                 u'Nihai hukum icin --m1-kip tam ile kosun.')
+                 u'the identity verdict must be given with every offline database',
+                 u'in "fast" mode only %d small RefSeq sets were scanned; SILVA SSU and LSU, UNITE, PR2 and ROD were not' % len(HIZLI_VTB), kay.refdb,
+                 u'For a final verdict run it with --m1-kip tam.')
     yaz(u'M1 done: %d rows, %d bins not measurable, %s'
         % (len(satirlar), len(olculemeyen), sure_metni(time.time() - t_basla)))
 
@@ -1798,14 +1788,14 @@ def modul_2_ic_tutarlilik(kay, rap):
         satirlar = tsv_oku(yol)
         if satirlar is None:
             _gs = gecersiz_isareti(yol)
-            rap.atla(M, u'M2-KAYNAK-YOK', u'%s okunabilmeli' % kaynak,
-                     (u'GECERSIZ isaretli, kaynak sayilmadi: %s' % _gs) if _gs
-                     else u'dosya yok', yol)
+            rap.atla(M, u'M2-KAYNAK-YOK', u'%s must be readable' % kaynak,
+                     (u'marked GECERSIZ, so it did not count as a source: %s' % _gs) if _gs
+                     else u'there is no such file', yol)
             continue
         if not satirlar:
             rap.ekle(M, u'M2-KAYNAK-BOS', CIDDI,
-                     u'%s veri satiri icermeli' % kaynak,
-                     u'dosya BOS (yalniz yorum/baslik)', yol)
+                     u'%s must hold data rows' % kaynak,
+                     u'the file is EMPTY (comments and a header only)', yol)
             continue
         okunan_kaynak += 1
         for r in satirlar:
@@ -1815,8 +1805,8 @@ def modul_2_ic_tutarlilik(kay, rap):
             for kanonik, sutun in alanlar.items():
                 if sutun not in r:
                     rap.ekle(M, u'M2-SUTUN-YOK', UYARI,
-                             u'%s dosyasinda "%s" sutunu bulunmali' % (kaynak, sutun),
-                             u'sutun yok - bu alan karsilastirmaya GIRMEDI',
+                             u'the "%s" column must be present in the %s file' % (kaynak, sutun),
+                             u'there is no such column, so this field DID NOT ENTER the comparison',
                              yol)
                     continue
                 ham = (r.get(sutun) or u'').strip()
@@ -1824,17 +1814,17 @@ def modul_2_ic_tutarlilik(kay, rap):
                     deger[(_ad_norm(h), kanonik)].append((kaynak, ham, r.get('_satir')))
 
     if okunan_kaynak < 2:
-        rap.atla(M, u'M2-CAPRAZ', u'capraz karsilastirma icin en az iki kaynak gerekli',
-                 u'yalnizca %d kaynak okunabildi' % okunan_kaynak, u'-')
+        rap.atla(M, u'M2-CAPRAZ', u'at least two sources are needed for a cross comparison',
+                 u'only %d source could be read' % okunan_kaynak, u'-')
         return
 
     # --- EXCEL: panel sayfasindaki primerleri de karsilastirmaya kat
     sayfalar = xlsx_sayfalari(kay.panel_xlsx)
     if sayfalar is None:
-        rap.atla(M, u'M2-XLSX-YOK', u'panel Excel dosyasi okunabilmeli',
-                 u'dosya yok', kay.panel_xlsx)
+        rap.atla(M, u'M2-XLSX-YOK', u'the panel Excel file must be readable',
+                 u'there is no such file', kay.panel_xlsx)
     elif isinstance(sayfalar, type(u'')):
-        rap.atla(M, u'M2-XLSX', u'panel Excel dosyasi okunabilmeli', sayfalar,
+        rap.atla(M, u'M2-XLSX', u'the panel Excel file must be readable', sayfalar,
                  kay.panel_xlsx)
     else:
         bulundu = False
@@ -1862,8 +1852,8 @@ def modul_2_ic_tutarlilik(kay, rap):
             break
         if not bulundu:
             rap.atla(M, u'M2-XLSX-SAYFA',
-                     u'Excel icinde "Hedef" + "Ileri primer" sutunlu bir sayfa olmali',
-                     u'boyle bir sayfa bulunamadi', kay.panel_xlsx)
+                     u'the Excel must hold a sheet with a "Hedef" and an "Ileri primer" column',
+                     u'no such sheet was found', kay.panel_xlsx)
 
     # --- CELISKI ARAMA
     celiski = 0
@@ -1897,22 +1887,22 @@ def modul_2_ic_tutarlilik(kay, rap):
             for k, v, s in kayitlar)
         agir = KRITIK if alan in (u'ileri_primer', u'geri_primer', u'urun_bp') else CIDDI
         rap.ekle(M, u'M2-CELISKI', agir,
-                 u'"%s" hedefinin "%s" degeri butun dosyalarda AYNI olmali' % (h, alan),
+                 u'the "%s" value of target "%s" must be THE SAME in every file' % (h, alan),
                  ayrinti,
                  u'; '.join(sorted(set(k for k, _v, _s in kayitlar))),
-                 u'Siparis hangi dosyaya bakildigina gore degisir.'
+                 u'The order changes depending on which file was looked at.'
                  if agir == KRITIK else u'')
 
     rap.olcum[u'M2 karsilastirilan alan'] = u'%d (hedef,alan) cifti, %d celiski' % (
         karsilastirilan, celiski)
     if karsilastirilan == 0:
         rap.atla(M, u'M2-BOS', u'en az bir alan capraz karsilastirilmali',
-                 u'iki kaynakta birden gecen hicbir (hedef, alan) bulunamadi', u'-')
+                 u'not one (target, field) appearing in both sources was found', u'-')
 
     # --- IS THE SAME BIN BOTH A MEMBER AND A COMPETITOR (this happened before)
     uyelik = tsv_oku(kay.hedef_uyelik)
     if uyelik is None:
-        rap.atla(M, u'M2-UYE-RAKIP', u'hedef_uyelik.tsv okunabilmeli', u'dosya yok',
+        rap.atla(M, u'M2-UYE-RAKIP', u'hedef_uyelik.tsv must be readable', u'there is no such file',
                  kay.hedef_uyelik)
     else:
         for r in uyelik:
@@ -1922,11 +1912,11 @@ def modul_2_ic_tutarlilik(kay, rap):
             kesisim = uye & haric
             if kesisim:
                 rap.ekle(M, u'M2-UYE-RAKIP', KRITIK,
-                         u'bir taxid ayni hedefte hem uye hem haric olamaz',
-                         u'%s: %s hem uye_taxid hem haric listesinde'
+                         u'a taxid cannot be both a member and an exclusion on the same target',
+                         u'%s: %s is in both the uye_taxid and the haric list'
                          % (h, u', '.join(sorted(kesisim))),
-                         u'%s (satir %s)' % (kay.hedef_uyelik, r.get('_satir')),
-                         u'Ayrim orani bu taxid iki kez sayildigi icin yanlis.')
+                         u'%s (row %s)' % (kay.hedef_uyelik, r.get('_satir')),
+                         u'The discrimination ratio is wrong because this taxid was counted twice.')
 
 
 # =========================================================================
@@ -1950,12 +1940,12 @@ def modul_3_uyelik(kay, rap):
     esik = tsv_oku(kay.esik_olcut)
 
     if ciftler is None:
-        rap.atla(M, u'M3-CIFTLER', u'screening/ciftler.tsv okunabilmeli',
-                 u'dosya yok', kay.ciftler)
+        rap.atla(M, u'M3-CIFTLER', u'screening/ciftler.tsv must be readable',
+                 u'there is no such file', kay.ciftler)
         return
     if uyelik is None:
-        rap.atla(M, u'M3-UYELIK', u'screening/hedef_uyelik.tsv okunabilmeli',
-                 u'dosya yok', kay.hedef_uyelik)
+        rap.atla(M, u'M3-UYELIK', u'screening/hedef_uyelik.tsv must be readable',
+                 u'there is no such file', kay.hedef_uyelik)
         return
 
     uyelik_indeks = {}
@@ -1999,24 +1989,22 @@ def modul_3_uyelik(kay, rap):
                              durum.upper() == u'KAPSAM_OLCUSU')
             if dcq is not None:
                 rap.ekle(M, u'M3-UYELIK-BOS', KRITIK,
-                         u'uyeligi bos bir hedef icin uyelige dayanan dCq '
-                         u'raporlanmamali',
-                         u'%s: uye_taksonlar BOS ama dCq %s raporlanmis '
-                         u'(olcu tipi: %s)' % (h, vir(dcq), olcu or u'?'),
-                         u'%s (satir %s)' % (kay.ciftler, r.get('_satir')),
-                         u'Bos uyelikle hesaplanan ayrim orani ANLAMSIZDIR.')
+                         u'a dCq resting on membership must not be reported for a target whose membership is empty',
+                         u'%s: uye_taksonlar is EMPTY but a dCq of %s was reported (measure type: %s)' % (h, vir(dcq), olcu or u'?'),
+                         u'%s (row %s)' % (kay.ciftler, r.get('_satir')),
+                         u'A discrimination ratio computed with an empty membership IS MEANINGLESS.')
             elif kapsam_olcusu:
                 rap.ekle(M, u'M3-UYELIK-BOS-KAPSAM', BILGI,
-                         u'kapsam olcen hedeflerde uye kumesi bos olabilir',
+                         u'in targets that measure coverage the member set may be empty',
                          u'%s: uye_taksonlar bos, olcu tipi "%s" - bu TASARIM '
                          u'geregidir, ayrim hesabina girmez' % (h, olcu),
-                         u'%s (satir %s)' % (kay.ciftler, r.get('_satir')))
+                         u'%s (row %s)' % (kay.ciftler, r.get('_satir')))
             else:
                 rap.ekle(M, u'M3-UYELIK-BOS', KRITIK,
                          u'ayrim olcen her ciftin uye taksonlari tanimli olmali',
                          u'%s: uye_taksonlar BOS, olcu tipi "%s"' % (h, olcu or u'?'),
-                         u'%s (satir %s)' % (kay.ciftler, r.get('_satir')),
-                         u'Bos uyelikle hesaplanan ayrim orani ANLAMSIZDIR.')
+                         u'%s (row %s)' % (kay.ciftler, r.get('_satir')),
+                         u'A discrimination ratio computed with an empty membership IS MEANINGLESS.')
         else:
             imza[u','.join(sorted(uye))].append((h, olcu))
 
@@ -2024,47 +2012,43 @@ def modul_3_uyelik(kay, rap):
         if hn not in uyelik_indeks:
             agir = KRITIK if dcq is not None else CIDDI
             rap.ekle(M, u'M3-UYELIK-SATIRI-YOK', agir,
-                     u'her hedefin hedef_uyelik.tsv icinde KENDI satiri olmali',
-                     u'%s: kendi uyelik satiri YOK%s'
-                     % (h, u'; buna ragmen dCq %s raporlanmis - bu olcum baska bir '
-                            u'hedefin uyeligiyle yapilmis olabilir' % vir(dcq)
+                     u'every target must have ITS OWN row inside hedef_uyelik.tsv',
+                     u'%s: it has NO membership row of its own%s'
+                     % (h, u'; and yet a dCq of %s was reported, so that measurement may have been made with another target\'s membership' % vir(dcq)
                         if dcq is not None else u''),
                      kay.hedef_uyelik,
-                     u'Petriella_cinsi desenidir: uyelik devralinmis, sayi dolu '
-                     u'gorunuyor ama o ciftin olcumu degil.')
+                     u'This is the Petriella_cinsi pattern: the membership was inherited, the number looks filled in, but it is not that pair\'s measurement.')
 
         # 3) uyelik durumu bir sorun bildiriyor mu
         if durum and durum.upper() not in (u'PANELLE_TUTUYOR', u'YENIDEN_KURULDU',
                                            u'KAPSAM_OLCUSU'):
             rap.ekle(M, u'M3-UYELIK-DURUM', CIDDI,
-                     u'uye_kumesi_durumu bilinen ve gecerli bir deger olmali',
+                     u'uye_kumesi_durumu must be a known and valid value',
                      u'%s: uye_kumesi_durumu = "%s"' % (h, durum),
-                     u'%s (satir %s)' % (kay.ciftler, r.get('_satir')))
+                     u'%s (row %s)' % (kay.ciftler, r.get('_satir')))
 
         # 4) the THRESHOLD table says the membership is invalid, yet a dCq was still used
         if dsat:
             gecerli = (dsat.get(u'uyelik_gecerli_mi') or u'').strip().upper()
             if gecerli in (u'HAYIR', u'YOK') and dcq is not None:
                 rap.ekle(M, u'M3-DCQ-GECERSIZ-UYELIK', KRITIK,
-                         u'uyeligi gecersiz bir hedef icin dCq raporlanmamali',
-                         u'%s: uyelik_gecerli_mi=%s ama dCq_olculen=%s ve hukum "%s"'
+                         u'a dCq must not be reported for a target whose membership is invalid',
+                         u'%s: uyelik_gecerli_mi=%s but dCq_olculen=%s and the verdict is "%s"'
                          % (h, gecerli, vir(dcq), (dsat.get(u'YENI_HUKUM') or u'?')),
-                         u'%s (satir %s)' % (kay.esik_olcut, dsat.get('_satir')),
-                         u'Bu ΔCq tanimsiz uyelikle hesaplanmistir.')
+                         u'%s (row %s)' % (kay.esik_olcut, dsat.get('_satir')),
+                         u'This dCq was computed with an undefined membership.')
 
     # 5) two "separation" targets with an IDENTICAL member set -> A TAUTOLOGY
     for anahtar, hedefler in imza.items():
         ayrim = [h for h, o in hedefler if o.lower().startswith(u'ayrim')]
         if len(hedefler) > 1 and ayrim:
             rap.ekle(M, u'M3-TOTOLOJIK-UYELIK', CIDDI,
-                     u'ayrim olcen iki hedefin uye kumeleri farkli olmali',
-                     u'%s hedeflerinin uye kumeleri BIREBIR AYNI (%d taxid); '
-                     u'bunlardan ayrim olcenler: %s'
+                     u'the member sets of two targets that measure discrimination must differ',
+                     u'the member sets of the %s targets are EXACTLY THE SAME (%d taxids); the ones among them that measure discrimination: %s'
                      % (u', '.join(h for h, _o in hedefler),
                         len(anahtar.split(u',')), u', '.join(ayrim)),
                      kay.ciftler,
-                     u'Ayni kumeyi kendinden ayirmaya calisan bir olcum '
-                     u'TOTOLOJIKTIR; cikan oran gercek bir ayrim degildir.')
+                     u'A measurement trying to separate a set from itself is TAUTOLOGICAL; the ratio it gives is not a real separation.')
 
     rap.olcum[u'M3 denetlenen cift'] = u'%d cift, %d uyelik satiri' % (
         len(ciftler), len(uyelik_indeks))
@@ -2089,8 +2073,8 @@ def modul_4_literatur(kay, rap):
 
     lit = metin_oku(kay.literatur)
     if lit is None:
-        rap.atla(M, u'M4-LITERATUR-YOK', u'LITERATUR_2026-08-07.md okunabilmeli',
-                 u'dosya yok', kay.literatur)
+        rap.atla(M, u'M4-LITERATUR-YOK', u'LITERATUR_2026-08-07.md must be readable',
+                 u'there is no such file', kay.literatur)
         lit = u''
     else:
         # KURALIN KENDISI BAYAT MI? Sabitlerimiz literaturde geciyor mu.
@@ -2098,18 +2082,18 @@ def modul_4_literatur(kay, rap):
             desen = unicode_(sabit).replace(u'.', u'[.,]')
             if not re.search(desen, lit):
                 rap.ekle(M, u'M4-KURAL-BAYAT', CIDDI,
-                         u'%s (%s) degeri literatur dosyasinda gecmeli' % (ad, vir(sabit)),
-                         u'%s degeri LITERATUR_2026-08-07.md icinde bulunamadi'
+                         u'the %s (%s) value must appear in the literature file' % (ad, vir(sabit)),
+                         u'the %s value was not found inside LITERATUR_2026-08-07.md'
                          % vir(sabit), kay.literatur,
-                         u'Denetcinin kurali literaturden ayrismis olabilir.')
+                         u'The auditor\'s rule may have drifted away from the literature.')
 
     esik = tsv_oku(kay.esik_olcut)
     siparis = tsv_oku(kay.nihai_siparis)
 
     # --- RULE 1: the abundance weighted threshold
     if esik is None:
-        rap.atla(M, u'M4-KURAL1', u'gerekli_dCq = max(log2(R)+%s, %s) dogrulanmali'
-                 % (vir(LIT_EK), vir(LIT_TABAN)), u'ESIK_VE_OLCUT dosyasi yok',
+        rap.atla(M, u'M4-KURAL1', u'gerekli_dCq = max(log2(R)+%s, %s) must be confirmed'
+                 % (vir(LIT_EK), vir(LIT_TABAN)), u'there is no ESIK_VE_OLCUT file',
                  kay.esik_olcut)
     else:
         denetlenen = 0
@@ -2121,25 +2105,25 @@ def modul_4_literatur(kay, rap):
             durum = (r.get(u'yeni_kural_durum') or u'').strip().upper()
             if R is None or R <= 0:
                 rap.ekle(M, u'M4-R-YOK', CIDDI,
-                         u'bollukla agirlikli esik icin R (bolluk orani) tanimli olmali',
+                         u'R (the abundance ratio) must be defined for the abundance weighted threshold',
                          u'%s: R = "%s" (sayiya cevrilemedi ya da <= 0)'
                          % (h, r.get(u'R')),
-                         u'%s (satir %s)' % (kay.esik_olcut, r.get('_satir')),
-                         u'Bu hedefte gerekli_dCq HESAPLANAMAZ.')
+                         u'%s (row %s)' % (kay.esik_olcut, r.get('_satir')),
+                         u'gerekli_dCq CANNOT BE COMPUTED for this target.')
                 continue
             hesap = max(math.log(R, 2) + LIT_EK, LIT_TABAN)
             denetlenen += 1
             if yazan is None:
                 rap.ekle(M, u'M4-GEREKLI-YOK', CIDDI,
-                         u'gerekli_dCq sutunu dolu olmali',
-                         u'%s: gerekli_dCq bos, hesaplanan %s' % (h, vir(hesap)),
-                         u'%s (satir %s)' % (kay.esik_olcut, r.get('_satir')))
+                         u'the gerekli_dCq column must be filled in',
+                         u'%s: gerekli_dCq is empty, the computed value is %s' % (h, vir(hesap)),
+                         u'%s (row %s)' % (kay.esik_olcut, r.get('_satir')))
             elif abs(yazan - hesap) > 0.02:
                 rap.ekle(M, u'M4-ESIK-YANLIS', KRITIK,
                          u'gerekli_dCq = max(log2(R)+%s ; %s) = %s'
                          % (vir(LIT_EK), vir(LIT_TABAN), vir(hesap)),
                          u'%s: tabloda %s yaziyor (R=%s)' % (h, vir(yazan), vir(R, 3)),
-                         u'%s (satir %s)' % (kay.esik_olcut, r.get('_satir')),
+                         u'%s (row %s)' % (kay.esik_olcut, r.get('_satir')),
                          u'Esik yanlissa GECER/KALIR hukmu de yanlis.')
             # does the verdict hold against its own numbers
             if olculen is not None and yazan is not None:
@@ -2149,17 +2133,17 @@ def modul_4_literatur(kay, rap):
                              u'dCq %s, gerekli %s ise hukum "%s" olmali'
                              % (vir(olculen), vir(yazan), bekl),
                              u'%s: yeni_kural_durum = "%s"' % (h, durum),
-                             u'%s (satir %s)' % (kay.esik_olcut, r.get('_satir')))
+                             u'%s (row %s)' % (kay.esik_olcut, r.get('_satir')))
         rap.olcum[u'M4 esik kurali'] = u'%d hedefte yeniden hesaplandi' % denetlenen
         if denetlenen == 0:
             rap.atla(M, u'M4-KURAL1-BOS',
-                     u'en az bir hedefte gerekli_dCq yeniden hesaplanmali',
-                     u'hicbir hedefte gecerli R bulunamadi', kay.esik_olcut)
+                     u'gerekli_dCq must be recomputed for at least one target',
+                     u'no valid R was found for any target', kay.esik_olcut)
 
     # --- KURAL 2: 3' son iki baz olcutu TEK BASINA hukum vermemeli
     if siparis is None:
-        rap.atla(M, u'M4-KURAL2', u"3' son iki baz olcutu hukum vermemeli",
-                 u'NIHAI_SIPARIS okunmadi: dosya yok ya da GECERSIZ isaretli', kay.nihai_siparis)
+        rap.atla(M, u'M4-KURAL2', u'the last two bases at the 3\' end must not decide on their own',
+                 u'NIHAI_SIPARIS was not read: there is no such file, or it is marked GECERSIZ', kay.nihai_siparis)
     else:
         UC_DESEN = re.compile(r"3'\s*son\s*iki|son\s*iki\s*baz|3'\s*ucundaki?\s*iki", re.I)
         for r in siparis:
@@ -2168,19 +2152,17 @@ def modul_4_literatur(kay, rap):
             gerekce = (r.get(u'GEREKCE') or u'')
             if UC_DESEN.search(katman):
                 rap.ekle(M, u'M4-UC-BAZ-HUKUM', CIDDI,
-                         u"3' son iki baz olcutu TEK BASINA hukum vermemeli "
-                         u'(literatur: bolum 3)',
-                         u'%s: hukmu veren katman "%s"' % (h, katman.strip()[:160]),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
-                         u"Literatur, 3' son iki baz olcutunun tek basina hedef disi "
-                         u'urun ongoremedigini soyluyor.')
+                         u'the last two bases at the 3\' end must not decide ON THEIR OWN (the literature: section 3)',
+                         u'%s: the layer that gave the verdict is "%s"' % (h, katman.strip()[:160]),
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
+                         u'The literature says the last two bases at the 3\' end cannot predict an off target product on their own.')
             elif UC_DESEN.search(gerekce) and not re.search(
                     r'dCq|ayrim|kapsam|MFE|erime', gerekce, re.I):
                 rap.ekle(M, u'M4-UC-BAZ-TEK-GEREKCE', UYARI,
                          u"3' son iki baz olcutu yaninda olculmus bir kanit da olmali",
                          u'%s: gerekce yalnizca 3\' olcutune dayaniyor: "%s"'
                          % (h, gerekce.strip()[:160]),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')))
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')))
 
     # --- KURAL 3: evrensel primerler UCLU metrikle degerlendirilmeli
     if siparis is not None:
@@ -2195,13 +2177,11 @@ def modul_4_literatur(kay, rap):
             eksik = [ad for ad, d in UCLU if not d.search(butun)]
             if eksik:
                 rap.ekle(M, u'M4-EVRENSEL-METRIK', CIDDI,
-                         u'evrensel primerler UCLU metrikle degerlendirilmeli '
-                         u'(kapsam, filum spektrumu, organel orani) - literatur bolum 1-2',
-                         u'%s: satirda su olcut(ler) hic gecmiyor: %s'
+                         u'universal primers must be judged on a TRIPLE metric (coverage, phylum spectrum, organelle ratio), the literature sections 1 and 2',
+                         u'%s: the row never mentions these criteria: %s'
                          % (h, u', '.join(eksik)),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
-                         u'Evrensel primeri "klad disi sayisi" ile degerlendirmek '
-                         u'literature aykiridir; klad disi olmasi beklenir.')
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
+                         u'Judging a universal primer by its "outside the clade count" goes against the literature; being outside the clade is what you expect.')
 
     # --- RULE 4: MIQE - in-silico and experimental validation are SEPARATE requirements
     #
@@ -2221,10 +2201,8 @@ def modul_4_literatur(kay, rap):
                 u' '.join(unicode_(v) for k, v in r.items() if k != '_satir'))
         if not siparis_l:
             rap.atla(M, u'M4-MIQE-IKINCI-KAYNAK',
-                     u'deneysel dogrulama sarti SIPARIS_LISTESI.tsv ile birlikte '
-                     u'denetlenmeli',
-                     u'SIPARIS_LISTESI.tsv okunamadi; MIQE kontrolu yalniz tek '
-                     u'dosyaya bakti ve eksik gorunebilir', kay.siparis_listesi)
+                     u'the experimental confirmation condition must be audited together with SIPARIS_LISTESI.tsv',
+                     u'SIPARIS_LISTESI.tsv could not be read; the MIQE check looked at a single file only and may be incomplete', kay.siparis_listesi)
         for r in siparis:
             h = (r.get(u'hedef') or u'').strip()
             hukum = (r.get(u'HUKUM') or u'').strip().upper()
@@ -2238,17 +2216,15 @@ def modul_4_literatur(kay, rap):
                 rap.ekle(M, u'M4-MIQE-DENEYSEL-YOK', CIDDI,
                          u'MIQE in siliko ve DENEYSEL dogrulamayi AYRI zorunlu '
                          u'maddeler sayar (literatur bolum 4)',
-                         u'%s (hukum: %s): in siliko kanit var, deneysel dogrulama '
-                         u'sarti satirda hic gecmiyor' % (h, hukum),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
-                         u'Siparis edilen her cift icin jel/erime egrisi/dizileme '
-                         u'sarti acikca yazilmali.')
+                         u'%s (verdict: %s): there is in-silico evidence, but the row never mentions the experimental confirmation condition' % (h, hukum),
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
+                         u'For every pair ordered, the gel, melt curve or sequencing condition must be written plainly.')
             elif not var_sil and not var_den:
                 rap.ekle(M, u'M4-MIQE-KANIT-YOK', CIDDI,
                          u'siparise giden her ciftte en az bir dogrulama kanidi olmali',
                          u'%s (hukum: %s): ne in siliko ne deneysel kanit gecmiyor'
                          % (h, hukum),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')))
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')))
 
 
 # =========================================================================
@@ -2302,8 +2278,8 @@ def modul_5_desenler(kay, rap):
         r'sinanmad|hukum\s*veremedi|kosulmad|[cç]al[iı][sş]t[iı]r[iı]lmad|'
         r'atland|BA[SŞ]ARISIZ|yap[iı]lamad|olculemedi', re.I)
     if siparis is None:
-        rap.atla(M, u'M5-D1', u'sessiz sifir taramasi',
-                 u'NIHAI_SIPARIS okunmadi: dosya yok ya da GECERSIZ isaretli',
+        rap.atla(M, u'M5-D1', u'the silent zero scan',
+                 u'NIHAI_SIPARIS was not read: there is no such file, or it is marked GECERSIZ',
                  kay.nihai_siparis)
     else:
         bakilan = 0
@@ -2344,23 +2320,20 @@ def modul_5_desenler(kay, rap):
                 if not alanlar:
                     continue
                 rap.ekle(M, u'M5-D1-SESSIZ-SIFIR', CIDDI,
-                         u'kosmamis bir katmanin sayisal alani 0 degil '
-                         u'"olculmedi" olarak yazilmali',
-                         u'%s: "%s" katmani kosmamis ("%s") ama su alan(lar) 0 '
-                         u'yaziyor: %s' % (h, katman, cumle, u', '.join(alanlar)),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
-                         u'0, "hedef disi bulunmadi" gibi okunur; oysa '
-                         u'"bakilmadi" demektir.')
+                         u'the numeric field of a layer that did not run must be written as "olculmedi" and not as 0',
+                         u'%s: the "%s" layer did not run ("%s") but these fields say 0: %s' % (h, katman, cumle, u', '.join(alanlar)),
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
+                         u'0 reads as "no off target was found"; what it means is "it was not looked at".')
         rap.olcum[u'M5 D1 taranan katman alani'] = u'%d' % bakilan
         if bakilan == 0:
-            rap.atla(M, u'M5-D1', u'sessiz sifir taramasi',
-                     u'katman oneki tasiyan sayisal alan bulunamadi',
+            rap.atla(M, u'M5-D1', u'the silent zero scan',
+                     u'no numeric field carrying a layer prefix was found',
                      kay.nihai_siparis)
 
     # ---- PATTERN 2: COUNTING THE TARGET'S OWN MEMBERS AS OFF-TARGET ---
     if uyelik is None or hdisi is None:
-        rap.atla(M, u'M5-D2', u'hedefin kendi uyelerini hedef disi saymamasi',
-                 u'hedef_uyelik.tsv ya da HEDEF_DISI_AYRINTI yok',
+        rap.atla(M, u'M5-D2', u'a target must not count its own members as off target',
+                 u'there is no hedef_uyelik.tsv or HEDEF_DISI_AYRINTI',
                  kay.hedef_disi if uyelik else kay.hedef_uyelik)
     else:
         uye_harita = {}
@@ -2371,8 +2344,8 @@ def modul_5_desenler(kay, rap):
         hedef_sut = next((s for s in (hdisi[0].keys() if hdisi else [])
                           if _ad_norm(s) == u'hedef'), None)
         if hedef_sut is None:
-            rap.atla(M, u'M5-D2', u'hedefin kendi uyelerini hedef disi saymamasi',
-                     u'HEDEF_DISI_AYRINTI dosyasinda "hedef" sutunu yok', kay.hedef_disi)
+            rap.atla(M, u'M5-D2', u'a target must not count its own members as off target',
+                     u'the HEDEF_DISI_AYRINTI file has no "hedef" column', kay.hedef_disi)
         else:
             sayac = 0
             for r in hdisi:
@@ -2389,7 +2362,7 @@ def modul_5_desenler(kay, rap):
                              u'listesinde yer almamali',
                              u'%s: kendi uyesi olan %s taxid\'i hedef disi satirinda geciyor'
                              % (r.get(hedef_sut), u', '.join(sorted(gecen))),
-                             u'%s (satir %s)' % (kay.hedef_disi, r.get('_satir')),
+                             u'%s (row %s)' % (kay.hedef_disi, r.get('_satir')),
                              u'Hedef disi sayisi sisirilmis, ozgulluk oldugundan '
                              u'kotu gorunuyor.')
             rap.olcum[u'M5 D2 taranan hedef disi satiri'] = u'%d satir, %d bulgu' % (
@@ -2425,11 +2398,11 @@ def modul_5_desenler(kay, rap):
             n = len(desen.findall(icerik))
             if n:
                 rap.ekle(M, u'M5-D3-MASKE-BAT', UYARI,
-                         u'bat dosyalari alt surecin cikis kodunu bastirmamali',
+                         u'bat files must not suppress the exit code of a subprocess',
                          u'%s: %d kez "%s"' % (os.path.basename(yol), n, ad), yol)
     if tarandi == 0:
-        rap.atla(M, u'M5-D3', u'maskelenmis cikis kodu taramasi',
-                 u'taranacak kod dosyasi bulunamadi', u'; '.join(kay.kod_klasorleri))
+        rap.atla(M, u'M5-D3', u'the masked exit code scan',
+                 u'no code file to scan was found', u'; '.join(kay.kod_klasorleri))
     else:
         rap.olcum[u'M5 D3 taranan kod dosyasi'] = u'%d' % tarandi
 
@@ -2437,8 +2410,8 @@ def modul_5_desenler(kay, rap):
     kn_klasorleri = [d for d in glob.glob(os.path.join(kay.kok, u'*', u'kontrol'))
                      if os.path.isdir(d)]
     if not kn_klasorleri:
-        rap.atla(M, u'M5-D4', u'bayat kontrol noktasi taramasi',
-                 u'hicbir */kontrol klasoru bulunamadi', kay.kok)
+        rap.atla(M, u'M5-D4', u'the stale checkpoint scan',
+                 u'not one */kontrol directory was found', kay.kok)
     else:
         # The consensus index and the panel definition are taken as input: if the
         # checkpoint is OLDER than either, the result of that run is stale.
@@ -2457,12 +2430,10 @@ def modul_5_desenler(kay, rap):
             if eski:
                 bayat += len(eski)
                 rap.ekle(M, u'M5-D4-BAYAT-KN', CIDDI,
-                         u'kontrol noktalari girdilerinden (panel/uyelik/konsensus) '
-                         u'YENI olmali',
-                         u'%s: %d/%d kontrol noktasi girdilerden eski'
+                         u'the checkpoints must be NEWER than their inputs (panel, membership, consensus)',
+                         u'%s: %d of %d checkpoints are older than their inputs'
                          % (os.path.relpath(d, kay.kok), len(eski), len(dosyalar)), d,
-                         u'Bayat kontrol noktasi, degismis girdiyle eski sonucu '
-                         u'yeniden kullandirir.')
+                         u'A stale checkpoint makes an old result be reused with changed input.')
         rap.olcum[u'M5 D4 kontrol noktasi'] = u'%d dosya, %d bayat' % (toplam, bayat)
 
     # ---- PATTERN 5: MISTAKING A CAP VALUE FOR A COUNT -----------------
@@ -2474,8 +2445,8 @@ def modul_5_desenler(kay, rap):
     SAYIM_DESENI = re.compile(
         r'(sayi|sayisi|adet|urun$|_urun|hedef_disi|klad_disi|kayit|hit|isabet)', re.I)
     if siparis is None:
-        rap.atla(M, u'M5-D5', u'tavan degeri taramasi',
-                 u'NIHAI_SIPARIS okunmadi: dosya yok ya da GECERSIZ isaretli',
+        rap.atla(M, u'M5-D5', u'the ceiling value scan',
+                 u'NIHAI_SIPARIS was not read: there is no such file, or it is marked GECERSIZ',
                  kay.nihai_siparis)
     else:
         bakilan = 0
@@ -2494,15 +2465,14 @@ def modul_5_desenler(kay, rap):
                 bakilan += 1
                 rap.ekle(M, u'M5-D5-TAVAN',
                          BILGI if zaten_biliniyor else UYARI,
-                         u'raporlanan SAYIM bir arac tavaniyla birebir ayni olmamali',
+                         u'a COUNT that is reported must not be exactly equal to a tool\'s ceiling',
                          u'%s: %s = %d%s' % (
                              r.get(u'hedef'), k, int(n),
-                             u' (satir bunu zaten "tavan" olarak isaretlemis)'
+                             u' (the row has already marked this as a "ceiling")'
                              if zaten_biliniyor else
-                             u' - tavan degeri, satirda tavan oldugu SOYLENMEMIS'),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
-                         u'Tavan degeri "bulunan sayi" degil "kesilen sayi"dir; '
-                         u'gercek sayi daha buyuktur.')
+                             u' - a ceiling value, and the row DOES NOT SAY that it is a ceiling'),
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
+                         u'A ceiling value is not "the number found" but "the number it was cut at"; the real number is larger.')
         rap.olcum[u'M5 D5 tavana esit sayim'] = u'%d' % bakilan
 
     # ---- PATTERN 6: A TAUTOLOGICAL MEASUREMENT -----------------------
@@ -2514,11 +2484,10 @@ def modul_5_desenler(kay, rap):
             kanit = (r.get(u'GEREKCE') or u'') + u' ' + (r.get(u'hukmu_veren_katman') or u'')
             if os.path.basename(kay.nihai_siparis) in kanit:
                 rap.ekle(M, u'M5-D6-TOTOLOJI', CIDDI,
-                         u'bir hukmun kaniti, hukmun yazildigi dosyadan BASKA bir '
-                         u'olcum dosyasi olmali',
-                         u'%s: kanit olarak kendi dosyasi (%s) gosteriliyor'
+                         u'the evidence for a verdict must be a measurement file OTHER than the file the verdict is written in',
+                         u'%s: its own file (%s) is shown as the evidence'
                          % (r.get(u'hedef'), os.path.basename(kay.nihai_siparis)),
-                         u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')))
+                         u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')))
 
     # ---- PATTERN 7: TAKING TWO LAYERS THAT SHARE AN ENGINE AS INDEPENDENT EVIDENCE
     # If two layers use the same alignment core they ARE NOT TWO INDEPENDENT PIECES OF
@@ -2542,13 +2511,12 @@ def modul_5_desenler(kay, rap):
                     u'in siliko': u'motor', u'uyelik': u'uyelik_denetimi'}
     DIS_ARAC = (u'mfeprimer', u'mfe', u'ncbi', u'blast', u'kraken', u'bracken')
     if siparis is None:
-        rap.atla(M, u'M5-D7', u'katman bagimsizligi taramasi',
-                 u'NIHAI_SIPARIS okunmadi: dosya yok ya da GECERSIZ isaretli',
+        rap.atla(M, u'M5-D7', u'the layer independence scan',
+                 u'NIHAI_SIPARIS was not read: there is no such file, or it is marked GECERSIZ',
                  kay.nihai_siparis)
     elif not ici_motor:
-        rap.atla(M, u'M5-D7', u'katman bagimsizligi taramasi',
-                 u'engine_gateway.py\'yi ice aktaran betik bulunamadi - bagimlilik '
-                 u'haritasi cikarilamadi', u'; '.join(kay.kod_klasorleri))
+        rap.atla(M, u'M5-D7', u'the layer independence scan',
+                 u'no script importing engine_gateway.py was found, so the dependency map could not be drawn', u'; '.join(kay.kod_klasorleri))
     else:
         rap.olcum[u'M5 D7 engine_gateway.py kullanan betik'] = u'%d' % len(ici_motor)
         for r in siparis:
@@ -2574,7 +2542,7 @@ def modul_5_desenler(kay, rap):
                              u'%s: hukmu veren katmanlarin %d tanesi ayni cekirdegi '
                              u'(%s.py) kullaniyor - "%s"'
                              % (r.get(u'hedef'), n, betik, katman[:140]),
-                             u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')),
+                             u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
                              u'Ayni motorun iki ciktisi tek kanittir; ortak hatasi '
                              u'iki kez oy verir.')
 
@@ -2584,7 +2552,7 @@ def modul_5_desenler(kay, rap):
     # degenerate base as an N and silently discarded it.
     DEJ = set(u'RYSWKMBDHVN')
     if ciftler is None:
-        rap.atla(M, u'M5-D8', u'dejenere baz kacagi taramasi', u'ciftler.tsv yok',
+        rap.atla(M, u'M5-D8', u'the degenerate base leak scan', u'there is no ciftler.tsv',
                  kay.ciftler)
     else:
         dej_hedef = []
@@ -2604,20 +2572,17 @@ def modul_5_desenler(kay, rap):
                               if k != '_satir')
             if not re.search(r'dejenere|degenerate|IUPAC|acilim|expand', butun, re.I):
                 rap.ekle(M, u'M5-D8-DEJENERE', CIDDI,
-                         u'dejenere baz tasiyan bir oligonun degerlendirmesi, '
-                         u'dejenere bazlarin nasil islendigini belirtmeli',
-                         u'%s / %s: %s (dejenere baz: %s) - karar satirinda dejenere '
-                         u'baz islemesine dair ifade yok'
+                         u'the assessment of an oligo carrying a degenerate base must say how the degenerate bases were handled',
+                         u'%s / %s: %s (degenerate base: %s), the decision row says nothing about how degenerate bases were handled'
                          % (h, alan, s, u', '.join(bazlar)),
-                         u'%s (satir %s)' % (kay.ciftler, sat),
-                         u'Dejenere bazi N sayan bir arac bu oligoyu sessizce eler '
-                         u've kapsam oldugundan dusuk cikar.')
+                         u'%s (row %s)' % (kay.ciftler, sat),
+                         u'A tool counting a degenerate base as N eliminates this oligo silently and the coverage comes out lower than it is.')
 
     # ---- DESEN 9: YON HATASI -----------------------------------------
     ind = tsv_oku(kay.konsensus_indeks, yorum=None)
     if ind is None:
-        rap.atla(M, u'M5-D9', u'yon hatasi taramasi',
-                 u'konsensus_kanonik/INDEKS.tsv yok', kay.konsensus_indeks)
+        rap.atla(M, u'M5-D9', u'the orientation error scan',
+                 u'there is no konsensus_kanonik/INDEKS.tsv', kay.konsensus_indeks)
     else:
         yon_yok = [r for r in ind if not (r.get(u'eski_yon') or u'').strip()]
         cevrilen = [r for r in ind if (r.get(u'cevrildi') or u'').strip().lower()
@@ -2626,12 +2591,12 @@ def modul_5_desenler(kay, rap):
             len(ind), len(cevrilen), len(yon_yok))
         if yon_yok:
             rap.ekle(M, u'M5-D9-YON-BILGISI-YOK', CIDDI,
-                     u'kanonik indeksteki her kutunun yon bilgisi kayitli olmali',
-                     u'%d kutuda eski_yon bos: %s'
+                     u'the orientation of every bin in the canonical index must be recorded',
+                     u'eski_yon is empty in %d bins: %s'
                      % (len(yon_yok), u', '.join(r.get(u'kutu') or u'?'
                                                  for r in yon_yok[:8])),
                      kay.konsensus_indeks,
-                     u'Ters yonlu bir konsensuste in siliko PCR SESSIZCE 0 urun verir.')
+                     u'On a reversed consensus, in-silico PCR SILENTLY gives 0 products.')
         # Still reading the non-canonical, mixed orientation directory is a risk.
         #
         # THE B FIX (2026-08-21): this check used to do a plain text search over THE WHOLE
@@ -2682,14 +2647,14 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
 
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama_m6')
     if K is None:
-        rap.atla(M, u'M6-VTB-LISTESI', u'VTB listesi identity_verification.py\'den okunmali',
+        rap.atla(M, u'M6-VTB-LISTESI', u'the database list must be read from identity_verification.py',
                  hata, kay.kimlik_dogrulama)
         return
     T, _h = modul_yukle(kay.tum_kutu, 'tum_kutu_m6')
     beklenen_kayit = getattr(T, 'BEKLENEN_KAYIT', {}) if T else {}
 
     if not os.path.isdir(kay.refdb):
-        rap.atla(M, u'M6-REFDB', u'REFERANS_DB klasoru bulunmali', u'klasor yok',
+        rap.atla(M, u'M6-REFDB', u'the REFERANS_DB directory must be present', u'there is no such directory',
                  kay.refdb)
         return
 
@@ -2702,13 +2667,13 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
         yol = os.path.join(kay.refdb, dosya)
         if not os.path.exists(yol):
             rap.ekle(M, u'M6-FASTA-YOK', KRITIK,
-                     u'%s veritabani dosyasi bulunmali' % etiket,
+                     u'the %s database file must be present' % etiket,
                      u'%s yok' % dosya, kay.refdb,
-                     u'Bu kaynak hicbir kimlik hukmune oy veremez.')
+                     u'This source cannot vote on any identity verdict.')
             continue
         if os.path.getsize(yol) == 0:
             rap.ekle(M, u'M6-FASTA-BOS', KRITIK,
-                     u'%s veritabani dosyasi bos olmamali' % etiket,
+                     u'the %s database file must not be empty' % etiket,
                      u'%s: 0 bayt' % dosya, yol)
             continue
 
@@ -2717,20 +2682,18 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
         icerik = metin_oku(log)
         if icerik is None:
             rap.ekle(M, u'M6-INDEKS-GUNLUK-YOK', CIDDI,
-                     u'%s icin indeks kurulum gunlugu bulunmali' % etiket,
-                     u'%s.log yok - indeksin saglikli kuruldugu DOGRULANAMIYOR'
+                     u'an index build log must be present for %s' % etiket,
+                     u'there is no %s.log, so a healthy index build CANNOT BE CONFIRMED'
                      % dosya, kay.refdb,
-                     u'Bu veritabani icin k-mer sayisi denetlenemedi.')
+                     u'The k-mer count could not be audited for this database.')
         else:
             m = re.findall(r'kvalue=(\d+),\s*kmer_count=(\d+)', icerik)
             if not m:
                 rap.ekle(M, u'M6-KMER-SATIRI-YOK', CIDDI,
-                         u'%s gunlugunde "kvalue=..., kmer_count=..." satiri olmali'
+                         u'the %s log must hold a "kvalue=..., kmer_count=..." line'
                          % etiket,
-                         u'gunlukte k-mer satiri yok (indeks eski/farkli bicimde '
-                         u'kurulmus olabilir)', log,
-                         u'k-mer sayisi dogrulanamadi; SILVA vakasindaki sessiz '
-                         u'sifir bu satirla yakalanmisti.')
+                         u'there is no k-mer line in the log (the index may have been built by an old version, or in a different format)', log,
+                         u'The k-mer count could not be confirmed; the silent zero in the SILVA case was caught by this very line.')
             else:
                 kv, kc = int(m[-1][0]), int(m[-1][1])
                 bekl = 4 ** kv
@@ -2748,12 +2711,9 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
         var = [i for i in indeksler if os.path.exists(i)]
         if not var:
             rap.ekle(M, u'M6-INDEKS-YOK', CIDDI,
-                     u'%s icin k-mer indeksi (.primerqc.bin) bulunmali' % etiket,
-                     u'indeks dosyasi yok - bu veritabani yalniz dogrudan FASTA '
-                     u'akisiyla taranabilir, indekse dayanan katmanlar bu kaynakta '
-                     u'SIFIR doner', kay.refdb,
-                     u'SILVA LSU kumelerinde bu durum var; indekse dayanan bir '
-                     u'olcum bu kaynagi sessizce atlar.')
+                     u'a k-mer index (.primerqc.bin) must be present for %s' % etiket,
+                     u'there is no index file, so this database can only be scanned by streaming the FASTA directly, and the layers that rely on an index return ZERO on this source', kay.refdb,
+                     u'The SILVA LSU sets are in that state; a measurement relying on the index skips this source silently.')
         else:
             for i in var:
                 if os.path.getmtime(i) < os.path.getmtime(yol):
@@ -2777,12 +2737,12 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
                 gercek_n = None
         if bekl_n and gercek_n is not None and gercek_n != bekl_n:
             rap.ekle(M, u'M6-KAYIT-SAYISI', CIDDI,
-                     u'%s icinde %d kayit olmali' % (etiket, bekl_n),
-                     u'.fai indeksi %d kayit gosteriyor' % gercek_n, fai)
+                     u'%s must hold %d records' % (etiket, bekl_n),
+                     u'the .fai index shows %d records' % gercek_n, fai)
         elif bekl_n and gercek_n is None:
             rap.ekle(M, u'M6-KAYIT-SAYISI-YOK', UYARI,
-                     u'%s icin kayit sayisi dogrulanabilmeli' % etiket,
-                     u'.fai yok, kayit sayisi DOGRULANMADI', kay.refdb)
+                     u'the record count must be confirmable for %s' % etiket,
+                     u'there is no .fai, so the record count WAS NOT CONFIRMED', kay.refdb)
 
         # --- 4) CANLI BAGLANMA SINAMASI: bilinen bir primer sifirdan buyuk
         #        baglanma donduruyor mu? "Her zaman gecen" bir kontrol olmasin
@@ -2790,9 +2750,8 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
         if baglanma_sinamasi:
             sonuc = _baglanma_sinamasi(K, yol, lokus)
             if sonuc is None:
-                rap.atla(M, u'M6-BAGLANMA', u'%s icinde bilinen bir korunmus dizi '
-                         u'bulunmali' % etiket,
-                         u'sinama kosulamadi (dosya okunamadi)', yol)
+                rap.atla(M, u'M6-BAGLANMA', u'a known conserved sequence must be present inside %s' % etiket,
+                         u'the test could not be run (the file could not be read)', yol)
             elif sonuc == 0:
                 rap.ekle(M, u'M6-BAGLANMA-SIFIR', KRITIK,
                          u'%s icinde bilinen korunmus dizi(ler) icin en az bir '
@@ -2807,8 +2766,8 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
     rap.olcum[u'M6 veritabani'] = u'%d kaynak denetlendi, %d canli baglanma sinavini gecti' % (
         denetlenen, saglikli)
     if denetlenen == 0:
-        rap.atla(M, u'M6-BOS', u'en az bir veritabani denetlenmeli',
-                 u'VTB listesinde kullanilan kaynak yok', kay.kimlik_dogrulama)
+        rap.atla(M, u'M6-BOS', u'at least one database must be audited',
+                 u'none of the sources in the database list is present', kay.kimlik_dogrulama)
 
 
 # Known conserved regions. These are NOT our DESIGN primers; they are widely
@@ -2931,21 +2890,21 @@ def modul_7_kapsam(kay, rap):
 
     toplanti = metin_oku(kay.toplanti)
     if toplanti is None:
-        rap.atla(M, u'M7-TOPLANTI-YOK', u'TOPLANTI_KARARLARI_SON_DURUM.md okunabilmeli',
-                 u'dosya yok', kay.toplanti)
+        rap.atla(M, u'M7-TOPLANTI-YOK', u'TOPLANTI_KARARLARI_SON_DURUM.md must be readable',
+                 u'there is no such file', kay.toplanti)
         return
     istekler = _toplanti_istekleri(toplanti)
     if not istekler:
         rap.atla(M, u'M7-ISTEK-YOK',
-                 u'toplanti kararlarindan istenen hedefler cikarilabilmeli',
-                 u'markdown icinde tablo satiri bulunamadi', kay.toplanti)
+                 u'the requested targets must be extractable from the meeting decisions',
+                 u'no table row was found inside the markdown', kay.toplanti)
         return
 
     ciftler = tsv_oku(kay.ciftler)
     panel_hedefleri = set(_ad_norm(r.get(u'hedef') or u'') for r in (ciftler or []))
     if ciftler is None:
-        rap.atla(M, u'M7-PANEL-YOK', u'panel cift listesi okunabilmeli',
-                 u'ciftler.tsv yok', kay.ciftler)
+        rap.atla(M, u'M7-PANEL-YOK', u'the panel pair list must be readable',
+                 u'there is no ciftler.tsv', kay.ciftler)
 
     # The link between the panel targets and the meeting decisions is held in the KARAR
     # dictionary inside target_taxon_mapping.py. The file IS NOT EXECUTED, it is parsed
@@ -2954,8 +2913,8 @@ def modul_7_kapsam(kay, rap):
     kaynak = metin_oku(kay.takson_esleme)
     if kaynak is None:
         rap.atla(M, u'M7-ESLEME-YOK',
-                 u'target_taxon_mapping.py icindeki KARAR sozlugu okunabilmeli',
-                 u'dosya yok', kay.takson_esleme)
+                 u'the KARAR dictionary inside target_taxon_mapping.py must be readable',
+                 u'there is no such file', kay.takson_esleme)
     else:
         try:
             agac = ast.parse(kaynak)
@@ -2993,12 +2952,10 @@ def modul_7_kapsam(kay, rap):
         else:
             kapatilmamis += 1
             rap.ekle(M, u'M7-KATEGORISIZ-BOSLUK', CIDDI,
-                     u'karsilanmayan her hedefin sebebi dort kategoriden birine '
-                     u'girmeli (organizma yok / ayrim yok / lokus yok / uye kumesi ayrisik)',
-                     u'"%s" (%s): "%s" - sebep hicbir kategoriye girmiyor'
+                     u'the reason for every unmet target must fall into one of four categories (no organism / no discrimination / no locus / a split member set)',
+                     u'"%s" (%s): "%s", the reason falls into no category'
                      % (istek, bolum, durum.strip()[:200]), kay.toplanti,
-                     u'Kategorisiz bir bosluk, raporda "neden olmadi" sorusuna '
-                     u'cevap veremez.')
+                     u'A gap with no category cannot answer the question "why was it not there" in the report.')
 
     # --- panelde olup toplanti kararlarina baglanmayan hedefler
     if ciftler is not None and karar_hedefleri:
@@ -3007,14 +2964,14 @@ def modul_7_kapsam(kay, rap):
             asil = next((r.get(u'hedef') for r in ciftler
                          if _ad_norm(r.get(u'hedef') or u'') == h), h)
             rap.ekle(M, u'M7-PANELDE-FAZLA', UYARI,
-                     u'paneldeki her hedef bir toplanti kararina baglanabilmeli',
-                     u'"%s" hedefi target_taxon_mapping.py KARAR tablosunda yok'
+                     u'every target in the panel must be tied to a meeting decision',
+                     u'the target "%s" is not in the KARAR table of target_taxon_mapping.py'
                      % asil, kay.takson_esleme,
-                     u'Rapora "bu neden panelde" diye sorulursa dayanak gosterilemez.')
+                     u'If the report is asked "why is this in the panel" there is no ground to show.')
     elif ciftler is not None and not karar_hedefleri:
         rap.atla(M, u'M7-BAGLANTI',
-                 u'paneldeki hedefler toplanti kararlarina baglanmali',
-                 u'KARAR tablosu okunamadi, baglanti denetlenemedi',
+                 u'the targets in the panel must be tied to the meeting decisions',
+                 u'the KARAR table could not be read, so the link could not be audited',
                  kay.takson_esleme)
 
     rap.olcum[u'M7 kapsam'] = (
@@ -3543,7 +3500,7 @@ def main():
             iz = traceback.format_exc()
             yaz(u'MODUL COKTU: %s: %s' % (type(e).__name__, e))
             rap.modul_durumu[ad] = dict(durum=u'COKTU')
-            rap.atla(ad, u'MODUL-COKTU', u'modul hatasiz kosmali',
+            rap.atla(ad, u'MODUL-COKTU', u'the module must run without an error',
                      u'%s: %s | %s' % (type(e).__name__, e,
                                        iz.strip().splitlines()[-1]), u'-')
         sureler[ad] = time.time() - t0
@@ -3556,8 +3513,8 @@ def main():
     for no in MODUL_ADLARI:
         if MODUL_ADLARI[no] not in kosulan:
             rap.atla(MODUL_ADLARI[no], u'MODUL-KOSULMADI',
-                     u'butun moduller kosmali',
-                     u'--moduller secimiyle disarida birakildi', u'-')
+                     u'every module must run',
+                     u'it was left out by the --moduller selection', u'-')
 
     md, tsv, kimlik = raporla(kay, rap, cikti, kosulan, sureler)
     kod = rap.cikis_kodu()
