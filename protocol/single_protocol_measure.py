@@ -9,51 +9,36 @@ nothing in the output revealed it.
 Reports dCq (discrimination power) per pair, and the panel threshold each pair
 must clear.
 
---- ozgun aciklama ---
-TEK PROTOKOL - panelin tamamini AYNI kural ve AYNI derinlikle olcer,
-tek bir siparis listesi uretir.
-
-NEDEN VAR
----------
-Paneldeki ayrim katlari bugune kadar FARKLI kosullarda uretildi: kimi satir
-mm<=1, kimi mm<=3 olcutuyle; kimi 300 okuma, kimi 46 000 okuma derinliginde;
-uyelik kimi satirda Kraken etiketinden, kimi satirda olculen kimlikten geldi.
-Wilson araliginin genisligi derinlige bagli oldugu icin AYNI gercek ozgulluk
-sig havuzda DAHA DUSUK bir "x" degeri verir. Yani o sutundaki sayilar
-birbiriyle karsilastirilamaz ve 10x esigi satirdan satira ayni seyi olcmez.
-
-Bu betik o karisikligi bitirir: TEK protokol, satir bazinda ISTISNA YOK.
-
-Panel dosyalarina YAZMAZ. Yalniz okur, TEK_PROTOKOL_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# single_protocol_measure.py, paneldeki BUTUN ciftleri tek kural ve tek derinlikle
-# yeniden olcer, tek bir siparis listesi uretir. Satir bazinda istisna yoktur.
+# single_protocol_measure.py re-measures EVERY pair in the panel under one rule and
+# at one depth, and produces a single order list. There is no per-row exception.
 #
-# GİRDİ  : primer_final/ altindaki panel tablosu (screening.targets.
-#          panel_oku ile), protocol/ek_ciftler.tsv (panelde olmayan ciftler),
-#          uyelik_yeniden_turetme_uyelik_*.tsv (U asamasinin OLCULEN uyeligi),
-#          "fastq files" altindaki ham okumalar.
-# ÇIKTI  : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (tam tablo),
-#          TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv (siparis karari),
-#          TEK_PROTOKOL_SONUC/kutu_bazli_ham_sayilar.tsv (k ve n; her verdikt
-#          bu iki sutundan yeniden hesaplanabilir),
+# INPUT  : the panel table under primer_final/ (through
+#          screening.targets.panel_oku), protocol/ek_ciftler.tsv (pairs that are
+#          not in the panel), uyelik_yeniden_turetme_uyelik_*.tsv (stage U's
+#          MEASURED membership), the raw reads under "fastq files".
+# OUTPUT : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the full table),
+#          TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv (the order decision),
+#          TEK_PROTOKOL_SONUC/kutu_bazli_ham_sayilar.tsv (k and n; every verdict
+#          can be recomputed from those two columns),
 #          TEK_PROTOKOL_SONUC/PROTOKOL_VE_RAPOR.md, kontrol/ .
-# ÇAĞRAN : verification/full_chain.py -> P tusu
-#          (bat icinde: wsl -e python3 "protocol/single_protocol_measure.py" --kok .)
+# CALLED BY: verification/full_chain.py -> key P
+#          (python3 protocol/single_protocol_measure.py --root .)
 #
-# NEDEN VAR: eski panelde satirlar farkli kosullarda olculmustu - kimi mm<=1,
-# kimi mm<=3; kimi 300 okuma, kimi 46 000 okuma derinliginde. Wilson araliginin
-# genisligi okuma sayisina bagli oldugu icin AYNI gercek ozgulluk sig havuzda
-# DAHA DUSUK bir "x" verir. O sutundaki sayilar birbiriyle karsilastirilamazdi ve
-# 10x esigi satirdan satira ayni seyi olcmuyordu. Bu betik o karisikligi bitirir.
+# WHY IT EXISTS: in the old panel the rows had been measured under different
+# conditions, some at mm<=1 and some at mm<=3, some at a depth of 300 reads and
+# some at 46 000. Because the width of the Wilson interval depends on the read
+# count, THE SAME real specificity gives a LOWER "x" in a shallow pool. The numbers
+# in that column could not be compared with one another and the 10x threshold was
+# not measuring the same thing from row to row. This script ends that confusion.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, argparse, math
 
 VERSIYON = '1.0 (2026-08-03)'
 
-# --- ESIK TEK KAYNAKTAN: screening/config.py -> ESIK_DCQ ---
+# --- THE THRESHOLD FROM ONE SOURCE: screening/config.py -> ESIK_DCQ ---
 def _esik_yukle():
     import os as _o, sys as _s
     _kok = _o.path.dirname(_o.path.dirname(_o.path.abspath(__file__)))
@@ -72,26 +57,30 @@ def _sinif_yukle():
 _S = _sinif_yukle()
 
 
-# --------------------------------------------------------------- protokol
-# --- ESIKLERIN KOKENI ------------------------------------------------
-# 2026-08-06: esik dCq cinsinden sabitlendi. dCq >= 3 -> 2**3 = 8,00 kat.
-# Bu ARTIK BIR ARAC ESIGI DEGILDIR: dCq >= 3 ozgulluk/NTC gecme olcutu olarak
-# literaturde kabul gormus tabandir. Onceki 10x gercekten arac esigiydi (ilk kez
-# bir kod sabiti olarak ortaya cikmisti) ve dCq 3,32'ye denk geliyordu.
-# Tek kaynak: screening/config.py -> ESIK_DCQ.
-# Toplantinin kendi olcutu hala FARKLI bir buyukluk ve AYRI sutunda raporlanir:
-#   CALISMA_KAYDI §1.7 - "hosgoru 1-2 CAPRAZ TUR; olcu capraz tur SAYISIDIR,
-#                         o turlerde olusan urun sayisi degil"
-#   CALISMA_KAYDI §1.5 - "rakiplerin hicbirinde urun olusmamali" (sifir hosgoru)
-# Ikisi 10x'i ne kapsar ne de onun tarafindan kapsanir. Bu yuzden ikisi de
-# AYRI SUTUN olarak raporlanir ve hangisinin kim tarafindan konuldugu yazilir.
+# --------------------------------------------------------------- protocol
+# --- WHERE THE THRESHOLDS COME FROM ----------------------------------
+# 2026-08-06: the threshold was fixed in terms of dCq. dCq >= 3 -> 2**3 = 8.00 fold.
+# THAT IS NO LONGER A TOOL THRESHOLD: dCq >= 3 is the accepted floor in the
+# literature for a specificity or NTC passing criterion. The earlier 10x really was
+# a tool threshold (it first appeared as a code constant) and corresponded to a dCq
+# of 3.32.
+# The single source: screening/config.py -> ESIK_DCQ.
+# The meeting's own criterion is still A DIFFERENT quantity and is reported in a
+# SEPARATE column:
+#   CALISMA_KAYDI section 1.7 - "a tolerance of 1-2 CROSS REACTING SPECIES; the
+#                         measure is the NUMBER OF cross reacting species, not the
+#                         number of products formed in them"
+#   CALISMA_KAYDI section 1.5 - "no product may form in any competitor" (zero tolerance)
+# Neither contains the other, nor is contained by 10x. So both are reported as
+# SEPARATE COLUMNS, with a note of who set which.
 ESIK_KOKENI = _C.ESIK_KOKENI
 ESIK_VERIM_NOTU = _C.ESIK_VERIM_NOTU
-# MIQE/laboratuvar dili: ayrim kati -> dCq. %100 verimde her dongu 2 kat, yani
-# dCq = log2(kat). 10x = 3,32 dongu. Literaturde ozgulluk/NTC gecme olcutu
-# dCq >= 3 (NEB yuksek verimli qPCR veri analizi) - bizim 10x esigimiz onun
-# hemen ustune dusuyor. Verim %100 varsayilir; gercek verim olculunce
-# dCq = log(kat)/log(1+E) ile duzeltilmelidir.
+# The MIQE and laboratory language: the discrimination ratio -> dCq. At 100%
+# efficiency every cycle doubles, so dCq = log2(fold). 10x = 3.32 cycles. In the
+# literature the specificity or NTC passing criterion is dCq >= 3 (NEB, high
+# efficiency qPCR data analysis), and our 10x threshold falls just above it.
+# Efficiency is assumed to be 100%; once the real efficiency is measured this should
+# be corrected with dCq = log(fold)/log(1+E).
 def dcq(kat, verim=1.0):
     import math
     try:
@@ -102,7 +91,7 @@ def dcq(kat, verim=1.0):
         return None
     return round(math.log(k) / math.log(1.0 + verim), 2)
 
-TOPLANTI_CAPRAZ_TABAN = 10.0   # bir rakip kutu "capraz" sayilmak icin en az %10 urun
+TOPLANTI_CAPRAZ_TABAN = 10.0   # a competitor bin counts as "cross reacting" at >=10% product
 TOPLANTI_CAPRAZ_HOSGORU = 2    # CALISMA_KAYDI §1.7: 1-2 capraz tur hosgoru
 
 PROTOKOL = dict(
@@ -178,9 +167,9 @@ def vir(x, basamak=2):
     return ('%.*f' % (basamak, x)).replace('.', ',')
 
 
-# --------------------------------------------------------------- girdiler
-# Proje kokunu dogrular. screening klasoru yoksa olcum modulleri ithal
-# edilemez; erken ve acik hata vermek, yarim kosudan iyidir.
+# --------------------------------------------------------------- inputs
+# It verifies the project root. Without the screening directory the measurement
+# modules cannot be imported; failing early and clearly beats a half finished run.
 def kok_bul(arg):
     kok = os.path.abspath(arg or '.')
     if not os.path.isdir(os.path.join(kok, 'screening')):
@@ -190,29 +179,30 @@ def kok_bul(arg):
 
 
 def uyelik_dosyasi(kok):
-    """En yeni uyelik dosyasini bulur - ADA gore degil, ZAMANA gore.
+    """Finds the newest membership file - BY TIME, not BY NAME.
 
-    2026-08-10 duzeltmesi. Eski kod iki globu birlestirip a[-1] aliyordu; bu
-    "en yeni" DEMEK DEGILDI. Siralama alfabetikti ve engine_SONUC
-    girdileri her zaman kokteki girdilerden SONRA geliyordu. Yani alt
-    klasorde 1 Agustos tarihli bir dosya olsa, kokteki 3 Agustos tarihliyi
-    yenerdi. Su an tek aday var, o yuzden davranis degismiyor; ama bir
-    sonraki kosu ikinci bir dosya uretirse sessizce yanlis uyelik secilirdi.
-    Uyelik yanlis olursa ayrim kati oldugundan kucuk ya da buyuk cikar
-    (olculmus ornek: ayni cift 0,71x ile 8,47x arasinda oynadi).
+        The 2026-08-10 fix. The old code concatenated two globs and took a[-1]; that
+        DID NOT MEAN "the newest". The ordering was alphabetical and engine_SONUC
+        entries always came AFTER the ones in the root. So a file dated 1 August in a
+        subdirectory would beat one dated 3 August in the root. There is only one
+        candidate at the moment, so the behaviour does not change; but if the next run
+        produced a second file, the wrong membership would be picked silently. A wrong
+        membership makes the discrimination ratio come out smaller or larger than it is
+        (a measured example: the same pair moved between 0.71x and 8.47x).
+
     """
     import glob
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
     a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
     if not a:
         return None
-    # once zaman, esitlikte ad - iki olcut de ACIK yazili
+    # time first, then the name on a tie - both criteria written OPENLY
     a.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))
     return a[-1]
 
 
 def uyelik_oku(yol):
-    """hedef -> dict(uye=[...], karisik=[...], rakip=[...], sinif=...)"""
+    """target -> dict(uye=[...], karisik=[...], rakip=[...], sinif=...)"""
     out = {}
     with open(yol, encoding='utf-8') as fh:
         for r in csv.DictReader(fh, delimiter='\t'):
@@ -226,8 +216,10 @@ def uyelik_oku(yol):
 
 
 def ek_ciftler_oku(kok):
-    """protocol/ek_ciftler.tsv - panel TSV'sinde OLMAYAN ciftler.
-    Kullanici elle duzenleyebilir. Sutunlar: hedef, sinif, F, R, urun_bp, not"""
+    """protocol/ek_ciftler.tsv - pairs that are NOT IN the panel TSV.
+        The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp, not
+
+    """
     yol = os.path.join(kok, 'protocol', 'ek_ciftler.tsv')
     if not os.path.exists(yol):
         return []
@@ -247,33 +239,38 @@ def ek_ciftler_oku(kok):
 
 
 def kutu_adi_normalize(kutu):
-    """A1_1_2223 ve A1-1_2223 ayni kutudur (A1-1 orneginin dosyalari alt cizgili).
-    Sinif-ornek ayraci daima TIRE olacak sekilde duzeltir."""
+    """A1_1_2223 and A1-1_2223 are the same bin (the files of sample A1-1 use an
+        underscore). This normalises the class and sample separator always to a HYPHEN.
+
+    """
     if '_' not in kutu:
         return kutu
     bas, _, son = kutu.rpartition('_')          # son = taxid
     return bas.replace('_', '-') + '_' + son
 
 
-# --------------------------------------------------------------- olcum
-# ---------------------------------------------------------------------------
-# ASIL OLCUM. Sira: ciftleri topla -> uyeligi coz -> okuma havuzlarini kur ->
-# her cifti HEM mm<=1 (asil, karar) HEM mm<=3 (yan, dayaniklilik) ile olc.
+# --------------------------------------------------------------- measurement
+# -------------------------------------------------------------------------
+# THE MAIN MEASUREMENT. The order: collect the pairs -> resolve the membership ->
+# build the read pools -> measure every pair BOTH at mm<=1 (primary, deciding) AND
+# at mm<=3 (secondary, robustness).
 #
-# UYELIK KRAKEN ETIKETINDEN GELMEZ, U asamasinin OLCULEN kimliginden gelir.
-# Yanlis etiketli bir kutu rakip hanesine yazilinca metrik hedefi hedefle
-# kiyaslar ve mukemmel bir primer bile 1'in altinda cikar (olculmus ornek:
-# 0,71x -> 8,47x, ayni primer, yalniz uyelik duzeltildi).
+# THE MEMBERSHIP DOES NOT COME FROM THE KRAKEN LABEL, it comes from stage U's
+# MEASURED identity. When a mislabelled bin is written into the competitor column,
+# the metric compares the target against the target and even a perfect primer comes
+# out below 1 (a measured example: 0.71x -> 8.47x, the same primer, only the
+# membership corrected).
 #
-# DERINLIK TAVANI SART: tavan konmazsa 46 000 okumalik kutu ile 300 okumalik
-# kutu ayni tabloda yan yana gelir ve derin kutunun ayrimi YAPAY olarak yuksek
-# cikar. Tavan butun satirlari ayni istatistiksel zemine oturtur.
+# A DEPTH CAP IS REQUIRED: without one, a bin of 46 000 reads and a bin of 300 reads
+# stand side by side in the same table and the deep bin's discrimination comes out
+# ARTIFICIALLY high. The cap puts every row on the same statistical ground.
 #
-# KONTROL NOKTASI MUHRU (_ayar): okuma tavani, karisik kutu kurali, betik surumu
-# ve UYELIK DOSYASININ ADI muhre dahildir. Uyelik tablosu tazelenince eski
-# olcumler sessizce yeniden kullanilmaz - bu betigin var olus sebebi tam olarak
-# "farkli kosulda uretilmis sayilarin yan yana durmasi" idi.
-# ---------------------------------------------------------------------------
+# THE CHECKPOINT SEAL (_ayar): the read cap, the mixed bin rule, the script version
+# and THE NAME OF THE MEMBERSHIP FILE are all part of the seal. When the membership
+# table is refreshed the old measurements are not silently reused; the reason this
+# script exists is precisely that "numbers produced under different conditions were
+# standing side by side".
+# -------------------------------------------------------------------------
 def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     sys.path.insert(0, kok)
     from screening import config as C, motor, numune as N, hedefler as H
@@ -307,12 +304,13 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                             urun_bp=d['urun_bp'], ta=d.get('ta', ''),
                             duzey=d.get('duzey', ''), kaynak='PANEL',
                             panel_ayrim=d.get('ayrim', ''), not_=''))
-    # EK ciftler panel TSV'sinde OLMAYANLAR icindir. Bir cift panele
-    # eklendiginde ek_ciftler.tsv'de de kalirsa AYNI HEDEF IKI KEZ olculur ve
-    # iki farkli sayi uretir. 2026-08-11'de tam bu oldu: Petriella_cinsi hem
-    # panelden (kendi uyeligiyle 0,88x) hem EK'ten (uyelik_hedefi
-    # Petriella_musispora oldugu icin 11,03x) geldi ve siparis listesinde iki
-    # satir olustu - biri "siparis edilebilir", oteki "esik alti".
+    # The EXTRA pairs are for pairs NOT IN the panel TSV. If a pair is added to the
+    # panel and also stays in ek_ciftler.tsv, THE SAME TARGET IS MEASURED TWICE and
+    # produces two different numbers. That is exactly what happened on 2026-08-11:
+    # Petriella_cinsi came both from the panel (0.88x with its own membership) and from
+    # the EXTRA list (11.03x, because its membership target was Petriella_musispora),
+    # and two rows appeared in the order list, one "orderable" and the other "below
+    # threshold".
     panel_adlari = {c['hedef'].strip() for c in ciftler}
     ek = ek_ciftler_oku(kok)
     for e in ek:
@@ -365,7 +363,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     for c in ciftler:
         u = uyelik.get(c['hedef'])
         if u is None:
-            # ek cift, uyelik satiri hedef adiyla eslesmiyorsa sinif genelini kullan
+            # an extra pair: if the membership row does not match the target name, use the class default
             u = uyelik.get(c.get('uyelik_hedefi', ''), None)
         if u is None:
             baglam[c['hedef']] = None
@@ -377,7 +375,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
             uye, kar_eklenen = uye + kar, []
         elif karisik_kural == 'rakip':
             rak = rak + kar
-        # 'disla' -> hicbir tarafa eklenmez
+        # 'disla' -> it is added to neither side
         if not rak:   # uyelik satirinda rakip bos ise sinifin geri kalani rakiptir
             uye_ad = {k['kutu'] for k in uye} | {k['kutu'] for k in kar}
             rak = [k for k in kut.values()
@@ -411,39 +409,40 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         % sure_metni(tahmin))
     yaz('')
 
-    # --- olcum ----------------------------------------------------------
+    # --- measurement -----------------------------------------------------
     def kp_yolu(ad):
         t = ''.join(ch if ch.isalnum() else '_' for ch in ad)
         return os.path.join(KONTROL, 'cift_%s.json' % t)
 
-    # O-10: uyelik kaynagi muhre DAHIL. Uyelik tablosu tazelenince eski
-    # kontrol noktalari sessizce yeniden kullanilmamali.
+    # O-10: the membership source IS PART of the seal. When the membership table is
+    # refreshed the old checkpoints must not be silently reused.
     #
-    # 2026-08-11 DUZELTME (uyelik ICERIK muhru). Muhurde uyelik dosyasinin
-    # yalniz ADI vardi. Dosya YERINDE duzeltilince ad degismiyor, muhur tutuyor
-    # ve olcum "onceki kosudan alindi" diye ESKI uyelikle geri geliyor. Bugun
-    # tam bu oldu: Mantar_universal (F2) uyeliginden dort protist kutu cikarildi,
-    # olcum yeniden kosuldu ve iki hedef de onbellekten dondu - degisiklik
-    # sayilara hic yansimadi. Dizi muhrunde 10 Agustos'ta duzeltilen hatanin
-    # aynisi, bu sefer uyelik tarafinda. Artik dosyanin ICERIGININ md5'i de
-    # muhurde: satiri degisen uyelik tablosu kontrol noktasini gecersiz kilar.
+    # THE 2026-08-11 FIX (the membership CONTENT seal). The seal held only the NAME of
+    # the membership file. When the file is corrected IN PLACE the name does not change,
+    # the seal matches, and the measurement comes back with the OLD membership as "taken
+    # from the previous run". That is exactly what happened: four protist bins were
+    # removed from the Mantar_universal (F2) membership, the measurement was re-run, and
+    # both targets came back from the cache; the change never reached the numbers. The
+    # same bug as the sequence seal fixed on 10 August, this time on the membership
+    # side. The md5 of the file's CONTENT is now in the seal too: a membership table
+    # with a changed row invalidates the checkpoint.
     import hashlib as _hl0
     with open(uy_yol, 'rb') as _fh0:          # okunamazsa PATLASIN: sessiz
         _uy_muhru = _hl0.md5(_fh0.read()).hexdigest()[:12]   # "okunamadi" muhru
-    # (once try/except vardi ve io modulu import edilmedigi icin muhur her
-    #  kosuda "okunamadi" cikiyordu - yani sabit. Sabit muhur, muhur degildir:
-    #  uyelik tablosu degisse de tutardi. Hatanin yutulmasi kontrolun kendisini
-    #  gorunmez bicimde ise yaramaz hale getiriyordu.)
+    # (there used to be a try/except here, and because the io module was not imported
+    #  the seal came out "could not be read" on every run, that is, constant. A constant
+    #  seal is not a seal: it would match even when the membership table changed.
+    #  Swallowing the error made the check itself invisibly useless.)
     AYAR = dict(okuma=okuma_tavani, karisik=karisik_kural, surum=VERSIYON,
                 uyelik=os.path.basename(uy_yol), uyelik_icerik=_uy_muhru)
 
-    # 2026-08-10 DUZELTME (dizi muhru). Muhurde primer DIZISI YOKTU. Bunun
-    # sonucu: bir ciftin ileri/geri dizisi degistirildiginde kontrol noktasi
-    # gecerli sayiliyor ve ESKI olcum "onceki kosudan alindi" diye geri
-    # veriliyordu. 10 Agustos'ta iki cift degistirildi ve iki ayri tam kosu
-    # (5 sa 29 dk + 2 sa 0 dk) eski dizileri olcup yeni sandi. Artik her
-    # ciftin muhrune kendi F+R dizisinin md5'i giriyor; dizi degisirse
-    # kontrol noktasi otomatik gecersiz olur.
+    # THE 2026-08-10 FIX (the sequence seal). The primer SEQUENCE WAS NOT in the seal.
+    # The consequence: when a pair's forward or reverse sequence was changed the
+    # checkpoint still counted as valid and the OLD measurement came back as "taken from
+    # the previous run". On 10 August two pairs were changed and two separate full runs
+    # (5 h 29 min plus 2 h 0 min) measured the old sequences and took them for the new
+    # ones. The md5 of each pair's own F+R sequence now goes into its seal; if the
+    # sequence changes the checkpoint invalidates itself.
     import hashlib as _hl
 
     def _ayar_of(c):
@@ -459,24 +458,24 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
         if os.path.exists(kp):
             try:
                 v = json.load(open(kp, encoding='utf-8'))
-                # O-10 sonrasi geriye donuk uyum: eski kontrol noktalarinda
-                # 'uyelik' anahtari yok. ORTAK anahtarlar tutuyorsa kabul edilir
-                # ama UYARI basilir - sessizce yeniden kullanilmaz.
+                # Backward compatibility after O-10: old checkpoints have no 'uyelik'
+                # key. If the SHARED keys match it is accepted, but a WARNING is printed;
+                # it is not silently reused.
                 _e = v.get('_ayar') or {}
                 _bek = _ayar_of(c)
-                # DIZI muhru esitse degil, VARSA ve FARKLIYSA kontrol noktasi
-                # kesin gecersizdir. Eski kontrol noktalarinda 'dizi' anahtari
-                # hic yoktur; o durumda da yeniden olculur, sessizce kabul YOK.
+                # The SEQUENCE seal invalidates the checkpoint not when it is equal but
+                # when it EXISTS and DIFFERS. Old checkpoints have no 'dizi' key at all;
+                # in that case it is re-measured too. There is NO silent acceptance.
                 if _e.get('dizi') != _bek['dizi']:
                     yaz(u'  %s: the checkpoint\'s SEQUENCE seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('dizi') or 'yok', _bek['dizi']))
                     raise ValueError('dizi muhru tutmadi')
-                # UYELIK ICERIK muhru de dizi muhru gibidir: yoksa ya da
-                # tutmuyorsa kontrol noktasi GECERSIZ. "Ortak anahtarlar tuttu"
-                # diye kabul edilemez - eksik olan anahtar, tam da uyelik
-                # tablosundaki degisikligi goren anahtardir. (2026-08-11: bu
-                # geriye donuk uyum yolu yuzunden protist duzeltmesi olcume
-                # yansimadi, 22 hedefin 22'si onbellekten dondu.)
+                # The MEMBERSHIP CONTENT seal works like the sequence seal: if it is
+                # absent or does not match, the checkpoint is INVALID. "The shared keys
+                # matched" is not a reason to accept it; the missing key is precisely the
+                # one that sees a change in the membership table. (2026-08-11: because of
+                # this backward compatibility path the protist fix never reached the
+                # measurement, and 22 of 22 targets came back from the cache.)
                 if _e.get('uyelik_icerik') != _bek['uyelik_icerik']:
                     yaz(u'  %s: the checkpoint\'s MEMBERSHIP seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('uyelik_icerik') or 'yok',
@@ -531,20 +530,21 @@ def _o(r, mm):
     return (r.get('olcum') or {}).get(str(mm)) or {}
 
 
-# ---------------------------------------------------------------------------
-# EVRENSEL HEDEFLERDE AYRIM KATI TANIMSIZDIR.
-# Ayrim kati = (uye alt siniri) / (rakip ust siniri). Bakteri_universal butun
-# bakterileri, Arke_universal butun arkeleri cogaltmak icin tasarlandi; bu
-# satirlarda "rakip" diye bir kume YOKTUR. Rakip kumesi bosa yaklastikca payda
-# sifira gider ve oran ya 0/0 olur ya da devasa bir sayi - nitekim eski panelde
-# ayni sutunda 0,00 ile 117 milyon yan yana duruyordu. O sayilar bir seyi
-# olcmuyor.
+# -------------------------------------------------------------------------
+# THE DISCRIMINATION RATIO IS UNDEFINED ON UNIVERSAL TARGETS.
+# The discrimination ratio = (the member lower bound) / (the competitor upper
+# bound). Bakteri_universal was designed to amplify all bacteria and Arke_universal
+# all archaea; on those rows there IS NO set called "competitors". As the competitor
+# set approaches empty the denominator goes to zero and the ratio is either 0/0 or a
+# huge number. Indeed, the old panel had 0.00 and 117 million standing side by side
+# in the same column. Those numbers measure nothing.
 #
-# Bu yuzden bu satirlar burada sayisal verdikt ALMAZ, OLCULEMEDI isaretlenir.
-# Dogru olcu KAPSAMA + ALAN DISI oranidir ve K asamasinda uygulanir. Bu, 10x
-# esigini DUSURMEK DEGILDIR: oranin paydasi tanimsiz oldugu icin o esik bu
-# satirlarda zaten uygulanamaz. Diger butun satirlarda 10x aynen durur.
-# ---------------------------------------------------------------------------
+# So these rows get NO numeric verdict here; they are marked OLCULEMEDI. The right
+# measure is COVERAGE plus the OUTSIDE THE DOMAIN proportion, and it is applied at
+# stage K. This IS NOT LOWERING the 10x threshold: since the ratio's denominator is
+# undefined, that threshold cannot be applied on these rows at all. On every other
+# row the 10x stands exactly as it was.
+# -------------------------------------------------------------------------
 def evrensel_mi(hedef, duzey=''):
     """O-6: evrensel/alan hedeflerinde ayrim katinin PAYDASI tanimsizdir
     (rakip kumesi yoktur). Bu satirlar sayisal verdikt almamalidir; dogru olcu
@@ -554,24 +554,28 @@ def evrensel_mi(hedef, duzey=''):
             or (duzey or '').strip().lower() == 'alan')
 
 
-# ---------------------------------------------------------------------------
-# Karar EN KOTU TEK RAKIP KUTU uzerinden verilir, havuz uzerinden degil: havuz
-# kati tek bir kotu kutuyu binlerce temiz okumanin icinde eritir ve gercekte
-# capraz veren bir cift temiz gorunur. Havuz kati yine de raporlanir, ama karar
-# sutunu degildir.
+# -------------------------------------------------------------------------
+# The decision is made on THE WORST SINGLE COMPETITOR BIN, not on the pool: the pool
+# ratio dissolves one bad bin among thousands of clean reads, and a pair that really
+# does cross react looks clean. The pool ratio is still reported, but it is not the
+# deciding column.
 #
-# UC AYRI DURUM VARDIR ve birbirine karistirilmaz:
-#   ESIK USTU / ESIK ALTI - olculdu, karar verildi.
-#   OLCULEMEDI            - yeterli derinlikte rakip kutu yok ya da hedef
-#                           evrensel. Bu "esik alti" DEGILDIR; karar yokluguyla
-#                           basarisizligi ayni haneye yazmak yanlis olurdu.
-# En kotu kutu olcusu uretilemediginde havuza dusulur ama bu ACIKCA dayanak
-# sutununa yazilir.
-# ---------------------------------------------------------------------------
+# THERE ARE THREE SEPARATE STATES and they are never confused:
+#   ESIK USTU / ESIK ALTI - measured, decided.
+#   OLCULEMEDI            - there is no competitor bin at sufficient depth, or the
+#                           target is universal. That IS NOT "below threshold";
+#                           writing an absence of decision into the same column as a
+#                           failure would be wrong.
+# When the worst bin measure cannot be produced it falls back to the pool, but that
+# is written OPENLY in the basis column.
+# -------------------------------------------------------------------------
 def karar(o, hedef='', duzey=''):
-    """(durum, deger, dayanak). Karar EN KOTU TEK RAKIP KUTU uzerinden verilir;
-    o olcu uretilemiyorsa (yeterli derinlikte rakip kutu yok) havuza duser ve
-    bu ACIKCA isaretlenir. Hicbiri yoksa OLCULEMEDI - 'esik alti' DEGILDIR."""
+    """(state, value, basis). The decision is made on THE WORST SINGLE COMPETITOR BIN;
+        if that measure cannot be produced (no competitor bin at sufficient depth) it
+        falls back to the pool and that is marked OPENLY. With neither available it is
+        OLCULEMEDI, which IS NOT 'below threshold'.
+
+    """
     if not o:
         return ('OLCULEMEDI', None, 'olcum yok')
     if evrensel_mi(hedef, duzey):
@@ -588,25 +592,28 @@ def karar(o, hedef='', duzey=''):
     return ('OLCULEMEDI', None, 'rakip kutu yok')
 
 
-# ---------------------------------------------------------------------------
-# Uc cikti uretir: tam tablo, ham sayilar ve siparis listesi.
+# -------------------------------------------------------------------------
+# It produces three outputs: the full table, the raw counts and the order list.
 #
-# HAM SAYILAR (k = urun veren okuma, n = kutudaki okuma) ayri bir dosyaya
-# yazilir cunku bugune kadar hicbir okuyucu bir verdikti YENIDEN HESAPLAYAMIYORDU.
-# Butun verdiktler bu iki sayidan turer; yayimlanmasi karar kurallarini
-# denetlenebilir kilar.
+# THE RAW COUNTS (k = reads giving a product, n = reads in the bin) are written to a
+# separate file, because until now NO READER COULD RECOMPUTE a verdict. Every
+# verdict derives from those two numbers; publishing them makes the decision rules
+# auditable.
 #
-# IKI OLCUT AYRI SUTUNDA DURUR ve birbirinin yerine GECMEZ:
-#   ayrim_mm1_ARAC_OLCUTU        - 10x, bu aracin olcutu (toplanti karari DEGIL).
-#   TOPLANTI_OLCUTU_capraz_kutu  - %10 ustu urun veren rakip KUTU SAYISI
-#                                  (CALISMA_KAYDI 1.7, hosgoru 1-2 capraz tur).
-# dCq sutunu ayni sayinin laboratuvar dilindeki karsiligidir (dCq = log2(kat),
-# %100 verim varsayimiyla); yeni bir olcut degil, ayni olcunun cevirisidir.
+# THE TWO CRITERIA STAND IN SEPARATE COLUMNS and NEITHER STANDS IN for the other:
+#   ayrim_mm1_ARAC_OLCUTU        - 10x, this tool's criterion (NOT a meeting decision).
+#   TOPLANTI_OLCUTU_capraz_kutu  - the NUMBER OF competitor BINS giving over 10%
+#                                  product (CALISMA_KAYDI 1.7, a tolerance of 1-2
+#                                  cross reacting species).
+# The dCq column is the same number in laboratory language (dCq = log2(fold), on the
+# assumption of 100% efficiency); it is not a new criterion but a translation of the
+# same measure.
 #
-# DAMGALAR bir cifti reddetmez, KOSULLU yapar: olcute duyarli (mm<=3'te cokuyor),
-# sig karar kutusu, tek/iki uye kutu, kismi olcum, yalniz en kotu kutu gecti.
-# Hicbir damgasi olmayan ve iki olcutu birden gecen cift KOSULSUZ isaretlenir.
-# ---------------------------------------------------------------------------
+# THE FLAGS do not reject a pair, they make it CONDITIONAL: sensitive to the
+# criterion (it collapses at mm<=3), a shallow deciding bin, one or two member bins,
+# a partial measurement, only the worst bin passed. A pair with no flag at all that
+# passes both criteria is marked UNCONDITIONAL.
+# -------------------------------------------------------------------------
 def raporla(CIKTI, sonuc, meta, yaz):
     E = PROTOKOL['esik']; A = PROTOKOL['olcut_asil']; Y = PROTOKOL['olcut_yan']
     basli = (u'# Bu dosya TEK PROTOKOLLE uretildi - butun satirlar ayni kural ve ayni derinlik.\n'
@@ -641,7 +648,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
             o1, o3 = _o(r, A), _o(r, Y)
             d1, g1, day1 = karar(o1, r['hedef'], r.get('duzey', ''))
             d3, g3, _ = karar(o3, r['hedef'], r.get('duzey', ''))
-            # O-5: 150 okuma tabani rakip kutularin bir kismini sessizce eliyordu.
+            # O-5: the floor of 150 reads was silently discarding some of the competitor bins.
             ro, rt = o1.get('rakip_olculen'), o1.get('rakip_toplam')
             kismi = 'hayir'
             if ro is not None and rt:
@@ -666,10 +673,10 @@ def raporla(CIKTI, sonuc, meta, yaz):
                         kismi, r.get('hata', '')])
     yaz(u'  written: %s' % yol)
 
-    # ---------- 1b) KUTU BAZLI HAM SAYILAR (madde 7e) ----------
-    # Hicbir okuyucu bugune kadar bir verdikti YENIDEN HESAPLAYAMIYORDU.
-    # k = urun veren okuma, n = kutudaki toplam okuma. Butun verdiktler bu
-    # iki sayidan turer; yayimlanmasi butun karar kurallarini denetlenebilir kilar.
+    # ---------- 1b) THE RAW COUNTS PER BIN (item 7e) ----------
+    # Until now NO READER COULD RECOMPUTE a verdict.
+    # k = the reads giving a product, n = the total reads in the bin. Every verdict
+    # derives from those two numbers; publishing them makes every decision rule auditable.
     yolk = os.path.join(CIKTI, 'kutu_bazli_ham_sayilar.tsv')
     with open(yolk, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# RAW NUMBERS - every verdict is derived from these two columns.\n')
@@ -699,7 +706,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
     with open(yol2, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# SINGLE ORDER LIST - produced with one protocol.\n')
         fh.write(basli)
-        # --- 2026-08-06: esik alti satirlar LISTEDEN CIKARILMAZ, siniflandirilir.
+        # --- 2026-08-06: below-threshold rows ARE NOT REMOVED FROM THE LIST, they are classified.
         _snf = {}
         for _r in sonuc:
             _d, _g, _ = karar(_o(_r, A), _r['hedef'], _r.get('duzey', ''))
@@ -754,10 +761,10 @@ def raporla(CIKTI, sonuc, meta, yaz):
                 d1, g1, day1 = karar(o1, r['hedef'], r.get('duzey', ''))
                 d3, g3, _ = karar(o3, r['hedef'], r.get('duzey', ''))
                 kod = ''.join(ch if ch.isalnum() else '_' for ch in r['hedef'])[:24]
-                # --- madde 2: TOPLANTI OLCUTU = capraz kutu sayisi (verim orani DEGIL)
+                # --- item 2: THE MEETING CRITERION = the number of cross reacting bins (NOT an efficiency ratio)
                 capraz = sum(1 for x in (o1.get('rakip') or [])
                              if len(x) > 3 and (x[3] or 0) >= TOPLANTI_CAPRAZ_TABAN)
-                # --- madde 3: karar veren kutunun HAM sayilari
+                # --- item 3: the RAW counts of the deciding bin
                 kk, kn = '', ''
                 ek = o1.get('enkotu_kutu')
                 for x in (o1.get('rakip') or []):
@@ -776,7 +783,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                 hv = o1.get('kat_havuz')
                 if d1 == 'ESIK USTU' and (hv is None or hv < E):
                     damga.append(u'YALNIZ en kotu kutu gecti, HAVUZ gecmedi')
-                # kosulsuz siparis: iki olcut + iki taban birden
+                # an unconditional order: both criteria and both floors at once
                 if (d1 == 'ESIK USTU' and d3 == 'ESIK USTU'
                         and hv is not None and hv >= E and not damga):
                     sart = 'KOSULSUZ'
@@ -796,7 +803,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                               r.get('uye_n', ''), '; '.join(damga) or '-'])
     yaz(u'  written: %s' % yol2)
 
-    # ---------- 3) protokol + rapor ----------
+    # ---------- 3) the protocol plus the report ----------
     yol3 = os.path.join(CIKTI, 'PROTOKOL_VE_RAPOR.md')
     with open(yol3, 'w', encoding='utf-8') as fh:
         fh.write(u'# Tek protokolle panel olcumu\n\n')
@@ -828,11 +835,13 @@ def raporla(CIKTI, sonuc, meta, yaz):
 
 # --------------------------------------------------------------- guvenlik agi
 def cikti_denetle(yaz, ad, dosyalar, asgari=1):
-    """Asama bittiginde KENDI ciktisini denetler.
+    """When the stage ends, it audits ITS OWN output.
 
-    Beklenen satir sayisi sifirsa ya da dosya hic yoksa SESSIZCE DEVAM ETMEZ:
-    acik Turkce hata basar ve sifirdan farkli kod dondurur. Gece boyunca bos
-    sonuc uretip sabah "hicbir sey bulunamadi" dememesi icin.
+        If the expected row count is zero, or the file is missing entirely, it DOES NOT
+        CARRY ON SILENTLY: it prints a clear error and returns a non-zero code. This is
+        so that it cannot produce an empty result overnight and then say "nothing was
+        found" in the morning.
+
     """
     sorun = []
     for yol, etiket in dosyalar:
@@ -865,7 +874,7 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
 
 
 def girdi_denetle(yaz, ad, dosyalar):
-    """Asama BASLAMADAN once ihtiyac duydugu dosyalar var mi ve dolu mu."""
+    """Before the stage STARTS: do the files it needs exist, and are they non-empty?"""
     eksik = []
     for yol, etiket, uretici in dosyalar:
         if not os.path.exists(yol):
@@ -886,9 +895,9 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# Komut satiri: --okuma derinlik tavani, --karisik karisik kutulara ne yapilacagi
-# (uye|rakip|disla; varsayilan rakip = en kotu durumu olcer), --yalniz alt kume,
-# --sifirla kontrol noktalarini siler.
+# The command line: --okuma the depth cap, --karisik what to do with mixed bins
+# (uye|rakip|disla; the default rakip measures the worst case), --yalniz a subset,
+# --sifirla deletes the checkpoints.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
