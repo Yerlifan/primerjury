@@ -840,12 +840,7 @@ def envanter_yaz(kok, CIKTI, yaz):
         for r in satir:
             fh.write(u'| `%s` | %d | %s | **%s** | %s |\n'
                      % (r['dosya'], r['mb'], r['etiket'], r['kimlik'], r['sebep']))
-        fh.write(u'\n**Kural:** kimlik asamasinda "daha temizi var" GECERLI BIR SEBEP '
-                 u'DEGILDIR. Tekrarsizlastirilmis kumeler (NR99) nadir cinsleri siler; '
-                 u'olculdu: SILVA LSURef NR99 icinde Petriella kaydi **0**, ayni surumun '
-                 u'Parc kumesinde **82**. Bir kume ancak (a) baska bir kumenin bayt bayt '
-                 u'ikizi ya da (b) baska bir kumenin altkumesi ise disarida birakilabilir; '
-                 u'iki durum da tabloda gerekcesiyle yazilidir.\n\n')
+        fh.write(u'\n**Rule:** at the identity stage, "there is a cleaner set" is NOT A VALID REASON. Deduplicated sets')
         fh.write(u'**NCBI nt** is not a local file; it is queried as a separate layer, over the network or by manual BLAST. See the report.\n')
     yaz(u'  inventory written: %s' % yol)
     return satir
@@ -1552,9 +1547,9 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     yaz(u'  2026-08-05: liste 1000 -> %d GERI indirildi. Siralama olcutu ters'
         % kl_ust)
     yaz(u'  frekans + uzunluk normalizasyonuna gecti; olculen en kotu kazanan sirasi')
-    yaz(u'  35, yani %d kat pay var. Kazanc ~%s (olculdu: 1000 adayda hizalama'
+    yaz(u'  35, so there is %d-fold headroom. The saving is ~%s (measured: with 1000'
         % (kl_ust // 35, sure_metni(_cift * _bir * kl_ust)))
-    yaz(u'  toplam maliyetin %53\'u, 500 adayda %36\'si).')
+    yaz(u'  candidates alignment was 53% of the total cost, with 500 it is 36%).')
     yaz(u'  Whether the cut-off is binding needs NO SEPARATE MEASUREMENT:')
     yaz(u'  the winning hit\'s short-list rank is recorded for every query.')
     yaz('')
@@ -1637,7 +1632,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                         try:                      # O-2: korumasiz json.load idi
                             onbellek = json.load(open(ntk, encoding='utf-8'))
                         except Exception as e:
-                            yaz(u'     NCBI nt: onbellek bozuk, yeniden denenecek (%s)'
+                            yaz(u'     NCBI nt: the cache is corrupt, it will be retried (%s)'
                                 % type(e).__name__)
                             onbellek = None
                     if onbellek and str(onbellek.get('durum', '')).startswith('TAMAM'):
@@ -1894,10 +1889,7 @@ def raporla(CIKTI, sonuc, var, yaz):
         fh.write(u'Uretim: %s · betik %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         fh.write(u'Local databases used (%d): %s\n\n'
                  % (len(var), ', '.join(e for e, _, _ in var)))
-        fh.write(u'Ayrica **NCBI nt** ayri bir katman olarak sorgulanir. Yerel '
-                 u'kumelerin hepsi belirli lokuslara ozeldir (SSU, LSU, ITS, operon); '
-                 u'nt en genis olanidir ve o yuzden ayrica sorulur. nt katmani '
-                 u'tamamlanmazsa iddia **DOGRULANAMADI** sayilir - sessizce atlanmaz.\n\n')
+        fh.write(u'Additionally **NCBI nt** is queried as a separate layer. All the local sets are specific to particular loci (S')
         fh.write(u'Full set inventory, and why some sets are unused: `VERITABANI_ENVANTERI.md`\n\n')
         fh.write(u'## Result\n\n')
         for k in ('DOGRULANDI', 'DUZELTILMELI', 'DOGRULANAMADI'):
@@ -1919,11 +1911,7 @@ def raporla(CIKTI, sonuc, var, yaz):
             gar = sum(k.get('garanti_ile_kazanan', 0) for k in kals)
             boy = next((k.get('kisa_liste_boyu') for k in kals
                         if k.get('kisa_liste_boyu')), KISA_LISTE)
-            fh.write(u'Kisa liste **tohum sayisina** gore kuruluyor ama karari '
-                     u'**hizalama kimligi** veriyor. Iki olcut farkli oldugu icin '
-                     u'kesme noktasi gercek en iyi eslesmeyi eleyebilir. Bunu ayrica '
-                     u'olcmek yerine **her sorguda kazanan isabetin kisa listedeki tohum '
-                     u'sirasi** kaydedildi - kanit kosunun kendisinden cikiyor.\n\n')
+            fh.write(u'The short list is built on **seed count**, but the decision is made by **alignment identity**. Because the two criteria differ')
             fh.write(u'| measure | value |\n|---|---|\n')
             fh.write(u'| short-list size | %d (ALL aligned) |\n' % boy)
             fh.write(u'| queries measured (claim x database) | %d |\n' % len(siralar))
@@ -1939,29 +1927,17 @@ def raporla(CIKTI, sonuc, var, yaz):
                          u'buyutup (orn. %d) tekrarlayin.\n\n'
                          % (n400, SIRA_UYARI_ESIGI, boy * 2))
             elif n100:
-                fh.write(u'> Kazananlarin %d tanesi ilk %d disindan geldi - yani **eski '
-                         u'60\'lik liste bu isabetleri KACIRIRDI**. Hepsi %d\'un altinda '
-                         u'kaldigi icin %d\'luk liste yeterli.\n\n'
+                fh.write(u'> %d of the winners came from outside the first %d, which means **the old list of 60 WOULD HAVE MISSED those hits**. All of them'
                          % (n100, SIRA_GUVENLI_BOLGE, SIRA_UYARI_ESIGI, boy))
             else:
-                fh.write(u'> Butun kazananlar ilk %d icinden geldi. Kesme noktasi '
-                         u'**baglayici degil**: karari tamamen hizalama veriyor, kisa '
-                         u'liste boyu sonucu etkilemiyor.\n\n' % SIRA_GUVENLI_BOLGE)
+                fh.write(u'> Every winner came from within the first %d. The cut-off is **not binding**: alignment decides entirely' % SIRA_GUVENLI_BOLGE)
             if gar:
-                fh.write(u'> **Dikkat.** %d sorguda kazanan kisa listeye tohumla degil, '
-                         u'"beklenen takson garantisi" yamasiyla girdi. O sorgularda karar '
-                         u'yamaya BAGIMLIDIR - ne aradigimizi bilmedigimiz bir taksonda '
-                         u'ayni isabet kacardi.\n\n' % gar)
+                fh.write(u'> **Caution.** In %d queries the winner entered the short list not by seeding but through the "expected taxon guarantee" patch' % gar)
             enb = sorted(siralar, key=lambda x: -x[2])[:5]
             fh.write(u'Five highest winner ranks: %s\n\n'
                      % '; '.join(u'claim %d / %s: %d' % t for t in enb))
 
-        fh.write(u'\n> **Yontem farki.** Kraken2 k-mer + taksonomi agacinda LCA yapar; '
-                 u'onceki turlarimiz konsensusleri birbiriyle ve in-silico PCR ile '
-                 u'kiyasladi. Bu tur ise DIS referans veritabanlarindaki adlandirilmis '
-                 u'kayitlarla tohum+hizalama yapar ve kimligi ayrica AYIRT EDICI '
-                 u'PENCEREDE olcer (korunmus bolgeler disarida kalir). Bir iddia '
-                 u'DOGRULANDI sayilmak icin en az IKI bagimsiz veritabani uyusmalidir.\n\n')
+        fh.write(u'\n> **Difference in method.** Kraken2 does k-mer plus LCA on a taxonomy tree; our earlier rounds compared consensus sequences')
         for etiket, baslik in (('DUZELTILMELI', u'## Duzeltilmesi gerekenler (rapora girecek)'),
                                ('DOGRULANDI', u'## Dogrulananlar'),
                                ('DOGRULANAMADI', u'## Dogrulanamayanlar')):
@@ -1977,9 +1953,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                     fh.write(u'- **Savunulabilir duzey:** `%s` → **%s**\n'
                              % (a.get('duzey', '-'), a.get('onerilen_ad', '-')))
                     fh.write(u'  - *Gerekce:* %s\n' % a.get('gerekce', '-'))
-                    fh.write(u'\n  **En yakin bes ORGANIZMA** (kayit degil organizma '
-                             u'bazinda tekillestirildi; ayni tur birden cok '
-                             u'veritabaninda bulundugu icin):\n\n')
+                    fh.write(u'\n  **The five nearest ORGANISMS** (deduplicated by organism, not by record, because the same species appears in several databases')
                     fh.write(u'\n  | # | nearest record | genus | species | identity | database |\n  |---|---|---|---|---|---|\n')
                     for n_ in (1, 2, 3, 4, 5):
                         it = a.get('isabet%d' % n_)
@@ -1987,14 +1961,11 @@ def raporla(CIKTI, sonuc, var, yaz):
                             fh.write(u'  | %d | %s | %s | %s | %%%s | %s |\n'
                                      % (n_, it['tam_ad'], it['cins'], it['tur'],
                                         vir(it['kimlik']), it['vtb']))
-                    fh.write(u'\n  > **Elde isim olmasi ile kimlik iddia etmek ayri seylerdir.** '
-                             u'Yukaridaki "en yakin kayit" bir KIMLIK DEGILDIR; savunulabilir '
-                             u'duzey sutunu neyin iddia edilebilecegini soyler.\n\n')
+                    fh.write(u'\n  > **Having a name and claiming an identity are different things.** The "nearest record" above is NOT AN IDENTITY')
                 fh.write(u'- **Evidence:** %s\n' % s['kanit'])
                 d = s.get('vtb_detay') or {}
                 if d:
-                    fh.write(u'\n  **Sorgulanan veritabanlari ve her birinin dedigi '
-                             u'(%d kaynak):**\n\n' % len(d))
+                    fh.write(u'\n  **Databases queried and what each one said (%d sources):**\n\n' % len(d))
                     fh.write(u'  | database | status | best hit | identity | winner rank |\n  |---|---|---|---|---|\n')
                     for e, v in d.items():
                         _ks = ('-' if v.get('kazanan_sira') is None

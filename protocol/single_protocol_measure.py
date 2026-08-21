@@ -317,7 +317,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     ek = ek_ciftler_oku(kok)
     for e in ek:
         if e['hedef'].strip() in panel_adlari:
-            print('  EK atlandi (panelde zaten var): %s' % e['hedef'])
+            print(u'  EXTRA skipped (already in the panel): %s' % e['hedef'])
             continue
         ciftler.append(dict(e, panel_ayrim=''))
     if yalniz:
@@ -468,8 +468,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                 # kesin gecersizdir. Eski kontrol noktalarinda 'dizi' anahtari
                 # hic yoktur; o durumda da yeniden olculur, sessizce kabul YOK.
                 if _e.get('dizi') != _bek['dizi']:
-                    yaz(u'  %s: kontrol noktasi DIZI muhru tutmuyor '
-                        u'(kayitli %s, simdi %s) - yeniden olculuyor.'
+                    yaz(u'  %s: the checkpoint\'s SEQUENCE seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('dizi') or 'yok', _bek['dizi']))
                     raise ValueError('dizi muhru tutmadi')
                 # UYELIK ICERIK muhru de dizi muhru gibidir: yoksa ya da
@@ -479,8 +478,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                 # geriye donuk uyum yolu yuzunden protist duzeltmesi olcume
                 # yansimadi, 22 hedefin 22'si onbellekten dondu.)
                 if _e.get('uyelik_icerik') != _bek['uyelik_icerik']:
-                    yaz(u'  %s: kontrol noktasi UYELIK muhru tutmuyor '
-                        u'(kayitli %s, simdi %s) - yeniden olculuyor.'
+                    yaz(u'  %s: the checkpoint\'s MEMBERSHIP seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('uyelik_icerik') or 'yok',
                            _bek['uyelik_icerik']))
                     raise ValueError('uyelik muhru tutmadi')
@@ -488,9 +486,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                 _uyar = (_e != _bek and _ortak == {k: _bek[k] for k in _ortak})
                 if _e == _bek or _uyar:
                     if _uyar:
-                        yaz(u'  UYARI: %s kontrol noktasi ESKI ayar muhruyle yazilmis '
-                            u'(eksik: %s). Ortak anahtarlar tuttugu icin kabul edildi; '
-                            u'uyelik tablosu degistiyse --sifirla ile yeniden kosun.'
+                        yaz(u'  WARNING: the %s checkpoint was written with an OLD settings seal (missing: %s). It was accepted because the shared keys match'
                             % (c['hedef'][:40], ', '.join(sorted(set(AYAR) - set(_e))) or '-'))
                     sonuc.append(v)
                     yaz('[%2d/%2d] %-46s  (onceki kosudan alindi)' % (i, len(ciftler), c['hedef'][:46]))
@@ -510,7 +506,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
             r['uye_n'] = len(b['uye']); r['rakip_n'] = len(b['rakip']); r['karisik_n'] = len(b['karisik'])
             o1 = r['olcum'][str(PROTOKOL['olcut_asil'])]
             d1, g1, day1 = karar(o1, c['hedef'], c.get('duzey', ''))
-            yaz('[%2d/%2d] %-46s  %s x  %-11s | kapsam %s'
+            yaz(u'[%2d/%2d] %-46s  %s x  %-11s | coverage %s'
                 % (i, len(ciftler), c['hedef'][:46], vir(g1), d1,
                    o1.get('uye_kapsam_pay') if o1 else '-'))
         json.dump(r, open(kp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
@@ -727,9 +723,9 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'# ESIK: %s\n' % _C.esik_metni())
         fh.write(u'# ESIGIN KOKENI: %s\n' % ESIK_KOKENI)
         fh.write(u'# VERIM UYARISI: %s\n' % ESIK_VERIM_NOTU)
-        fh.write(u'#   Toplantinin KENDI olcutu farkli bir buyukluktur: capraz TUR SAYISI\n')
+        fh.write(u'#   The agreed criterion is a DIFFERENT quantity: the NUMBER OF CROSS-REACTING SPECIES\n')
         fh.write(u'#   (CALISMA_KAYDI §1.7, hosgoru 1-2). O yuzden ayri sutunda:\n')
-        fh.write(u'#   TOPLANTI_OLCUTU_capraz_kutu = >=%%%d urun veren rakip kutu sayisi.\n'
+        fh.write(u'#   TOPLANTI_OLCUTU_capraz_kutu = how many competitor bins give >=%%%d product.\n'
                  % int(TOPLANTI_CAPRAZ_TABAN))
         fh.write(u'#   Iki olcut birbirinin yerine GECMEZ.\n')
         fh.write(u'# dCq_karsiligi: laboratuvarin konustugu birim. dCq = log2(kat),\n')
@@ -806,14 +802,14 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'# Tek protokolle panel olcumu\n\n')
         fh.write(u'Uretim: %s · betik surumu %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         fh.write(u'## Sonuc\n\n')
-        fh.write(u'- Esigi (%.0fx) GECEN cift: **%d** → **%d oligo**\n' % (E, len(gecen), 2 * len(gecen)))
-        fh.write(u'- Esigin ALTINDA kalan cift: **%d**\n' % len(kalan))
-        fh.write(u'- OLCULEMEYEN (karar yok, esik alti DEGIL): **%d**\n' % len(olculemeyen))
+        fh.write(u'- Pairs PASSING the threshold (%.0fx): **%d** -> **%d oligos**\n' % (E, len(gecen), 2 * len(gecen)))
+        fh.write(u'- Pairs BELOW the threshold: **%d**\n' % len(kalan))
+        fh.write(u'- NOT MEASURABLE (no verdict, NOT the same as below threshold): **%d**\n' % len(olculemeyen))
         duy = [r for r in gecen if karar(_o(r, Y))[0] == 'ESIK ALTI']
-        fh.write(u'- Esigi gecen ama OLCUTE DUYARLI (mm<=3 te cokuyor): **%d**\n\n' % len(duy))
+        fh.write(u'- Passing but SENSITIVE TO THE CRITERION (collapses at mm<=3): **%d**\n\n' % len(duy))
         fh.write(u'```\n' + GEREKCE + u'\n```\n\n')
         fh.write(u'## Tablo\n\n')
-        fh.write(u'| hedef | kaynak | mm<=1 (asil) | mm<=3 (yan) | kapsam | durum |\n|---|---|---|---|---|---|\n')
+        fh.write(u'| target | source | mm<=1 (main) | mm<=3 (secondary) | coverage | status |\n|---|---|---|---|---|---|\n')
         for r in sorted(sonuc, key=lambda x: -(karar(_o(x, A))[1] if karar(_o(x, A))[1] is not None else -1)):
             o1, o3 = _o(r, A), _o(r, Y)
             d1, g1, day1 = karar(o1, r['hedef'], r.get('duzey', ''))
@@ -821,9 +817,8 @@ def raporla(CIKTI, sonuc, meta, yaz):
             fh.write(u'| %s | %s | %s | %s | %s | %s |\n' % (
                 r['hedef'], r['kaynak'], vir(g1), vir(g3),
                 o1.get('uye_kapsam_pay', '-'),
-                d1 + ('' if day1 == 'en kotu tek kutu' else ' (%s)' % day1)))
-        fh.write(u'\n## Okuma sirasi\n\n1. Once bu dosya. 2. `SIPARIS_LISTESI.tsv`. '
-                 u'3. Ayrinti icin `panel_tek_protokol.tsv`.\n')
+                d1 + ('' if day1 == u'worst single bin' else ' (%s)' % day1)))
+        fh.write(u'\n## Reading order\n\n1. This file first. 2. `SIPARIS_LISTESI.tsv`. 3. `panel_tek_protokol.tsv` for detail.\n')
     yaz(u'  written: %s' % yol3)
     yaz('')
     yaz(u'  PASSED THE THRESHOLD: %d pairs (%d oligos)   BELOW THRESHOLD: %d   NOT MEASURABLE: %d'

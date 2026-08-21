@@ -107,7 +107,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
             for satir_u in uyari:
                 yaz('      ' + satir_u)
     else:
-        yaz('      mevcut cift olculemedi (uye kutusu yok).')
+        yaz(u'      the existing pair could not be measured (no member bin).')
 
     # ---------------- ASAMA A: pencereler + geometri
     yaz(u'\n  [A] Window generation and geometry measurement (18-25 bp, every position, both orientations)')
@@ -132,7 +132,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     tb = time.time()
 
     def ilerB(n):
-        print('      ... %d cift sayildi (%s)' % (n, sure(time.time() - tb)), end='\r', flush=True)
+        print(u'      ... %d pairs counted (%s)' % (n, sure(time.time() - tb)), end='\r', flush=True)
 
     top = U.tara_ve_topla(ad_p, hucre_basina=8, ilerle=ilerB)
     cl = top['temsilciler']
@@ -154,7 +154,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     yaz(u'      grid: at least one candidate in %d of %d cells'
         % (sum(1 for x in izgara if x['hayatta']), len(izgara)))
     for x in izgara[:4]:
-        yaz('        %-62s %8d aday' % (x['ad'], x['hayatta']))
+        yaz(u'        %-62s %8d candidates' % (x['ad'], x['hayatta']))
     yaz(u'      representative candidates (one sample per grid cell): %d' % len(cl))
 
     # ---------------- ASAMA C: numune taramasi
@@ -203,7 +203,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
             olculen += olculen_arms
             olculen.sort(key=puan)
     else:
-        yaz('      atlandi (hafif mod, rakip konsensus yok ya da olculen aday yok)')
+        yaz(u'      skipped (light mode, no competitor consensus, or no measured candidate)')
     yaz(u'      NOTE: a deliberate mismatch is NOT a DEGENERATE BASE (one defined base, one oligo);')
     yaz(u'           but it does not match the template exactly, which is a separate agenda item.')
 
@@ -247,15 +247,15 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     # ---------------- ASAMA E: kuresel ozgulluk
     son = gecen[:C.HUNI['kusele_giden']] if gecen else en_iyi[:3]
     if hafif or not son:
-        yaz('\n  [E] Kuresel ozgulluk ATLANDI (hafif mod ya da aday yok)')
+        yaz(u'\n  [E] Global specificity SKIPPED (light mode, or no candidate)')
     else:
-        yaz('\n  [E] KURESEL OZGULLUK - en pahali adim, %d aday, ~500 bin kayit' % len(son))
+        yaz(u'\n  [E] GLOBAL SPECIFICITY - the most expensive step, %d candidates, ~500k records' % len(son))
         te = time.time()
         durum_yolu = os.path.join(C.KONTROL, 'kuresel_%s.pkl'
                                   % ''.join(ch if ch.isalnum() else '_' for ch in ad))
 
         def ilerE(parca, kayit, gecen_sn):
-            print('      ... parca %d, %d kayit, gecen %s          '
+            print(u'      ... chunk %d, %d records, elapsed %s          '
                   % (parca, kayit, sure(gecen_sn)), end='\r', flush=True)
 
         try:
@@ -265,7 +265,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                          durum_yolu=durum_yolu, ilerle=ilerE)
             for i, c in enumerate(son):
                 c['kuresel'] = kr.get('a%d' % i, {})
-            yaz('\n      kuresel tarama bitti (%s)' % sure(time.time() - te))
+            yaz(u'\n      global scan finished (%s)' % sure(time.time() - te))
         except Exception as e:
             yaz('\n      KURESEL TARAMA HATASI (diger sonuclar gecerli): %s' % e)
 
@@ -365,7 +365,7 @@ def numunede_olc(adaylar, numune, baglam, t0, yaz):
         if i % 5 == 0 or i == len(adaylar):
             gecen = time.time() - t0
             kalan = gecen / i * (len(adaylar) - i)
-            print('      ... aday %d/%d  gecen %s  tahmini kalan %s        '
+            print(u'      ... candidate %d/%d  elapsed %s  estimated remaining %s        '
                   % (i, len(adaylar), sure(gecen), sure(kalan)), end='\r', flush=True)
     return out
 
@@ -446,7 +446,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         yaz('\nDEVAM MODU: bitmis hedefler atlaniyor. Kalan: %d' % len(liste))
 
     if not liste:
-        yaz('\nIslenecek hedef yok. Rapor mevcut kontrol dosyalarindan uretiliyor.')
+        yaz(u'\nNo target to process. The report is being built from the existing checkpoint files.')
         rapor.uret(kontrol.hepsi(), panel, panel_yolu, yaz)
         return 0
     uyelik = H.uyelik_oku(); kons = H.konsensusler(); kut = H.kutular()
@@ -474,10 +474,10 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
             sf = b['siniflar'][0] if b['siniflar'] else 'B'
             istekler.append(('uye_' + d['hedef'], cins, sf))
             istekler.append(('rakip_' + d['hedef'], rakip, sf))
-        yaz('\nReferans havuzlari cikariliyor (veritabani basina TEK gecis)...')
+        yaz(u'\nExtracting reference pools (ONE pass per database)...')
 
         def ilerR(db, n, bulunan):
-            print('   ... %s: %d kayit tarandi, %d dizi toplandi        '
+            print(u'   ... %s: %d records scanned, %d sequences collected        '
                   % (db, n, bulunan), end='\r', flush=True)
 
         tr = time.time()
@@ -485,7 +485,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
             REF.toplu_cikar(istekler, ilerle=ilerR)
             yaz('\nReferans havuzlari hazir (%s)' % sure(time.time() - tr))
         except Exception as e:
-            yaz('\nReferans havuzu cikarilamadi (%s) - referans adimi atlanacak.' % e)
+            yaz(u'\nThe reference pool could not be extracted (%s); the reference step will be skipped.' % e)
 
     yaz(u'\nESTIMATED TIME: ~%s per target; %d targets -> ~%s'
         % (sure(600 if not a.hafif else 90), len(liste),
@@ -501,7 +501,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
             yaz('\n\nKULLANICI DURDURDU. Biten hedefler kayitli; (3) ile devam edin.')
             break
         except Exception:
-            yaz('\n  HATA (%s) - bu hedef atlandi, digerleri suruyor:' % d['hedef'])
+            yaz(u'\n  ERROR (%s) - this target was skipped, the others continue:' % d['hedef'])
             traceback.print_exc()
             kontrol.yaz(d['hedef'], dict(hedef=d['hedef'], durum='HATA',
                                          hata=traceback.format_exc()[-2000:]))
