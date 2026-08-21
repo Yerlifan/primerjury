@@ -110,9 +110,9 @@ def main():
                      f(av), f(b), f(c), 'ESIT' if ok else '*** FARK ***'))
     print()
     if tumu:
-        print('SONUC: UC YOL DA AYNI SAYIYI VERIYOR - baslik sayilari bagimsiz dogrulandi.')
+        print(u'RESULT: ALL THREE ROUTES GIVE THE SAME NUMBER - the site counts are independently verified.')
         return 0
-    print('SONUC: FARK VAR - sayilari kullanmayin.')
+    print(u'RESULT: THERE IS A DIFFERENCE - do not use the numbers.')
     return 1
 
 

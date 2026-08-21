@@ -217,7 +217,7 @@ def main():
         print(s, flush=True)
 
     yaz(u'=' * 78)
-    yaz(u'  OLCULMEYEN TAKSONLAR ICIN KUTU URETIMI   %s'
+    yaz(u'  BUILDING BINS FOR THE UNMEASURED TAXA   %s'
         % time.strftime('%Y-%m-%d %H:%M'))
     yaz(u'=' * 78)
 

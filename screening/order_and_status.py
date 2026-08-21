@@ -339,10 +339,10 @@ def main():
     if yeni_olan:
         print(u'\n  WARNING: there is a NEWER order list that this script did not produce:')
         print('           %s   (%s)' % yeni_olan)
-        print('         Uretilen liste : %s' % os.path.basename(syol))
+        print(u'         list produced : %s' % os.path.basename(syol))
         print(u'         %s WAS NOT OVERWRITTEN. Decide for yourself which one holds;'
               % KANONIK_SIPARIS)
-        print('         kanonigi degistirmek isterseniz o dosyayi elle kopyalayin.')
+        print(u'         if you want to change the canonical one, copy that file by hand.')
     else:
         shutil.copyfile(syol, kyol)
         print(u'\nCANONICAL LIST : %s   (the order is placed from THIS file)' % kyol)

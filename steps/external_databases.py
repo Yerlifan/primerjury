@@ -670,12 +670,11 @@ def main():
              and x.get("kapsam_durumu") == "KAPSANIYOR"
              and x.get("yabanci_uzak", 0) > 0]
     print(u'\nSPECIFICITY FINDINGS, ordered by DISTANT TAXON')
-    print("(yakin = hedefin soyagacini son iki basamak disinda paylasan,"
-          " cogu zaman ayni islevsel grup)")
+    print(u'(near = shares the target\'s lineage except for the last two ranks, usually the same functional group)')
     if not ozgul:
         print(u'   no record gives a product in a distant taxon')
     for x in sorted(ozgul, key=lambda x: -x["yabanci_uzak"])[:15]:
-        print("   %-28s %-3s %-28s uzak=%5d yakin=%5d kendi=%5d"
+        print(u'   %-28s %-3s %-28s far=%5d near=%5d own=%5d'
               % (x["hedef"][:27], x["sinif"], x["veritabani"][:27],
                  x["yabanci_uzak"], x["yabanci_yakin"], x["urun_kendi_taksonda"]))
         if x["yabanci_ornekler"]:

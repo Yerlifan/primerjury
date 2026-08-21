@@ -216,7 +216,7 @@ def calistir(yaz):
             elif tip == 'aralik':
                 yaz('        (aralik) %-32s %s' % (ad[:32], ek))
             else:
-                yaz('        (urun yok) %s' % ad[:40])
+                yaz(u'        (no product) %s' % ad[:40])
     except Exception as e:
         tum &= _ok(yaz, 'ispcr panel dogrulamasi', False, str(e)[:70])
 
@@ -276,7 +276,7 @@ def calistir(yaz):
                 '%s: %d yerine %d (%%%.0f kayip)'
                 % (en_kotu[2], en_kotu[3], en_kotu[4], 100 * (1 - en_kotu[0])))
             yaz('      -> Bu arac o motoru KULLANMIYOR. Panelin numune tabanli')
-            yaz('         sayilari secenek (4) ile yeniden olculmelidir.')
+            yaz(u'         the numbers have to be re-measured with option (4).')
     except Exception as e:
         tum &= _ok(yaz, 'uc motor karsilastirmasi', False, str(e)[:70])
 

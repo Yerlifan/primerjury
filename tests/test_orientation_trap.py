@@ -80,7 +80,7 @@ GERCEK_DOSYALAR = [
 def ck_yukle(kok):
     yol = os.path.join(kok, 'cross_check.py')
     if not os.path.exists(yol):
-        sys.stderr.write('cross_check.py bulunamadi: %s\n' % yol)
+        sys.stderr.write(u'cross_check.py was not found: %s\n' % yol)
         sys.exit(2)
     spec = importlib.util.spec_from_file_location('ck', yol)
     m = importlib.util.module_from_spec(spec)
@@ -109,7 +109,7 @@ def main():
     for rel, beklenen, gerekce in GERCEK_DOSYALAR:
         yol = os.path.join(a.kok, rel)
         if not os.path.exists(yol):
-            print(u'%-42s | DOSYA YOK - sinama kosulamadi' % rel)
+            print(u'%-42s | NO SUCH FILE - the test could not be run' % rel)
             gecti = False
             continue
         m = io.open(yol, encoding='utf-8', errors='replace').read()

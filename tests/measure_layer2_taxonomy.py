@@ -157,7 +157,7 @@ def main():
     print(u'%d pairs, %d databases' % (len(ciftler), len(vtbler)))
     for d in vtbler:
         if d in tamamlanan:
-            print('  ATLANDI (zaten olculmus): %s' % d)
+            print(u'  SKIPPED (already measured): %s' % d)
             continue
         yol = os.path.join(refdb, d)
         if not os.path.exists(yol):
@@ -228,7 +228,7 @@ def main():
     print()
     print(u'NOTE: this measurement covered only these databases: %s' % ', '.join(vtbler))
     print(u'     Full coverage needs SILVA/UNITE/PR2/ROD and takes HOURS.')
-    print('     Buradaki sayilar KAPSAM DEGIL, yontemin calistiginin kanitidir.')
+    print(u'     These numbers are NOT COVERAGE, they are evidence that the method runs.')
     return 0
 
 

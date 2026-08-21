@@ -91,7 +91,7 @@ def main():
         if evrensel:
             en = sorted(v, key=lambda s: -kapsam_orani(s))[:3]
             for s in en:
-                print('    KAPSAM=%-7s %-11s %s %s/%s'
+                print(u'    COVERAGE=%-7s %-11s %s %s/%s'
                       % (s['kapsam'], s['durum'], s['arms'] or '-', s['F'], s['R']))
         else:
             en = sorted(v, key=lambda s: -(s['kat'] if s['kat'] is not None else -1))[:3]
@@ -103,7 +103,7 @@ def main():
             gec = [s for s in v if s['durum'] == 'ESIK USTU']
             r = [s for s in v if s['grup'] == 'siralama' and s['kat'] is not None]
             k = [s for s in v if s['grup'] == 'kontrol_rastgele' and s['kat'] is not None]
-            print('    BITTI. esigi gecen=%d' % len(gec))
+            print(u'    DONE. passing the threshold=%d' % len(gec))
             if r and k:
                 br, bk = max(s['kat'] for s in r), max(s['kat'] for s in k)
                 iyi = max(r, key=lambda s: s['kat'])

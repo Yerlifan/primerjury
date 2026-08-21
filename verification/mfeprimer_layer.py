@@ -187,7 +187,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
             yaz(u'    indeks OK : %s' % dosya)
         else:
             atlanan.append((dosya, not_))
-            yaz(u'    indeks ATLANDI: %s - %s' % (dosya, not_))
+            yaz(u'    index SKIPPED: %s - %s' % (dosya, not_))
     if not kullanilan:
         return dict(durum='ATLANDI', sebep=u'hicbir MFEprimer indeksi okunamadi',
                     atlanan=atlanan), {}
@@ -337,7 +337,7 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
                     pass
         if os.path.exists(co):
             out[komut] = dict(hata=u'eski cikti silinemedi, MFEprimer uzerine yazmaz: %s' % co)
-            yaz(u'    HATA: eski %s ciktisi silinemedi - olculemedi' % komut); continue
+            yaz(u'    ERROR: the old %s output could not be deleted, so it was not measured' % komut); continue
         try:
             pr = subprocess.run([mfe, komut, '-i', fa, '-o', co],
                                 capture_output=True, text=True, timeout=600)
