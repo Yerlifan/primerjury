@@ -1,85 +1,91 @@
 # -*- coding: utf-8 -*-
-r"""
+"""
 rederive_membership.py
 =======================
-UYELIGI KRAKEN ETIKETINDEN DEGIL, OLCULEN KIMLIKTEN yeniden turetir ve
-paneldeki butun ciftleri duzeltilmis uyelikle yeniden olcer.
+It re-derives the membership FROM THE MEASURED IDENTITY rather than the Kraken
+label, and re-measures every pair in the panel with the corrected membership.
 
-NEDEN GEREKLI
--------------
-Bir hedefin "ayrim kati" sayisi, hangi kutunun UYE hangisinin RAKIP sayildigina
-dogrudan baglidir. Kutu etiketleri Kraken'den geliyor ve olculdugu kadariyla
-en az 12 kutuda YANLIS. Yanlis etiketli bir kutu rakip hanesine yazilinca metrik
-hedefi hedefle kiyaslar ve mukemmel bir primer bile 1'in altinda ayrim verir.
-Olculen ornek: Petriella 0,71x -> 8,47x (ayni primer, yalniz uyelik duzeltildi).
+WHY IT IS NEEDED
+----------------
+A target's "discrimination ratio" depends directly on which bin counts as a
+MEMBER and which as a COMPETITOR. The bin labels come from Kraken and, as far as
+has been measured, at least 12 of them are WRONG. When a mislabelled bin is
+written into the competitor column, the metric compares the target against the
+target and even a perfect primer gives a discrimination below 1. A measured
+example: Petriella 0.71x -> 8.47x (the same primer, only the membership corrected).
 
-TEMEL ILKE
-----------
-KANIT YOKLUGU KANIT SAYILMAZ. Bir kutu ancak POZITIF olcum kaniti varsa yer
-degistirir. Olcum bir kutu icin sinyal uretemediyse o kutunun ESKI durumu korunur.
-Bu kural onemlidir: tersi yapilirsa, teshis edilen hatanin aynisi ters yonde
-tekrarlanir (bu betigin gelistirilmesi sirasinda bir kez tam olarak bu oldu).
-
-NASIL CALISIR
--------------
-1) Sinif ici konsensusler tam uzunlukta hizalanir; kimligi >=%99,0 olanlar ON GRUP.
-2) Her on grup icin AYIRT EDICI k-mer kumesi cikarilir:
-      grubun k-mer'leri EKSI diger butun gruplarin k-mer'leri
-   Bu adim sarttir. Yapilmazsa korunmus bolgeler (18S, 5.8S) uzerinden Trichoderma
-   okumalari Petriella'ya atanir - olculdu, %70 yanlis atama.
-3) Her okuma, ayirt edici k-mer'lerin normalize payina gore gruba atanir.
-   Esik f=0,30; bagimsiz in-silico PCR ile kalibre edildi (uyum: %0-72 araliginda
-   birkac puan).
-4) Uyelik yeniden turetilir (yukaridaki ilke ile).
-5) Butun panel ciftleri HEM mm<=1 HEM mm<=3 ile, TAM DERINLIKTE olculur.
-6) Eski ve yeni ayrim katlari yan yana yazilir.
-
-KESINTIYE DAYANIKLI
+THE BASIC PRINCIPLE
 -------------------
-Her asama bitince diske yazar (_ck_*.json). Kesilirse ayni komutla kaldigi
-yerden devam eder. Hicbir asama bastan hesaplanmaz.
+AN ABSENCE OF EVIDENCE IS NOT EVIDENCE. A bin changes place only on POSITIVE
+measured evidence. If the measurement produced no signal for a bin, that bin's OLD
+state is kept. The rule matters: done the other way round, the very bug being
+diagnosed repeats in the opposite direction (which happened exactly once while
+this script was being developed).
 
-PANELE YAZMAZ
--------------
-Bu betik panel xlsx/tsv dosyalarina YAZMAZ. Yalniz okur ve kendi ciktisini uretir.
+HOW IT WORKS
+------------
+1) The consensuses within a class are aligned at full length; those at >=99.0%
+   identity form a PRE-GROUP.
+2) A DISCRIMINATING k-mer set is extracted for each pre-group:
+      the group's k-mers MINUS the k-mers of all the other groups
+   This step is required. Without it the Trichoderma reads are assigned to
+   Petriella over the conserved regions (18S, 5.8S). Measured: 70% misassignment.
+3) Each read is assigned to a group by the normalised share of discriminating
+   k-mers. The threshold is f=0.30, calibrated against an independent in-silico
+   PCR (agreement: within a few points across a 0-72% range).
+4) The membership is re-derived (under the principle above).
+5) Every panel pair is measured at BOTH mm<=1 AND mm<=3, AT FULL DEPTH.
+6) The old and new discrimination ratios are written side by side.
 
-KULLANIM
---------
-    python3 rederive_membership.py [--kok PROJE_KLASORU] [--nmax 3000] [--sifirla]
+INTERRUPTION TOLERANT
+---------------------
+It writes to disk as each stage finishes (_ck_*.json). If it is interrupted the
+same command continues where it stopped. No stage is recomputed from scratch.
+
+IT DOES NOT WRITE TO THE PANEL
+------------------------------
+This script WRITES NOTHING into the panel xlsx or tsv files. It only reads, and
+produces its own output.
+
+USAGE
+-----
+    python3 rederive_membership.py [--root PROJECT_DIRECTORY] [--nmax 3000] [--sifirla]
+
 """
 
 # -------------------------------------------------------------------------
-# rederive_membership.py — hangi kutunun UYE hangisinin RAKIP oldugunu Kraken
-# etiketinden degil OLCULEN kimlikten yeniden turetir ve butun panel ciftlerini
-# duzeltilmis uyelikle yeniden olcer.
+# rederive_membership.py re-derives which bin is a MEMBER and which a COMPETITOR
+# from the MEASURED identity rather than the Kraken label, and re-measures every
+# panel pair with the corrected membership.
 #
-# GİRDİ  : konsensus_kanonik/*.kanonik.fa (kutu konsensusleri),
-#          "fastq files"/*/*.fastq(.gz) (ham okumalar),
-#          screening/hedef_uyelik.tsv (mevcut uyelik tanimi),
-#          primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (panel ciftleri).
-# ÇIKTI  : engine_SONUC/engine_TURETME.md,
+# INPUT  : konsensus_kanonik/*.kanonik.fa (the bin consensuses),
+#          "fastq files"/*/*.fastq(.gz) (the raw reads),
+#          screening/hedef_uyelik.tsv (the current membership definition),
+#          primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (the panel pairs).
+# OUTPUT : engine_SONUC/engine_TURETME.md,
 #          engine_SONUC/ciftler_yeniden_olcum.tsv,
 #          engine_SONUC/kutu_olculen_kimlik.tsv,
-#          engine_SONUC/_ck_*.json (kesinti kontrol noktalari).
-#          Panel dosyalarina YAZMAZ.
-# ÇAĞRAN : verification/full_chain.py -> U tusu
-#          (bat icinde: wsl -e python3 "engine/rederive_membership.py" --kok .)
+#          engine_SONUC/_ck_*.json (interruption checkpoints).
+#          It WRITES NOTHING into the panel files.
+# CALLED BY: verification/full_chain.py -> key U
+#          (python3 engine/rederive_membership.py --root .)
 #
-# BU DOSYANIN URETTIGI TABLO P, K ve D ASAMALARININ GIRDISIDIR: uyelik degisirse
-# panelin butun ayrim katlari degisir. Bu yuzden zincirde en basta durur.
+# THE TABLE THIS FILE PRODUCES IS THE INPUT OF STAGES P, K AND D: if the membership
+# changes, every discrimination ratio in the panel changes. That is why it stands
+# first in the chain.
 # -------------------------------------------------------------------------
 import os, sys, json, glob, random, argparse, time, csv, re
 
 K = 21
 NORM_ESIK = 0.30      # ayirt edici k-mer normalize esigi (kalibre edildi)
-UYE_ESIK = 50.0       # okumalarinin >=%50'si hedef gruptaysa UYE
+UYE_ESIK = 50.0       # a MEMBER when >=50% of its reads are in the target group
 KARISIK_ESIK = 15.0   # %15-50 arasi KARISIK (ne uye ne rakip)
-KONS_ESIK = 99.0      # on gruplama icin konsensus kimlik esigi
+KONS_ESIK = 99.0      # the consensus identity threshold for pre-grouping
 OKUMA_MIN, OKUMA_MAX = 200, 6000
 TOHUM = 20260802
 ENKOTU_ASGARI = 150
 KAPSAM_ESIGI = 0.20
-SINIF_ORNEK = 300     # kimlik olcumunde kutu basina okuma
+SINIF_ORNEK = 300     # reads per bin in the identity measurement
 
 try:
     import numpy as np
@@ -103,19 +109,19 @@ def fasta(p):
         else: b.append(line.strip())
     if h: yield h, ''.join(b)
 
-# ----------------------------------------------------------------- hizalama
-# ---------------------------------------------------------------------------
-# INFIX (HW) LEVENSHTEIN - son satiri dondurur.
-# Neden infix: kisa sorgu uzun hedefin ICINE hizalanir, yani hedefin basinda ve
-# sonunda kalan fazlalik CEZALANDIRILMAZ. Konsensuslerin uzunluklari cok farkli
-# (1,5 kb ile 4,5 kb yan yana); global hizalama bu farki uyumsuzluk gibi sayar ve
-# ayni organizmayi farkli gosterirdi.
+# ----------------------------------------------------------------- alignment
+# -------------------------------------------------------------------------
+# INFIX (HW) LEVENSHTEIN - it returns the last row.
+# Why infix: the short query is aligned INSIDE the long target, so the overhang left
+# at the start and the end of the target IS NOT PENALISED. Consensus lengths differ
+# a great deal (1.5 kb beside 4.5 kb); a global alignment counts that difference as
+# mismatch and would make the same organism look different.
 #
-# Sol komsu bagimliligi (ekleme) vektorlestirildi: simdi[j] = min(aday[j],
-# simdi[j-1]+1) bagintisi a[j] = simdi[j]-j konularak kosan minimuma cevrilir ve
-# np.minimum.accumulate ile tek gecise iner. Python ic dongusu kalkinca 1,5 kb x
-# 1,5 kb hizalama dakikalardan saniyelere duser.
-# ---------------------------------------------------------------------------
+# The left neighbour dependency (insertion) is vectorised: the relation
+# now[j] = min(cand[j], now[j-1]+1) turns into a running minimum by setting
+# a[j] = now[j]-j, and drops to one pass with np.minimum.accumulate. With the Python
+# inner loop gone, a 1.5 kb x 1.5 kb alignment falls from minutes to seconds.
+# -------------------------------------------------------------------------
 def _hw_son(q, t):
     n = len(t); ar = np.arange(n + 1, dtype=np.int32)
     prev = np.zeros(n + 1, dtype=np.int32)
@@ -129,8 +135,9 @@ def _hw_son(q, t):
         prev = cur
     return prev
 
-# Yuzde kimlik. Payda DAIMA kisa dizinin uzunlugudur; uzun dizinin fazlaligi
-# orani bozmaz. Kutu on gruplamasi (KONS_ESIK = %99) bu sayiya dayanir.
+# The percent identity. The denominator is ALWAYS the length of the short sequence;
+# the long sequence's excess does not distort the ratio. The bin pre-grouping
+# (KONS_ESIK = 99%) rests on this number.
 def hw_kimlik(a, b):
     """kisa olani sorgu, uzun olanin icine; donus: yuzde kimlik"""
     q, t = (a, b) if len(a) <= len(b) else (b, a)
@@ -139,28 +146,32 @@ def hw_kimlik(a, b):
 
 # ----------------------------------------------------------------- in-silico PCR
 # -------------------------------------------------------------------------
-# BIR KUTUNUN HAM OKUMALARINDA IN-SILICO PCR.
+# IN-SILICO PCR ON A BIN'S RAW READS.
 #
-# Olcut: <=max_mm uyumsuzluk VE 3' son iki baz TAM eslesme. Son iki baz sarti
-# kozmetik degildir - polimeraz 3' ucu tutmayan primerden uzatma baslatmaz.
+# The criterion: <=max_mm mismatches AND the last two bases at the 3' end matching
+# EXACTLY. The last-two condition is not cosmetic; a polymerase does not start
+# extending from a primer whose 3' end does not hold.
 #
-# GUVERCIN YUVASI (pigeonhole) TOHUMLAMASI - NEDEN KAYIPSIZ
-# Primer, max_mm+1 tane ORTUSMEYEN bloga bolunur. Dizide en fazla max_mm
-# uyumsuzluk varsa, uyumsuzluklar en fazla max_mm ayri bloga dagilabilir; geriye
-# EN AZ BIR blok kalir ve o blok TAM eslesmek ZORUNDADIR. Dolayisiyla bloklardan
-# herhangi birinin tam eslesmesini arayan bir tohumlama, olcutu saglayan HICBIR
-# baglanma yerini kaciramaz.
+# PIGEONHOLE SEEDING - WHY IT IS LOSSLESS
+# The primer is split into max_mm+1 NON-OVERLAPPING blocks. If the sequence holds at
+# most max_mm mismatches, those mismatches can spread over at most max_mm separate
+# blocks; AT LEAST ONE block is left over and that block MUST match exactly. So a
+# seeding scheme that searches for an exact match of any block CANNOT MISS a single
+# binding site satisfying the criterion.
 #
-# Bu bir SEZGISEL HIZLANDIRMA DEGIL, bir GARANTIDIR. Ayrimi onemlidir: sezgisel
-# bir tohumlayici "muhtemelen bulur" der ve kacirdiklarini haber vermez - panelin
-# eski okuma motorundaki tohum hatasi tam olarak boyle sessiz kayip uretiyordu.
-# Burada aday kumesi tohumla DARALTILIR, karar ise adaylarin tamaminda tam
-# uyumsuzluk sayimiyla verilir.
+# This IS NOT A HEURISTIC SPEED-UP, it is A GUARANTEE. The distinction matters: a
+# heuristic seeder says "it will probably find it" and never reports what it missed,
+# and the seed bug in the panel's old read engine produced exactly that kind of
+# silent loss. Here the candidate set is NARROWED by the seed, and the decision is
+# made on all candidates by a full mismatch count.
 # -------------------------------------------------------------------------
 class Kutu:
-    """Ham okumalarda in-silico PCR. Olcut: <=max_mm uyumsuzluk + 3' son 2 baz TAM.
-    Guvercin yuvasi tohumlamasi: primer max_mm+1 ORTUSMEYEN bloga bolunur, en az
-    biri tam tutmak zorundadir -> KAYIPSIZ (mm<=1 ve mm<=3 icin)."""
+    """In-silico PCR on the raw reads. The criterion: <=max_mm mismatches plus the last
+        2 bases at the 3' end EXACT.
+        Pigeonhole seeding: the primer is split into max_mm+1 NON-OVERLAPPING blocks and
+        at least one of them must match exactly -> LOSSLESS (for mm<=1 and mm<=3).
+
+    """
     def __init__(self, path, nmax=3000):
         rs = []
         op = open
@@ -205,18 +216,21 @@ class Kutu:
             c = c * 4 + v
         return c
     # -----------------------------------------------------------------------
-    # Bir oligonun butun baglanma yerlerini bulur (guvercin yuvasi tohumlamasi).
+    # Finds every binding site of an oligo (pigeonhole seeding).
     #
-    # 1) Oligo max_mm+1 ortusmeyen bloga bolunur -> en az biri tam tutmak zorunda.
-    # 2) Blok uzunlugundan kucuk esit bir k secilir (mm<=1 icin 9, mm<=3 icin 5);
-    #    k blok boyunu asarsa tohum blogun disina tasar ve GARANTI BOZULUR, o
-    #    yuzden k daima min(blok boyu) ile sinirlanir.
-    # 3) Her blogun k-mer kodu, onceden kurulmus sirali indekste ikili aramayla
-    #    bulunur; adaylarin birlesimi alinir.
-    # 4) Aday konumlar okuma sinirlarina kirpilir (bir okuma bitip digeri baslarken
-    #    araya konan N ayraci yuzunden okumalar arasi eslesme uretilmemeli).
-    # 5) Karar: TAM uyumsuzluk sayimi <= max_mm VE son iki bazin ikisi de tam.
-    #    Tohum yalnizca ADAY TOPLAR; eleme burada, tam sayimla yapilir.
+    # 1) The oligo is split into max_mm+1 non-overlapping blocks -> at least one must
+    #    match exactly.
+    # 2) A k is chosen no larger than the block length (9 for mm<=1, 5 for mm<=3); if k
+    #    exceeded the block length the seed would spill outside the block and THE
+    #    GUARANTEE WOULD BREAK, so k is always bounded by min(block length).
+    # 3) Each block's k-mer code is found by binary search in a pre-built sorted index,
+    #    and the union of the candidates is taken.
+    # 4) The candidate positions are clipped to the read boundaries (the N separator
+    #    placed where one read ends and the next begins must not produce a match across
+    #    two reads).
+    # 5) The decision: a FULL mismatch count <= max_mm AND both of the last two bases
+    #    exact. The seed only COLLECTS CANDIDATES; the elimination happens here, on a
+    #    full count.
     # -----------------------------------------------------------------------
     def _yerler(self, olig, max_mm):
         L = len(olig); nb = max_mm + 1
@@ -246,13 +260,14 @@ class Kutu:
         keep = (mm <= max_mm) & (blok[:, L - 1] == O[L - 1]) & (blok[:, L - 2] == O[L - 2])
         return S[keep], si[keep]
     # -----------------------------------------------------------------------
-    # Kac okuma urun veriyor? Ileri primer sense yonde, geri primerin TERS
-    # TUMLEYENI ayni okumada aranir; ikisi AYNI okumada, dogru sirada (geri primer
-    # ileri primerin bittigi yerden sonra) ve lo-hi bp mesafede olmalidir.
+    # How many reads give a product? The forward primer is searched in the sense
+    # direction and the REVERSE COMPLEMENT of the reverse primer in the same read; the
+    # two must be in the SAME read, in the right order (the reverse primer after the
+    # forward primer ends) and lo-hi bp apart.
     #
-    # Sayilan sey URUN VEREN OKUMA SAYISIDIR, baglanma yeri sayisi degil: bir
-    # okumada birden fazla gecerli cift bulunsa da o okuma bir kez sayilir
-    # (veren bir kume). Aksi halde tekrarli bolgeler orani sisirirdi.
+    # What is counted is THE NUMBER OF READS GIVING A PRODUCT, not the number of binding
+    # sites: even if a read holds several valid pairs, that read is counted once (a
+    # giving set). Otherwise repetitive regions would inflate the proportion.
     # -----------------------------------------------------------------------
     def pcr(self, F, R, lo=60, hi=400, max_mm=1):
         Fs, Fi = self._yerler(F, max_mm)
@@ -271,20 +286,24 @@ class Kutu:
         return len(veren), self.n_okuma
 
 # -------------------------------------------------------------------------
-# WILSON SKOR ARALIGI - NEDEN HAM ORAN KULLANILMIYOR
+# THE WILSON SCORE INTERVAL - WHY THE RAW PROPORTION IS NOT USED
 #
-# Ham oran k/n kucuk orneklemde yaniltici olur: 3 okumanin 3'u urun verdiyse ham
-# oran %100'dur, ama bu sayinin arkasinda neredeyse hicbir kanit yoktur. Ayni
-# sekilde 200 okumanin 0'i urun verdiyse ham oran %0'dir ve "hic capraz yok"
-# izlenimi verir - oysa gercek oran %1,5 olabilir.
+# The raw proportion k/n misleads on a small sample: if 3 of 3 reads gave a product
+# the raw proportion is 100%, but there is almost no evidence behind that number. In
+# the same way, if 0 of 200 reads gave a product the raw proportion is 0% and gives
+# the impression of "no cross reaction at all", when the real proportion could be
+# 1.5%.
 #
-# Wilson araligi bu belirsizligi sayiya doker ve HER ZAMAN MUHAFAZAKAR TARAF
-# secilir:
-#   uye tarafi  -> ALT sinir (hedefi gorme basarisini olabilecek en dusuk tahmin)
-#   rakip tarafi-> UST sinir (capraz riskini olabilecek en yuksek tahmin)
-# Ayrim kati bu ikisinin oranidir, yani daima en kotu senaryoyu olcer. Bu
-# secim yuzunden sig kutular DUSUK kat verir - bu bir hata degil, kanitin
-# azligidir; olcum derinliginin butun satirlarda ayni tutulmasinin sebebi de budur.
+# The Wilson interval turns that uncertainty into a number, and THE CONSERVATIVE
+# SIDE IS ALWAYS taken:
+#   the member side     -> the LOWER bound (the lowest possible estimate of how well
+#                          the target is seen)
+#   the competitor side -> the UPPER bound (the highest possible estimate of the
+#                          cross reaction risk)
+# The discrimination ratio is the ratio of those two, so it always measures the
+# worst case. Because of that choice, shallow bins give a LOW fold. That is not an
+# error but a scarcity of evidence, and it is also why the measurement depth is kept
+# the same on every row.
 # -------------------------------------------------------------------------
 def wilson(k, n, z=1.96):
     import math
@@ -293,10 +312,10 @@ def wilson(k, n, z=1.96):
     s = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
     return (max(0.0, c - s), min(1.0, c + s))
 
-# ----------------------------------------------------------------- yardimcilar
-# Kontrol noktasi yazimi ATOMIKtir: once .tmp dosyasina yazilir, sonra os.replace
-# ile yerine konur. Kosu yazma aninda kesilirse yarim JSON kalmaz - yarim kontrol
-# noktasi bir sonraki kosuyu sessizce bozardi.
+# ----------------------------------------------------------------- helpers
+# Writing a checkpoint is ATOMIC: it is written to a .tmp file first and then put in
+# place with os.replace. If the run is interrupted while writing, no half JSON is
+# left behind; a half checkpoint would silently break the next run.
 def ck_yaz(yol, veri):
     tmp = yol + '.tmp'
     json.dump(veri, open(tmp, 'w', encoding='utf-8'))
@@ -310,12 +329,14 @@ def ck_oku(yol, varsayilan):
 
 def sinifi(kutu): return kutu.split('_')[0].split('-')[0]
 
-# fastq dosya adi -> kutu adi. A1-1 orneginin dosyalari alt cizgili adlandirilmis
-# (A1_1_reads_2223.fastq); normalize edilmezse o kutular hic taninmaz ve sessizce
-# olcum disi kalirdi.
+# A fastq file name -> a bin name. The files of sample A1-1 are named with
+# underscores (A1_1_reads_2223.fastq); without normalising, those bins would not be
+# recognised at all and would silently fall outside the measurement.
 def kutu_adi(dosya):
-    """fastq dosya adindan kutu adi. A1-1 orneginde alt cizgili adlandirma var
-    (A1_1_reads_2223.fastq) - normalize edilir, yoksa o kutular TANINMAZ."""
+    """The bin name from a fastq file name. Sample A1-1 uses underscore naming
+        (A1_1_reads_2223.fastq); it is normalised, or those bins are NOT RECOGNISED.
+
+    """
     b = os.path.basename(dosya)
     for uz in ('.fastq.gz', '.fastq'):
         if b.endswith(uz): b = b[:-len(uz)]
@@ -326,14 +347,15 @@ def kutu_adi(dosya):
     if m: return '%s_%s' % (m.group(1).replace('_', '-'), m.group(2))
     return b
 
-# ----------------------------------------------------------------- ana akis
+# ----------------------------------------------------------------- main flow
 # -------------------------------------------------------------------------
-# ANA AKIS - bes adim, hepsi kontrol noktali:
-#   0) envanter        : konsensus ve fastq dosyalarini eslestir.
-#   1) kimlik matrisi  : sinif ici butun konsensus ciftlerini hizala (_ck_kimlik).
-#   2) siniflama       : on gruplar + AYIRT EDICI k-mer + okuma atamasi (_ck_icerik).
-#   3) uyelik turetme  : uye / karisik / rakip kumelerini yeniden kur.
-#   4) yeniden olcum   : butun panel ciftleri HEM mm<=1 HEM mm<=3 (_ck_olcum).
+# THE MAIN FLOW - five steps, all of them checkpointed:
+#   0) inventory          : match up the consensus and fastq files.
+#   1) the identity matrix: align every consensus pair within a class (_ck_kimlik).
+#   2) classification     : pre-groups plus DISCRIMINATING k-mers plus read
+#                           assignment (_ck_icerik).
+#   3) membership         : rebuild the member / mixed / competitor sets.
+#   4) re-measurement     : every panel pair at BOTH mm<=1 AND mm<=3 (_ck_olcum).
 # -------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
@@ -369,11 +391,11 @@ def main():
     if eksik: print('  UYARI - konsensusu olmayan fastq: %s' % ', '.join(eksik))
     print()
 
-    # ADIM 1 - sinif ici butun konsensus ciftlerinin kimlik matrisi. Yalniz AYNI
-    # sinif icinde karsilastirilir: farkli siniflar zaten farkli lokuslardir ve
-    # aralarindaki kimlik bir sey ifade etmez. Matris kontrol noktasina yazilir,
-    # kosu kesilirse bastan hesaplanmaz.
-    # --- 1. kimlik matrisi
+    # STEP 1 - the identity matrix of every consensus pair within a class. Only bins in
+    # THE SAME class are compared: different classes are already different loci and the
+    # identity between them means nothing. The matrix is written to a checkpoint, so an
+    # interrupted run does not recompute it from scratch.
+    # --- 1. the identity matrix
     ckm = os.path.join(CIK, '_ck_kimlik.json')
     KM = ck_oku(ckm, {})
     siniflar = {}
@@ -397,20 +419,21 @@ def main():
         print(u'  [1/4] Identity matrix read from checkpoint (%d pairs)' % len(KM))
 
     # -----------------------------------------------------------------------
-    # ADIM 2 - AYIRT EDICI k-mer kumesi. Bir on grubun k-mer'lerinden DIGER butun
-    # gruplarin k-mer'leri CIKARILIR; geriye yalnizca o gruba OZGU olanlar kalir.
+    # STEP 2 - THE DISCRIMINATING k-mer set. The k-mers of ALL THE OTHER groups are
+    # SUBTRACTED from a pre-group's k-mers; what is left is only what is SPECIFIC to
+    # that group.
     #
-    # Bu cikarma SARTTIR. Yapilmazsa okumalar korunmus bolgeler (18S, 5.8S, LSU
-    # cekirdegi) uzerinden eslesir ve gruplar birbirine karisir - olculdu:
-    # Trichoderma okumalarinin %70'i Petriella'ya atanmisti. Korunmus bolge butun
-    # gruplarda AYNI oldugu icin ayrimda ise yaramaz; sahte yuksek benzerlik tam da
-    # oradan gelir.
+    # That subtraction IS REQUIRED. Without it the reads match over conserved regions
+    # (18S, 5.8S, the LSU core) and the groups run into one another. Measured: 70% of
+    # the Trichoderma reads had been assigned to Petriella. A conserved region is THE
+    # SAME in every group so it is useless for discrimination, and falsely high
+    # similarity comes from exactly there.
     #
-    # Atama esigi NORM_ESIK = 0,30 normalize paydir (grubun ayirt edici kume boyu
-    # ile okumanin k-mer sayisinin kucugune bolunur), bagimsiz in-silico PCR ile
-    # kalibre edilmistir.
+    # The assignment threshold NORM_ESIK = 0.30 is a normalised share (divided by the
+    # smaller of the group's discriminating set size and the read's k-mer count), and it
+    # was calibrated against an independent in-silico PCR.
     # -----------------------------------------------------------------------
-    # --- 2. on gruplar + ayirt edici k-mer + okuma siniflamasi
+    # --- 2. pre-groups plus discriminating k-mers plus read classification
     cki = os.path.join(CIK, '_ck_icerik.json')
     IC = ck_oku(cki, {})
     GRUPLAR = {}
@@ -480,15 +503,16 @@ def main():
         print(u'  [2/4] Read classification read from checkpoint')
 
     # -----------------------------------------------------------------------
-    # ADIM 3 - UYELIGIN YENIDEN KURULMASI.
-    # Once mevcut uye kutularin baskin gruplari toplanir (hg = hedef gruplar),
-    # sonra sinifin BUTUN kutulari bu gruplara gore yeniden dagitilir:
-    #   pay >= UYE_ESIK      -> UYE
-    #   KARISIK_ESIK .. UYE  -> KARISIK (ne uye ne rakip)
-    #   altinda              -> RAKIP
-    # Evrensel hedeflerde sinifin tamami uyedir; ayirma yapilmaz.
+    # STEP 3 - REBUILDING THE MEMBERSHIP.
+    # First the dominant groups of the current member bins are collected (hg = the
+    # target groups), then ALL the bins of the class are redistributed against those
+    # groups:
+    #   share >= UYE_ESIK       -> MEMBER
+    #   KARISIK_ESIK .. UYE     -> MIXED (neither a member nor a competitor)
+    #   below that              -> COMPETITOR
+    # On universal targets the whole class is a member; no separation is made.
     # -----------------------------------------------------------------------
-    # --- 3. uyelik yeniden turetme
+    # --- 3. re-deriving the membership
     print(u'  [3/4] Re-deriving membership')
     uyelik_tsv = os.path.join(KOK, 'screening', 'hedef_uyelik.tsv')
     panel_tsv = os.path.join(KOK, 'primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
@@ -523,18 +547,19 @@ def main():
             en = max(pay.items(), key=lambda x: x[1]) if pay else (None, 0.0)
             if k in eski:
                 # ---------------------------------------------------------------
-                # KANIT YOKLUGU KANIT SAYILMAZ.
-                # Halihazirda uye olan bir kutu ancak POZITIF olcum kanitiyla yer
-                # degistirir: okumalarinin baskin grubu UYE_ESIK'i gecmeli VE o
-                # grup hedef gruplarindan biri OLMAMALIDIR. Olcum bu kutu icin
-                # sinyal uretemediyse (pay tablosu bos ya da zayif) kutu UYE
-                # KALIR.
+                # AN ABSENCE OF EVIDENCE IS NOT EVIDENCE.
+                # A bin that is already a member changes place only on POSITIVE measured
+                # evidence: the dominant group of its reads must pass UYE_ESIK AND that
+                # group must NOT BE one of the target groups. If the measurement produced no
+                # signal for this bin (the share table is empty or weak) the bin STAYS A
+                # MEMBER.
                 #
-                # Tersi yapilsaydi - "kanit yoksa cikar" - teshis edilen hatanin
-                # aynisi ters yonde tekrarlanirdi: az okumali kutular sirf sessiz
-                # olduklari icin rakip hanesine dusup ayrim katlarini bozarlardi.
+                # Had it been done the other way round - "remove it when there is no
+                # evidence" - the very bug being diagnosed would repeat in the opposite
+                # direction: bins with few reads would fall into the competitor column just
+                # for being quiet, and would distort the discrimination ratios.
                 # ---------------------------------------------------------------
-                # POZITIF kanit yoksa eski durum korunur
+                # with no POSITIVE evidence the old state is kept
                 if en[1] >= UYE_ESIK and en[0] not in hg: rak.append(k)
                 else: yeni_u.append(k)
             else:
@@ -547,11 +572,11 @@ def main():
     deg = sum(1 for o in UY.values() if o['eklenen'] or o['cikan'])
     print('        %d hedeften %d tanesinin uyeligi degisti' % (len(UY), deg))
 
-    # ADIM 4 - butun panel ciftleri, butun kutularda, HEM mm<=1 (asil olcut) HEM
-    # mm<=3 (dayaniklilik olcutu) ile olculur. Kutu basina tek fastq okumasi yapilir
-    # ve o kutudaki BUTUN ciftler ayni indeks uzerinden sorulur; her kutu bitince
-    # kontrol noktasina yazilir.
-    # --- 4. panel ciftlerini yeniden olc
+    # STEP 4 - every panel pair, in every bin, measured at BOTH mm<=1 (the primary
+    # criterion) AND mm<=3 (the robustness criterion). Each bin's fastq is read once and
+    # ALL the pairs in that bin are asked against the same index; a checkpoint is written
+    # as each bin finishes.
+    # --- 4. re-measure the panel pairs
     CF = []
     for r in rows:
         F = (r.get("Ileri primer (5'->3')") or '').strip().upper()
@@ -560,14 +585,16 @@ def main():
         CF.append(dict(hedef=r['Hedef'].strip(), F=F, R=R,
                        urun=(r.get('Urun (bp)') or '').strip()))
     cko = os.path.join(CIK, '_ck_olcum.json')
-    # 2026-08-10 DIZI MUHRU. Onbellek kutu adiyla anahtarlaniyor, cift sonuclari
-    # ise ciftin SIRA NUMARASI (str(i)) altinda tutuluyordu. Iki ayri hata:
-    #   1) bir ciftin dizisi degisince ayni sira numarasi okunup ESKI olcum
-    #      yeni dizinin yanina yaziliyordu (dizi yeni, sayi eski);
-    #   2) panelde cift eklenip cikarilinca sira kayiyor ve sayilar YANLIS
-    #      cifte atanabiliyordu.
-    # Cozum: cift anahtari sira degil, F+R dizisinin ozeti. Ayrica dosyanin
-    # basina bir muhur yazilir; muhur tutmazsa onbellek bastan kurulur.
+    # THE 2026-08-10 SEQUENCE SEAL. The cache was keyed by bin name and the pair results
+    # were held under the pair's ORDINAL (str(i)). Two separate bugs:
+    #   1) when a pair's sequence changed, the same ordinal was read and the OLD
+    #      measurement was written beside the new sequence (a new sequence with an old
+    #      number);
+    #   2) when a pair was added to or removed from the panel the ordinals shifted and
+    #      numbers could be attached to THE WRONG pair.
+    # The fix: the pair key is not the ordinal but a digest of the F+R sequence. A seal
+    # is also written at the head of the file; if the seal does not match, the cache is
+    # rebuilt from scratch.
     import hashlib as _hl
 
     def _ck_anahtar(c):
@@ -595,21 +622,22 @@ def main():
         ck_yaz(cko, OL)
         print('        %-18s %d/%d  (%.0f sn)' % (kb, n, len(kalan), time.time() - t0), flush=True)
 
-    # --- ayrim katlari
+    # --- the discrimination ratios
     # -----------------------------------------------------------------------
-    # AYRIM KATI = (uye kutularin EN DUSUK Wilson ALT siniri) /
-    #              (rakip kutularin EN YUKSEK Wilson UST siniri)
-    # Iki tarafta da en kotu kutu secilir: pay tarafinda hedefi en az goren uye,
-    # payda tarafinda en cok capraz veren rakip. Ortalama alinsaydi tek bir kotu
-    # kutu kalabaligin icinde erir ve gercek risk gorunmezdi.
+    # THE DISCRIMINATION RATIO = (the LOWEST Wilson LOWER bound of the member bins) /
+    #                            (the HIGHEST Wilson UPPER bound of the competitor bins)
+    # The worst bin is taken on both sides: in the numerator the member that sees the
+    # target least, in the denominator the competitor that cross reacts most. Had an
+    # average been used, a single bad bin would dissolve in the crowd and the real risk
+    # would be invisible.
     #
-    # ENKOTU_ASGARI (150 okuma) altindaki rakip kutular paydaya girmez: o
-    # derinlikte Wilson ust siniri neredeyse her zaman tavana vurur ve kat sayisi
-    # rakibin gercek davranisini degil sadece okuma azligini olcerdi.
+    # Competitor bins below ENKOTU_ASGARI (150 reads) do not enter the denominator: at
+    # that depth the Wilson upper bound almost always hits the ceiling, and the fold
+    # would measure not the competitor's real behaviour but only the scarcity of reads.
     #
-    # KAPSAM ayri bir eksendir: uye kutularin kaci >=%20 urun veriyor. Ayrim
-    # yuksek ama kapsam dusukse cift ozguldur ama hedefin tamamini gormez - iki
-    # sorun birbirine karistirilmamalidir.
+    # COVERAGE is a separate axis: how many of the member bins give >=20% product. If
+    # the discrimination is high but the coverage low, the pair is specific but does not
+    # see the whole target. The two problems must not be confused.
     # -----------------------------------------------------------------------
     def hesap(ci, uye, rakip, mm):
         uy = []; rk = []
