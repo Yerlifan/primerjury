@@ -552,12 +552,11 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                                     encoding='utf-8'), ensure_ascii=False, default=str)
                 bulgular[k][et] = res
             bos = len([1 for k in kalan if not (kls.get(k) or [])])
-            yaz(u'     %-20s: %s kayit tarandi, kapsam %s | %d kutu isabet, %d SONUC YOK (%s)'
+            yaz(u'     %-20s: %s records scanned, coverage %s | %d bins hit, %d NO RESULT (%s)'
                 % (et, '{:,}'.format(taranan).replace(',', ' '), kapsam,
                    len(kalan) - bos, bos, K.sure_metni(time.time() - t0)))
             if bek and taranan < bek:
-                yaz(u'     >>> UYARI: KAPSAM EKSIK. %s icinde %d kayit beklenirken %d '
-                    u'tarandi. Tavan sorunu tekrarlanmis olabilir - kontrol edin.'
+                yaz(u'     >>> WARNING: COVERAGE INCOMPLETE. %d records were expected in %s but %d were scanned. The cap problem may have recurred'
                     % (et, bek, taranan))
 
         # dosyasi olmayan veritabanlari da SATIRDA GORUNSUN
@@ -766,7 +765,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                 (s.get('literatur') or {}).get('revizyon_uyarisi', '-'),
                 (s.get('literatur') or {}).get('durum', '-'), hepsi])
         if atlanan:
-            fh.write(u'#\n# ATLANAN KUTULAR (sessiz atlama yok):\n')
+            fh.write(u'#\n# SKIPPED BINS (nothing is skipped silently):\n')
             for k, sebep in atlanan:
                 fh.write(u'# %s\t%s\n' % (k, sebep))
     yaz(u'  written: %s' % t)
@@ -793,7 +792,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             fh.write(u'| %d | %s | %s | %s | %s |\n'
                      % (i, e, '{:,}'.format(BEKLENEN_KAYIT.get(e, 0)).replace(',', ' '),
                         '{:,}'.format(tar).replace(',', ' ') if tar else
-                        u'onbellekten (bu kosuda taranmadi)',
+                        u'from cache (not scanned in this run)',
                         kap or u'onceki kosuda dogrulandi'))
         for e, d, _t in yok:
             fh.write(u'| - | %s | - | - | **DOSYA YOK** (`REFERANS_DB/%s`) |\n' % (e, d))
@@ -816,25 +815,20 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         fh.write(u'| belirsiz / kayitli adi olmayan | %d |\n' % len(belirsiz))
         fh.write(u'| **targets affected** | **%d** |\n' % len(etkilenen))
         fh.write(u'| bunlardan UYELIK kumesi degisen | %d |\n' % len(uye_etkilenen))
-        fh.write(u'| atlanan kutu (olcume girmiyor) | %d |\n\n' % len(atlanan))
+        fh.write(u'| skipped bins (not in the measurement) | %d |\n\n' % len(atlanan))
         if degisen:
-            fh.write(u'> **YENIDEN OLCUM GEREKIYOR.** %d kutunun kimligi degisti ve bu '
-                     u'%d hedefin uyelik ya da rakip kumesini etkiliyor. Uyelik kumesi '
-                     u'degisen %d hedefte omurga konsensus da degisebilir, yani primer '
-                     u've ayrim degerleri yeniden hesaplanmalidir.\n\n'
-                     u'Etkilenen hedefler: %s\n\n'
+            fh.write(u'> **RE-MEASUREMENT IS NEEDED.** %d bins changed identity, and that affects the member or competitor set of %d targets'
                      % (len(degisen), len(etkilenen), len(uye_etkilenen),
                         ', '.join(sorted(etkilenen))))
         else:
-            fh.write(u'> Hicbir kutunun kimligi degismedi: uyelik ve rakip kumeleri '
-                     u'oldugu gibi kalir, **yeniden olcum gerekmiyor**.\n\n')
+            fh.write(u'> No bin changed identity: the member and competitor sets stay as they are, so **no re-measurement is needed**')
 
         # --- UYUSMAYANLAR ---
         if degisen:
-            fh.write(u'## Uyusmayanlar (once bunlar)\n\n')
+            fh.write(u'## Disagreements (read these first)\n\n')
             for s in degisen:
                 fh.write(u'### %s  (taxid %s)\n\n' % (s['kutu'], s['taxid']))
-                fh.write(u'- **Kayitli kimlik:** %s\n' % s['kayitli_kimlik'])
+                fh.write(u'- **Recorded identity:** %s\n' % s['kayitli_kimlik'])
                 fh.write(u'- **Dogrulanan:** %s  (`%s`) - %s\n'
                          % (s['dogrulanan_ad'], s['duzey'], s['hukum']))
                 fh.write(u'  - *Gerekce:* %s\n' % s['gerekce'])
@@ -861,8 +855,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                 fh.write(u'\n')
         if atlanan:
             fh.write(u'## Atlanan kutular\n\n')
-            fh.write(u'Bunlar hicbir hedefin uyesi ya da rakibi degil, yani hicbir ayrim '
-                     u'hesabina girmiyorlar. Sessizce atlanmadilar - burada yazililar.\n\n')
+            fh.write(u'These are not a member or a competitor of any target, so they enter no discrimination calculation. They are not skipped silently')
             for k, sebep in atlanan:
                 fh.write(u'- `%s` - %s\n' % (k, sebep))
             fh.write(u'\n')
@@ -871,7 +864,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
     yaz(u'  IMPACT: %d bins tested | identity CHANGED for %d | targets affected %d | membership changed %d | skipped %d'
         % (len(sonuc), len(degisen), len(etkilenen), len(uye_etkilenen), len(atlanan)))
     if eksik:
-        yaz(u'  >>> UYARI: kapsami EKSIK veritabani: %s' % ', '.join(eksik))
+        yaz(u'  >>> WARNING: database with INCOMPLETE coverage: %s' % ', '.join(eksik))
 
 
 # Komut satiri: --kisa-liste (varsayilan I ile ayni), --kume bir akista kac kutu,

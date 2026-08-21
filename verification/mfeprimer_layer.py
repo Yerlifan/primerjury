@@ -222,8 +222,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                 except OSError:
                     pass
                 if _bayat:
-                    yaz(u'    kontrol noktasi BAYAT (indeks daha yeni), yeniden '
-                        u'kosuluyor: %s / %s' % (ad[:28], dosya))
+                    yaz(u'    checkpoint STALE (the index is newer), re-running: %s / %s' % (ad[:28], dosya))
                     try:
                         os.remove(kp)
                     except OSError:
@@ -260,7 +259,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                 sonuc[c['hedef']][dosya] = dict(
                     hata=u'eski cikti dosyasi silinemedi, MFEprimer uzerine YAZMAZ: %s'
                          % _silinemedi)
-                yaz(u'    HATA: eski cikti silinemedi, bu veritabani olculemedi: %s'
+                yaz(u'    ERROR: the old output could not be deleted, so this database was not measured: %s'
                     % co)
                 continue
             t0 = time.time()
@@ -310,7 +309,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                 if isinstance(x, dict) and not x.get('hata'))
         a = sum(x.get('ayni_boyda', 0) for x in sonuc[c['hedef']].values()
                 if isinstance(x, dict) and not x.get('hata'))
-        yaz(u'    %-34s hedef disi %d, hedefle ayni boyda %d' % (c['hedef'][:34], t, a))
+        yaz(u'    %-34s off-target %d, same length as the target %d' % (c['hedef'][:34], t, a))
     return dict(durum='TAMAM', kullanilan=kullanilan, atlanan=atlanan), sonuc
 
 
@@ -368,8 +367,7 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
                           kural_ihlali=bool(dgs and min(dgs) <= DG_ESIGI),
                           hukum_verilebilir=bool(dgs),
                           tm_kurali_uygulanamadi_ust=ust, dosya=co)
-        yaz(u'    %s: %d kayit, en dusuk Delta G %s kcal/mol (Tm bu araci taraf'
-            u'indan kayit basina HESAPLANMIYOR - Tm<%.0f kurali uygulanamadi)'
+        yaz(u'    %s: %d records, lowest Delta G %s kcal/mol (this tool does NOT COMPUTE a Tm per record; Tm<%'
             % (komut, n, ('%.2f' % min(dgs)) if dgs else '-', ust))
     return out
 
@@ -404,17 +402,13 @@ def hedef_disi_kimlikleri(CIKTI, ciftler, yaz, tolerans=10):
         except (TypeError, ValueError, KeyError) as e:
             bek_dusen.append((c.get('hedef', '?'), repr(c.get('urun')), type(e).__name__))
     if bek_dusen:
-        yaz(u'  UYARI: %d hedefin beklenen urun boyu okunamadi; bu hedeflerde '
-            u'"ayni boyda" ayrimi YAPILAMAZ ve her amplikon hedef disi sayilir:'
+        yaz(u'  WARNING: the expected product length could not be read for %d targets. For those, the "same length" separation CANNOT be made and every amplicon'
             % len(bek_dusen))
         for h, v, e in bek_dusen:
-            yaz(u'    %-40s urun=%s (%s)' % (h[:40], v, e))
+            yaz(u'    %-40s product=%s (%s)' % (h[:40], v, e))
     satir = 0
     with open(yol, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# MFEprimer "hedef disi" amplikonlarinin KIMLIGI (D-7).\n'
-                 u'# hedef disi olcusu SADECE BOYA dayanir; asagidaki organizma\n'
-                 u'# hedef kladin ICINDE ise o amplikon hedef disi DEGILDIR, hedefin\n'
-                 u'# uzunluk varyantidir. Karar bu sutuna bakilarak verilir.\n')
+        fh.write(u'# The IDENTITY of MFEprimer "off-target" amplicons (D-7).\n# The off-target measure rests on LENGTH ALONE; below')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'veritabani', 'amplikon_bp', 'beklenen_bp', 'erisim',
                     'organizma', 'FpTm', 'RpTm', 'Ta', 'termodinamik_notu'])
@@ -452,7 +446,7 @@ def hedef_disi_kimlikleri(CIKTI, ciftler, yaz, tolerans=10):
                     _not = u''
                 w.writerow([hedef, db, bp, b, er, org.get(i, ''), ftm, rtm, ta, _not])
                 satir += 1
-    yaz(u'  yazildi: %s (%d hedef disi amplikonun kimligi)' % (yol, satir))
+    yaz(u'  written: %s (the identity of %d off-target amplicons)' % (yol, satir))
     return yol, satir
 
 
@@ -544,7 +538,7 @@ def klad_siniflandir(kok, CIKTI, ciftler, ta_panel, yaz=None):
     yol = os.path.join(CIKTI, 'mfe_hedef_disi_kimlikleri.tsv')
     if not tab or not os.path.exists(yol):
         if yaz:
-            yaz(u'    klad ayrimi YAPILAMADI (%s yok) - ham sayi kullanilacak'
+            yaz(u'    clade separation NOT POSSIBLE (%s missing); the raw count will be used'
                 % ('hedef_klad.tsv' if not tab else os.path.basename(yol)))
         return {}
     out = {}
@@ -596,6 +590,6 @@ def klad_siniflandir(kok, CIKTI, ciftler, ta_panel, yaz=None):
                                       FpTm=r.get('FpTm'), RpTm=r.get('RpTm'),
                                       dTm=dtm))
     if eksik and yaz:
-        yaz(u'    UYARI: hedef_klad.tsv\'de tanimi olmayan hedef(ler): %s'
+        yaz(u'    WARNING: target(s) with no entry in hedef_klad.tsv: %s'
             % ', '.join(sorted(eksik))[:200])
     return out

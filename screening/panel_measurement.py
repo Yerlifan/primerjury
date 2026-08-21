@@ -91,9 +91,9 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     yaz('=' * 78)
     yaz('  PANELIN DUZELTILMIS MOTORLA YENIDEN OLCUMU')
     yaz('=' * 78)
-    yaz('  cift sayisi   : %d' % len(panel))
+    yaz(u'  pairs         : %d' % len(panel))
     yaz('  okuma derinligi: %s' % ('TAM (kutudaki butun okumalar)' if not okuma_sayisi
-                                   else '%d okuma/kutu' % okuma_sayisi))
+                                   else u'%d reads/bin' % okuma_sayisi))
     yaz('  olcutler      : ' + '  |  '.join(olcut_metni(m) for m in OLCUTLER))
     yaz('  motor         : screening/read_engine.py %s'
         % getattr(motor.okuma_motoru, '__version__', '?'))
@@ -106,14 +106,14 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     for b in baglamlar.values():
         for k in b['uye_kutu'] + b['rakip_kutu']:
             gerekli[k['kutu']] = k
-    yaz('Ham okuma havuzlari kuruluyor: %d kutu (%s)'
+    yaz(u'Building raw read pools: %d bins (%s)'
         % (len(gerekli), 'TAM derinlik' if not okuma_sayisi else 'ornekli'))
     if not okuma_sayisi:
         yaz('')
-        yaz('  >> DIKKAT: bu adim butun fastq dosyalarini okur ve 10-25 DAKIKA surebilir.')
-        yaz('     Bu sure boyunca ekranda yalniz kutu adlari akar - takilmis DEGILDIR.')
-        yaz('     Bu adim bitmeden durdurursaniz bastan baslar; asil olcum ondan')
-        yaz('     sonra basliyor ve orada her cift ayri ayri kaydediliyor.')
+        yaz(u'  >> NOTE: this step reads every fastq file and can take 10-25 MINUTES.')
+        yaz(u'     Only bin names scroll past on screen during that time; it is NOT stuck.')
+        yaz(u'     If you stop before this step finishes it starts over. The real measurement')
+        yaz(u'     begins afterwards, and there each pair is saved separately.')
         yaz('')
 
     def ilerK(i, n, ad):
@@ -130,7 +130,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     yaz(u'\nPools ready: %d bins, %d reads  (%s)'
         % (len(gerekli), top_okuma, sure(time.time() - t0)))
     tahmin = len(panel) * len(OLCUTLER) * max(1.0, top_okuma / 20000.0)
-    yaz('TAHMINI SURE: ~%s  (kesintiye dayaniklidir, kaldigi yerden devam eder)\n'
+    yaz(u'ESTIMATED TIME: ~%s  (resumable; it continues where it stopped)\n'
         % sure(tahmin))
 
     sonuclar = []
@@ -189,7 +189,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
             r['olcumler'][str(mm)] = o
         o1 = r['olcumler'][str(OLCUTLER[0])]
         yaz('[%d/%d] %-38s  %s' % (i, len(panel), d['hedef'][:38],
-            ('uye %%%.1f-%%%.1f kapsam %s | ayrim %s x havuz / %s x en kotu'
+            (u'member %%%.1f-%%%.1f coverage %s | discrimination %s x pool / %s x worst'
              % (o1['uye_min'], o1['uye_max'], o1['uye_kapsam_pay'],
                 o1['kat_havuz'], o1['kat_enkotu'])) if o1 else 'OLCULEMEDI'))
         r['_ayar'] = dict(kontrol.AYAR)

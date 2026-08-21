@@ -263,8 +263,7 @@ def ozet(kok, CIKTI, durum, yaz):
         fh.write(u'- Of those, marked CONTRADICTORY or RISKY during verification: **%d**\n'
                  % (len(gecen) - len(temiz)))
         if eksik:
-            fh.write(u'- Dogrulamasi TAMAMLANMAMIS (NCBI eksik): %d — bunlar yukaridaki '
-                     u'sayiya DAHIL, ama NCBI adimi bitmeden siparis onerilmez\n' % len(eksik))
+            fh.write(u'- Verification NOT COMPLETE (NCBI missing): %d. These ARE included in the number above, but they cannot be ordered before the NCBI step finishes' % len(eksik))
         # ESKI/YENI KIMLIK yan yana: ">>" isareti toplantida konusulan ad ile
         # olculen kimligin AYNI OLMADIGINI gosterir.
         fh.write(u'\n| # | CLASS | target | Kraken label | Measured identity | Level | product bp | discrimination mm<=1 | dCq | verification |\n|---|---|---|---|---|---|---|---|---|---|\n')
@@ -288,13 +287,9 @@ def ozet(kok, CIKTI, durum, yaz):
                         r.get('dCq_karsiligi', '-'), dg))
         _fs = sum(1 for r in _sirali if (r.get('ad_farkli_mi') or '').startswith('>>'))
         if _fs:
-            fh.write(u'\n**>>** isaretli %d satirda toplantida konusulan ad ile olculen '
-                     u'kimlik AYNI DEGIL. Ornek: `Microascaceae_askomikot` - Kraken '
-                     u'"Trichoderma asperellum" der, olcum "Petriella setifera" der.\n' % _fs)
+            fh.write(u'\nOn %d rows marked **>>** the name discussed in the meeting is NOT THE SAME as the measured identity. Example: `Microascaceae' % _fs)
         if kalan or olcx:
-            fh.write(u'\n**Ayrim oranini gecemeyen:** %d; orani olculemeyen (evrensel): %d. '
-                     u'Ikisi de yukaridaki SINIF sutununda siniflandirildi ve listede '
-                     u'duruyor (ayrinti + laboratuvar notu: SIPARIS_LISTESI.tsv).\n'
+            fh.write(u'\n**Failing the discrimination ratio:** %d; ratio not measurable (universal): %d. Both appear in the CLASS column above'
                      % (len(kalan), len(olcx)))
 
         # --- 2) KURTARILANLAR ---
@@ -306,7 +301,7 @@ def ozet(kok, CIKTI, durum, yaz):
             kt = [r for r in K if r.get('esigi_gecti_mi') == 'DUSENLERE TASINDI']
             fh.write(u'- Kurtarilan: **%d**  ·  Dusenlere tasinan: **%d**  ·  '
                      u'Kurtarilamayan: **%d**\n\n' % (len(kg), len(kt), len(K) - len(kg) - len(kt)))
-            fh.write(u'| hedef | eski | yol | yeni | sonuc |\n|---|---|---|---|---|\n')
+            fh.write(u'| target | before | route | after | result |\n|---|---|---|---|---|\n')
             for r in K:
                 fh.write(u'| %s | %s | %s | %s | **%s** |\n'
                          % (r['hedef'], r.get('eski_deger', ''), (r.get('denenen_yol') or '')[:46],
@@ -346,7 +341,7 @@ def ozet(kok, CIKTI, durum, yaz):
             for r in I:
                 say[r['HUKUM']] = say.get(r['HUKUM'], 0) + 1
             fh.write('  ·  '.join('**%s**: %d' % kv for kv in say.items()) + u'\n\n')
-            fh.write(u'| # | iddia | hukum | uyusan vtb |\n|---|---|---|---|\n')
+            fh.write(u'| # | claim | verdict | agreeing databases |\n|---|---|---|---|\n')
             for r in I:
                 fh.write(u'| %s | %s | **%s** | %s |\n'
                          % (r['no'], r['iddia'][:78], r['HUKUM'], r.get('sonuc_veren_vtb', r.get('uyusan_vtb_sayisi', ''))))

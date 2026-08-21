@@ -223,7 +223,7 @@ def calistir(yaz, sure, cizgi, a):
     ok, msj = kanonik_kos(yaz, sure, oncelik='ozgun')
     if not ok:
         yaz('\n  KANONIK URETIM BASARISIZ: %s' % msj)
-        yaz('  Sonraki asamalar BASLATILMADI (yanlis sonuc uretmemek icin).')
+        yaz(u'  The following stages were NOT STARTED (so that no wrong result is produced).')
         return 2
     yaz('  ' + msj)
     ok, msj = yon_kapisi(yaz, 'kanonik uretim sonrasi')
@@ -235,9 +235,9 @@ def calistir(yaz, sure, cizgi, a):
 
     # ---- 3 konsensus yeniden uretim
     if 'konsensus' in d['bitmis']:
-        yaz('\n[ASAMA 3/7] Konsensus yeniden uretim - ATLANDI (bitmis)')
+        yaz(u'\n[STAGE 3/7] Consensus regeneration - SKIPPED (already finished)')
     else:
-        yaz('\n[ASAMA 3/7] Konsensus yeniden uretim (ham okumalardan)')
+        yaz(u'\n[STAGE 3/7] Consensus regeneration (from the raw reads)')
         from . import build_consensus
         try:
             y = konsensus_uret.calistir(yaz, sure, yalniz=getattr(a, 'hedef', None))
@@ -249,7 +249,7 @@ def calistir(yaz, sure, cizgi, a):
             return 1
         except Exception as e:
             yaz('\n  ASAMA 3 HATASI: %s' % e)
-            yaz('  Yeni konsensus uretilemedi; kanonik referans seti kullanilmaya devam edecek.')
+            yaz(u'  No new consensus could be generated; the canonical reference set stays in use.')
 
     # ---- 4 YENI konsensusleri kanonige al (tek kaynak korunur)
     yaz(u'\n[STAGE 4/7] Moving new consensus sequences to canonical (--priority new)')
@@ -257,7 +257,7 @@ def calistir(yaz, sure, cizgi, a):
     yaz(u'  written into the canonical directory through orientation normalisation, so there stays one source.')
     ok, msj = kanonik_kos(yaz, sure, oncelik='yeni')
     if not ok:
-        yaz('  Kanonik guncelleme yapilamadi (%s) - referans seti gecerli kalir.' % msj)
+        yaz(u'  The canonical update could not be made (%s); the reference set stays valid.' % msj)
     else:
         yaz('  ' + msj)
     ok, msj = yon_kapisi(yaz, 'yeni konsensus sonrasi')
@@ -269,11 +269,11 @@ def calistir(yaz, sure, cizgi, a):
 
     # ---- 5 panel yeniden olcum
     if 'panel' in d['bitmis']:
-        yaz('\n[ASAMA 5/7] Panel yeniden olcum - ATLANDI (bitmis)')
+        yaz(u'\n[STAGE 5/7] Panel re-measurement - SKIPPED (already finished)')
     else:
-        yaz('\n[ASAMA 5/7] Panel yeniden olcum (TAM DERINLIK)')
-        yaz('  Bu asama en uzunu: once butun fastq dosyalari okunur (10-25 dk),')
-        yaz('  sonra 21 cift iki olcutle olculur. Toplam 1-2 saat.')
+        yaz(u'\n[STAGE 5/7] Panel re-measurement (FULL DEPTH)')
+        yaz(u'  This is the longest stage: first every fastq file is read (10-25 min),')
+        yaz(u'  then 21 pairs are measured against two criteria. One to two hours in total.')
         from . import panel_measurement
         try:
             y = panel_olcum.calistir(yaz, sure, okuma_sayisi=0,
@@ -291,7 +291,7 @@ def calistir(yaz, sure, cizgi, a):
     if 'uyelik' in d['bitmis']:
         yaz('\n[ASAMA 6/7] Uyelik denetimi - ATLANDI (bitmis)')
     else:
-        yaz('\n[ASAMA 6/7] Uyelik denetimi ve duyarlilik analizi')
+        yaz(u'\n[STAGE 6/7] Membership audit and sensitivity analysis')
         from . import membership_check
         try:
             y = uyelik_denetimi.calistir(yaz, sure,
@@ -795,7 +795,7 @@ def yalniz_ozet(yaz, sure, cizgi):
     yaz(u'   %-34s %d files' % (u'kontrol/hedef_*.json (search)', kont))
     yaz('')
     if not any(var) and not kont:
-        yaz('  Hicbir cikti dosyasi yok - once (9) ya da tek tek asamalari kosun.')
+        yaz(u'  No output file at all; run (9) first, or the stages one by one.')
         return 2
     d = durum_oku()
     yol = ozet_yaz(d, sure, _t.time() - t0)
