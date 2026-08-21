@@ -64,9 +64,9 @@ takson herhangi bir primer ciftiyle yuksek oran veriyorsa, okumalari saglamdir; 
 taksonda baska bir cift dusuk oran veriyorsa bu okuma eksikligi degil, o ciftin hatasidir.
 
 Calistirma:
-  python3 blast_ispcr.py --ali /mnt/c/Users/yerli/Masaüstü/ALI
+  python3 blast_ispcr.py --root /path/to/project
   python3 blast_ispcr.py --selftest      (butun kurallarin bilinen cevapli sinavi)
-  python3 blast_ispcr.py --ali ... --blast   (blastn ile ikinci gorus, yavas)
+  python3 blast_ispcr.py --root ... --blast   (a second opinion via blastn, slow)
 """
 import argparse, csv, glob, math, os, random, re, shutil, statistics, subprocess, sys, tempfile, time
 from collections import defaultdict
@@ -151,10 +151,10 @@ ISIMLER = {
 def isim(tx): return ISIMLER.get(tx, f"taxid {tx}")
 
 # ------------------------------------------------------------------ veri yukleme
-def okumalari_yukle(ali, okuma_basina=300, en_az_uzunluk=300):
+def okumalari_yukle(kok, okuma_basina=300, en_az_uzunluk=300):
     """Her taksondan sabit sayida okuma alir. Ayni tohum kullanildigi icin tekrarlanabilir."""
     dosyalar = defaultdict(list)
-    for p in glob.glob(f"{ali}/SONUCLAR/fastq files/*/*reads_*.fastq"):
+    for p in glob.glob(f"{kok}/SONUCLAR/fastq files/*/*reads_*.fastq"):
         m = re.search(r"reads_(\d+)\.fastq$", os.path.basename(p))
         if m: dosyalar[m.group(1)].append(p)
     veri = {}
@@ -667,7 +667,7 @@ def selftest():
 def main():
     global LOGF
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ali"); ap.add_argument("--primerler", nargs="*", default=[])
+    ap.add_argument("--root", "--kok", dest="kok"); ap.add_argument("--primerler", nargs="*", default=[])
     ap.add_argument("--out", default=""); ap.add_argument("--okuma", type=int, default=300)
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--en-kisa", type=int, default=60)
@@ -676,10 +676,10 @@ def main():
     ap.add_argument("--blast", action="store_true", help="second opinion via blastn (does not decide)")
     a = ap.parse_args()
     if a.selftest: sys.exit(selftest())
-    if not a.ali: ap.error("--ali gerekli")
+    if not a.kok: ap.error("--root is required")
 
     zaman = time.strftime("%Y%m%d_%H%M%S")
-    cikti = a.out or os.path.join(a.ali, "0_TESLIM_RAPOR", "ICPCR_" + zaman)
+    cikti = a.out or os.path.join(a.kok, "tools", "0_TESLIM_RAPOR", "ICPCR_" + zaman)
     os.makedirs(cikti, exist_ok=True)
     LOGF = open(os.path.join(cikti, "log.txt"), "w", encoding="utf-8")
     log(f"cikti: {cikti}")
@@ -689,9 +689,9 @@ def main():
         log("SINAV BASARISIZ, durduruldu. Ayrinti icin: --selftest"); sys.exit(2)
     log("sinav gecti")
 
-    primer_yollari = [p if os.path.isabs(p) else os.path.join(a.ali, p) for p in a.primerler]
+    primer_yollari = [p if os.path.isabs(p) else os.path.join(a.kok, p) for p in a.primerler]
     if not primer_yollari:
-        primer_yollari = [os.path.join(a.ali, "0_TESLIM_RAPOR", f) for f in
+        primer_yollari = [os.path.join(a.kok, "tools", "0_TESLIM_RAPOR", f) for f in
                           ("OLIGO_SIPARIS_GUNCEL_10ASSAY.csv", "OLIGO_SIPARIS_OPSIYONEL.csv",
                            "GRUP_VE_UNIVERSAL_PRIMERLER.csv")]
     ciftler = primerleri_oku(primer_yollari)
@@ -699,7 +699,7 @@ def main():
     if not ciftler: sys.exit("primer bulunamadi")
 
     log("okumalar yukleniyor")
-    veri = okumalari_yukle(a.ali, a.okuma)
+    veri = okumalari_yukle(a.kok, a.okuma)
     toplam_okuma = sum(len(v) for v in veri.values())
     toplam_baz = sum(len(s) for v in veri.values() for s in v)
     log(f"{len(veri)} takson, {toplam_okuma} okuma, {toplam_baz/1e6:.1f} milyon baz")

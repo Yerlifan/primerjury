@@ -3,7 +3,7 @@ r"""
 orientation_audit.py - her konsensus dosyasinin SAKLANDIGI YONU tespit eder.
 
 Neden gerek: yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri
-yamandi (ALI'de 85'in iplik secimi, tasarim tarafinda "konsensusler SILVA'ya gore ters",
+yamandi (kaynak calismada 85'in iplik secimi, tasarim tarafinda "konsensusler SILVA'ya gore ters",
 B/F yeniden olcumunde "58 konsensusten 39'u ters"). Uc ayri yama = tek kanonik cozum yok.
 Bu betik "sanirim duzeltildi"yi olcuye baglar.
 

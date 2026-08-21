@@ -143,7 +143,7 @@ if lens:
     print("medyan uzunluk : %d bp"%statistics.median(lens))
     print("ortalama       : %d bp"%(sum(lens)/len(lens)))
     print("yuzde 10 / 90  : %d / %d bp"%(lens[len(lens)//10],lens[9*len(lens)//10]))
-    print("NOT: Ali database300mers.kmer_distrib kullanmis. Medyan bunun cok")
+    print("NOTE: the source study used database300mers.kmer_distrib. The median is far")
     print("     uzerindeyse Bracken icin uygun uzunlukta kmer_distrib")
     print("     uretilmeli (bracken-build -l <uzunluk>).")
 else:

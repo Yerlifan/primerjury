@@ -224,7 +224,7 @@ def d_yok(kok, ayar, cikti_metni):
 #    sure_sn      OLCULMUS sure (saniye). None ise "olculmedi" yazilir.
 #    kaynak       o sayinin hangi dosyadan/kosudan geldigi
 #    denet        cikti denetcisi
-#    kraken       True: ALI klasorundeki araca ihtiyac duyar
+#    kraken       True: needs tools/kraken_tool.sh
 #    hep_kos      True: hizli ve yan etkisiz; kontrol noktasi tutulmaz
 #
 #  SIRA NEDEN BOYLE (kod okunarak cikarildi, tahmin degil):
@@ -807,11 +807,16 @@ def asama_kos(kok, a, ayar, yaz):
 #  6) PLAN, OZET, ANA AKIS
 # ===========================================================================
 def kraken_bul(kok):
-    aday = os.path.abspath(os.path.join(kok, '..', 'tools', 'WSL', 'kraken_tool.sh'))
-    if os.path.exists(aday):
-        return aday, u''
-    return None, (u'ALI klasoru bulunamadi (aranan: %s). W, X ve Z ATLANIR; '
-                  u'zincirin geri kalani kosar.' % aday)
+    # OLCULDU: yalniz <kok>/../tools/WSL/ araniyordu, yani projenin KARDESI olan
+    # bir klasor. Bu depoda tools/ kokun ICINDE, dolayisiyla arac hicbir zaman
+    # bulunmuyor ve W, X, Z her kosuda sessizce atlaniyordu.
+    adaylar = [os.path.join(kok, 'tools', 'kraken_tool.sh'),
+               os.path.abspath(os.path.join(kok, '..', 'tools', 'WSL', 'kraken_tool.sh'))]
+    for aday in adaylar:
+        if os.path.exists(aday):
+            return aday, u''
+    return None, (u'the Kraken tool was not found (looked in: %s). W, X and Z are '
+                  u'SKIPPED; the rest of the chain runs.' % u', '.join(adaylar))
 
 
 def plan_yaz(kok, asamalar, durum, ayar, yaz):

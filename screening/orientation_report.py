@@ -106,7 +106,7 @@ def main():
 
     yaz(ws, n, 1, u'1. WHY IT WAS ASKED - three separate patches, no single canonical fix', bold=True, fill=GRI); n += 1
     for s in ['Yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri yamandi: '
-              '(a) ALI tarafinda 85\'in iplik secimi, (b) tasarim tarafinda "konsensusler SILVA\'ya '
+              '(a) the strand choice of 85 on the source study side, (b) "the consensuses are the reverse complement of SILVA" on the design side, '
               'gore ters tumleyen", (c) B/F yeniden olcumunde "58 konsensusten 39\'u ters yonde". '
               'Uc ayri yama = tek kanonik cozum yok = bir sonraki degisiklikte yine kacar. '
               'Bu sayfa "sanirim duzeltildi"yi olcuye baglar.']:
@@ -122,7 +122,7 @@ def main():
         yaz(ws, n, j, h, bold=True, fill=GRI)
     n += 1
     NOT = {
-     'consensus sequences': 'Ali\'nin ozgun ciktisi. KARISIK. Sebep: samtools/minimap2 hatti '
+     'consensus sequences': 'the original output of the source study. MIXED. Cause: the samtools/minimap2 line '
                             'sablonu veriden secilen bir OKUMAYA gore kuruyor; nanopore okumalari '
                             '~50/50 iki yonde geldigi icin cikti yonu rastgele.',
      'referans_konsensus/konsensus': 'Gece normalize edilen set. Temiz.',

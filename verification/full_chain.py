@@ -216,7 +216,7 @@ def d_tablo(kok, ayar):
                    kosuda bu asama YENIDEN denenir
         False   -> tablo hic uretilemedi; zincir durur
     """
-    y = os.path.join(ayar['ali'], '0_TESLIM_RAPOR', 'KRAKEN_KARSILASTIRMA.md')
+    y = os.path.join(ayar['arac'], '0_TESLIM_RAPOR', 'KRAKEN_KARSILASTIRMA.md')
     if not os.path.exists(y):
         return False, u'KRAKEN_KARSILASTIRMA.md uretilmedi'
     if os.path.getsize(y) < 200:
@@ -410,8 +410,18 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
     Uc sey aranir: aracin kendisi, kraken2 ikilisi ve en az bir veritabani.
     Ucunden biri yoksa kraken adimlari atlanir ve sebebi yazilir; zincir DURMAZ.
     """
-    ali = os.path.abspath(os.path.join(kok, '..', 'tools'))
-    karac = os.path.join(ali, 'WSL', 'kraken_tool.sh')
+    # OLCULDU: burasi eskiden <kok>/../tools/WSL/kraken_tool.sh ariyordu, yani
+    # projenin KARDESI olan bir klasoru. Bu depoda tools/ kokun ICINDE ve betik
+    # dogrudan orada duruyor, dolayisiyla arac hicbir zaman bulunamiyor ve W, X, Z
+    # her kosuda sessizce atlaniyordu. Once dogru yer denenir, eski yerlesim
+    # yedek olarak korunur.
+    arac = os.path.join(kok, 'tools')
+    karac = os.path.join(arac, 'kraken_tool.sh')
+    if not os.path.exists(karac):
+        eski = os.path.abspath(os.path.join(kok, '..', 'tools'))
+        eski_karac = os.path.join(eski, 'WSL', 'kraken_tool.sh')
+        if os.path.exists(eski_karac):
+            arac, karac = eski, eski_karac
     sebep = []
     kbin, kmesaj = kraken2_bul(karac, ortam)
     if not kbin:
@@ -441,9 +451,9 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
             sebep.append(u'Kraken2 veritabani yok (%s icinde hash.k2d aranmisti; '
                          u'arac vt-ara ile diski da taradi)' % vt)
     return {
-        'ali': ali,
+        'arac': arac,
         'karac': karac,
-        'kraken_is': os.path.join(ali, 'SONUCLAR', 'kraken_esik_A'),
+        'kraken_is': os.path.join(kok, 'SONUCLAR', 'kraken_esik_A'),
         'kraken_var': not sebep,
         'kraken_sebep': u'; '.join(sebep),
         'kraken2_bin': kbin,

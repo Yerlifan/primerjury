@@ -413,7 +413,7 @@ def main():
     ap.add_argument("--ad", default="veritabani 1")
     ap.add_argument("--is2", default="")
     ap.add_argument("--ad2", default="veritabani 2")
-    ap.add_argument("--ali", default="")
+    ap.add_argument("--root", "--kok", dest="kok", default="")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -451,7 +451,7 @@ def main():
     birlesik = yan_yana(s1, s2, a.ad, a.ad2)
     print("\n" + birlesik)
     sat, ozet = ayakta_kalma(k1, k2, a.ad, a.ad2)
-    kalma = kalma_metni(sat, ozet, a.ad, a.ad2, a.ali)
+    kalma = kalma_metni(sat, ozet, a.ad, a.ad2, a.kok)
     print("\n" + kalma)
     hedef = os.path.join(a.is1, "esik_iki_veritabani.txt")
     open(hedef, "w", encoding="utf-8").write(birlesik + "\n\n" + kalma + "\n")
@@ -513,8 +513,8 @@ def yan_yana(s1, s2, ad1, ad2):
         g.append("  Eksik esik, karsilastirilmis esik gibi okunmamalidir.")
     return "\n".join(g)
 
-def kalma_metni(sat, ozet, ad1, ad2, ali):
-    isimler = isimleri_oku(ali)
+def kalma_metni(sat, ozet, ad1, ad2, kok):
+    isimler = isimleri_oku(kok)
     g = ["=" * 96,
          "ASIL SORU: eskide coken atamalar yenide ayakta kaliyor mu",
          "=" * 96,
@@ -549,10 +549,10 @@ def kalma_metni(sat, ozet, ad1, ad2, ali):
         g.append("  degil, okumalarin kendisinden geliyor olabilir. Teshis gozden gecirilmeli.")
     return "\n".join(g)
 
-def isimleri_oku(ali):
-    """taxid -> ad. ozgun calismanin Kraken ozet betigiyle ayni yol, numpy'a bagimlilik yok."""
+def isimleri_oku(kok):
+    """taxid -> ad. The same route as tools/kraken_summary.py, with no numpy dependency."""
     import ast
-    adaylar = [os.path.join(ali, "WSL", "blast_ispcr.py") if ali else "",
+    adaylar = [os.path.join(kok, "tools", "blast_ispcr.py") if kok else "",
                os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
         if not yol or not os.path.exists(yol):

@@ -33,10 +33,10 @@ import argparse, ast, csv, glob, os, re, sys
 from collections import Counter, defaultdict
 
 # ------------------------------------------------------------------ yardimci
-def isimleri_oku(ali):
+def isimleri_oku(kok):
     """taxid -> ad. ozgun calismanin Kraken ozet betigiyle ayni yol; modul CALISTIRILMAZ,
     kaynak metinden ast ile okunur, numpy'a bagimlilik olmaz."""
-    adaylar = [os.path.join(ali, "WSL", "blast_ispcr.py") if ali else "",
+    adaylar = [os.path.join(kok, "tools", "blast_ispcr.py") if kok else "",
                os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
         if not yol or not os.path.exists(yol):
@@ -200,15 +200,15 @@ def esik_dosyalari(klasor, esik):
     return os.path.join(klasor, f"esik_{metin}.out"), rap, c
 
 # ------------------------------------------------------------------ hizalama
-def hizalama_oku(ali):
+def hizalama_oku(kok):
     """
     Bizim hizalama tabanli kimligimiz: 0_TESLIM_RAPOR/kimlik_sonuc.csv
     Sutunlar: taxid, iddia_tur, iddia_cins, eslesen_baz, en_iyi_referans,
               eslesme_cins, SONUC
     Doner: {taxid: (gosterilecek_ad, sonuc_metni, eslesen_baz)}
     """
-    adaylar = [os.path.join(ali, "0_TESLIM_RAPOR", "kimlik_sonuc.csv"),
-               os.path.join(ali, "VALIDASYON_v2", "primerler", "PIPELINE_TEMIZ",
+    adaylar = [os.path.join(kok, "tools", "0_TESLIM_RAPOR", "kimlik_sonuc.csv"),
+               os.path.join(kok, "VALIDASYON_v2", "primerler", "PIPELINE_TEMIZ",
                             "cikti", "NIHAI", "kimlik_sonuc.csv")]
     for y in adaylar:
         if not os.path.exists(y):
@@ -228,9 +228,9 @@ def hizalama_oku(ali):
     return {}, ""
 
 # ------------------------------------------------------------------ tablo
-def tablo_kur(ali, is_a, ad_a, is_b, ad_b, esik):
-    ISIMLER = isimleri_oku(ali)
-    hiz, hiz_yol = hizalama_oku(ali)
+def tablo_kur(kok, is_a, ad_a, is_b, ad_b, esik):
+    ISIMLER = isimleri_oku(kok)
+    hiz, hiz_yol = hizalama_oku(kok)
 
     a_out0, a_rap0, _ = esik_dosyalari(is_a, 0.0)
     a_oute, a_rape, a_c = esik_dosyalari(is_a, esik)
@@ -250,7 +250,7 @@ def tablo_kur(ali, is_a, ad_a, is_b, ad_b, esik):
 
     satirlar = []
     for tx in sorted(kutular, key=lambda x: ISIMLER.get(x, "zzz")):
-        ali_ad = ISIMLER.get(tx, f"taxid {tx}")
+        kaynak_ad = ISIMLER.get(tx, f"taxid {tx}")
         e_ad, e_oran = (ESIK_KAYNAK.get(tx, ("", 0.0, 0, 0.0))[0],
                         ESIK_KAYNAK.get(tx, ("", 0.0, 0, 0.0))[1])
         g_ad, g_oran = (A0.get(tx, ("", 0.0, 0, 0.0))[0],
@@ -264,16 +264,16 @@ def tablo_kur(ali, is_a, ad_a, is_b, ad_b, esik):
         g_gos = g_ad if g_oran >= 0.20 else ""
 
         uyum_genis_hiz = karsilastir(g_gos, h_ad)
-        uyum_genis_ali = karsilastir(g_gos, ali_ad)
-        uyum_ali_hiz = karsilastir(ali_ad, h_ad)
+        uyum_genis_kaynak = karsilastir(g_gos, kaynak_ad)
+        uyum_kaynak_hiz = karsilastir(kaynak_ad, h_ad)
 
         if not g_gos:
             senaryo = "PlusPFP karar vermedi"
-        elif uyum_genis_hiz == "uyusuyor" and uyum_ali_hiz == "ayrisiyor":
+        elif uyum_genis_hiz == "uyusuyor" and uyum_kaynak_hiz == "ayrisiyor":
             senaryo = "a) PlusPFP BIZI DOGRULUYOR"
         elif uyum_genis_hiz == "uyusuyor":
             senaryo = "a) PlusPFP bizimle ayni (etiketle de cakisiyor)"
-        elif uyum_genis_ali == "uyusuyor":
+        elif uyum_genis_kaynak == "uyusuyor":
             senaryo = "b) PlusPFP ESKI ETIKETI TEKRARLIYOR"
         elif uyum_genis_hiz == "karsilastirilamaz":
             senaryo = "karsilastirilamaz"
@@ -281,7 +281,7 @@ def tablo_kur(ali, is_a, ad_a, is_b, ad_b, esik):
             senaryo = "c) PlusPFP UCUNCU BIR SEY DIYOR"
 
         satirlar.append(dict(
-            taxid=tx, ali=ali_ad,
+            taxid=tx, kaynak=kaynak_ad,
             esik_ad=e_gos, esik_oran=e_oran,
             genis_ad=g_gos, genis_oran=g_oran,
             hiz_ad=h_ad, hiz_sonuc=h_sonuc, hiz_baz=h_baz, hiz_ref=h_ref,
@@ -321,7 +321,7 @@ def markdown(satirlar, bilgi, esik):
                   "b) PlusPFP ESKI ETIKETI TEKRARLIYOR": "**eski etiket**",
                   "c) PlusPFP UCUNCU BIR SEY DIYOR": "**ayrisiyor**"}.get(
                       s["senaryo"], s["senaryo"])
-        g.append(f"| {kisalt(s['ali'],34)} | {e} | {gg} | {h} | {isaret} |")
+        g.append(f"| {kisalt(s['kaynak'],34)} | {e} | {gg} | {h} | {isaret} |")
     g.append("")
     return "\n".join(g)
 
@@ -375,7 +375,7 @@ def yorum(satirlar, bilgi):
     if not ayr:
         g.append("Yok.")
     for s in ayr:
-        g.append(f"- **{s['ali']}**  esik: {s['esik_ad'] or 'karar yok'}  |  "
+        g.append(f"- **{s['kaynak']}**  esik: {s['esik_ad'] or 'karar yok'}  |  "
                  f"PlusPFP: {s['genis_ad'] or 'karar yok'}  |  hizalama: {s['hiz_ad'] or 'yok'}"
                  + (f"  ({s['hiz_baz']} baz, {s['hiz_sonuc']})" if s["hiz_baz"] else ""))
     g.append("")
@@ -436,16 +436,16 @@ def selftest():
         K("olmayan klasor cokmez", c2, None)
 
     # Senaryo siniflandirmasi. Uc olasilik da ayri ayri sinanir.
-    s_a = dict(genis_ad="Petriella musispora", ali="Trichoderma asperellum", hiz_ad="Petriella")
+    s_a = dict(genis_ad="Petriella musispora", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
     K("senaryo a: PlusPFP bizi dogruluyor",
       _senaryo(s_a), "a) PlusPFP BIZI DOGRULUYOR")
-    s_b = dict(genis_ad="Trichoderma asperellum", ali="Trichoderma asperellum", hiz_ad="Petriella")
+    s_b = dict(genis_ad="Trichoderma asperellum", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
     K("senaryo b: PlusPFP eski etiketi tekrarliyor",
       _senaryo(s_b), "b) PlusPFP ESKI ETIKETI TEKRARLIYOR")
-    s_c = dict(genis_ad="Fusarium oxysporum", ali="Trichoderma asperellum", hiz_ad="Petriella")
+    s_c = dict(genis_ad="Fusarium oxysporum", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
     K("senaryo c: PlusPFP ucuncu bir sey diyor",
       _senaryo(s_c), "c) PlusPFP UCUNCU BIR SEY DIYOR")
-    s_d = dict(genis_ad="", ali="Trichoderma asperellum", hiz_ad="Petriella")
+    s_d = dict(genis_ad="", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
     K("karar vermeyen PlusPFP ayrisma sayilmaz",
       _senaryo(s_d), "PlusPFP karar vermedi")
 
@@ -456,7 +456,7 @@ def selftest():
 
 def _senaryo(s):
     """selftest icin senaryo kurali, tablo_kur icindekiyle ayni mantik."""
-    g, a, h = s["genis_ad"], s["ali"], s["hiz_ad"]
+    g, a, h = s["genis_ad"], s["kaynak"], s["hiz_ad"]
     ugh, uga, uah = karsilastir(g, h), karsilastir(g, a), karsilastir(a, h)
     if not g:
         return "PlusPFP karar vermedi"
@@ -478,7 +478,7 @@ def selftest_sessiz():
 # ------------------------------------------------------------------ ana
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ali", default="")
+    ap.add_argument("--root", "--kok", dest="kok", default="")
     ap.add_argument("--is-a", dest="is_a", default="")
     ap.add_argument("--ad-a", dest="ad_a", default="PlusPFP")
     ap.add_argument("--is-b", dest="is_b", default="")
@@ -492,7 +492,7 @@ def main():
         print("SINAV BASARISIZ, durduruldu (proje kurali 2)")
         sys.exit(2)
 
-    satirlar, bilgi = tablo_kur(a.ali, a.is_a, a.ad_a,
+    satirlar, bilgi = tablo_kur(a.kok, a.is_a, a.ad_a,
                                 a.is_b if a.ad_b else "", a.ad_b, a.esik)
     if not satirlar:
         print(u'ERROR: there is no data to compare.')
@@ -515,7 +515,7 @@ def main():
     md = markdown(satirlar, bilgi, a.esik) + "\n" + yorum(satirlar, bilgi)
     print(md)
 
-    cikti = os.path.join(a.ali, "0_TESLIM_RAPOR") if a.ali else "."
+    cikti = os.path.join(a.kok, "tools", "0_TESLIM_RAPOR") if a.kok else "."
     os.makedirs(cikti, exist_ok=True)
     mdy = os.path.join(cikti, "KRAKEN_KARSILASTIRMA.md")
     open(mdy, "w", encoding="utf-8").write(md + "\n")

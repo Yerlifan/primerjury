@@ -145,7 +145,7 @@ olup olmadığını kontrol ediyor.
 
 Henüz kesinleşmedi, iki bilgi gerekiyor: yeni veritabanında hangi
 `database<K>mers.kmer_distrib` dosyalarının bulunduğu ve ölçülen medyan okuma
-uzunluğu. Ali `database300mers.kmer_distrib` kullanmış, ancak `kraken results`
+uzunluğu. Kaynak çalışma `database300mers.kmer_distrib` kullanmış, ancak `kraken results`
 içindeki okuma uzunlukları 4 kb dolayında görünüyor, yani uygun uzunlukta bir
 dağılım dosyasının `bracken-build` ile üretilmesi gerekebilir. `00` betiği her
 ikisini de ölçüyor.
