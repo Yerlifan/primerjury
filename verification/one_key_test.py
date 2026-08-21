@@ -137,9 +137,9 @@ def golge_kur(taban):
         fh.write(u'hedef\tESKI_HUKUM\tYENI_HUKUM\tdCq_olculen\n')
         fh.write(u'A_hedefi\tKOSULLU\tSIPARIS EDILEBILIR (kosullu)\t7,28\n')
         fh.write(u'B_hedefi\tKOSULLU\tSIPARIS EDILEBILIR (kosullu)\t4,01\n')
-        fh.write(u'C_evrensel\tRISKLI\tKOSULLU (kontrol primeri)\t-\n')
+        fh.write(u'C_universal\tRISKLI\tKOSULLU (control primer)\t-\n')
         fh.write(u'D_hedefi\tKOSULLU\tESIK ALTI (kosullu, silinmedi)\t-0,43\n')
-        fh.write(u'E_hedefi\tRISKLI\tONERILMEZ (hedef numunede yok)\t-\n')
+        fh.write(u'E_target\tRISKLI\tONERILMEZ (the target is absent from the sample)\t-\n')
     return taban
 
 
@@ -296,7 +296,7 @@ def s3_bayat(ana, taban):
 
 
 def s4_eksik_dosya(ana):
-    print(u'\n--- S4: GEREKLI DOSYA EKSIK - on kontrol DURDURMALI ---')
+    print(u'\n--- S4: A REQUIRED FILE IS MISSING - the pre-check MUST STOP ---')
     t = golge_kur(os.path.join(ana, 's4'))
     ayar_yaz(t, basarili_ayar())
     os.remove(os.path.join(t, 'REFERANS_DB',
@@ -346,7 +346,7 @@ def s5_asama_dustu(ana):
 
 
 def s6_bos_cikti(ana):
-    print(u'\n--- S6: CIKIS KODU 0 AMA CIKTI BOS - "bitti" SAYILMAMALI ---')
+    print(u'\n--- S6: EXIT CODE 0 BUT EMPTY OUTPUT - must NOT count as "done" ---')
     t = golge_kur(os.path.join(ana, 's6'))
     a = basarili_ayar()
     a['K'] = dict(rc=0, yaz={'KURTARMA_SONUC/kurtarma_satirlari.tsv':
@@ -364,7 +364,7 @@ def s6_bos_cikti(ana):
 
 
 def s7_kesinti(ana):
-    print(u'\n--- S7: YARIDA KESILDI (Ctrl+C) ve AYNI TUSLA DEVAM ---')
+    print(u'\n--- S7: INTERRUPTED (Ctrl+C) AND RESUMED WITH THE SAME COMMAND ---')
     t = golge_kur(os.path.join(ana, 's7'))
     a = basarili_ayar()
     a['D'] = dict(rc=0, bekle=25, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
@@ -417,7 +417,7 @@ def s8_belirlenimci_imza(ana, taban):
 
 
 def s9_yalniz_atla(ana):
-    print(u'\n--- S9: --yalniz ve --atla suzgecleri ---')
+    print(u'\n--- S9: the --only and --skip filters ---')
     t = golge_kur(os.path.join(ana, 's9'))
     ayar_yaz(t, basarili_ayar())
     rc, out = kos(t, ek=['--yalniz', '8S'])

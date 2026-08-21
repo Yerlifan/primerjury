@@ -392,7 +392,7 @@ def main():
           % (len(probes), len(UNIV_EXP)))
     if flipped:
         for t, np_, nm, how in flipped:
-            print("   TERS bulundu, cevrildi: %-30s arti=%d eksi=%d (%s)"
+            print(u'   found REVERSED, flipped: %-30s plus=%d minus=%d (%s)'
                   % (t, np_, nm, how))
     else:
         print(u'   no sequence disagrees with the anchor orientation')
@@ -426,7 +426,7 @@ def main():
                      "icin maske dosyasi bulunamadi. Sessiz maskesizligi "
                      "onlemek icin duruldu." % (anchor[0], grp, tid))
         if len(hits) > 1:
-            print("UYARI: capa icin birden fazla maske dosyasi eslesti: %s" % hits)
+            print(u'WARNING: more than one mask file matched the anchor: %s' % hits)
         for cand in hits:
             m, _c, _s = read_mask(cand, len(anchor[1]))
             masked |= m
@@ -557,10 +557,9 @@ def main():
                           for k, v in sorted(dag.items(),
                                              key=lambda x: (x[0] is not None, x[0]))))
     else:
-        print("rakip kumesi bos: yetim primer kurali uygulanamiyor, "
-              "ozgulluk guvencesi VERILMEZ")
+        print(u'the competitor set is empty, so the orphan primer rule cannot be applied and NO specificity guarantee is given')
         if a.require_orphan_primer:
-            print("   (--require-orphan-primer 1 ama rakip yok, kural atlaniyor)")
+            print(u'   (--require-orphan-primer 1 but there is no competitor, so the rule is skipped)')
 
     # --- 4. ciftleme ve her uyede urun dogrulamasi --------------------
     Fs = [k for k in universal if k["strand"] == "F"]
@@ -606,8 +605,7 @@ def main():
         f0, r0 = len(Fs), len(Rs)
         Fs, Rs = tabakala(Fs, a.max_oligo), tabakala(Rs, a.max_oligo)
         if len(Fs) < f0 or len(Rs) < r0:
-            print("pozisyona gore tabakali secim (--max-oligo %d): ileri %d -> %d, "
-                  "geri %d -> %d" % (a.max_oligo, f0, len(Fs), r0, len(Rs)))
+            print(u'layered selection by position (--max-oligo %d): forward %d -> %d, reverse %d -> %d' % (a.max_oligo, f0, len(Fs), r0, len(Rs)))
     pairs = []
     fail_member = {}
     n_noprod = n_comp = n_orph = n_tmd = n_het = 0
@@ -748,7 +746,7 @@ def main():
             gorulen[anahtar] = pr
             secili.append(pr)
         pairs = secili
-        print("   lokus birlestirme: %d cift -> %d lokus" % (onceki, len(pairs)))
+        print(u'   locus merging: %d pairs -> %d loci' % (onceki, len(pairs)))
     else:
         for pr in pairs:
             pr["lokus_varyant_sayisi"] = 1
@@ -761,7 +759,7 @@ def main():
     print(u'\nwritten: %s' % a.out)
     print(u'\nFive best candidates:')
     for p in pairs[:5]:
-        print("  ceza=%.2f  urun %d-%d bp  yetim=%s  F=%s (Tm %.1f)  R=%s (Tm %.1f)"
+        print(u'  penalty=%.2f  product %d-%d bp  orphan=%s  F=%s (Tm %.1f)  R=%s (Tm %.1f)'
               % (p["ceza"], p["urun_min"], p["urun_maks"], p["yetim_primer"],
                  p["ileri_dizi"], p["ileri_tm"], p["geri_dizi"], p["geri_tm"]))
 

@@ -297,19 +297,19 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
     turetildi = [ad for ad, v in acik.items() if (v.get('kaynak') or '') == 'TURETILDI']
 
     yaz('=' * 78)
-    yaz('  UYELIK TANIMI DENETIMI ve DUYARLILIK ANALIZI')
+    yaz(u'  MEMBERSHIP DEFINITION AUDIT and SENSITIVITY ANALYSIS')
     yaz('=' * 78)
-    yaz('  hedef sayisi        : %d' % len(panel))
+    yaz(u'  number of targets   : %d' % len(panel))
     yaz('  tanim kaynaklari    : hedef_uyelik.tsv, hedefler.tsv, ciftler.tsv,')
-    yaz('                        olculen kimlik, tek uye')
-    yaz('  TURETILDI isaretli  : %d satir  (ozellikle kontrol edilmeli)' % len(turetildi))
+    yaz(u'                        measured identity, single member')
+    yaz(u'  marked DERIVED      : %d rows  (these deserve a specific look)' % len(turetildi))
     for t in turetildi:
         yaz('        - %s' % t)
     yaz('')
 
     gerekli = {k['kutu']: k for k in kut}
-    yaz('Ham okuma havuzlari kuruluyor: %d kutu' % len(gerekli))
-    yaz('  >> Bu adim birkac dakika surer; ekranda kutu adlari akar, takilmis degildir.')
+    yaz(u'Building raw read pools: %d bins' % len(gerekli))
+    yaz(u'  >> This step takes a few minutes. Bin names scroll past on screen; it is not stuck.')
 
     def ilerK(i, n, ad):
         print('   ... %d/%d  %s        ' % (i, n, ad), end='\r', flush=True)
@@ -352,7 +352,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                 havuz=(o or {}).get('havuz', ''),
                 ayni_kume=('EVET' if anahtar in gorulen else '')))
             gorulen.add(anahtar)
-            yaz('        %-42s uye %2d kutu  kapsam %-6s ayrim %s x / %s x'
+            yaz(u'        %-42s member %2d bins  coverage %-6s discrimination %s x / %s x'
                 % (etiket[:42], len(uk), (o or {}).get('uye_kapsam_pay', '-'),
                    (o or {}).get('kat_havuz'), (o or {}).get('kat_enkotu')))
 
@@ -379,7 +379,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                     uye_min=en[2].get('uye_min', ''), uye_max=en[2].get('uye_max', ''),
                     kat_havuz=en[2].get('kat_havuz'), kat_enkotu=en[2].get('kat_enkotu'),
                     havuz=en[2].get('havuz', ''), ayni_kume=''))
-                yaz('        %-42s uye %2d kutu  kapsam %-6s ayrim %s x / %s x'
+                yaz(u'        %-42s member %2d bins  coverage %-6s discrimination %s x / %s x'
                     % (('C. tek uye (%s)' % en[1])[:42], en[3],
                        en[2].get('uye_kapsam_pay', '-'),
                        en[2].get('kat_havuz'), en[2].get('kat_enkotu')))

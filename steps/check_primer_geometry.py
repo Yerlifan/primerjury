@@ -85,7 +85,7 @@ def main():
     kalip = oku(aday[0])
     print("capa dosyasi : %s" % os.path.basename(aday[0]))
     print("kalip uzunluk: %d" % len(kalip))
-    print("sinanan satir: %d\n" % min(len(rows), a.en_fazla))
+    print(u'rows tested: %d\n' % min(len(rows), a.en_fazla))
 
     say = dict(tamam=0, urun_basi=0, urun_sonu=0, yon=0, uzunluk=0,
                f_3p_belirsiz=0, r_3p_belirsiz=0, kalip_disi=0)
@@ -147,18 +147,18 @@ def main():
 
     n = min(len(rows), a.en_fazla)
     print("SONUC")
-    print("   dort geometri sartini da gecen satir : %d / %d" % (say["tamam"], n))
-    print("   urunun basi ileri primer degil       : %d" % say["urun_basi"])
-    print("   urunun sonu geri primerin rc'si degil: %d" % say["urun_sonu"])
-    print("   geri primer kalibin rc'si degil      : %d" % say["yon"])
+    print(u'   rows passing all four geometry conditions : %d / %d' % (say["tamam"], n))
+    print(u'   the product does not start with the forward primer : %d' % say["urun_basi"])
+    print(u'   the product does not end with the rc of the reverse primer: %d' % say["urun_sonu"])
+    print(u'   the reverse primer is not the rc of the template   : %d' % say["yon"])
     print("   bildirilen uzunluk tutmuyor          : %d" % say["uzunluk"])
     print("   ileri primerin 3' ucu belirsiz bazda : %d" % say["f_3p_belirsiz"])
     print("   geri primerin 3' ucu belirsiz bazda  : %d" % say["r_3p_belirsiz"])
-    print("   kalip disina tasan satir             : %d" % say["kalip_disi"])
+    print(u'   rows running off the end of the template          : %d' % say["kalip_disi"])
     for r, urun, hata in ornek:
         print("\n   HATA %s" % ", ".join(hata))
         print("      F=%s  R=%s" % (r["ileri_dizi"], r["geri_dizi"]))
-        print("      urun bas=%s ... son=%s" % (urun[:28], urun[-28:]))
+        print(u'      product start=%s ... end=%s' % (urun[:28], urun[-28:]))
         print("      rc(R)   =%s" % rc(r["geri_dizi"]))
     if say["tamam"] == n:
         print("\nButun satirlar dort geometri sartini da gecti.")

@@ -210,7 +210,7 @@ def main():
     print('  ARSIVLEME %s   %s' % ('(PLAN)' if not a.tasi else '(TASINIYOR)',
                                    time.strftime('%Y-%m-%d %H:%M')))
     print('=' * 78)
-    print('  aday: %d | tasinacak: %d | KODDA GECTIGI ICIN BIRAKILAN: %d'
+    print(u'  candidates: %d | to move: %d | KEPT BECAUSE THE CODE REFERENCES IT: %d'
           % (len(ad_listesi), len(tasinacak), len(birakilacak)))
     toplam = 0
     for yol, sebep in tasinacak:
@@ -218,7 +218,7 @@ def main():
             toplam += os.path.getsize(os.path.join(kok, yol))
         except OSError:
             pass
-    print('  tasinacak toplam boyut: %.1f MB' % (toplam / 1e6))
+    print(u'  total size to move: %.1f MB' % (toplam / 1e6))
     print()
     for yol, sebep, gecen in birakilacak:
         print('  BIRAKILDI  %-56s (kodda geciyor: %s)'
@@ -230,9 +230,9 @@ def main():
         for yol, sebep in tasinacak[:12]:
             print('  tasinacak  %-56s %s' % (yol[:56], sebep[:40]))
         if len(tasinacak) > 12:
-            print('  ... ve %d dosya daha' % (len(tasinacak) - 12))
+            print(u'  ... and %d more files' % (len(tasinacak) - 12))
         print()
-        print('  Bu bir PLANDIR. Gercekten tasimak icin: --tasi')
+        print(u'  This is a PLAN. To actually move the files: --move')
         return 0
 
     if not os.path.isdir(hedef):
@@ -243,8 +243,7 @@ def main():
     with io.open(mani, 'a', encoding='utf-8', newline='') as fh:
         if yeni_mani:
             fh.write(u'# Arsive tasinan dosyalar. SILINMEDILER.\n')
-            fh.write(u'# Geri almak icin: bu dosyadaki "eski_yol" sutununa geri '
-                     u'kopyalayin.\n')
+            fh.write(u'# To undo: copy each file back to the path in the "eski_yol" column.\n')
             fh.write(u'tarih\teski_yol\tarsiv_yolu\tboyut_bayt\tsebep\n')
         for yol, sebep in tasinacak:
             kaynak = os.path.join(kok, yol)
@@ -261,9 +260,9 @@ def main():
             fh.write(u'%s\t%s\t%s\t%d\t%s\n'
                      % (time.strftime('%Y-%m-%d %H:%M'), yol,
                         os.path.relpath(varis, kok), boy, sebep))
-    print('  tasinan: %d dosya' % n)
+    print(u'  moved: %d files' % n)
     print('  arsiv  : %s' % os.path.relpath(hedef, kok))
-    print('  kayit  : %s' % os.path.relpath(mani, kok))
+    print(u'  log    : %s' % os.path.relpath(mani, kok))
     print('=' * 78)
     return 0
 
