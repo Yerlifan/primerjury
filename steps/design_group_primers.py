@@ -717,7 +717,7 @@ def main():
                                               else rakip_en_iyi.get(r["oligo"], "")),
                 uye_urunleri=";".join("%s=%d" % (t, prods[t]) for t in ing_tags),
                 ceza=round(pen, 3)))
-    print("\ncift olusturma")
+    print(u'\npair construction')
     print("   elenen, cift Tm farki             : %d" % n_tmd)
     print("   elenen, bir uyede urun yok        : %d" % n_noprod)
     if fail_member:
@@ -760,7 +760,7 @@ def main():
         w.writeheader()
         w.writerows(pairs)
     print("\nyazildi: %s" % a.out)
-    print("\nEn iyi bes aday:")
+    print(u'\nFive best candidates:')
     for p in pairs[:5]:
         print("  ceza=%.2f  urun %d-%d bp  yetim=%s  F=%s (Tm %.1f)  R=%s (Tm %.1f)"
               % (p["ceza"], p["urun_min"], p["urun_maks"], p["yetim_primer"],

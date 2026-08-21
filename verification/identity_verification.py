@@ -770,7 +770,7 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
     t0 = time.time()
 
     def ilerle(n):
-        print('     ... %s: %d kayit tarandi (%s)      ' % (etiket, n, sure_metni(time.time() - t0)),
+        print(u'     ... %s: %d records scanned (%s)      ' % (etiket, n, sure_metni(time.time() - t0)),
               end='\r', flush=True)
     kl = kisa_liste(yol, kutu_diz, ust=kl_ust, ilerle=ilerle, garanti=garanti,
                     suzgec=suzgec)
@@ -1980,8 +1980,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                     fh.write(u'\n  **En yakin bes ORGANIZMA** (kayit degil organizma '
                              u'bazinda tekillestirildi; ayni tur birden cok '
                              u'veritabaninda bulundugu icin):\n\n')
-                    fh.write(u'\n  | # | en yakin kayit | cins | tur | kimlik | veritabani |\n'
-                             u'  |---|---|---|---|---|---|\n')
+                    fh.write(u'\n  | # | nearest record | genus | species | identity | database |\n  |---|---|---|---|---|---|\n')
                     for n_ in (1, 2, 3, 4, 5):
                         it = a.get('isabet%d' % n_)
                         if it:
@@ -1996,8 +1995,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                 if d:
                     fh.write(u'\n  **Sorgulanan veritabanlari ve her birinin dedigi '
                              u'(%d kaynak):**\n\n' % len(d))
-                    fh.write(u'  | veritabani | durum | en iyi isabet | kimlik | kazanan sira |\n'
-                             u'  |---|---|---|---|---|\n')
+                    fh.write(u'  | database | status | best hit | identity | winner rank |\n  |---|---|---|---|---|\n')
                     for e, v in d.items():
                         _ks = ('-' if v.get('kazanan_sira') is None
                                else u'%d / %s%s' % (v['kazanan_sira'],

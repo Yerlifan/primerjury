@@ -414,7 +414,7 @@ def ozet(kok, CIKTI, durum, yaz):
                  u'| Neden bu satir dustu? | `KURTARMA_SONUC/KURTARMA_RAPORU.md` |\n'
                  u'| Hangi cift supheli? | `DOGRULAMA_SONUC/CELISKILER.md` |\n'
                  u'| Rapora ne yazayim? | `KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
-    yaz('  yazildi: %s' % yol)
+    yaz(u'  written: %s' % yol)
     yaz('')
     yaz(u'  SABAH BUNA BAKIN: %s' % yol)
 

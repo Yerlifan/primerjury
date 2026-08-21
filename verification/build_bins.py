@@ -285,7 +285,7 @@ def main():
             fh.write(u'%s\t%s\t%s\t%s\t%s\t%d\t%.4f\n'
                      % (x['kutu'], x['sinif'], x['barkod'], x['taxid'],
                         x['ad'], x['okuma'], x['birikim']))
-    yaz(u'  yazildi: %s' % py)
+    yaz(u'  written: %s' % py)
     if a.yalniz_plan:
         return 0
 

@@ -438,7 +438,7 @@ def main():
             if r.get("ozgulluk_durum") == "GECTI"]
     if not rows:
         sys.exit("gecen aday yok")
-    print("sinanacak cift: %d" % len(rows))
+    print(u'pairs to test: %d' % len(rows))
 
     # sinif -> primer kumesi
     sinif_primer = collections.defaultdict(dict)   # sinif -> dizi -> ad
@@ -472,7 +472,7 @@ def main():
         for dbad in dblist:
             fna = os.path.join(a.db, dbad)
             if not os.path.exists(fna):
-                print("   veritabani yok, atlandi: %s" % fna)
+                print(u'   no database, skipped: %s' % fna)
                 atlanan.append((sinif, dbad, "dosya yok"))
                 continue
             db = db_hazirla(fna, calisma)
@@ -641,7 +641,7 @@ def main():
     except Exception:
         pass
     if not sonuc:
-        print("hicbir veritabani taranamadi; cikti yazilmadi")
+        print(u'no database could be scanned; no output was written')
         return
     if a.out:
         d = os.path.dirname(os.path.abspath(a.out))

@@ -874,7 +874,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
 
     yaz('=' * 78)
     yaz('  verification TURU - esik altinda kalan satirlar')
-    yaz('  surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
     yaz('  ESIK %0.0fx DEGISTIRILMEZ. Yol 1 esigi dusurmez, OLCUYU degistirir;' % ESIK)
     yaz('  gerekcesi raporun basinda yazilidir.')
@@ -1320,7 +1320,7 @@ def raporla(CIKTI, sonuc, yaz):
                         ' + '.join(s['yollar']) or '-', s['olcu'],
                         s['yeni'] or '-', s['gecti'],
                         s.get('uyelik_gerekcesi', '-'), s['sebep']])
-    yaz('  yazildi: %s' % yol)
+    yaz(u'  written: %s' % yol)
 
     ay = os.path.join(CIKTI, 'yeni_adaylar.tsv')
     with open(ay, 'w', encoding='utf-8', newline='') as fh:
@@ -1345,7 +1345,7 @@ def raporla(CIKTI, sonuc, yaz):
                     w.writerow([s['hedef'], '%s (%d-%d, %s)' % (b['bolge'], b['bas'],
                                                                b['son'], b['kaynak']),
                                 '', '', '', '', 'aday yok (%d taranan)' % b['aday'], '', ''])
-    yaz('  yazildi: %s' % ay)
+    yaz(u'  written: %s' % ay)
 
     gecen = [s for s in sonuc if s['gecti'].startswith('EVET')]
     tasi = [s for s in sonuc if s['gecti'] == 'DUSENLERE TASINDI']
@@ -1372,7 +1372,7 @@ def raporla(CIKTI, sonuc, yaz):
             fh.write(u'**%s** — %s\n\n' % (s['hedef'], s['sebep'] or '-'))
         fh.write(u'\n## Okuma sirasi\n\n1. Bu dosya. 2. `kurtarma_satirlari.tsv` '
                  u'(her hedef tek satir). 3. `yeni_adaylar.tsv` (yol 3 ciktisi).\n')
-    yaz('  yazildi: %s' % rp)
+    yaz(u'  written: %s' % rp)
     yaz('')
     yaz('  KURTARILAN: %d   DUSENLERE TASINAN: %d   KURTARILAMAYAN: %d'
         % (len(gecen), len(tasi), len(kalan)))
@@ -1404,15 +1404,15 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BOS CIKTI URETTI - ZINCIR BURADA DURDURULDU' % ad)
+    yaz(u'  STAGE %s PRODUCED EMPTY OUTPUT - THE CHAIN WAS STOPPED HERE' % ad)
     for x in sorun:
         yaz(u'    - %s' % x)
     yaz('')
-    yaz(u'  NEDEN DURDURULDU: sonraki asama bu dosyayi girdi olarak okuyacakti.')
-    yaz(u'  Bos girdiyle devam etmek cokme uretmez, ANLAMSIZ AMA INANDIRICI bir')
-    yaz(u'  ozet uretir - tam da avladigimiz sessiz hata deseni budur.')
-    yaz(u'  Yukaridaki kosu gunlugunu okuyup sebebi giderin, sonra ayni secenegi')
-    yaz(u'  tekrar secin; bitmis isler kontrol noktalarindan atlanacaktir.')
+    yaz(u'  WHY IT STOPPED: the next stage would have read this file as input.')
+    yaz(u'  Continuing with empty input does not crash; it produces a MEANINGLESS BUT')
+    yaz(u'  CONVINCING summary, which is exactly the silent failure we hunt for.')
+    yaz(u'  Read the run log above, fix the cause, then run the same command')
+    yaz(u'  again; finished work is skipped from its checkpoints.')
     yaz('  ' + '!' * 70)
     return 4
 
@@ -1433,7 +1433,7 @@ def girdi_denetle(yaz, ad, dosyalar):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BASLATILMADI - GIRDI EKSIK' % ad)
+    yaz(u'  STAGE %s WAS NOT STARTED - INPUT MISSING' % ad)
     for x in eksik:
         yaz(u'    - %s' % x)
     yaz('  ' + '!' * 70)

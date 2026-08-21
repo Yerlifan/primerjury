@@ -318,7 +318,7 @@ def main():
             fh.write(u'%s\tCIFT\tdTm=%.2f  het=%.1f\t\t\t\t\t\t\n'
                      % (c['hedef'], abs(tF - tR), het))
     print()
-    print('  yazildi: %s' % cy)
+    print(u'  written: %s' % cy)
 
     print()
     if uyusmaz:

@@ -504,7 +504,7 @@ def main():
                     ceza=round(pen, 3)))
             i += 1
 
-    print("\ncift olusturma")
+    print(u'\npair construction')
     print("   elenen, urun uzunlugu                : %d" % n_prod)
     print("   elenen, cift Tm farki                : %d" % n_tmdiff)
     print("   elenen, F ve R ayak izi cakismasi    : %d" % n_overlap)
@@ -540,7 +540,7 @@ def main():
         w.writeheader()
         w.writerows(pairs)
     print("\nyazildi: %s" % a.out)
-    print("\nEn iyi bes aday:")
+    print(u'\nFive best candidates:')
     for p in pairs[:5]:
         print("  ceza=%.2f  urun=%d bp (GC %.1f)  F=%s (Tm %.1f)  R=%s (Tm %.1f)"
               % (p["ceza"], p["urun_uzunluk"], p["urun_gc"], p["ileri_dizi"],

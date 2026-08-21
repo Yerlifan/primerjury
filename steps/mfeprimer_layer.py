@@ -124,7 +124,7 @@ def main():
             if r.get("ozgulluk_durum") == "GECTI"]
     if not rows:
         sys.exit("gecen aday yok")
-    print("sinanacak cift: %d" % len(rows))
+    print(u'pairs to test: %d' % len(rows))
 
     # 14'un sonucu: (hedef, sinif, ileri, geri, veritabani) -> urun sayisi
     blast = {}
@@ -153,7 +153,7 @@ def main():
         for dbad in dblist:
             fna = os.path.join(a.db, dbad)
             if not os.path.exists(fna):
-                print("   veritabani yok, atlandi: %s" % fna)
+                print(u'   no database, skipped: %s' % fna)
                 continue
             eks = indeks_eksik(fna)
             if eks:
@@ -266,7 +266,7 @@ def main():
     shutil.rmtree(calisma, ignore_errors=True)
 
     if not sonuc:
-        print("hicbir veritabani taranamadi; cikti yazilmadi")
+        print(u'no database could be scanned; no output was written')
         # Bos cikmasi sessizce 'temiz' okunmamali; bos ama basliklari olan
         # bir dosya yazilir ki bayat cikti hayatta kalmasin.
         if a.out:

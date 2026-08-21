@@ -205,8 +205,8 @@ def main():
                  u'sayım değildir.\n')
 
     yaz(u'')
-    yaz(u'  yazildi: %s' % ty)
-    yaz(u'  yazildi: %s' % ry)
+    yaz(u'  written: %s' % ty)
+    yaz(u'  written: %s' % ry)
     yaz(u'  adli hedef disi YOK: %d | VAR: %d | sinanamadi: %d | sure: %s'
         % (len(temiz), len(kirli), len(dusen), D.sure_metni(gecen)))
     gun.close()
