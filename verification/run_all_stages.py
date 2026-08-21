@@ -319,18 +319,16 @@ def ozet(kok, CIKTI, durum, yaz):
         if not D:
             fh.write(u'Dogrulama turu kosulmadi ya da cikti uretmedi.\n')
         elif not cel:
-            fh.write(u'Uc katman hicbir satirda ayrilmadi. **Bu "her sey temiz" demek '
-                     u'DEGILDIR**: NCBI ya da yerel katmani kosulmamis satirlar "EKSIK" '
-                     u'sayilir ve celiski uretmez.\n')
+            fh.write(u'The three layers disagreed on no row. **That does NOT mean everything is clean**: a row whose NCBI or local layer was never run counts as "MISSING" and cannot produce a disagreement.\n')
         else:
-            fh.write(u'**%d satir celiskili — hicbiri siparis edilemez.**\n\n' % len(cel))
-            fh.write(u'| hedef | 1 numune | 2 yerel DB | 3 NCBI |\n|---|---|---|---|\n')
+            fh.write(u'**%d rows disagree, and none of them can be ordered.**\n\n' % len(cel))
+            fh.write(u'| target | 1 sample | 2 local DB | 3 NCBI |\n|---|---|---|---|\n')
             for r in cel:
                 fh.write(u'| %s | %s | %s (%s) | %s (%s) |\n'
                          % (r['hedef'], r.get('1_NUMUNE', ''), r.get('2_YEREL_DB', ''),
                             r.get('2_hedef_disi_urun', ''), r.get('3_NCBI', ''),
                             r.get('3_hedef_disi_urun', '')))
-            fh.write(u'\nAyrinti ve ne yapilmasi gerektigi: `DOGRULAMA_SONUC/CELISKILER.md`\n')
+            fh.write(u'\nDetail, and what to do about it: `DOGRULAMA_SONUC/CELISKILER.md`\n')
 
         # --- 4) KIMLIK ---
         fh.write(u'\n---\n\n## 4. Identity claims\n\n')
@@ -367,8 +365,7 @@ def ozet(kok, CIKTI, durum, yaz):
             kb = [k_ad[x] for x in k_ad if any(a.lower() in x.lower() for a in anah)]
             if not bul and not kb:
                 panelsiz += 1
-                fh.write(u'| %s | %s | **YOK** | hayir | **panelde satiri yok - '
-                         u'kurtarma turunda tasarim denemesi kapsaminda** |\n'
+                fh.write(u'| %s | %s | **NONE** | no | **has no row in the panel, so it falls to the design attempt in the recovery round** |\n'
                          % (kar, ad))
                 continue
             if not bul and kb:
@@ -388,9 +385,7 @@ def ozet(kok, CIKTI, durum, yaz):
                      % (kar, ad, ', '.join(bul), '; '.join(durumlar)[:120]))
         fh.write(u'\n**Requests with no row in the panel: %d.** ' % panelsiz)
         if panelsiz:
-            fh.write(u'Bu talepler kurtarma turunun `PANELSIZ_TALEPLER` tablosunda '
-                     u'tanimlidir ve kutunun KENDI konsensusundan tasarim denemesi '
-                     u'yapilir; "hic denenmedi" diye kalmazlar.\n')
+            fh.write(u'These requests are listed in the recovery round\'s `PANELSIZ_TALEPLER` table, and a design attempt is made from the bin\'s OWN consensus, so none of them is left as "never attempted".\n')
         else:
             fh.write(u'Zincir toplanti listesinin TAMAMINI kapsiyor.\n')
 

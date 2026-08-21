@@ -135,8 +135,7 @@ def esleme_kur(kok, yaz):
         kutular = sorted(k for k in os.listdir(os.path.join(kok, FASTQ_KOK))
                          if k.startswith(sinif + '-'))
         if len(barkodlar) != len(kutular):
-            yaz(u'  UYARI: %s sinifinda %d barkod ama %d kutu klasoru - esleme '
-                u'kurulamadi, bu sinif ATLANIR.'
+            yaz(u'  WARNING: class %s has %d barcodes but %d bin directories, so no mapping could be built and this class is SKIPPED.'
                 % (sinif, len(barkodlar), len(kutular)))
             continue
         for kutu, bc in zip(kutular, barkodlar):
@@ -231,12 +230,12 @@ def main():
     tam, sapan = kalibrasyon(kok, esleme, yaz)
     if sapan:
         yaz(u'')
-        yaz(u'  KALIBRASYON DUSTU. Klad kurali elde hazir kutulari yeniden')
+        yaz(u'  CALIBRATION FAILED. The clade rule will re-derive the bins already on disk')
         yaz(u'  uretemiyor; kalan taksonlara uygulamak YANLIS olurdu.')
-        yaz(u'  Hicbir dosya uretilmedi.')
+        yaz(u'  No file was produced.')
         return 1
     if tam == 0:
-        yaz(u'  Kalibre edilecek hazir kutu bulunamadi - kapi acilmadi.')
+        yaz(u'  No ready bin to calibrate was found, so the gate never opened.')
         return 1
     yaz(u'  Kalibrasyon GECTI (%d/%d). Uretime izin verildi.' % (tam, tam))
     if a.yalniz_kalibrasyon:
@@ -278,7 +277,7 @@ def main():
         yaz(u'      %-4s %d' % (s, n))
     py = os.path.join(kok, 'KUTU_URETIM_PLANI.tsv')
     with io.open(py, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Uretilecek kutular. Uretim %s, kapsam hedefi %.2f\n'
+        fh.write(u'# Bins to be produced. Generated %s, coverage target %.2f\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), a.kapsam))
         fh.write(u'kutu\tsinif\tbarkod\ttaxid\tkraken_adi\tokuma\tbirikimli_kapsam\n')
         for x in plan:
@@ -352,7 +351,7 @@ def main():
             for f in acik.values():
                 f.close()
         uretilen += len(istenen)
-        yaz(u'  %-8s %-12s %d kutu yazildi' % (kutu, bc, len(istenen)))
+        yaz(u'  %-8s %-12s %d bins written' % (kutu, bc, len(istenen)))
 
     yaz(u'')
     yaz(u'  bins created: %d' % uretilen)

@@ -139,7 +139,7 @@ def main():
         fh.write(u'> **Do not copy from the Excel file.** The `2 Panel` sheet inside `PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx` ')
         fh.write(u'**%d pairs = %d oligos**\n\n' % (len(girer), 2 * len(girer)))
         if uyari:
-            fh.write(u'### Uyarılar\n\n')
+            fh.write(u'### Warnings\n\n')
             for u_ in uyari:
                 fh.write(u'- %s\n' % u_)
             fh.write(u'\n')
@@ -149,16 +149,12 @@ def main():
                 fh.write(u'| %s | `%s` | %d | %s | %s | %s | %s | %s |\n'
                          % (ad, d, len(d), c['hedef'], yon, c['plaka'], c['ta'], c['urun']))
         if girmez:
-            fh.write(u'\n## Sipariş dışı (silinmedi, bilgi için)\n\n')
-            fh.write(u'| hedef | sınıf | ürün |\n|---|---|---|\n')
+            fh.write(u'\n## Not ordered (kept, not deleted, for reference)\n\n')
+            fh.write(u'| target | class | product |\n|---|---|---|\n')
             for c in girmez:
                 fh.write(u'| %s | %s | %s |\n' % (c['hedef'], c['sinif'], c['urun']))
-        fh.write(u'\n## Bu formun söylemediği şey\n\n')
-        fh.write(u'Bu form **hangi dizinin sipariş edileceğini** söyler. Bu '
-                 u'çiftlerin geometri kapısından geçtiğini, plaka içi jel ayrımının '
-                 u'temiz olduğunu ya da eşik kuralının hangisi olduğunu söylemez. '
-                 u'Onlar `TEK_TUS_SONUC/DENETIM_RAPORU.md` ve `GECE_BULGULARI.md` '
-                 u'içindedir ve sipariş vermeden önce okunmalıdır.\n')
+        fh.write(u'\n## What this form does not tell you\n\n')
+        fh.write(u'This form tells you **which sequences to order**. It does not tell you that these pairs passed the geometry gate, that the in-plate gel separation is clean, or which threshold rule was applied. Those live in `TEK_TUS_SONUC/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`, and both should be read before an order is placed.\n')
 
     print('yazildi: %s' % ty)
     print('yazildi: %s' % my)
