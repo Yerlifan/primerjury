@@ -326,7 +326,7 @@ def main():
     if a.mask and not masked:
         print("UYARI: maske dosyasi okundu ama hicbir pozisyon yasaklanmadi. "
               "Dosyadaki kontig adlari: %s" % (list(mseen) or "yok"))
-    print("hedef            : %s" % label)
+    print(u'target           : %s' % label)
     print("konsensus        : %s (%d bp, basliği %s)" % (a.consensus, L, name))
     print("maske            : %s" % (a.mask or "yok"))
     if mclasses:
@@ -334,8 +334,8 @@ def main():
     if L < a.len_min * 2 + a.prod_min:
         sys.exit("HATA: konsensus cok kisa (%d bp), en az %d bp gerekiyor"
                  % (L, a.len_min * 2 + a.prod_min))
-    print("yasak pozisyon   : %d (%.2f%%)" % (len(masked), 100.0 * len(masked) / L))
-    print("dejenere butcesi : %d pozisyon, en fazla %d kat"
+    print(u'forbidden positions : %d (%.2f%%)' % (len(masked), 100.0 * len(masked) / L))
+    print(u'degeneracy budget   : %d positions, at most %d fold'
           % (a.degeneracy_budget, a.degeneracy_fold_max))
 
     # --- 1. kompozisyon suzgeci, ucuz olan once ------------------------
@@ -362,7 +362,7 @@ def main():
                         reasons[why] = reasons.get(why, 0) + 1
                         continue
                     raw.append((strand, start, ln, oligo, kac))
-    print("\nkompozisyon suzgeci sonrasi oligo: %d" % len(raw))
+    print(u'\noligos after the composition filter: %d' % len(raw))
     for k, v in sorted(reasons.items(), key=lambda x: -x[1]):
         print("   elenen %-16s %d" % (k, v))
     if not raw:
@@ -383,10 +383,10 @@ def main():
         tol = max(0.10, a.tm_cross_k * spread)
         tol_src = "veriden turetildi: %.1f carpi sd (%.3f), taban 0,10" % (
             a.tm_cross_k, spread)
-    print("\niki kutuphane Tm karsilastirmasi (%d oligo)" % len(raw))
-    print("   primer3 eksi Biopython, medyan kayma : %+.2f C" % offset)
-    print("   kaymanin standart sapmasi            : %.3f C" % spread)
-    print("   kullanilan tolerans                  : %.3f C (%s)" % (tol, tol_src))
+    print(u'\nTm comparison between the two libraries (%d oligos)' % len(raw))
+    print(u'   primer3 minus Biopython, median offset : %+.2f C' % offset)
+    print(u'   standard deviation of the offset       : %.3f C' % spread)
+    print(u'   tolerance used                         : %.3f C (%s)' % (tol, tol_src))
 
     kept = []
     n_cross = n_tm = n_hp = n_hd = 0
@@ -411,17 +411,17 @@ def main():
         kept.append(dict(strand=strand, start=start, ln=ln, oligo=oligo,
                          tm3=t3, tmb=tb, hairpin_dg=hp, homodimer_dg=hd,
                          gc=gc_pct(oligo), iupac=kac_iupac))
-    print("   elenen, iki olcum ayrildi            : %d" % n_cross)
-    print("   elenen, Tm sert sinir disi           : %d" % n_tm)
-    print("   elenen, hairpin dG                   : %d" % n_hp)
-    print("   elenen, self-dimer dG                : %d" % n_hd)
-    print("termodinamik suzgec sonrasi oligo       : %d" % len(kept))
+    print(u'   dropped, the two measurements diverged : %d' % n_cross)
+    print(u'   dropped, Tm outside the hard limits    : %d' % n_tm)
+    print(u'   dropped, hairpin dG                    : %d' % n_hp)
+    print(u'   dropped, self-dimer dG                 : %d' % n_hd)
+    print(u'oligos after the thermodynamic filter     : %d' % len(kept))
     if not kept:
         sys.exit("termodinamik suzgecten gecen oligo yok")
 
     F = sorted([k for k in kept if k["strand"] == "F"], key=lambda x: x["start"])
     R = sorted([k for k in kept if k["strand"] == "R"], key=lambda x: x["start"])
-    print("   ileri aday: %d   geri aday: %d" % (len(F), len(R)))
+    print(u'   forward candidates: %d   reverse candidates: %d' % (len(F), len(R)))
 
     # --- 3. ciftleme, urun kurallari ve makine dogrulamasi -------------
     pairs = []
@@ -505,15 +505,15 @@ def main():
             i += 1
 
     print(u'\npair construction')
-    print("   elenen, urun uzunlugu                : %d" % n_prod)
-    print("   elenen, cift Tm farki                : %d" % n_tmdiff)
-    print("   elenen, F ve R ayak izi cakismasi    : %d" % n_overlap)
-    print("   elenen, urun makine dogrulamasi      : %d" % n_verify_fail)
-    print("     (not: urun bu asamada primerlerin turetildigi kalibin ayni")
-    print("      kopyasindan kesildigi icin bu kontrol tanim geregi gecer;")
-    print("      asil islevi 05 ozgulluk asamasinda rakip ve ham okuma")
-    print("      kaliplarina karsi calistirildiginda ortaya cikar)")
-    print("   elenen, hetero-dimer dG              : %d" % n_het)
+    print(u'   dropped, product length                : %d' % n_prod)
+    print(u'   dropped, pair Tm difference            : %d' % n_tmdiff)
+    print(u'   dropped, F and R footprints overlap    : %d' % n_overlap)
+    print(u'   dropped, machine verification of the product : %d' % n_verify_fail)
+    print(u'     (note: at this stage the product is cut from the same copy of the')
+    print(u'      template the primers were derived from, so this check passes by')
+    print(u'      definition. Its real purpose appears at the specificity stage, where')
+    print(u'      it runs against competitor and raw-read templates)')
+    print(u'   dropped, hetero-dimer dG               : %d' % n_het)
     print("gecerli cift sayisi                     : %d" % len(pairs))
     if not pairs:
         sys.exit("gecerli cift bulunamadi")
