@@ -86,12 +86,8 @@ def main():
         _eksik.append('REFERANS_DB klasoru')
     if _eksik:
         sys.stderr.write(
-            u'HATA: %s icinde %s yok.\n'
-            u'  Bu betik proje kokunden calisir. Kok, verification/full_chain.py ile ayni\n'
-            u'  klasordur ve icinde verification/ ile REFERANS_DB/ bulunur.\n'
-            u'  Dogru kullanim:  python3 verification/access_check.py --kok <proje klasoru>\n'
-            u'  Menuden gelirseniz kok kendiliginden dogru verilir (E tusu).\n'
-            % (kok, ' ve '.join(_eksik)))
+            u'ERROR: %s does not contain %s.\n  This script runs from the project root. The root is the same directory as\n  verification/full_chain.py, and it holds verification/ and REFERANS_DB/.\n  Correct use:  python3 verification/access_check.py --kok <project directory>\n  If you come from the menu the root is supplied correctly on its own (key E).\n'
+            % (kok, u' and '.join(_eksik)))
         return 1
     if not [f for f in os.listdir(os.path.join(kok, 'REFERANS_DB'))
             if f.endswith(('.fasta', '.fna'))]:
@@ -110,9 +106,7 @@ def main():
         pass
     except Exception as e:
         sys.stderr.write(
-            u'HATA: identity_verification.py yuklenemedi: %s: %s\n'
-            u'  Bu dosya bozulmus olabilir. Once  python3 -c "import ast;'
-            u' ast.parse(open(r\'%s\').read())"  ile sozdizimini sinayin.\n'
+            u'ERROR: identity_verification.py could not be loaded: %s: %s\n  This file may be corrupted. First check its syntax with  python3 -c "import ast; ast.parse(open(r\'%s\').read())"\n'
             % (type(e).__name__, e, _kd_yolu))
         return 1
 
@@ -153,7 +147,7 @@ def main():
         if not havuz:
             satirlar.append(dict(vtb=etiket, dosya=dosya, sonuc='OLCULEMEDI',
                                  sebep=u'800 bp ustu kayit yok (taranan %d)' % n))
-            print('  OLCULEMEDI: uygun kayit yok'); continue
+            print(u'  NOT MEASURED: no suitable record'); continue
         # bas / orta / son bolgelerden birer tane garanti
         secilen = []
         if havuz:
@@ -210,10 +204,10 @@ def main():
     yeni = not os.path.exists(yol)
     with open(yol, 'a', encoding='utf-8', newline='') as fh:
         if yeni:
-            fh.write(u'# ERISIM DOGRULAMASI - arama her veritabanini gercekten kullaniyor mu?\n')
+            fh.write(u'# ACCESS VERIFICATION - does the search really use every database?\n')
             fh.write(u'# GECTI: kendi kaydini hem tam hem hatali dizide geri getiriyor.\n')
-            fh.write(u'# KISMEN: yalniz kusursuz dizide getiriyor - bizim konsensuslerimiz hatali!\n')
-            fh.write(u'# DUSTU: kendi kaydini bile getiremiyor - veritabani fiilen kullanilmiyor.\n')
+            fh.write(u'# PARTIAL: it only retrieves on a flawless sequence, and our consensuses are imperfect!\n')
+            fh.write(u'# FAILED: it cannot even retrieve its own record, so the database is effectively unused.\n')
         w = csv.DictWriter(fh, delimiter='\t',
                            fieldnames=['vtb', 'dosya', 'mb', 'taranan', 'kapsam', 'sinama', 'tam',
                                        'mutasyonlu', 'sonuc', 'sebep', 'ayrinti'])
