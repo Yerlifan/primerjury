@@ -1,93 +1,98 @@
 # -*- coding: utf-8 -*-
-r"""
-read_engine.py - DUZELTILMIS ham-okuma in-silico PCR motoru.
-2026-08-02, okuma motoru duzeltmesi.
+"""
+read_engine.py - THE CORRECTED raw-read in-silico PCR engine.
+2026-08-02, the read engine fix.
 
-BAGIMSIZDIR: numpy, ispcr, reads.py, pysam, minimap2 GEREKMEZ. Saf standart Python.
-Windows/Linux farketmez. .bat icinden dogrudan cagrilabilir.
+IT IS SELF-CONTAINED: numpy, ispcr, reads.py, pysam and minimap2 ARE NOT NEEDED.
+Pure standard Python. Windows or Linux makes no difference.
 
 ---------------------------------------------------------------------------
-NEYI DUZELTIYOR
+WHAT IT FIXES
 ---------------------------------------------------------------------------
-Eski motor (engine/reads.py -> sinif `Sonda`, ayrica engine/
-scb.py -> sinif `S`) primeri okumada ararken 13 bazlik TAM ESLESEN tek bir tohum
-kullaniyordu:
+The old engine (engine/reads.py -> class `Sonda`, and also engine/scb.py -> class
+`S`) searched for the primer in a read using a single 13 base EXACT MATCHING seed:
 
     s = primer[:13] if uc5 else primer[-13:]
-    i = seq.find(sd)          # <-- TAM eslesme sarti
+    i = seq.find(sd)          # <-- an EXACT match requirement
 
-Olcut "toplam uyumsuzluk <= max_mm" oldugu halde, uyumsuzluk 13 bazlik tohumun
-icine dustugunde `find` hicbir sey bulamiyor ve baglanma yeri SESSIZCE kayboluyor.
-Program hata vermiyor, "urun yok" diyor.
+Although the criterion is "total mismatches <= max_mm", when the mismatch falls
+inside those 13 bases `find` finds nothing and the binding site disappears
+SILENTLY. The program raises no error, it says "no product".
 
-Olculen etki (A1-4_3078083 kutusu, ilk 400 okuma, M. mazei cifti, AYNI olcut mm<=1):
-    eski Sonda        :   2/400  (%0,50)
-    kaba kuvvet       : 174/400  (%43,50)
-    -> 205 baglanma yerinin 202'sinde (%98,5) uyumsuzluk tohumun icine dusuyor
-       (188'i primerin 6. bazinda - tek ve tekrar eden bir varyant baz).
-
----------------------------------------------------------------------------
-NASIL DUZELTILDI - GUVERCIN YUVASI (PIGEONHOLE) TOHUMLAMASI
----------------------------------------------------------------------------
-Primer, max_mm+1 tane ORTUSMEYEN bloga bolunur. En fazla max_mm uyumsuzluk varsa
-guvercin yuvasi ilkesi geregi bu bloklardan EN AZ BIRI tam tutmak zorundadir.
-Dolayisiyla bloklardan herhangi birinin tam eslesmesini aramak KAYIPSIZDIR:
-kaba kuvvetin bulacagi hicbir yeri kacirmaz. Bulunan her aday yer sonra tam
-kuralla (toplam uyumsuzluk + 3' son 2 baz) TEK TEK dogrulanir.
-
-Ayrica: eski kodda 3' son 2 baz TAM ESLESME kurali hicbir yerde acikca
-uygulanmiyordu - 13 bazlik tohumun yan etkisiydi. Tohum kisalinca o yan etki
-kaybolacagi icin kural bu modulde ACIKCA uygulanir (son2=True).
-
-KAYIPSIZLIK IDDIASI TEST EDILMISTIR: engine_test.py bu motoru, tohum kullanmayan
-ve her pozisyonu tek tek deneyen bagimsiz bir kaba kuvvet uygulamasiyla
-(brute_force.py) karsilastirir. Panele girmeden once o testi kosun.
+The measured effect (bin A1-4_3078083, the first 400 reads, the M. mazei pair,
+THE SAME criterion mm<=1):
+    the old Sonda   :   2/400  (0.50%)
+    brute force     : 174/400  (43.50%)
+    -> in 202 of 205 binding sites (98.5%) the mismatch falls inside the seed
+       (188 of them at base 6 of the primer, a single recurring variant base).
 
 ---------------------------------------------------------------------------
-KULLANIM
+HOW IT WAS FIXED - PIGEONHOLE SEEDING
 ---------------------------------------------------------------------------
-Modul olarak:
+The primer is split into max_mm+1 NON-OVERLAPPING blocks. If there are at most
+max_mm mismatches then, by the pigeonhole principle, AT LEAST ONE of those blocks
+must match exactly. So searching for an exact match of any block is LOSSLESS: it
+misses no site brute force would find. Every candidate found is then verified ONE
+BY ONE under the full rule (the total mismatch count plus the last 2 bases at the
+3' end).
+
+Also: in the old code the last-two-bases-at-the-3'-end EXACT MATCH rule was
+applied nowhere explicitly; it was a side effect of the 13 base seed. Because that
+side effect disappears once the seed shortens, the rule is applied EXPLICITLY in
+this module (son2=True).
+
+THE LOSSLESSNESS CLAIM IS TESTED: engine_test.py compares this engine against an
+independent brute force implementation (brute_force.py) that uses no seed and
+tries every position one at a time. Run that test before entering the panel.
+
+---------------------------------------------------------------------------
+USAGE
+---------------------------------------------------------------------------
+As a module:
     import read_engine as om
-    okumalar = list(om.okumalar('kutu.fastq'))            # 200-6000 bp suzgeci
-    pos, n   = om.kutu_pcr(okumalar, F, R, max_mm=1)      # urun veren okuma sayisi
-    yerler   = om.Sonda(F, uc5=False, max_mm=1).bul(dizi) # [(baslangic, uyumsuzluk), ...]
+    okumalar = list(om.okumalar('kutu.fastq'))            # a 200-6000 bp filter
+    pos, n   = om.kutu_pcr(okumalar, F, R, max_mm=1)      # reads giving a product
+    yerler   = om.Sonda(F, uc5=False, max_mm=1).bul(dizi) # [(start, mismatches), ...]
 
-Komut satirindan (.bat icin):
-    python read_engine.py F_PRIMER R_PRIMER [--mm 1] [--lo 40] [--hi 600]
-                           [--nmax 3000] [--seed 3] [--tsv cikti.tsv] dosya1.fastq ...
-    -> her fastq icin satir: dosya, urun_veren, kullanilan_okuma, toplam_okuma, yuzde, baskin_boylar
+From the command line:
+    python read_engine.py F_PRIMER R_PRIMER [--mm 1] [--lo 40] [--hi 600] \
+                           [--nmax 3000] [--seed 3] [--tsv out.tsv] file1.fastq ...
+    -> one line per fastq: file, with_product, reads_used, total_reads, percent,
+       dominant_lengths
 
-    Ornek:
-      python read_engine.py GCCCTTGGGACCGGCATAA TCGCTGGCTAGTAGGTACATTACA ^
-             --mm 1 --tsv sonuc.tsv "fastq files\A1-4\*.fastq"
+    An example:
+      python read_engine.py GCCCTTGGGACCGGCATAA TCGCTGGCTAGTAGGTACATTACA \
+             --mm 1 --tsv sonuc.tsv "fastq files/A1-4/*.fastq"
 
-OLCUT ETIKETI: --mm degeri ciktiya yazilir. Panelin numune olcutu mm<=1'dir;
-mm<=3 tasarim boru hattinin olcutudur. IKISINI KARISTIRMAYIN - panelin eski
-satirlarinda karistirilmisti (bkz. "16 Okuma Motoru Duzeltmesi" sayfasi).
+THE CRITERION LABEL: the --mm value is written into the output. The panel's sample
+criterion is mm<=1; mm<=3 is the design pipeline's criterion. DO NOT CONFUSE THE
+TWO - they had been confused in the panel's old rows (see the "16 Okuma Motoru
+Duzeltmesi" sheet).
+
 """
-# ---------------------------------------------------------------------------
-# read_engine.py — ham nanopore okumalari uzerinde in-silico PCR yapan
-#                   duzeltilmis motor; guvercin yuvasi tohumlamasi kullanir ve
-#                   hicbir baglanma yerini kacirmaz.
+# -------------------------------------------------------------------------
+# read_engine.py - the corrected engine that does in-silico PCR on raw nanopore
+#                   reads; it uses pigeonhole seeding and misses no binding site.
 #
-# GIRDI  : fastq / fastq.gz dosyalari (okumalar() ve kutu_yukle() ile,
-#          200-6000 bp uzunluk suzgeci ve sabit tohumlu ornekleme) ile ileri ve
-#          geri primer dizileri. Modul olarak da, komut satirindan da kullanilir.
-# CIKTI  : dosyaya yazmaz (komut satirinda --tsv verilirse dosya basina bir
-#          satirlik TSV yazar). Sonda.bul() [(baslangic, uyumsuzluk)] listesi,
-#          kutu_pcr() (urun_veren, toplam, boy_sayaci) uclusu dondurur.
-# CAGRAN : Paket ici: engine_gateway.py bu dosyayi ice aktarir, numune.KutuOtorite ve
-#          numune.KutuEski uzerinden butun olcum asamalarinda kullanilir - yani
-#          full_chain.py asamalari 1, 2, 3, 4, 5, 6, 7, 8, 9. Ayrica orientation.py,
-#          orientation_audit.py, orientation_impact_test.py, cross_coverage.py, engine_test.py
-#          ve independent_check.py dogrudan ice aktarir.
-# ---------------------------------------------------------------------------
+# INPUT  : fastq / fastq.gz files (through okumalar() and kutu_yukle(), with a
+#          200-6000 bp length filter and fixed seed sampling) plus the forward and
+#          reverse primer sequences. It is used both as a module and from the
+#          command line.
+# OUTPUT : it writes no file (on the command line, --tsv writes a one line TSV per
+#          file). Sonda.bul() returns a [(start, mismatches)] list and kutu_pcr()
+#          returns the triple (with_product, total, length_counter).
+# CALLED BY: inside the package, engine_gateway.py imports this file and it is used
+#          through numune.KutuOtorite and numune.KutuEski in every measurement stage
+#          - that is, full_chain.py stages 1 to 9. Beside that, orientation.py,
+#          orientation_audit.py, orientation_impact_test.py, cross_coverage.py,
+#          engine_test.py and independent_check.py import it directly.
+# -------------------------------------------------------------------------
 import sys, os, re, glob, gzip, random, argparse
 from collections import Counter
 
 __version__ = '1.0 (2026-08-02)'
 
-MINL, MAXL = 200, 6000          # okuma uzunluk suzgeci (A2 ~4,2-4,5 kb, F2 ~3,7 kb dahil)
+MINL, MAXL = 200, 6000          # the read length filter (A2 ~4.2-4.5 kb and F2 ~3.7 kb included)
 
 IUPAC = {
     'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T', 'U': 'T',
@@ -115,11 +120,14 @@ def _blok_regex(alt):
 
 
 class Sonda:
-    """Bir primerin bir dizideki TUM baglanma yerlerini bulur. Kayipsiz.
+    """Finds ALL the binding sites of a primer in a sequence. Lossless.
 
-    uc5=False -> ileri primer; 3' kritik uc primerin SONUNDA (indeks -1, -2)
-    uc5=True  -> ters primerin tumleyeni; 3' kritik uc dizinin BASINDA (indeks 0, 1)
-    son2=True -> 3' son 2 baz TAM eslesmek zorunda (panelin kurali)
+        uc5=False -> a forward primer; the critical 3' end is at the END of the primer
+                     (index -1, -2)
+        uc5=True  -> the complement of a reverse primer; the critical 3' end is at the
+                     START of the sequence (index 0, 1)
+        son2=True -> the last 2 bases at the 3' end must match EXACTLY (the panel's rule)
+
     """
 
     def __init__(self, primer, uc5=False, max_mm=1, son2=True):
@@ -132,41 +140,41 @@ class Sonda:
         self.ok = [set(IUPAC.get(c, 'ACGT')) for c in primer]
         self.kritik = (0, 1) if uc5 else (self.L - 1, self.L - 2)
         # ------------------------------------------------------------------
-        # GUVERCIN YUVASI (PIGEONHOLE) TOHUMLAMASI - NEDEN KAYIPSIZ
+        # PIGEONHOLE SEEDING - WHY IT IS LOSSLESS
         #
-        # k uzunlugundaki bir primer, en fazla m uyumsuzluga izin verilen bir
-        # aramada (m + 1) tane ORTUSMEYEN parcaya bolunurse, en fazla m parca
-        # bozulabilir; geriye kalan EN AZ BIR parca tam eslesmek ZORUNDADIR.
-        # Bu bir garantidir, sezgisel bir hizlandirma degildir: parcalardan
-        # herhangi birinin tam eslesmesini aramak, kaba kuvvetin bulacagi
-        # hicbir yeri kacirmaz. Bulunan her aday konum sonra _dogrula() ile
-        # tam kural altinda (toplam uyumsuzluk + 3' son 2 baz) tek tek
-        # sinanir, yani yanlis pozitif de birakmaz.
+        # If a primer of length k is split into (m + 1) NON-OVERLAPPING pieces in a
+        # search allowing at most m mismatches, at most m pieces can be spoiled;
+        # AT LEAST ONE of the remaining pieces MUST match exactly.
+        # That is a guarantee, not a heuristic speed-up: searching for an exact match
+        # of any of the pieces misses no site that brute force would find. Every
+        # candidate position found is then tested one by one with _dogrula() under the
+        # full rule (the total mismatch count plus the last 2 bases at the 3' end), so
+        # it leaves no false positive either.
         #
-        # BU YUZDEN TOHUM UZUNLUGU VE PARCA SAYISI KEYFI SECILEMEZ. Parca
-        # sayisi max_mm + 1'den KUCUK olursa garanti coker ve arama sessizce
-        # site kacirmaya baslar - eski motorun hatasi tam olarak buydu: tek,
-        # sabit 13 bazlik bir tohum kullaniyordu ve uyumsuzluk o 13 bazin
-        # icine dustugunde `find` hicbir sey bulamiyordu. Program hata vermez,
-        # "urun yok" der. Olculen etki: 205 baglanma yerinin 202'si (%98,5)
-        # kayboluyordu. Parca sayisini artirmak da bedava degildir - parcalar
-        # kisaldikca yanlis aday sayisi ve dogrulama maliyeti buyur.
-        # Kayipsizlik iddiasi engine_test.py'de brute_force.py'ye karsi
-        # dogrulanir; self_test.py her kosuda ayni karsilastirmayi yapar.
+        # THAT IS WHY THE SEED LENGTH AND THE PIECE COUNT CANNOT BE CHOSEN ARBITRARILY.
+        # If the piece count falls BELOW max_mm + 1 the guarantee collapses and the
+        # search starts missing sites silently - which was exactly the old engine's bug:
+        # it used a single fixed 13 base seed, and when the mismatch fell inside those
+        # 13 bases `find` found nothing. The program raises no error, it says "no
+        # product". The measured effect: 202 of 205 binding sites (98.5%) were being
+        # lost. Raising the piece count is not free either - as the pieces shorten, the
+        # number of false candidates and the verification cost both grow.
+        # The losslessness claim is verified in engine_test.py against brute_force.py;
+        # self_test.py makes the same comparison on every run.
         # ------------------------------------------------------------------
-        nb = max_mm + 1                                   # guvercin yuvasi blok sayisi
+        nb = max_mm + 1                                   # the pigeonhole block count
         kes = [round(i * self.L / nb) for i in range(nb + 1)]
         self.bloklar = [(kes[i], _blok_regex(primer[kes[i]:kes[i + 1]]))
                         for i in range(nb) if kes[i + 1] > kes[i]]
 
     def _dogrula(self, seq, st):
-        """aday yeri tam kuralla dogrula -> uyumsuzluk sayisi ya da None"""
-        # 3' son 2 baz TAM ESLESME kurali BURADA ACIKCA uygulanir. Eski kodda bu
-        # kural hicbir yerde yaziyla yer almiyordu; 13 bazlik uzun tohumun yan
-        # etkisi olarak kendiliginden saglaniyordu. Tohum kisalinca o yan etki
-        # kaybolacagi icin kural acik hale getirildi. Biyolojik gerekcesi:
-        # polimeraz uzatmayi 3' uctan baslatir, o uctaki uyumsuzluk urunu fiilen
-        # engeller - dolayisiyla toplam uyumsuzluk sayisindan bagimsiz bir sart.
+        """verify a candidate position under the full rule -> the mismatch count, or None"""
+        # The last 2 bases at the 3' end EXACT MATCH rule is applied EXPLICITLY HERE. In the
+        # old code that rule was written nowhere; it held as a side effect of the long 13
+        # base seed. Because that side effect disappears once the seed shortens, the rule was
+        # made explicit. Its biological reason: the polymerase starts extension from the 3'
+        # end, and a mismatch at that end effectively prevents the product, which makes it a
+        # condition independent of the total mismatch count.
         if st < 0 or st + self.L > len(seq):
             return None
         if self.son2:
@@ -211,8 +219,10 @@ def urun_var(seq, fs, rs, lenF, lenR, lo, hi):
 
 
 def kutu_pcr(okuma_listesi, F, R, lo=40, hi=600, max_mm=1, son2=True):
-    """Bir kutudaki okumalarda urun veren okuma sayisi.
-    Donus: (urun_veren, toplam, boy_sayaci)"""
+    """The number of reads giving a product in a bin.
+        Returns: (with_product, total, length_counter)
+
+    """
     F = F.upper(); R = R.upper()
     fs = Sonda(F, False, max_mm, son2)
     rs = Sonda(rc(R), True, max_mm, son2)
