@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Cross-check, an INDEPENDENT, READ-ONLY audit of a finished run.
+"""Cross-check, an INDEPENDENT, READ-ONLY audit of a finished run.
 
 Opens no measurement of its own that the pipeline already made; it re-asks the
 pipeline's questions using different code and reports where the answers differ.
@@ -11,55 +11,6 @@ UYARI / BILGI, and checks that COULD NOT RUN are reported as ATLANDI, never as
 passed. That distinction is the point: a check that did not run is not a check
 that succeeded, and the exit code reflects it.
 
---- ozgun aciklama ---
-
-CAPRAZ KONTROL - PrimerJury paneli icin BAGIMSIZ, SALT OKUNUR denetci.
-===========================================================================
-
-NE YAPAR
-    Elimizdeki butun iddialari (a) kendi kaynaklarina ve (b) birbirlerine karsi
-    sinar. Yedi modul var; her biri ayri ayri da kosulabilir.
-
-      1  KIMLIK              her kutunun tur duzeyi kimligi + Kraken karsilastirmasi
-      2  IC TUTARLILIK       ayni sayi farkli dosyalarda ayni mi
-      3  UYELIK BUTUNLUGU    her ciftin uye kumesi tanimli mi
-      4  LITERATUR KURALLARI 55 kaynaktan cikan sayisal kurallarin panele uygulanmasi
-      5  BILINEN HATA DESENI bu projede tekrar tekrar cikan dokuz desen
-      6  VERITABANI SAGLIGI  indeksler gercekten calisiyor mu
-      7  TAKSON KAPSAMI      toplanti kararlari panelde karsilik buluyor mu
-
-NE YAPMAZ  --  BU ONEMLI
-    HICBIR DOSYAYI DEGISTIRMEZ. Yalnizca okur ve rapor yazar. Tek yazdigi yer
-    kendi cikti klasorudur (varsayilan KONTROL_SONUC/). Panel dosyalarina,
-    betiklere, veritabanlarina, konsensuslere DOKUNMAZ.
-
-    Kosarken degistirilmemesi gereken dosyalar (baska oturumlar kullaniyor):
-    verification/full_chain.py, verification/one_key.py, KONSENSUS_YENIDEN/.
-    Bu betik onlarin hicbirine yazmaz; KONSENSUS_YENIDEN/ klasorunu okumaz bile.
-
-SESSIZ ATLAMA YOKTUR
-    Bir kontrol kosamazsa "ATLANDI" olarak SAYILIR, sebebi yazilir, ozette
-    gorunur ve CIKIS KODU SIFIR OLMAZ. Bir kontrolun her zaman gecmesi, o
-    kontrolun bir sey olctugu anlamina gelmez; bu yuzden --kendini-sina
-    bayragi her module bilerek bozuk bir girdi verip hatayi yakalayip
-    yakalamadigini gosterir.
-
-CIKIS KODU  (bit maskesi, toplanir)
-    0  temiz
-    1  en az bir KRITIK bulgu
-    2  en az bir CIDDI bulgu
-    4  en az bir kontrol ATLANDI
-    8  betigin kendisi cokti (beklenmeyen hata)
-  Ornek: 6 = CIDDI bulgu var VE atlanan kontrol var.
-
-KULLANIM
-    python cross_check.py --kok .
-    python cross_check.py --kok . --moduller 2,3,5      (yalniz secilenler)
-    python cross_check.py --kok . --m1-kip tam          (agir kimlik taramasi)
-    python cross_check.py --kok . --kendini-sina        (bozuk girdi sinamasi)
-    python3 cross_check.py --kok .
-
-Yazan: bu oturum, 2026-08-09.
 """
 from __future__ import print_function
 
@@ -79,9 +30,10 @@ import traceback
 
 VERSIYON = u'1.0 (2026-08-09)'
 
-# UTF-8 ciktisi: Windows konsolu varsayilan olarak cp857/cp1254 kullanir ve
-# Turkce karakterlerde UnicodeEncodeError atar. Betik ortasinda cokmek yerine
-# akisi bastan sarmaliyoruz. (Hata YUTULMAZ, yalnizca kodlama duzeltilir.)
+# UTF-8 output: the Windows console defaults to cp857/cp1254 and raises
+# UnicodeEncodeError on non-ASCII characters. Rather than crash half way through
+# the script, the stream is rewrapped at the start. (The error is NOT SWALLOWED,
+# only the encoding is fixed.)
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8',
                                   errors='replace', line_buffering=True)
@@ -89,26 +41,27 @@ if hasattr(sys.stdout, 'buffer'):
                                   errors='replace', line_buffering=True)
 
 
-# ===========================================================================
-# CIDDIYET DUZEYLERI
-# ===========================================================================
-# KRITIK : siparisi ya da raporlanacak sayiyi DOGRUDAN yanlis yapar
-# CIDDI  : bir iddianin dayanagi cokuyor ama siparis hemen degismeyebilir
-# UYARI  : tutarsiz ya da savunmasiz ama olculen sayi degismiyor
-# BILGI  : not duselim, hata degil
-# ATLANDI: kontrol KOSULAMADI. Bu bir "gecti" DEGILDIR.
+# =========================================================================
+# SEVERITY LEVELS
+# =========================================================================
+# KRITIK : it makes the order, or a number that will be reported, DIRECTLY wrong
+# CIDDI  : the basis of a claim collapses, but the order may not change at once
+# UYARI  : inconsistent or indefensible, but the measured number does not change
+# BILGI  : worth noting, not an error
+# ATLANDI: the check COULD NOT RUN. That IS NOT a "pass".
 KRITIK, CIDDI, UYARI, BILGI, ATLANDI = u'KRITIK', u'CIDDI', u'UYARI', u'BILGI', u'ATLANDI'
 _SIRA = {KRITIK: 0, CIDDI: 1, UYARI: 2, BILGI: 3, ATLANDI: 4}
 
 
 class Bulgu(object):
-    u"""Tek bir denetim bulgusu.
+    """A single audit finding.
 
-    Her bulgu DORT soruya cevap vermek ZORUNDA, yoksa rapor okunmaz olur:
-      beklenen : kuralin ne oldugu
-      bulunan  : olculen/okunan gercek deger
-      dosya    : bulgunun dayandigi kaynak (yol, mumkunse satir)
-      ciddiyet : yukaridaki bes duzeyden biri
+        Every finding MUST answer FOUR questions, or the report becomes unreadable:
+          beklenen : what the rule was
+          bulunan  : the real value measured or read
+          dosya    : the source the finding rests on (a path, with a line if possible)
+          ciddiyet : one of the five levels above
+
     """
     __slots__ = ('modul', 'kod', 'ciddiyet', 'beklenen', 'bulunan', 'dosya', 'oneri')
 
@@ -123,7 +76,7 @@ class Bulgu(object):
 
 
 class Rapor(object):
-    u"""Butun modullerin bulgularini toplar, sayar ve cikis kodunu uretir."""
+    """Collects the findings of every module, counts them and produces the exit code."""
 
     def __init__(self):
         self.bulgular = []
@@ -135,7 +88,7 @@ class Rapor(object):
         self.bulgular.append(Bulgu(modul, kod, ciddiyet, beklenen, bulunan, dosya, oneri))
 
     def atla(self, modul, kod, beklenen, sebep, dosya=u'-'):
-        u"""Bir kontrol kosulamadi. SESSIZ ATLAMA YOK: bulgu olarak kaydedilir."""
+        """A check could not run. NO SILENT SKIP: it is recorded as a finding."""
         self.bulgular.append(Bulgu(modul, kod, ATLANDI, beklenen,
                                    u'KOSULAMADI: %s' % sebep, dosya,
                                    u'Bu kontrol OLCULMEDI, "gecti" sayilmamalidir.'))
@@ -175,7 +128,7 @@ def yaz(*a):
 
 
 def vir(x, b=2):
-    u"""Turkce ondalik. None -> '-'. '0' ile 'olculmedi' birbirine KARISMAZ."""
+    """A decimal in the local format. None -> '-'. '0' and 'not measured' ARE NEVER CONFUSED."""
     if x is None:
         return u'-'
     try:
@@ -185,11 +138,12 @@ def vir(x, b=2):
 
 
 def sayi(x):
-    u"""Turkce ya da Ingilizce ondalikli metni float'a cevir. Cevrilemezse None.
+    """Convert decimal text, in either format, to a float. None if it cannot be converted.
 
-    None donmesi ONEMLI: cevrilemeyen bir hucreyi 0 saymak, "olculmedi" ile
-    "sifir olculdu" arasindaki farki yok eder - bu projede tam olarak bu
-    yuzden bir ayrim kati 0,00x sanilmisti.
+        Returning None MATTERS: counting an unconvertible cell as 0 erases the
+        difference between "not measured" and "measured as zero", and that is exactly
+        why a separation factor was once taken for 0.00x in this project.
+
     """
     if x is None:
         return None
@@ -197,7 +151,8 @@ def sayi(x):
     s = s.replace(u'−', u'-')          # unicode eksi isareti
     if not s or s.lower() in (u'-', u'--', u'yok', u'olculmedi', u'nd', u'nan', u'?'):
         return None
-    # "1.234,56" (TR binlik) ile "1,234.56" (EN binlik) ayrimi: SON ayraç ondalik
+    # Telling "1.234,56" (TR thousands) from "1,234.56" (EN thousands): the LAST
+    # separator is the decimal one
     if u',' in s and u'.' in s:
         s = s.replace(u'.', u'') if s.rfind(u',') > s.rfind(u'.') else s.replace(u',', u'')
     s = s.replace(u',', u'.')
@@ -208,11 +163,12 @@ def sayi(x):
 
 
 def md5_metin(*parcalar):
-    u"""Kontrol noktasi anahtari. hash() KULLANILMAZ.
+    """The checkpoint key. hash() IS NOT USED.
 
-    Python'un yerlesik hash()'i surec basina TUZLANIR (PYTHONHASHSEED); ayni
-    girdi iki kosuda farkli anahtar uretir ve kontrol noktasi ya hic tutmaz ya
-    da beteri, cakisir. md5 kararlidir ve kosudan kosuya ayni kalir.
+        Python's built-in hash() is SALTED PER PROCESS (PYTHONHASHSEED); the same
+        input produces a different key in two runs, and the checkpoint either never
+        matches or, worse, collides. md5 is stable and stays the same from run to run.
+
     """
     h = hashlib.md5()
     for p in parcalar:
@@ -222,10 +178,11 @@ def md5_metin(*parcalar):
 
 
 def dosya_imzasi(yol):
-    u"""Bir girdinin kimligi: mutlak yol + boyut + degistirilme zamani.
+    """The identity of an input: the absolute path plus the size plus the modification time.
 
-    Kontrol noktasi anahtarina bu girer; girdi degisince anahtar degisir ve
-    eski kontrol noktasi kendiliginden gecersizlesir.
+        That goes into the checkpoint key; when an input changes the key changes and
+        the old checkpoint invalidates itself.
+
     """
     try:
         st = os.stat(yol)
@@ -235,16 +192,18 @@ def dosya_imzasi(yol):
 
 
 class KontrolNoktasi(object):
-    u"""md5 anahtarli, girdi tazeligini denetleyen kontrol noktasi deposu.
+    """An md5 keyed checkpoint store that checks input freshness.
 
-    IKI KATMANLI GECERSIZLESTIRME:
-      1) Anahtar, girdi dosyalarinin imzasindan (yol+boyut+mtime) turetilir.
-         Girdi degisirse anahtar degisir, eski kayit bulunamaz.
-      2) Ayrica kayitli dosyanin mtime'i girdilerinkiyle karsilastirilir.
-         Girdi kontrol noktasindan YENIYSE kayit GECERSIZ sayilir.
-    Ikinci katman, ayni anahtarin elle kopyalanmasi gibi durumlara karsi
-    emniyet kemeridir. Bayat kontrol noktasi bu projede daha once "temiz"
-    sanilan bir kosuya yol acmisti.
+        TWO LAYERS OF INVALIDATION:
+          1) The key is derived from the signature of the input files (path, size,
+             mtime). If an input changes the key changes and the old record is not
+             found.
+          2) The stored file's mtime is also compared against the inputs'. If an
+             input is NEWER than the checkpoint, the record counts as INVALID.
+        The second layer is a seat belt against things like the same key being copied
+        by hand. A stale checkpoint has already led to a run being taken for "clean"
+        in this project.
+
     """
 
     def __init__(self, klasor, etkin=True):
@@ -270,7 +229,7 @@ class KontrolNoktasi(object):
         except OSError:
             self.iska += 1
             return None
-        for g in girdiler:                      # GIRDI DAHA YENIYSE -> GECERSIZ
+        for g in girdiler:                      # IF THE INPUT IS NEWER -> INVALID
             try:
                 if os.path.exists(g) and os.path.getmtime(g) > kn_zaman:
                     self.iska += 1
@@ -284,7 +243,7 @@ class KontrolNoktasi(object):
             self.isabet += 1
             return v
         except (ValueError, IOError) as e:
-            # Bozuk kontrol noktasi SESSIZCE yok sayilmaz, ekrana basilir.
+            # A corrupt checkpoint is not ignored SILENTLY, it is printed to the screen.
             yaz(u'  WARNING: could not read checkpoint (%s): %s' % (anahtar, e))
             self.iska += 1
             return None
@@ -300,11 +259,12 @@ class KontrolNoktasi(object):
 
 
 class Canlilik(object):
-    u"""Uzun donguler icin duzenli canlilik isareti.
+    """A regular sign of life, for long loops.
 
-    Ekrana hicbir sey basmayan bir asama, KILITLENMIS bir asamadan ayirt
-    edilemez. Bu sinif en az `aralik` saniyede bir satir basar ve olculen
-    hizdan kalan sureyi tahmin eder.
+        A stage that prints nothing to the screen cannot be told apart from a stage
+        that has FROZEN. This class prints a line at least every `aralik` seconds and
+        estimates the remaining time from the measured speed.
+
     """
 
     def __init__(self, etiket, toplam=None, aralik=20.0):
@@ -346,9 +306,9 @@ def sure_metni(sn):
     return u'%s saat' % vir(sn / 3600.0, 1)
 
 
-# ===========================================================================
-# SALT OKUNUR KAYNAK OKUYUCULARI
-# ===========================================================================
+# =========================================================================
+# READ ONLY SOURCE READERS
+# =========================================================================
 def gecersiz_isareti(yol):
     u"""Dosyanin bas kismindaki '# GECERSIZ' isaretini arar.
 
@@ -370,13 +330,15 @@ def gecersiz_isareti(yol):
 
 
 def en_yeni_kaynak(kok, desen):
-    u"""desen'e uyan dosyalardan GECERSIZ olmayan EN YENISINI dondurur.
+    """Returns the NEWEST file matching the pattern that is not marked GECERSIZ.
 
-    2026-08-09: kaynak yolu tarihli dosya adina sabitlenmisti
-    ('ESIK_VE_OLCUT_2026-08-08.tsv'). Yeni bir surum yazildiginda denetim eski
-    surumu okumaya devam ediyordu. Artik desenle bulunup ada gore siralanir;
-    ad tarih tasidigi icin en buyuk ad en yeni surumdur. Hicbiri yoksa desenin
-    kendisi dondurulur ki "dosya yok" bulgusu yine uretilsin.
+        2026-08-09: the source path had been fixed to a dated file name
+        ('ESIK_VE_OLCUT_2026-08-08.tsv'). When a new version was written, the audit
+        carried on reading the old one. Now the files are found by pattern and sorted
+        by name; since the name carries a date, the largest name is the newest
+        version. If there is none, the pattern itself is returned so that the "no such
+        file" finding is still produced.
+
     """
     adaylar = sorted(glob.glob(os.path.join(kok, desen)))
     for y in reversed(adaylar):
@@ -386,21 +348,22 @@ def en_yeni_kaynak(kok, desen):
 
 
 def tsv_oku(yol, yorum=u'#'):
-    u"""Basligi olan TSV -> [dict]. Yorum satirlari atlanir.
+    """A TSV with a header -> [dict]. Comment lines are skipped.
 
-    Dosya yoksa None doner (bos liste DEGIL). "Dosya yok" ile "dosya bos" ayri
-    seylerdir ve ayri bulgu uretirler; ikisini birlestirmek sessiz atlamadir.
+        Returns None if the file is missing (NOT an empty list). "No such file" and
+        "the file is empty" are different things and produce different findings;
+        merging them is a silent skip.
+
     """
     if not os.path.exists(yol):
         return None
-    # 2026-08-09: GECERSIZ isaretli kaynak OKUNMAZ. Gerekce: 2026-08-09 18:09
-    # kosusunda 22 M5-D1-SESSIZ-SIFIR bulgusunun 22'si de artik yerini
-    # ESIK_VE_OLCUT_2026-08-09.tsv'ye birakmis olan
-    # NIHAI_SIPARIS_LISTESI_2026-08-07.tsv'den geldi. Gecersiz bir karar
-    # tablosundan bulgu uretmek denetimi gurultuyle dolduruyor. Dosya
-    # SILINMEZ; basligina '# GECERSIZ' satiri konur ve denetim onu kaynak
-    # saymaz. Atlama SESSIZ DEGILDIR: cagiran taraf None gorur ve rap.atla()
-    # ile ATLANDI bulgusu uretir.
+    # 2026-08-09: a source marked GECERSIZ IS NOT READ. The reason: in the 2026-08-09
+    # 18:09 run, all 22 of the 22 M5-D1-SESSIZ-SIFIR findings came from
+    # NIHAI_SIPARIS_LISTESI_2026-08-07.tsv, which had already been superseded by
+    # ESIK_VE_OLCUT_2026-08-09.tsv. Producing findings from an invalid decision table
+    # fills the audit with noise. The file IS NOT DELETED; a '# GECERSIZ' line is put
+    # in its header and the audit stops treating it as a source. The skip IS NOT
+    # SILENT: the caller sees None and produces an ATLANDI finding through rap.atla().
     if gecersiz_isareti(yol):
         return None
     satirlar = []
@@ -431,26 +394,29 @@ def metin_oku(yol):
 
 
 def _kod_govdesi(metin):
-    u"""Python kaynagindan yorum ve docstring'leri atar, KOD GOVDESINI dondurur.
+    """Strips comments and docstrings from Python source and returns THE CODE BODY.
 
-    Neden gerekli: bir klasor ya da API adinin ACIKLAMADA gecmesi, o kod yolunun
-    gercekten kullanildigi anlamina gelmez. Duz metin aramasi bu ikisini ayirt
-    edemez ve "hala yamalanmamis kod" sorusunu yanlis cevaplar.
+        Why it is needed: a directory or API name APPEARING IN A COMMENT does not mean
+        that code path is actually used. A plain text search cannot tell the two
+        apart and answers the question "is there still unpatched code" wrongly.
 
-    screening/yon_kod_taramasi.kod_govdesi() ile ayni ISI yapar ama olcut
-    duzeltilmistir (2026-08-21, olculdu). Oradaki surum dizeyi SATIR SAYISINA
-    gore eliyor:  end_lineno - lineno >= 1.  Bu iki yonden de yanlis:
-      * TEK SATIRLIK docstring atilmaz -> aciklamada gecen ad kod sanilir
-        (yanlis pozitif; sentetik sinamada dogrulandi).
-      * Kodda GERCEKTEN kullanilan cok satirli bir dize atilir -> gomulu yol
-        gozden kacar (yanlis negatif).
-    Dogru ayirt edici satir sayisi degil, dizenin DOCSTRING olup olmadigidir:
-    docstring, degeri dize sabiti olan bir ifade deyimidir (ast.Expr). Kodda
-    kullanilan dize her zaman baska bir dugumun cocugudur. Bu yuzden yalniz
-    ast.Expr altindaki dize sabitleri atilir.
+        It does THE SAME JOB as screening/yon_kod_taramasi.kod_govdesi(), but the
+        criterion is corrected (2026-08-21, measured). The version there rules strings
+        out by LINE COUNT:  end_lineno - lineno >= 1.  That is wrong in both
+        directions:
+          * A SINGLE LINE docstring is not dropped -> a name in a comment is taken
+            for code (a false positive; confirmed on a synthetic test).
+          * A multi-line string REALLY USED in the code is dropped -> an embedded
+            path goes unnoticed (a false negative).
+        The right discriminator is not the line count but whether the string IS A
+        DOCSTRING: a docstring is an expression statement whose value is a string
+        constant (ast.Expr). A string used in code is always the child of some other
+        node. So only string constants under an ast.Expr are dropped.
 
-    Ayristirilamayan dosyada docstring kumesi bos kalir, yani en kotu durumda
-    eski (asiri genis) davranisa duser - sessizce kontrolu atlamaz.
+        On a file that cannot be parsed the docstring set stays empty, so at worst it
+        falls back to the old (over-broad) behaviour; it never skips the check
+        silently.
+
     """
     try:
         agac = ast.parse(metin)
@@ -464,19 +430,21 @@ def _kod_govdesi(metin):
                     ds.update(range(b, (s or b) + 1))
     except Exception:
         ds = set()
-    # SATIR NUMARASI KORUNUR: docstring satiri ATILMAZ, BOSALTILIR. Atmak
-    # numaralari kaydirir; kaydirinca AST'ten gelen satir kumeleriyle (mesaj
-    # dizeleri gibi) hizalama bozulur ve suzgec sessizce islemez - olculdu
-    # (screening/run_all.py ozgun 222, kirpilmis govdede 183).
+    # THE LINE NUMBERS ARE PRESERVED: a docstring line is NOT DROPPED, it is EMPTIED.
+    # Dropping shifts the numbers, and a shift breaks the alignment with the line sets
+    # that come from the AST (message strings, for instance), after which the filter
+    # silently does nothing. Measured: screening/run_all.py has 222 lines in the
+    # original and 183 in the trimmed body.
     out = []
     for i, l in enumerate(metin.splitlines(), 1):
         out.append(u'' if i in ds else l.split(u'#', 1)[0])
     return u'\n'.join(out)
 
 
-# Gorevi GEREGI karisik yonlu klasoru okuyan araclar. Bunlari isaretlemek
-# yanlistir: yon denetimi ve kanonik uretimi o klasoru okumadan is goremez.
-# Liste KISA tutulmali; her giris bir gerekce tasir.
+# Tools that read the mixed orientation directory BY DESIGN. Flagging these is
+# wrong: the orientation audit and the canonical builder cannot do their job
+# without reading that directory.
+# The list must stay SHORT, and every entry carries a reason.
 D9_MESRU_OKUYUCULAR = {
     u'orientation_audit.py':    u'yon denetleyicisi - karisik klasoru olcmek gorevidir',
     u'build_canonical.py':    u'kanonik klasoru o klasorden URETIR',
@@ -485,32 +453,34 @@ D9_MESRU_OKUYUCULAR = {
     u'orientation_report.py':     u'yon kararlarini belgeleyen rapor ureteci',
 }
 
-# Ekrana/loga metin basan cagrilar. Bunlarin ICINDEKI dize bir KOD YOLU degil,
-# kullaniciya gosterilen bir mesajdir (olculdu: screening/run_all.py:183
-# yalnizca "Kaynak: ..." satirini basiyor ve bu yuzden RISKLI sayiliyordu).
+# Calls that print text to the screen or a log. The string INSIDE them is not A
+# CODE PATH but a message shown to the user (measured: screening/run_all.py:183
+# only prints the "Kaynak: ..." line, and was being counted as RISKLI for it).
 D9_CIKTI_CAGRILARI = frozenset(
     [u'yaz', u'print', u'write', u'log', u'uyar', u'bilgi', u'hata', u'yazdir'])
 
 
 def d9_karisik_klasor_yollari(metin, ad=u'', karisik=u'consensus sequences'):
-    u"""Karisik yonlu klasoru GERCEKTEN okuyan kod satirlarini dondurur.
+    """Returns the code lines that REALLY read the mixed orientation directory.
 
-    [(satir_no, kaynak_satiri), ...]  - bos liste "temiz" demektir.
+        [(line_number, source_line), ...]  - an empty list means clean.
 
-    Uc suzgecten geciyor, hepsinin gerekcesi olculdu (2026-08-21):
-      1) docstring ve yorumlar atilir  -> aciklamada gecen ad kod sayilmaz
-      2) cikti cagrilarinin argumanlari atilir -> ekrana basilan mesaj kod degil
-      3) gorevi geregi okuyan araclar muaf -> D9_MESRU_OKUYUCULAR
+        Three filters, and the reason for each was measured (2026-08-21):
+          1) docstrings and comments are stripped -> a name in a comment is not code
+          2) the arguments of output calls are stripped -> a message printed to the
+             screen is not code
+          3) tools that read it by design are exempt -> D9_MESRU_OKUYUCULAR
 
-    Duz metin aramasi bu ucunu de ayirt edemiyordu ve 2026-08-09 kosusunda bes
-    yanlis pozitif uretti.
+        A plain text search could tell none of the three apart, and in the 2026-08-09
+        run it produced five false positives.
+
     """
     if os.path.basename(ad) in D9_MESRU_OKUYUCULAR:
         return []
     try:
         agac = ast.parse(metin)
     except Exception:
-        # Ayristirilamiyorsa duz metne duseriz: asiri genis ama sessiz degil.
+        # If it cannot be parsed we fall back to plain text: far too broad, but not silent.
         return [(i, l) for i, l in enumerate(metin.splitlines(), 1)
                 if karisik in l and not l.strip().startswith(u'#')]
 
@@ -536,9 +506,11 @@ def d9_karisik_klasor_yollari(metin, ad=u'', karisik=u'consensus sequences'):
 
 
 def xlsx_sayfalari(yol):
-    u"""Excel -> {sayfa: [[hucre,...],...]}. Hata durumunda metin doner.
+    """Excel -> {sheet: [[cell,...],...]}. On error it returns text.
 
-    SALT OKUNUR acilir (read_only=True): dosyaya yazma ihtimali sifirdir.
+        It is opened READ ONLY (read_only=True): the chance of writing to the file is
+        zero.
+
     """
     if not os.path.exists(yol):
         return None
@@ -565,11 +537,12 @@ def xlsx_sayfalari(yol):
 
 
 def modul_yukle(yol, ad):
-    u"""Bir .py dosyasini MODUL olarak yukle (paket degil, betik).
+    """Load a .py file AS A MODULE (a script, not a package).
 
-    verification/identity_verification.py ve all_bin_identities.py'nin mantigi burada
-    YENIDEN YAZILMAZ; oradan ice aktarilir. Yeniden yazmak iki ayri karar
-    mantigi yaratirdi ve hangisinin gecerli oldugu belirsizlesirdi.
+        The logic of verification/identity_verification.py and all_bin_identities.py
+        IS NOT REWRITTEN here; it is imported from there. Rewriting it would create
+        two separate decision logics and leave it unclear which one holds.
+
     """
     import importlib.util
     if not os.path.exists(yol):
@@ -588,13 +561,14 @@ def modul_yukle(yol, ad):
 # PROJE KAYNAKLARI  -  tek yerden tanimlanir
 # ===========================================================================
 class Kaynaklar(object):
-    u"""Denetimin okudugu butun dosyalarin tek listesi.
+    """The one list of every file the audit reads.
 
-    Yol degisirse TEK yerden degisir. Her modul buradan okur; boylece
-    "hangi dosyaya baktin" sorusunun cevabi rapordan izlenebilir.
+        If a path changes it changes in ONE place. Every module reads from here, so
+        the answer to "which file did you look at" can be traced from the report.
+
     """
 
-    # BU YOLLARA ASLA YAZILMAZ. Baska oturumlar kosuyor olabilir.
+    # NOTHING IS EVER WRITTEN TO THESE PATHS. Other sessions may be running.
     DOKUNULMAZ = (u'install.sh', u'build_index.sh',
                   os.path.join(u'verification', u'one_key.py'), u'KONSENSUS_YENIDEN')
 
@@ -602,18 +576,17 @@ class Kaynaklar(object):
         self.kok = os.path.abspath(kok)
         y = lambda *p: os.path.join(self.kok, *p)
         self.y = y
-        # --- karar tablolari
-        # 2026-08-09 20:05 DENENDI VE GERI ALINDI: bu yolu
-        # ESIK_VE_OLCUT_2026-08-09.tsv'ye cevirmeyi denedim, cunku 08-07
-        # dosyasi GECERSIZ isaretlenince dort kontrol ATLANDI'ya dusuyor.
-        # Ama iki dosyanin SUTUN YAPISI ayni degil: ESIK_VE_OLCUT'ta ileri/geri
-        # primer sutunu yok, M2 tutarlilik kontrolu oradan sayisal alan okuyup
-        # 22 SAHTE KRITIK celiski uretti. Yanlis alarm, durust ATLANDI'dan
-        # daha kotudur. Eski yol korundu; o dort kontrol ATLANDI kalir ve
-        # bu bilerek boyledir. Kalici cozum: kontrolleri yeni tablonun
-        # sutunlarina gore yeniden yazmak, dosya yolunu degistirmek degil.
+        # --- the decision tables
+        # 2026-08-09 20:05 TRIED AND REVERTED: I tried pointing this path at
+        # ESIK_VE_OLCUT_2026-08-09.tsv, because marking the 08-07 file GECERSIZ drops four
+        # checks to ATLANDI. But the two files do not have THE SAME COLUMN STRUCTURE:
+        # ESIK_VE_OLCUT has no forward and reverse primer columns, so the M2 consistency
+        # check read a numeric field from there and produced 22 FALSE CRITICAL
+        # contradictions. A false alarm is worse than an honest ATLANDI. The old path was
+        # kept; those four checks stay ATLANDI and that is deliberate. The permanent fix is
+        # to rewrite the checks against the new table's columns, not to change the path.
         self.nihai_siparis = y('NIHAI_SIPARIS_LISTESI_2026-08-07.tsv')
-        # 2026-08-09: sabit tarihli ad yerine EN YENI gecerli surum secilir.
+        # 2026-08-09: instead of a name with a fixed date, THE NEWEST valid version is chosen.
         self.esik_olcut = en_yeni_kaynak(self.kok, 'ESIK_VE_OLCUT_*.tsv')
         self.siparis_listesi = y('SIPARIS_LISTESI.tsv')
         self.hedef_disi = y('HEDEF_DISI_AYRINTI_2026-08-07.tsv')
@@ -624,17 +597,18 @@ class Kaynaklar(object):
         self.hedefler_wsl = y('steps', 'hedefler.tsv')
         self.takson_esleme = y('screening', 'target_taxon_mapping.py')
         # --- excel
-        # 2026-08-11: teslim xlsx'i arsive tasindi (icindeki alti ciftin dizisi
-        # eskiydi). Yerine her kosuda URETILEN tek dosya kondu; adinda tarih
-        # oldugu icin en yenisi secilir. Bulunamazsa eski ad denenir ve
-        # denetim "dosya yok" der - sessizce eski dosyaya DUSMEZ.
+        # 2026-08-11: the delivery xlsx was moved to the archive (six of the pairs inside it
+        # carried stale sequences). In its place stands the one file that is GENERATED on
+        # every run; since its name carries a date, the newest is picked. If none is found
+        # the old name is tried and the audit says "no such file"; it does NOT fall back
+        # silently to the old file.
         import glob as _glob
         _ad = sorted(_glob.glob(y('PrimerJury_PANEL_*.xlsx')))
-        # Bulunamazsa BOS birakilir; denetim "dosya yok" der. Eski teslim
-        # dosyasina DUSMEK, tam da kacinmak istedigimiz sey: o dosyada alti
-        # ciftin dizisi eskiydi ve arsive tasindi.
+        # If none is found it is LEFT EMPTY and the audit says "no such file". FALLING BACK
+        # to the old delivery file is exactly what we want to avoid: six of the pairs in
+        # that file carried stale sequences, which is why it was archived.
         self.panel_xlsx = _ad[-1] if _ad else None
-        # --- olcum ciktilari
+        # --- measurement outputs
         self.tek_protokol = y('TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
         self.uyelik_turetme = y('uyelik_yeniden_turetme_uyelik_20260803.tsv')
         self.uyelik_ciftler = y('uyelik_yeniden_turetme_ciftler_20260803.tsv')
@@ -648,108 +622,114 @@ class Kaynaklar(object):
         self.fastq = y('fastq files')
         self.kraken = y('kraken results')
         self.bracken = y('bracken results')
-        # --- kod (desen taramasi icin). KONSENSUS_YENIDEN BILEREK YOK.
+        # --- code (for the pattern scan). KONSENSUS_YENIDEN IS DELIBERATELY ABSENT.
         self.kod_klasorleri = [y('screening'), y('verification'), y('steps')]
         # --- ice aktarilacak mantik
         self.kimlik_dogrulama = y('verification', 'identity_verification.py')
         self.tum_kutu = y('verification', 'all_bin_identities.py')
 
 
-# ===========================================================================
-# MODUL 1 - KIMLIK
-# ===========================================================================
-# SORU: her kutuda gercekten hangi organizma var, ve Kraken2'nin dedigi bu mu?
+# =========================================================================
+# MODULE 1 - IDENTITY
+# =========================================================================
+# THE QUESTION: which organism is really in each bin, and is that what Kraken2 said?
 #
-# NEDEN AYRI BIR OLCUM: Kraken2 k-mer'e dayali bir SINIFLANDIRICIDIR, hizalama
-# yapmaz ve kendi veritabaninda olmayan bir organizmayi en yakin akrabasinin
-# adiyla etiketler. Bu projede birden fazla Kraken etiketi olcumle curutuldu
-# (Trichoderma asperellum -> Petriella, Dictyostelium discoideum -> etiket
-# curutuldu). Bu yuzden her kutu, hizalamayla ve OFFLINE veritabanlarina karsi
-# bagimsiz olarak yeniden olculur.
+# WHY A SEPARATE MEASUREMENT: Kraken2 is a k-mer based CLASSIFIER. It does not
+# align, and it labels an organism absent from its database with the name of that
+# organism's nearest relative. In this project more than one Kraken label was
+# refuted by measurement (Trichoderma asperellum -> Petriella; Dictyostelium
+# discoideum, label refuted). So every bin is re-measured independently, by
+# alignment, against OFFLINE databases.
 #
-# ALTI CIKTI URETILIR, her kutu icin:
-#   1 tur duzeyi en iyi isabet  (tur, veritabani, kayit no, kimlik %, hizalanan bp)
-#   2 TIP KAYDI isareti         (type material - cok daha guclu kanit, AYRI sutun)
-#   3 ikinci en iyi isabet + fark (fark kucukse tur atamasi guvenilir DEGILDIR)
-#   4 AYIRT EDILEBILIRLIK       (bizim veri kalitemizle bu iki tur ayrilir mi)
-#   5 N orani ve karisim gostergesi
-#   6 Kraken karsilastirmasi    (etiket, guven, ad degisti mi)
-# ---------------------------------------------------------------------------
+# SIX OUTPUTS ARE PRODUCED for each bin:
+#   1 the best hit at species level (species, database, accession, identity %,
+#     aligned bp)
+#   2 a TYPE MATERIAL flag (much stronger evidence, in A SEPARATE column)
+#   3 the second best hit plus the gap (a small gap means the species assignment is
+#     NOT reliable)
+#   4 DISCRIMINABILITY (can these two species be told apart with our data quality)
+#   5 the N fraction and a mixture indicator
+#   6 the Kraken comparison (label, confidence, did the name change)
+# -------------------------------------------------------------------------
 
-# --- kimlik esikleri: identity_verification.py'den ALINIR, burada YENIDEN yazilmaz.
+# --- the identity thresholds: TAKEN FROM identity_verification.py, not rewritten here.
 #     (K.TUR_ESIGI, K.CINS_ESIGI, K.AYRIM_PAYI)
 
-# N orani bu esigi asarsa konsensus KULLANILMAZ, ham okumalara donulur.
-# GEREKCE (olculdu): F2-4_500148 konsensusunun %43,6'si N. N'ler hizalamada
-# daima uyumsuz sayildigi icin bu kutu "adlandirilamayan soy" gorunuyordu;
-# okuma bazli bakildiginda kutunun aslinda Microascaceae oldugu ve KARISIK
-# oldugu ortaya cikti. Esik %20: bu deger, saglam kutularin en kotusu (%0,2)
-# ile bozuk kutu (%43,6) arasinda genis bir bosluga dusuyor.
+# If the N fraction exceeds this threshold the consensus IS NOT USED and the code
+# falls back to the raw reads.
+# THE REASON (measured): 43.6% of the F2-4_500148 consensus is N. Because Ns always
+# count as a mismatch in alignment, that bin looked like an "unnameable lineage";
+# looked at read by read, the bin turned out to be Microascaceae, and MIXED. The
+# threshold is 20%: that value falls in a wide gap between the worst of the sound
+# bins (0.2%) and the broken one (43.6%).
 N_ESIGI = 20.0
 
-# Karisim/saflik olcumu icin ornek buyuklukleri. Ham okuma sayisi binlerce;
-# hepsini hizalamak gereksiz. 60 okuma, %10'luk bir alt topluluğu %99'un
-# uzerinde bir olasilikla yakalar (1 - 0,9^60 = 0,998).
+# The sample sizes for the mixture and purity measurement. The raw read count runs
+# into the thousands and aligning all of them is unnecessary. 60 reads catch a
+# subpopulation of 10% with probability above 99% (1 - 0.9^60 = 0.998).
 KARISIM_OKUMA = 60
-KARISIM_PENCERE = 700      # okuma-okuma hizalamalarinda kullanilan pencere (bp)
+KARISIM_PENCERE = 700      # the window used in read to read alignments (bp)
 SAF_ESIGI = 90.0           # ESKI KURAL - artik TEK BASINA hukum vermez, bkz asagisi
 
-# ---------------------------------------------------------------------------
-# 2026-08-09 DUZELTMESI - KARISIK KUTU KURALI
-# ---------------------------------------------------------------------------
-# BELIRTI: 2026-08-09 18:09 kosusunda 99 kutunun 62'si KARISIK isaretlendi.
-#          Buyuk kismi yanlis alarmdi. Ornek A1-2_1826872: 60 okumanin 53'u
-#          tek kumede, kalan 7'si BIRER okumalik yedi ayri kume; baskin %88,3
-#          ve tek olcut "baskin >= %90" oldugu icin kutu KARISIK sayildi.
-#          Oysa tek okumalik kumeler Nanopore hata orani (olculen eps
-#          %1,3-2,4) altinda beklenen gurultudur, ayri organizma degildir.
+# -------------------------------------------------------------------------
+# THE 2026-08-09 FIX - THE MIXED BIN RULE
+# -------------------------------------------------------------------------
+# THE SYMPTOM: in the 2026-08-09 18:09 run, 62 of the 99 bins were marked MIXED.
+#          Most of that was a false alarm. Take A1-2_1826872: of 60 reads, 53 were
+#          in one cluster and the remaining 7 formed seven separate clusters of ONE
+#          read each; the dominant share was 88.3% and, because the only criterion
+#          was "dominant >= 90%", the bin counted as MIXED.
+#          But single read clusters are the noise expected under the Nanopore error
+#          rate (measured eps 1.3-2.4%); they are not a separate organism.
 #
-# YENI KURAL: bir kutunun KARISIK sayilmasi icin baskin kume DISINDA
-#          ANLAMLI buyuklukte en az bir kume bulunmalidir.
+# THE NEW RULE: for a bin to count as MIXED there has to be at least one cluster of
+#          MEANINGFUL size OUTSIDE the dominant one.
 #
-# ANLAMLI ESIGI OLCULDU, SECILMEDI:
-#   Baskin kumesi cok yuksek olan kutular tanim geregi tek organizmadir;
-#   oradaki butun baskin-disi kumeler gurultudur. O kumelerin boy dagilimi
-#   olculdu (2026-08-09 kosusunun kume verisinden, 98 kutu):
+# THE MEANINGFUL THRESHOLD WAS MEASURED, NOT CHOSEN:
+#   Bins whose dominant cluster is very high are single organisms by definition, so
+#   every non-dominant cluster there is noise. The size distribution of those
+#   clusters was measured (from the cluster data of the 2026-08-09 run, 98 bins):
 #
-#     temiz tanimi   kutu   gurultu kumesi   en buyuk gurultu kumesi
-#     baskin >=%96,5    7               10                        2
-#     baskin >=%95,0   12               25                        2
-#     baskin >=%93,0   19               50                        2
-#     baskin >=%91,5   29               96                        4  <- kirilma
+#     clean definition   bins   noise clusters   largest noise cluster
+#     dominant >=96.5%      7               10                       2
+#     dominant >=95.0%     12               25                       2
+#     dominant >=93.0%     19               50                       2
+#     dominant >=91.5%     29               96                       4  <- the break
 #
-#   Uc ayri "temiz" tanimi altinda, toplam 50 gurultu kumesinde gozlenen en
-#   buyuk gurultu kumesi 2 OKUMADIR; 3 okumalik bir gurultu kumesi HIC
-#   gorulmedi. Ucler kurali ile: P(gurultu kumesi >= 3 okuma) < 3/50 = %6.
-#   Bagimsiz ikinci turetme, ayni temiz alt kumeden Poisson: lam = 1,040,
-#   P(sahte kume >= 3) = %8,8, yani 98 kutuda beklenen 17,9 kume; gozlenen
-#   48. Gozlenen fazlalik gurultuyle aciklanamiyor, yani >=3 okumalik kumeler
-#   gercek sinyal tasiyor.
+#   Under three separate definitions of "clean", the largest noise cluster observed
+#   across 50 noise clusters in total is 2 READS; a noise cluster of 3 reads was
+#   NEVER seen. By the rule of three: P(a noise cluster >= 3 reads) < 3/50 = 6%.
+#   An independent second derivation, Poisson over the same clean subset: lam =
+#   1.040, P(a spurious cluster >= 3) = 8.8%, so 17.9 clusters expected across 98
+#   bins; 48 observed. The observed excess cannot be explained by noise, which means
+#   clusters of >=3 reads carry real signal.
 #
-#   Bu yuzden esik: ANLAMLI KUME = en az 3 okuma VE ornegin en az %5'i.
-#   (Ornek 60 okuma oldugunda 3/60 = %5; oran tabani ornek boyu degisirse
-#   kuralin kaymamasi icin var.)
+#   Hence the threshold: A MEANINGFUL CLUSTER = at least 3 reads AND at least 5% of
+#   the sample. (With a sample of 60 reads, 3/60 = 5%; the proportional floor is
+#   there so the rule does not drift if the sample size changes.)
 #
-# TEMSIL TABANI: baskin kume ornegin YARISINDAN azsa kutu, ikincil kumeleri
-#   kucuk olsa bile KARISIK sayilir. Bu bir gurultu esigi degil, temsil
-#   sartidir: konsensus baskin kumenin medoidinden turetiliyor; azinlikta
-#   kalan bir kumeden turetilen konsensus okumalarin cogunlugunu temsil
-#   etmez. %50 secilmis bir parametre degil, cogunlugun tanimidir.
+# THE REPRESENTATION FLOOR: if the dominant cluster is less than HALF the sample,
+#   the bin counts as MIXED even when its secondary clusters are small. That is not
+#   a noise threshold but a representation requirement: the consensus is derived
+#   from the medoid of the dominant cluster, and a consensus derived from a cluster
+#   in the minority does not represent most of the reads. The 50% is not a chosen
+#   parameter, it is the definition of a majority.
 #
-# ETKI (olculdu, ayni veri): KARISIK 62 -> 37. Yirmi alti kutu SAF'a dondu,
-#   bir kutu (F1-4_101201, 55/4/1) SAF iken KARISIK oldu. Gercekten karisik
-#   olanlar yakalanmaya devam ediyor; ornegin baskin kumesi %46,4 olan
-#   A2-1_1826872 (26/8/3/2/1...) hala KARISIK.
-ANLAMLI_KUME_OKUMA = 3     # olculen gurultu tavani 2 okuma; anlamli = >=3
+# THE EFFECT (measured, same data): MIXED 62 -> 37. Twenty-six bins went back to
+#   PURE, and one bin (F1-4_101201, 55/4/1) went from PURE to MIXED. The genuinely
+#   mixed ones are still caught; A2-1_1826872, for instance, whose dominant cluster
+#   is 46.4% (26/8/3/2/1...), is still MIXED.
+ANLAMLI_KUME_OKUMA = 3     # the measured noise ceiling is 2 reads; meaningful = >=3
 ANLAMLI_KUME_ORAN = 5.0    # ve ornegin en az %5'i
 BASKIN_TEMSIL_TABANI = 50.0  # baskin kume cogunlukta degilse konsensus temsil etmez
 
 
 def saflik_hukmu(boyut, n_okuma):
-    """Kume boyutlarindan saflik hukmu. (saflik, anlamli_kumeler, sebep_eki)
+    """The purity verdict from the cluster sizes. (purity, meaningful_clusters, reason_suffix)
 
-    KARISIK olmasi icin: baskin disinda >=3 okumalik ve >=%5'lik bir kume,
-    YA DA baskin kumenin cogunlugu kaybetmis olmasi.
+        To count as MIXED there has to be a cluster outside the dominant one with >=3
+        reads and >=5%, OR the dominant cluster has to have lost the majority.
+
     """
     if not boyut or not n_okuma:
         return u'OLCULEMEDI', [], u''
@@ -771,30 +751,31 @@ def saflik_hukmu(boyut, n_okuma):
               % (max(boyut[1:]) if len(boyut) > 1 else 0, ANLAMLI_KUME_OKUMA))
     return (u'KARISIK' if (anlamli or temsil_yok) else u'SAF'), anlamli, ek
 
-# Okuma-okuma kumeleme esigi SABIT DEGILDIR, olculen hata oranindan turetilir.
+# The read to read clustering threshold IS NOT FIXED; it is derived from the
+# measured error rate.
 #
-# NEDEN: iki okuma AYNI organizmadan gelse bile, her biri kendi okuma hatasini
-# tasir; aralarindaki beklenen fark 2*eps'tir. Olculdu (F2-4_500148): eps =
-# %2,208, yani ayni organizmanin iki okumasi ortalama %4,4 farkli gorunuyor.
-# Sabit %97 esigiyle bu okumalar AYRI kumelere dusuyordu ve 60 okuma 34 kumeye
-# bolunup her kutu "karisik" gorunuyordu - olculen sey biyoloji degil, okuma
-# hatasiydi. Esik, beklenen ikili farkin KARISIM_KAT katina kadar tolerans
-# taniyacak sekilde hesaplanir.
+# WHY: even when two reads come from THE SAME organism, each carries its own read
+# error, and the difference expected between them is 2*eps. Measured (F2-4_500148):
+# eps = 2.208%, so two reads of the same organism look 4.4% apart on average. Under
+# a fixed 97% threshold those reads fell into SEPARATE clusters, 60 reads split into
+# 34 clusters, and every bin looked "mixed". What was being measured was not biology
+# but read error. The threshold is computed to allow a tolerance of up to
+# KARISIM_KAT times the expected pairwise difference.
 KARISIM_KAT = 2.5
 KARISIM_ESIK_TABAN = 88.0   # bundan gevsek olmaz (ayri cinsler birlesmesin)
 KARISIM_ESIK_TAVAN = 99.0   # bundan siki olmaz (hatasiz veride bile pay birak)
 
-# Hizalanan uzunluk tabani. Cok kisa bir referans kaydina %99 benzemek, uzun
-# bir kayda %98 benzemekten DAHA ZAYIF kanittir; kisa kayit sorgunun yalnizca
-# kucuk bir penceresini gorur. Olculdu: 533 bp'lik bir 28S kaydi %99,44 ile
-# 1719 bp'lik %99,01'lik kaydin onune geciyordu.
+# The aligned length floor. Matching a very short reference record at 99% is WEAKER
+# evidence than matching a long record at 98%: a short record sees only a small
+# window of the query. Measured: a 533 bp 28S record at 99.44% was beating a 1719 bp
+# record at 99.01%.
 ASGARI_HIZ_UZ = 400
 
-# Kisa liste ve hizalama butcesi.
+# The short list and the alignment budget.
 KL_UST = 120               # her veritabanindan kac aday tam degerlendirilsin
 ON_PENCERE = 900           # on eleme hizalamasinda kullanilan sorgu penceresi
-KESIN_UST = 24             # on elemeden sonra TAM hizalanacak aday sayisi
-ADAY_HAVUZU_KONTROL = 800  # akis sirasinda tutulan aday havuzu (bellek icin)
+KESIN_UST = 24             # how many candidates are FULLY aligned after the pre-filter
+ADAY_HAVUZU_KONTROL = 800  # the candidate pool kept during the pass (for memory)
 
 # AYIRT EDILEBILIRLIK katsayisi: kac sigma. 3 sigma = %99,7 guven.
 AYIRT_SIGMA = 3.0
@@ -806,23 +787,24 @@ HIZLI_VTB = (u'RefSeq bakteri 16S', u'RefSeq arke 16S', u'RefSeq mantar ITS',
 
 
 def _tip_kaydi(etiket, baslik):
-    u"""Referans basligindan TIP KAYDI (type material) isaretini ayristir.
+    """Parse the TYPE MATERIAL flag out of a reference header.
 
-    UC DURUM VARDIR ve ucu de birbirinden farklidir:
-      EVET      : baslik acikca tip materyali diyor
-      HAYIR     : veritabani tip bilgisi TASIYOR ama bu kayitta yok
-      BILGI_YOK : veritabani basliklarinda tip bilgisi HIC TASIMIYOR
+        THERE ARE THREE STATES and all three differ:
+          EVET      : the header says type material explicitly
+          HAYIR     : the database DOES CARRY type information, but not on this record
+          BILGI_YOK : the database's headers CARRY NO type information at all
 
-    "BILGI_YOK"u "HAYIR" saymak yanlis olurdu: SILVA/UNITE/ROD basliklarinda
-    tip alani hic yoktur, oradaki bir kaydin tip olmadigini iddia edemeyiz.
-    Olculen kapsam (2026-08-09, baslik taramasi):
-        fungi.ITS.fna      20 271 / 20 394 kayit "from TYPE material"
-        fungi.28SrRNA.fna  12 845 / 12 890
-        fungi.18SrRNA.fna   4 009 /  4 037
-        ref_all2.fna       37 125 / 65 358
-        bacteria.16S.fna        0 / 26 877   <- alan YOK (NR_ kayitlari isaretsiz)
-        archaea.16S.fna         0 /  1 160   <- alan YOK
-        SILVA SSU/LSU, UNITE, ROD   0        <- alan YOK
+        Counting "BILGI_YOK" as "HAYIR" would be wrong: SILVA, UNITE and ROD headers
+        have no type field at all, and we cannot claim a record there is not type
+        material. The measured coverage (2026-08-09, a header scan):
+            fungi.ITS.fna      20 271 / 20 394 records "from TYPE material"
+            fungi.28SrRNA.fna  12 845 / 12 890
+            fungi.18SrRNA.fna   4 009 /  4 037
+            ref_all2.fna       37 125 / 65 358
+            bacteria.16S.fna        0 / 26 877   <- NO field (NR_ records unmarked)
+            archaea.16S.fna         0 /  1 160   <- NO field
+            SILVA SSU/LSU, UNITE, ROD   0        <- NO field
+
     """
     b = baslik or u''
     tasiyor = etiket in (u'RefSeq mantar ITS', u'RefSeq mantar 28S',
@@ -845,13 +827,14 @@ def _kayit_no(baslik):
 
 
 def _okuma_ornekle(fastq_yolu, n=KARISIM_OKUMA, en_az_uz=300):
-    u"""FASTQ'tan duzenli arayla n okuma ornekle. Donen: (diziler, ort_hata_orani).
+    """Sample n reads at a regular interval from a FASTQ. Returns: (sequences, mean_error_rate).
 
-    Duzenli aralikla ornekleme, dosyanin basindaki okumalarin (genelde daha
-    kisa/erken) baskin cikmasini engeller. Hata orani Phred'den hesaplanir:
-    ort_hata = ortalama(10^(-Q/10)). Ortalama Q'dan hata TUREMEZ - ustel
-    ortalama ile aritmetik ortalama ayni sey degildir ve hata orani
-    oldugundan kucuk cikardi.
+        Sampling at a regular interval stops the reads at the start of the file
+        (usually shorter or earlier) from dominating. The error rate is computed from
+        Phred: mean_error = mean(10^(-Q/10)). The error CANNOT BE DERIVED from the
+        mean Q; an exponential mean and an arithmetic mean are not the same thing, and
+        the error rate would come out smaller than it is.
+
     """
     if not os.path.exists(fastq_yolu):
         return [], None
@@ -883,12 +866,14 @@ def _okuma_ornekle(fastq_yolu, n=KARISIM_OKUMA, en_az_uz=300):
 
 
 def _karisim_esigi(hata_orani):
-    u"""Olculen okuma hata oranindan kumeleme esigini turet.
+    """Derive the clustering threshold from the measured read error rate.
 
-    Ayni organizmadan gelen iki okumanin beklenen farki 2*eps'tir. Esigi buna
-    KARISIM_KAT kadar pay birakarak kurariz. Hata orani olculemediyse temkinli
-    davranilir (yuksek hata varsayilir), cunku fazla siki bir esik SAF bir
-    kutuyu karisik gosterir - bu yanlis yon daha pahalidir.
+        The expected difference between two reads from the same organism is 2*eps. The
+        threshold is set with a margin of KARISIM_KAT on top of that. If the error
+        rate could not be measured the cautious path is taken (a high error is
+        assumed), because too tight a threshold makes a PURE bin look mixed, and that
+        is the more expensive direction to be wrong in.
+
     """
     eps = hata_orani if hata_orani is not None else 0.02
     beklenen_fark = 2.0 * eps * 100.0
@@ -897,15 +882,17 @@ def _karisim_esigi(hata_orani):
 
 
 def _kumele(K, diziler, esik, pencere=KARISIM_PENCERE):
-    u"""Okumalari ikili kimlige gore kumele. Donen: [[indeks,...], ...] buyukten kucuge.
+    """Cluster the reads by pairwise identity. Returns: [[index,...], ...], largest first.
 
-    Basit tek-baglantili kumeleme: iki okuma birbirine `esik`ten yakinsa ayni
-    kumeye girer. Amac tur atamasi degil, KAC AYRI ORGANIZMA VAR sorusudur;
-    bunun icin tek baglanti yeterlidir ve ucuzdur.
+        Simple single linkage clustering: two reads join the same cluster if they are
+        within `esik` of one another. The aim is not species assignment but the
+        question HOW MANY SEPARATE ORGANISMS ARE THERE, and single linkage is enough
+        for that, and cheap.
 
-    Maliyet kontrolu: her okumadan yalnizca ortadaki `pencere` bazlik parca
-    kullanilir. Tam boy hizalama 60 okuma icin 1770 cift x ~0,1 sn = 3 dakika
-    ederdi; pencere ile ~0,02 sn'ye iner.
+        Cost control: only the middle `pencere` bases of each read are used. A full
+        length alignment would come to 1770 pairs x ~0.1 s = 3 minutes for 60 reads;
+        with the window it drops to ~0.02 s.
+
     """
     n = len(diziler)
     if n == 0:
@@ -928,7 +915,7 @@ def _kumele(K, diziler, esik, pencere=KARISIM_PENCERE):
     for i in range(n):
         for j in range(i + 1, n):
             if bul(i) == bul(j):
-                continue                      # zaten ayni kumede, hizalama gereksiz
+                continue                      # already in the same cluster, no alignment needed
             k1, _d1 = K.hizala(parca[i], parca[j])
             k2, _d2 = K.hizala(parca[i], K.rc(parca[j]))   # yon farki kume bozmasin
             if max(k1, k2) >= esik:
@@ -940,10 +927,12 @@ def _kumele(K, diziler, esik, pencere=KARISIM_PENCERE):
 
 
 def _medoid(K, diziler, indeksler, pencere=KARISIM_PENCERE):
-    u"""Bir kumenin MEDOIDI: kumedeki digerlerine toplam benzerligi en yuksek okuma.
+    """The MEDOID of a cluster: the read with the highest total similarity to the rest.
 
-    Ortalama/konsensus almak yerine gercek bir okuma secilir; boylece sorgu
-    dizisi uydurma bir kimera olmaz. Kume tek elemanliysa o eleman doner.
+        A real read is chosen rather than an average or a consensus, so that the query
+        sequence is not an invented chimera. If the cluster has one element, that
+        element comes back.
+
     """
     if not indeksler:
         return None
@@ -969,10 +958,12 @@ def _medoid(K, diziler, indeksler, pencere=KARISIM_PENCERE):
 
 
 def _pencere_sec(dizi, pencere=ON_PENCERE):
-    u"""Sorgudan N'i EN AZ olan `pencere` bazlik parcayi sec.
+    """Pick the `pencere` base stretch of the query with the FEWEST Ns.
 
-    On eleme hizalamasinda N'li bolge kullanmak, aday siralamasini gurultuye
-    bogar (N daima uyumsuz sayilir). Kayan pencere ile en temiz bolge secilir.
+        Using a region full of Ns in the pre-filter alignment drowns the candidate
+        ranking in noise (an N always counts as a mismatch). A sliding window picks
+        the cleanest region.
+
     """
     if len(dizi) <= pencere:
         return dizi
@@ -988,26 +979,28 @@ def _pencere_sec(dizi, pencere=ON_PENCERE):
 
 
 def _ayirt_edilebilir(K, en_iyi, ikinci, hata_orani, sorgu_uz):
-    u"""EN IYI IKI TURU BIZIM VERI KALITEMIZLE AYIRT EDEBILIR MIYIZ?
+    """CAN WE TELL THE BEST TWO SPECIES APART WITH OUR DATA QUALITY?
 
-    Bu kural KODDADIR, elle karar verilmez. Iki bagimsiz sinav uygulanir ve
-    IKISI DE gecmek zorundadir:
+        This rule is IN THE CODE; it is not decided by hand. Two independent tests are
+        applied and BOTH have to pass:
 
-    (A) REFERANS AYRIMI - iki referans dizi birbirinden yeterince farkli mi?
-        Iki referans arasindaki fark D_ref baz. Bizim okuma hatamiz okuma
-        basina eps; hizalanan L baz uzerinde beklenen hatali baz sayisi
-        E = eps*L, saçilimi ~sqrt(E). Iki turun ayrilabilmesi icin
-            D_ref >= AYIRT_SIGMA * sqrt(E + 1)   ve   D_ref >= 3
-        olmali. Degilse iki tur bizim veri kalitemizle AYNI gorunur ve tur
-        adi vermek olcumun tasiyabileceginden fazlasini iddia etmektir.
+        (A) REFERENCE SEPARATION - are the two reference sequences different enough
+            from one another? The difference between them is D_ref bases. Our read
+            error is eps per read, so over L aligned bases the expected number of
+            erroneous bases is E = eps*L with a spread of ~sqrt(E). For two species to
+            be separable,
+                D_ref >= AYIRT_SIGMA * sqrt(E + 1)   and   D_ref >= 3
+            must hold. Otherwise the two species look IDENTICAL at our data quality,
+            and giving a species name claims more than the measurement can carry.
 
-    (B) OLCUM AYRIMI - bizim iki isabetimiz arasindaki fark gurultuden buyuk mu?
-        En iyi isabette m1, ikincide m2 uyumsuz baz var. Sayim gurultusu
-        ~sqrt(m1+m2). Ayrilabilmesi icin
-            |m1 - m2| >= AYIRT_SIGMA * sqrt(m1 + m2 + 1)
-        olmali. Degilse iki aday olcum hatasi icinde esittir.
+        (B) MEASUREMENT SEPARATION - is the gap between our two hits larger than the
+            noise? The best hit has m1 mismatched bases and the second m2. The
+            counting noise is ~sqrt(m1+m2). For them to be separable,
+                |m1 - m2| >= AYIRT_SIGMA * sqrt(m1 + m2 + 1)
+            must hold. Otherwise the two candidates are equal within measurement error.
 
-    Donen: dict(ayrilir, sebep, d_ref, esik_a, olcum_farki, esik_b)
+        Returns: dict(ayrilir, sebep, d_ref, esik_a, olcum_farki, esik_b)
+
     """
     out = dict(ayrilir=None, sebep=u'', d_ref=None, esik_a=None,
                olcum_farki=None, esik_b=None)
@@ -1060,14 +1053,15 @@ def _ayirt_edilebilir(K, en_iyi, ikinci, hata_orani, sorgu_uz):
 
 
 def _kraken_haritasi(kraken_kok):
-    u"""Barkod raporlarini kutu siniflarina esle. Donen: {(sinif,no): rapor_yolu}.
+    """Map the barcode reports to the bin classes. Returns: {(class,no): report_path}.
 
-    ESLEME NASIL DOGRULANDI: her sinif klasorundeki raporlar barkod numarasina
-    gore siralanir ve sirasiyla o sinifin 1..4 numarali kutularina baglanir
-    (A1 -> 01..04, A2 -> 05..08, F2 -> 09..12, F1 -> 13..16, B -> 17..20).
-    Esleme dogrulandi (2026-08-09): 20 kutunun 99 taxid'inin TAMAMI kendi
-    atanan barkod raporunda mevcut, eslesmeyen 0. Yanlis esleme olsaydi
-    taxid'lerin buyuk kismi raporda bulunamazdi.
+        HOW THE MAPPING WAS VERIFIED: the reports in each class directory are sorted
+        by barcode number and attached in order to bins 1..4 of that class
+        (A1 -> 01..04, A2 -> 05..08, F2 -> 09..12, F1 -> 13..16, B -> 17..20).
+        The mapping was verified (2026-08-09): ALL 99 taxids of the 20 bins are
+        present in their assigned barcode report, with 0 unmatched. Under a wrong
+        mapping most of the taxids would not have been found in the report.
+
     """
     harita = {}
     if not os.path.isdir(kraken_kok):
@@ -1083,12 +1077,14 @@ def _kraken_haritasi(kraken_kok):
 
 
 def _kraken_oku(yol):
-    u"""Kraken2 raporu -> {taxid: dict(ad, duzey, yuzde, atanan, altagac)}.
+    """A Kraken2 report -> {taxid: dict(name, rank, percent, assigned, clade)}.
 
-    Kraken2 raporunun sutunlari: yuzde, altagac_okuma, dogrudan_okuma, duzey,
-    taxid, ad. "Guven degeri" Kraken2 raporunda AYRI bir sutun DEGILDIR; en
-    yakin karsiligi o takson icin dogrudan atanan okuma yuzdesidir, bu yuzden
-    "guven" sutununa bu deger yazilir ve rapor bunu boyle acikca soyler.
+        The columns of a Kraken2 report: percent, clade_reads, direct_reads, rank,
+        taxid, name. A "confidence value" IS NOT a separate column in a Kraken2
+        report; the nearest equivalent is the percentage of reads assigned directly
+        to that taxon, so that is what goes into the "confidence" column, and the
+        report says so openly.
+
     """
     out = {}
     if not os.path.exists(yol):
@@ -1109,11 +1105,12 @@ def _kraken_oku(yol):
 
 
 def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
-    u"""MODUL 1 - her kutunun kimligini olc ve Kraken2 ile yan yana koy.
+    """MODULE 1 - measure the identity of every bin and put it beside Kraken2's.
 
-    kip: 'yok'   -> hic kosma (bulgu: ATLANDI)
-         'hizli' -> yalniz kucuk RefSeq kumeleri (olculen sure asagida)
-         'tam'   -> butun offline veritabanlari (SILVA SSU/LSU, UNITE, PR2, ROD dahil)
+        mode: 'yok'   -> do not run at all (the finding: ATLANDI)
+              'hizli' -> only the small RefSeq sets (the measured time is below)
+              'tam'   -> every offline database (SILVA SSU/LSU, UNITE, PR2, ROD included)
+
     """
     M = u'1 KIMLIK'
     t_basla = time.time()
@@ -1123,7 +1120,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                  u'--m1-kip yok verildi, modul bilerek kapatildi', u'-')
         return
 
-    # --- karar mantigini verification'dan ice aktar (yeniden YAZILMAZ)
+    # --- import the decision logic from verification (it IS NOT REWRITTEN here)
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama')
     if K is None:
         rap.atla(M, u'M1-MOTOR', u'identity_verification.py hizalama motoru yuklenebilmeli',
@@ -1141,13 +1138,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                  u'numpy ice aktarilamadi', u'-')
         return
 
-    # Bellek icin aday havuzunu kucult. Bu yalniz BU SUREC ICINDEKI kopyayi
-    # etkiler; verification/identity_verification.py dosyasi DEGISMEZ.
-    # Gerekce: dosyanin kendi notuna gore olculen en kotu on-eleme sirasi 45'tir;
-    # 800'luk havuz bu sinirin 17 katidir, kesme baglayici degildir.
+    # Shrink the candidate pool for memory. This affects only the copy INSIDE THIS
+    # PROCESS; the file verification/identity_verification.py IS UNCHANGED.
+    # The reason: by that file's own note, the worst measured pre-filter position is 45;
+    # a pool of 800 is 17 times that limit, so the cut is not binding.
     K.ADAY_HAVUZU = ADAY_HAVUZU_KONTROL
 
-    # --- kutu envanteri: KANONIK konsensus indeksi (hepsi SENSE yonde)
+    # --- the bin inventory: the CANONICAL consensus index (all of it SENSE)
     ind = tsv_oku(kay.konsensus_indeks, yorum=None)
     if ind is None:
         rap.atla(M, u'M1-ENVANTER', u'konsensus_kanonik/INDEKS.tsv okunabilmeli',
@@ -1194,13 +1191,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     yaz(u'M1: %d bins, mode=%s' % (len(kutular), kip))
 
     # -----------------------------------------------------------------
-    # ASAMA A - N orani, okuma hata orani, karisim/saflik.
-    # Bu asama HIC VERITABANI OKUMAZ; tamamen kutunun kendi verisiyle olcer.
+    # STAGE A - the N fraction, the read error rate, mixture and purity.
+    # This stage READS NO DATABASE AT ALL; it measures entirely from the bin's own data.
     # -----------------------------------------------------------------
     yaz(u'M1/A: N fraction, read error rate and mixture measurement...')
-    # Kac kutunun GERCEKTEN hesaplandigini sayariz. Kontrol noktasindan okunan
-    # kutular sifir saniye surer; onlari da sayarsak "kutu basina 0 saniye"
-    # cikar ve tam tarama tahmini gercek disi bir sekilde kisa gorunur.
+    # We count how many bins were REALLY computed. Bins read from a checkpoint take zero
+    # seconds, and counting those too gives "0 seconds per bin", which makes the full
+    # scan estimate look unrealistically short.
     taze_a = [0]
     can = Canlilik(u'M1/A kutu', len(kutular))
     for i, kb in enumerate(kutular, 1):
@@ -1228,7 +1225,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         if onbellek:
             kb.update(onbellek)
             continue
-        taze_a[0] += 1          # bu kutu GERCEKTEN hesaplandi (sure tahmini icin)
+        taze_a[0] += 1          # this bin was REALLY computed (for the time estimate)
 
         if not fq:
             kb['hata_orani'] = None
@@ -1260,9 +1257,9 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                 kb['kume_boyutlari'] = boyut
                 kb['baskin_oran'] = baskin
                 kb['karisim_esigi'] = k_esik
-                # 2026-08-09: hukum artik yalniz baskin orandan degil, ANLAMLI
-                # ikincil kume varliginndan veriliyor. Gerekce saflik_hukmu()
-                # ustundeki blokta, olcumle birlikte yazili.
+                # 2026-08-09: the verdict now comes not from the dominant share alone but
+                # from the presence of a MEANINGFUL secondary cluster. The reasoning, with
+                # the measurement, is in the block above saflik_hukmu().
                 kb['saflik'], kb['anlamli_kumeler'], _ek = saflik_hukmu(
                     boyut, len(okumalar))
                 kb['saflik_sebep'] = (
@@ -1280,7 +1277,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             'saflik', 'saflik_sebep', 'kume_boyutlari', 'okuma_sorgu',
             'karisim_esigi')))
     a_sure = can.bitti(len(kutular))
-    # Kutu basina hazirlik suresi YALNIZ taze hesaplanan kutulardan olculur.
+    # The preparation time per bin is measured ONLY from freshly computed bins.
     if taze_a[0] >= 2:
         rap.olcum[u'_m1a_kutu_sn'] = a_sure / float(taze_a[0])
         rap.olcum[u'M1/A hazirlik'] = u'%d kutu (%d taze, %d kontrol noktasindan), ' \
@@ -1319,16 +1316,16 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         sorgular[kb['kutu']] = kb['sorgu']
 
     # -----------------------------------------------------------------
-    # ASAMA B - veritabani taramasi. Her veritabani TEK akista taranir ve
-    # butun kutular ayni akistan beslenir (kutu basina ayri gecis 100x12=1200
-    # tam dosya gecisi ederdi).
+    # STAGE B - the database scan. Every database is scanned in ONE pass and every bin
+    # is fed from that same pass (a separate pass per bin would come to 100x12=1200 full
+    # file passes).
     # -----------------------------------------------------------------
     vtb = [(e, d, t) for e, d, t, kullan, _n in K.VTB if kullan]
     if kip == u'hizli':
         vtb = [v for v in vtb if v[0] in HIZLI_VTB]
     yaz(u'M1/B: %d databases to scan: %s' % (len(vtb), u', '.join(v[0] for v in vtb)))
 
-    bulgular_kutu = collections.defaultdict(list)   # kutu -> [isabet, ...]
+    bulgular_kutu = collections.defaultdict(list)   # bin -> [hit, ...]
     for ei, (etiket, dosya, lokus) in enumerate(vtb, 1):
         yol = os.path.join(kay.refdb, dosya)
         if not os.path.exists(yol):
@@ -1360,7 +1357,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                      u'dusurun ya da veritabanini ayri kosun', yol)
             continue
         except Exception as e:
-            # HATA YUTULMAZ: hangi veritabani neden taranamadi raporlanir.
+            # ERRORS ARE NOT SWALLOWED: which database could not be scanned, and why, is reported.
             rap.atla(M, u'M1-VTB-HATA', u'%s taranabilmeli' % etiket,
                      u'%s: %s' % (type(e).__name__, e), yol)
             continue
@@ -1369,7 +1366,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             u'%s MB, %d kayit, %s  (%s MB/sn)'
             % (vir(mb, 1), taranan, sure_metni(tarama_sn), vir(mb / max(0.001, tarama_sn), 2)))
 
-        # --- beklenen kayit sayisi ile karsilastir (budanmis tarama yakalanir)
+        # --- compare against the expected record count (this catches a truncated scan)
         bekl = getattr(T, 'BEKLENEN_KAYIT', {}).get(etiket)
         if bekl and taranan < bekl:
             rap.ekle(M, u'M1-KAPSAM-EKSIK', CIDDI,
@@ -1378,7 +1375,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                      % (taranan, vir(100.0 * taranan / bekl, 1)), yol,
                      u'Budanmis tarama, gercek en iyi isabeti kacirabilir.')
 
-        # --- her kutu icin iki asamali hizalama
+        # --- a two stage alignment for each bin
         t1 = time.time()
         can3 = Canlilik(u'%s hizalama' % etiket, len(kutular))
         vtb_sonuc = {}
@@ -1390,20 +1387,21 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             q = kb['sorgu']
             qp = _pencere_sec(q, ON_PENCERE)
             qp_rc = K.rc(qp)
-            # ON ELEME: kisa pencereyle butun adaylari sirala (ucuz).
+            # THE PRE-FILTER: rank every candidate with a short window (cheap).
             #
-            # IKI SEY BURADA KRITIK:
-            # (1) hizala() INFIX'tir: KISA diziyi UZUN olanin icine yerlestirir.
-            #     Sorgu hedeften uzunsa hizalama anlamsizlasir ve kimlik
-            #     yapay olarak uzunluk oranina duser (olculdu: 3707 bp sorgu
-            #     1700 bp'lik bir 18S kaydina karsi %47 veriyordu - bu bir
-            #     benzerlik degil, uzunluk farkinin ta kendisiydi). Bu yuzden
-            #     her cagride kisa olan sorgu, uzun olan hedef yapilir -
-            #     kimlik_dogrulama.kl_degerlendir() de aynen boyle yapar.
-            # (2) Referans kayitlarin YONU kume kume degisir. Tek yonde arayan
-            #     bir olcum kayitlarin bir kismini kacirir; bu yuzden pencere
-            #     asamasinda her iki yon denenir ve KAZANAN YON tam hizalamada
-            #     kullanilir (tam boyu iki kez hizalamak iki kat pahali olurdu).
+            # TWO THINGS ARE CRITICAL HERE:
+            # (1) hizala() is INFIX: it places the SHORT sequence inside the LONG one.
+            #     If the query is longer than the target the alignment stops meaning
+            #     anything and the identity falls artificially to the length ratio
+            #     (measured: a 3707 bp query against a 1700 bp 18S record gave 47% -
+            #     that was not a similarity, it was the length difference itself). So
+            #     on every call the shorter one is made the query and the longer one
+            #     the target; kimlik_dogrulama.kl_degerlendir() does exactly the same.
+            # (2) The ORIENTATION of reference records varies from set to set. A
+            #     measurement searching one direction misses part of the records, so
+            #     both directions are tried at the window stage and THE WINNING
+            #     DIRECTION is used for the full alignment (aligning the full length
+            #     twice would cost twice as much).
             on = []
             for a in kl:
                 t = a['dizi']
@@ -1413,8 +1411,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                 geri, _y = K.hizala(d2, u2)
                 on.append((max(ileri, geri), a, u'+' if ileri >= geri else u'-'))
             on.sort(key=lambda x: -x[0])
-            # TIP KAYITLARI kesinlikle degerlendirilsin: tip kaydina benzerlik
-            # cok daha guclu kanittir, on elemede kaybolmasi kabul edilemez.
+            # TYPE MATERIAL must be evaluated without fail: similarity to a type record
+            # is far stronger evidence, and losing it in the pre-filter is unacceptable.
             secili = [(a, yon) for _k, a, yon in on[:KESIN_UST]]
             secili_bas = set(id(a) for a, _y in secili)
             for _k, a, yon in on[KESIN_UST:]:
@@ -1423,7 +1421,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                     secili_bas.add(id(a))
                     if len(secili) >= KESIN_UST + 8:
                         break
-            # KESIN OLCUM: tam boy hizalama, kazanan yonde, KISA icine UZUN.
+            # THE DEFINITIVE MEASUREMENT: a full length alignment, in the winning direction,
+            # the SHORT one inside the LONG one.
             isabetler = []
             q_rc = K.rc(q)
             for a, yon in secili:
@@ -1511,24 +1510,24 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                 ad_degisti=u'OLCULEMEDI'))
             continue
 
-        # --- EN IYI ISABET SECIMI: kimlik TEK BASINA yetmez.
+        # --- CHOOSING THE BEST HIT: identity ON ITS OWN is not enough.
         #
-        # Cok kisa bir referans kaydina %99,4 benzemek, uzun bir kayda %99,0
-        # benzemekten daha zayif kanittir: kisa kayit sorgunun yalnizca kucuk
-        # bir penceresini gorur ve o pencere korunmus bir bolgeyse hemen her
-        # akraba %99 verir. Olculdu (F2-1_500148): 533 bp'lik bir 28S kaydi
-        # %99,44 ile one geciyor, 1719 bp'lik %99,01'lik kaydi eliyordu.
+        # Matching a very short reference record at 99.4% is weaker evidence than
+        # matching a long one at 99.0%: the short record sees only a small window of
+        # the query, and if that window is a conserved region then nearly every
+        # relative gives 99%. Measured (F2-1_500148): a 533 bp 28S record came first
+        # at 99.44% and knocked out a 1719 bp record at 99.01%.
         #
-        # KURAL: en yuksek kimligin GURULTU BANDI icinde kalan isabetler
-        # istatistiksel olarak esittir; bunlarin arasindan EN UZUN hizalamayi
-        # tasiyan secilir. Band, sayim gurultusunden turetilir (3 sigma).
-        # Secim IKI ASAMALIDIR ve her iki asamada AYNI kural kullanilir:
-        #   1) her veritabani kendi kazananini secer,
-        #   2) genel kazanan, veritabani kazananlari arasindan secilir.
-        # Iki asamada farkli kural kullanmak, kazanan cinsin kendi
-        # veritabanindan oy alamamasina yol aciyordu (olculdu: genel secim
-        # Pseudallescheria derken ayni veritabaninin oyu Lomentospora'ya
-        # gidiyor ve kazanan "0 veritabani destekli" gorunuyordu).
+        # THE RULE: hits falling inside the NOISE BAND of the highest identity are
+        # statistically equal, and among those the one carrying the LONGEST alignment
+        # is chosen. The band is derived from counting noise (3 sigma).
+        # The choice is made in TWO STAGES and THE SAME rule is used at both:
+        #   1) each database picks its own winner,
+        #   2) the overall winner is picked from among the database winners.
+        # Using different rules at the two stages made the winning genus fail to get a
+        # vote from its own database (measured: the overall choice said
+        # Pseudallescheria while the vote of the same database went to Lomentospora,
+        # so the winner appeared to be "supported by 0 databases").
         def _band_sec(havuz):
             t = max(havuz, key=lambda x: x['kimlik'])
             b = AYIRT_SIGMA * math.sqrt((t.get('uzaklik') or 0) + 1.0) / max(
@@ -1563,10 +1562,10 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                      u'verir; bu bir tur atamasi icin yeterli kanit degildir.')
         # Hukum siralamasi da secilen isabeti basa alsin.
         isabetler = [en_iyi] + [h for h in isabetler if h is not en_iyi]
-        # IKINCI EN IYI: en iyiden FARKLI bir tur (ayni turun ikinci kaydi
-        # ayrim sorusuna cevap vermez, tautolojik olurdu)
-        # Ikinci isabet de EN AZ ASGARI_HIZ_UZ uzerinden olculmus olmali; kisa
-        # bir kayit "rakip" diye gosterilirse ayrim sorusu yanlis kurulur.
+        # THE SECOND BEST: a species DIFFERENT from the best one (a second record of
+        # the same species answers no question about separation and would be a tautology)
+        # The second hit must also be measured over AT LEAST ASGARI_HIZ_UZ; showing a
+        # short record as "the competitor" sets the separation question up wrongly.
         def _ikinci_sec(uzunluk_sarti):
             for h in isabetler[1:]:
                 if uzunluk_sarti and (h.get('hiz_uz') or 0) < ASGARI_HIZ_UZ:
@@ -1578,9 +1577,9 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         ikinci = _ikinci_sec(True) or _ikinci_sec(False)
         fark = (en_iyi['kimlik'] - ikinci['kimlik']) if ikinci else None
         if fark is not None and fark < 0:
-            # Negatif fark: rakibin ham kimligi daha yuksek ama DAHA KISA bir
-            # hizalama uzerinden. Bu bir celiski degil, uzunluk-kimlik takasidir;
-            # okuyanin bunu tahmin etmesi beklenmemeli, acikca yazilir.
+            # A negative gap: the competitor's raw identity is higher, but over a SHORTER
+            # alignment. That is not a contradiction, it is the length against identity
+            # trade-off, and the reader should not have to guess it, so it is written out.
             rap.ekle(M, u'M1-RAKIP-DAHA-YUKSEK', UYARI,
                      u'secilen en iyi isabetin kimligi rakibinkinden dusuk olmamali',
                      u'%s: secilen isabet %s%% (%s bp, %s), rakip %s%% (%s bp, %s) - '
@@ -1590,13 +1589,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                         ikinci.get('hiz_uz'), ikinci['kayit']), kb['yol'],
                      u'Tur atamasi bu iki kayit arasinda karara baglanmamalidir.')
 
-        # --- savunulabilir duzey: identity_verification.py'nin kurali (YENIDEN YAZILMAZ)
+        # --- the defensible level: identity_verification.py's rule (NOT REWRITTEN)
         sav = K.savunulabilir_duzey(isabetler, en_iyi.get('lokus') or 'SSU')
         duzey = sav['duzey']
         ad = sav['onerilen_ad']
         gerekce = sav['gerekce']
 
-        # --- AYIRT EDILEBILIRLIK kurali (kodda, elle degil)
+        # --- the DISCRIMINABILITY rule (in code, not by hand)
         ay = _ayirt_edilebilir(K, en_iyi, ikinci, kb.get('hata_orani'), len(kb['sorgu']))
         if ay['ayrilir'] is False and duzey == u'TUR':
             cins = en_iyi.get('cins')
@@ -1614,8 +1613,8 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         else:
             gerekce = u'%s | AYIRT EDILEBILIRLIK: %s' % (gerekce, ay['sebep'])
 
-        # --- kac bagimsiz veritabani ayni CINSI en iyi isabet olarak verdi
-        # vtb_en_iyi yukarida, en_iyi ile AYNI kuralla hesaplandi.
+        # --- how many independent databases gave the same GENUS as their best hit
+        # vtb_en_iyi above was computed with THE SAME rule as en_iyi.
         cins_oy = collections.Counter(
             (h.get('cins') or u'?') for h in vtb_en_iyi.values())
         kazanan_cins = en_iyi.get('cins') or u'?'
@@ -1680,11 +1679,11 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         len(satirlar) - len(olculemeyen), len(olculemeyen))
     rap.olcum[u'M1 toplam sure'] = sure_metni(time.time() - t_basla)
 
-    # --- TAM TARAMA SURESI TAHMINI, BU KOSUDA OLCULEN HIZLARDAN
-    # Tahmin, tahmin degil OLCUME dayanir: bu kosuda gercekten olculen
-    # (a) kutu basina on hazirlik suresi, (b) MB basina tarama suresi,
-    # (c) kutu-veritabani basina hizalama suresi ile olceklenir. Olculmeyen
-    # bir bilesen varsa tahmin URETILMEZ, "olculmedi" yazilir.
+    # --- THE FULL SCAN TIME ESTIMATE, FROM THE SPEEDS MEASURED IN THIS RUN
+    # The estimate is not a guess but rests on MEASUREMENT: it is scaled by what was
+    # really measured in this run, (a) the preparation time per bin, (b) the scan time
+    # per MB, (c) the alignment time per bin and database pair. If any component was
+    # not measured, NO ESTIMATE IS PRODUCED and it says "olculmedi".
     try:
         tum_vtb = [(e, d) for e, d, _t, kullan, _n in K.VTB if kullan]
         toplam_mb = sum(os.path.getsize(os.path.join(kay.refdb, d)) / 1e6
@@ -1739,31 +1738,33 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         % (len(satirlar), len(olculemeyen), sure_metni(time.time() - t_basla)))
 
 
-# ===========================================================================
-# MODUL 2 - IC TUTARLILIK
-# ===========================================================================
-# SORU: ayni sayi birden fazla dosyada geciyorsa hepsi ayni mi?
+# =========================================================================
+# MODULE 2 - INTERNAL CONSISTENCY
+# =========================================================================
+# THE QUESTION: when the same number appears in more than one file, are they all
+# the same?
 #
-# NEDEN: bu projede karar tablolari elle ve betikle DEFALARCA guncellendi.
-# Bir dosyada duzeltilen bir deger digerinde eski haliyle kaldiginda, hangi
-# dosyaya bakildigina gore farkli bir siparis karari cikiyor. Gecmiste ayni
-# kutu bir tabloda UYE, baska tabloda RAKIP sayilmisti; asagidaki M2-UYE-RAKIP
-# kontrolu tam olarak bu deseni arar.
+# WHY: in this project the decision tables were updated MANY TIMES, by hand and by
+# script. When a value corrected in one file stayed at its old value in another, a
+# different order decision came out depending on which file you looked at. In the
+# past the same bin was counted as a MEMBER in one table and a COMPETITOR in
+# another; the M2-UYE-RAKIP check below looks for exactly that pattern.
 #
-# YONTEM: her kaynaktan (hedef, alan) -> deger cikarilir, ayni (hedef, alan)
-# icin farkli deger veren kaynaklar CELISKI olarak listelenir. Alan eslemesi
-# ACIKCA yazilir, sutun ADINA gore otomatik eslenmez: ornegin "R" sutunu
-# ciftler.tsv'de GERI PRIMER, ESIK_VE_OLCUT'ta BOLLUK ORANI demektir ve bu
-# ikisini adina bakip eslestirmek sahte bir celiski uretirdi.
-# ---------------------------------------------------------------------------
+# THE METHOD: (target, field) -> value is extracted from every source, and sources
+# giving different values for the same (target, field) are listed as a
+# CONTRADICTION. The field mapping is written OUT EXPLICITLY and is not matched
+# automatically by column NAME: the column "R", for example, means THE REVERSE
+# PRIMER in ciftler.tsv and THE ABUNDANCE RATIO in ESIK_VE_OLCUT, and matching those
+# two by name would produce a false contradiction.
+# -------------------------------------------------------------------------
 
 def _primer_norm(s):
-    u"""Primer dizisini karsilastirma icin normalle: buyuk harf, bosluksuz."""
+    """Normalise a primer sequence for comparison: upper case, no spaces."""
     return re.sub(r'[^A-Z]', u'', unicode_(s).upper())
 
 
 def _ad_norm(s):
-    u"""Hedef adini karsilastirma icin normalle (bosluk/alt cizgi/buyuk-kucuk)."""
+    """Normalise a target name for comparison (spaces, underscores, case)."""
     return re.sub(r'[^a-z0-9]', u'', unicode_(s).lower())
 
 
@@ -1790,7 +1791,7 @@ def modul_2_ic_tutarlilik(kay, rap):
                  u'urun_bp': u'sayi', u'dCq': u'sayi',
                  u'kraken_etiketi': u'metin', u'olculen_kimlik': u'metin'}
 
-    # deger[(hedef, alan)] = [(kaynak, ham_deger, satir_no)]
+    # deger[(target, field)] = [(source, raw_value, line_number)]
     deger = collections.defaultdict(list)
     okunan_kaynak = 0
     for kaynak, yol, anahtar, alanlar in ESLEME:
@@ -1878,7 +1879,8 @@ def modul_2_ic_tutarlilik(kay, rap):
         elif tip == u'sayi':
             norm = [(k, sayi(v), s) for k, v, s in kayitlar]
             sayilar = [n for _k, n, _s in norm if n is not None]
-            # Sayilarda 0,01'lik yuvarlama farki celiski sayilmaz; daha buyugu sayilir.
+            # A rounding difference of 0.01 in a number does not count as a contradiction;
+            # anything larger does.
             ayri = set()
             if sayilar and (max(sayilar) - min(sayilar)) > 0.011:
                 ayri = set(sayilar)
@@ -1907,7 +1909,7 @@ def modul_2_ic_tutarlilik(kay, rap):
         rap.atla(M, u'M2-BOS', u'en az bir alan capraz karsilastirilmali',
                  u'iki kaynakta birden gecen hicbir (hedef, alan) bulunamadi', u'-')
 
-    # --- AYNI KUTU HEM UYE HEM RAKIP MI (gecmiste yasandi)
+    # --- IS THE SAME BIN BOTH A MEMBER AND A COMPETITOR (this happened before)
     uyelik = tsv_oku(kay.hedef_uyelik)
     if uyelik is None:
         rap.atla(M, u'M2-UYE-RAKIP', u'hedef_uyelik.tsv okunabilmeli', u'dosya yok',
@@ -1927,18 +1929,18 @@ def modul_2_ic_tutarlilik(kay, rap):
                          u'Ayrim orani bu taxid iki kez sayildigi icin yanlis.')
 
 
-# ===========================================================================
-# MODUL 3 - UYELIK BUTUNLUGU
-# ===========================================================================
-# SORU: her ciftin uye kumesi TANIMLI mi, ve o cift icin hesaplanan ΔCq
-# gercekten O CIFTIN uyeligiyle mi hesaplanmis?
+# =========================================================================
+# MODULE 3 - MEMBERSHIP INTEGRITY
+# =========================================================================
+# THE QUESTION: is the member set of every pair DEFINED, and was the dCq computed
+# for that pair really computed with THAT PAIR'S membership?
 #
-# NEDEN: Petriella_cinsi hedefinde tam bu olmustu - hedefin kendi uyelik satiri
-# YOKTU, uyelik baska bir hedeften devralinmisti ve raporlanan ΔCq aslinda o
-# baska hedefin olcumuydu. Sayi dolu gorunuyordu, dolayisiyla kimse fark
-# etmemisti. Bos uyelikten sessizce sifir donmesi bu projenin en pahali
-# desenlerinden biri.
-# ---------------------------------------------------------------------------
+# WHY: that is exactly what happened with the Petriella_cinsi target. The target had
+# NO membership row of its own, the membership had been inherited from another
+# target, and the reported dCq was in fact that other target's measurement. The
+# number looked filled in, so nobody noticed. An empty membership silently returning
+# zero is one of the most expensive patterns in this project.
+# -------------------------------------------------------------------------
 
 def modul_3_uyelik(kay, rap):
     M = u'3 UYELIK'
@@ -1969,7 +1971,7 @@ def modul_3_uyelik(kay, rap):
             if h:
                 dcq_indeks[_ad_norm(h)] = r
 
-    # --- uye kumelerini imzala: birebir ayni kume iki hedefte tautoloji demek
+    # --- sign the member sets: an identical set on two targets means a tautology
     imza = collections.defaultdict(list)
 
     for r in ciftler:
@@ -1984,13 +1986,14 @@ def modul_3_uyelik(kay, rap):
         dsat = dcq_indeks.get(hn)
         dcq = sayi(dsat.get(u'dCq_olculen')) if dsat else None
 
-        # 1) uye kumesi BOS mu
-        #    ONEMLI AYRIM: KAPSAM olcen bir hedefte (evrensel primerler) bos uye
-        #    kumesi TASARIM GEREGIDIR, hata degil - o hedef bir soyu digerinden
-        #    ayirmaya calismaz, alan genelinde kapsam olcer. Bos uyelik ancak
-        #    (a) AYRIM olcen bir hedefte, ya da (b) uyelige dayanan bir dCq
-        #    raporlanmissa hatadir. Bu ayrimi yapmayan bir denetci, saglam
-        #    tasarimi hata diye bagirir ve gercek hatalar arasinda kaybolur.
+        # 1) is the member set EMPTY
+        #    AN IMPORTANT DISTINCTION: on a target that measures COVERAGE (the universal
+        #    primers) an empty member set is BY DESIGN, not an error. Such a target is not
+        #    trying to separate one lineage from another, it measures coverage across a
+        #    domain. An empty membership is an error only (a) on a target that measures
+        #    SEPARATION, or (b) when a dCq resting on membership has been reported. An
+        #    auditor that does not make this distinction shouts about sound design as if it
+        #    were an error, and the real errors get lost among them.
         if not uye:
             kapsam_olcusu = (olcu.lower().startswith(u'kapsam') or
                              durum.upper() == u'KAPSAM_OLCUSU')
@@ -2017,7 +2020,7 @@ def modul_3_uyelik(kay, rap):
         else:
             imza[u','.join(sorted(uye))].append((h, olcu))
 
-        # 2) hedefin KENDI uyelik satiri var mi
+        # 2) does the target have a membership row OF ITS OWN
         if hn not in uyelik_indeks:
             agir = KRITIK if dcq is not None else CIDDI
             rap.ekle(M, u'M3-UYELIK-SATIRI-YOK', agir,
@@ -2038,7 +2041,7 @@ def modul_3_uyelik(kay, rap):
                      u'%s: uye_kumesi_durumu = "%s"' % (h, durum),
                      u'%s (satir %s)' % (kay.ciftler, r.get('_satir')))
 
-        # 4) ESIK tablosu uyeligi gecersiz diyorsa ama dCq yine de kullanilmissa
+        # 4) the THRESHOLD table says the membership is invalid, yet a dCq was still used
         if dsat:
             gecerli = (dsat.get(u'uyelik_gecerli_mi') or u'').strip().upper()
             if gecerli in (u'HAYIR', u'YOK') and dcq is not None:
@@ -2049,7 +2052,7 @@ def modul_3_uyelik(kay, rap):
                          u'%s (satir %s)' % (kay.esik_olcut, dsat.get('_satir')),
                          u'Bu ΔCq tanimsiz uyelikle hesaplanmistir.')
 
-    # 5) birebir AYNI uye kumesine sahip iki "ayrim" hedefi -> TOTOLOJI
+    # 5) two "separation" targets with an IDENTICAL member set -> A TAUTOLOGY
     for anahtar, hedefler in imza.items():
         ayrim = [h for h, o in hedefler if o.lower().startswith(u'ayrim')]
         if len(hedefler) > 1 and ayrim:
@@ -2067,16 +2070,16 @@ def modul_3_uyelik(kay, rap):
         len(ciftler), len(uyelik_indeks))
 
 
-# ===========================================================================
-# MODUL 4 - LITERATUR KURALLARI
-# ===========================================================================
-# 55 kaynakli literatur degerlendirmesinden cikan SAYISAL kurallari panele
-# uygular. Kurallar burada SABIT yazilmaz; once LITERATUR dosyasindan
-# dogrulanir - dosya baska bir sayi soyluyorsa kural BAYAT demektir ve bu da
-# bir bulgudur.
-# ---------------------------------------------------------------------------
+# =========================================================================
+# MODULE 4 - THE LITERATURE RULES
+# =========================================================================
+# It applies the NUMERIC rules that came out of a literature review of 55 sources to
+# the panel. The rules are NOT hard coded here; they are first verified against the
+# LITERATURE file. If that file says a different number, the rule is STALE, and that
+# is itself a finding.
+# -------------------------------------------------------------------------
 
-# Bollukla agirlikli esik: gerekli_dCq = max(log2(R) + EK, TABAN)
+# The abundance weighted threshold: required_dCq = max(log2(R) + EK, TABAN)
 LIT_EK = 4.3
 LIT_TABAN = 3.32
 
@@ -2103,7 +2106,7 @@ def modul_4_literatur(kay, rap):
     esik = tsv_oku(kay.esik_olcut)
     siparis = tsv_oku(kay.nihai_siparis)
 
-    # --- KURAL 1: bollukla agirlikli esik
+    # --- RULE 1: the abundance weighted threshold
     if esik is None:
         rap.atla(M, u'M4-KURAL1', u'gerekli_dCq = max(log2(R)+%s, %s) dogrulanmali'
                  % (vir(LIT_EK), vir(LIT_TABAN)), u'ESIK_VE_OLCUT dosyasi yok',
@@ -2138,7 +2141,7 @@ def modul_4_literatur(kay, rap):
                          u'%s: tabloda %s yaziyor (R=%s)' % (h, vir(yazan), vir(R, 3)),
                          u'%s (satir %s)' % (kay.esik_olcut, r.get('_satir')),
                          u'Esik yanlissa GECER/KALIR hukmu de yanlis.')
-            # hukum, kendi sayilariyla tutuyor mu
+            # does the verdict hold against its own numbers
             if olculen is not None and yazan is not None:
                 bekl = u'GECER' if olculen >= yazan else u'KALIR'
                 if durum and durum != bekl:
@@ -2200,13 +2203,13 @@ def modul_4_literatur(kay, rap):
                          u'Evrensel primeri "klad disi sayisi" ile degerlendirmek '
                          u'literature aykiridir; klad disi olmasi beklenir.')
 
-    # --- KURAL 4: MIQE - in siliko ve deneysel dogrulama AYRI zorunlu maddeler
+    # --- RULE 4: MIQE - in-silico and experimental validation are SEPARATE requirements
     #
-    # DENEYSEL sart bu projede AYRI bir dosyada tutuluyor (SIPARIS_LISTESI.tsv
-    # icindeki LABORATUVARDA_NE_YAPILMALI sutunu). Yalniz NIHAI_SIPARIS'e bakan
-    # bir kontrol, sart baska dosyada yazili oldugu halde "eksik" derdi. Bu
-    # yuzden iki dosya hedef adiyla BIRLESTIRILIR ve sart ikisinde de yoksa
-    # bulgu uretilir.
+    # In this project the EXPERIMENTAL requirement is held in A SEPARATE file (the
+    # LABORATUVARDA_NE_YAPILMALI column inside SIPARIS_LISTESI.tsv). A check looking only
+    # at NIHAI_SIPARIS would say "missing" even though the requirement is written in the
+    # other file. So the two files are JOINED on the target name, and a finding is
+    # produced only when the requirement is absent from both.
     if siparis is not None:
         SIL = re.compile(r'in.?siliko|in.?silico|MFE|hizalama|nt |NCBI', re.I)
         DEN = re.compile(r'jel|gel|erime\s*egrisi|dizileme|amplikon\s*dizile|'
@@ -2248,15 +2251,15 @@ def modul_4_literatur(kay, rap):
                          u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')))
 
 
-# ===========================================================================
-# MODUL 5 - BILINEN HATA DESENLERI
-# ===========================================================================
-# Bu projede TEKRAR TEKRAR ciktigi icin ayri bir modul hak eden dokuz desen.
-# Her desen icin ayri bir kontrol var ve her biri "ne bekleniyordu / ne
-# bulundu" ciftiyle raporlanir. Bir desen hic bulgu uretmiyorsa bu, o desenin
-# olculdugu ve temiz cikti anlamina gelir - kontrolun kosmadigi anlamina
-# GELMEZ; kosmayanlar ATLANDI olarak ayrica sayilir.
-# ---------------------------------------------------------------------------
+# =========================================================================
+# MODULE 5 - KNOWN FAILURE PATTERNS
+# =========================================================================
+# Nine patterns that earned a module of their own by coming up AGAIN AND AGAIN in
+# this project. Each pattern has its own check and each is reported as a "what was
+# expected / what was found" pair. If a pattern produces no finding, that means the
+# pattern was measured and came out clean; it DOES NOT MEAN the check did not run.
+# Checks that did not run are counted separately as ATLANDI.
+# -------------------------------------------------------------------------
 
 # Kod taramasinda aranan maskeleme desenleri.
 _MASKE_PY = [
@@ -2284,15 +2287,15 @@ def modul_5_desenler(kay, rap):
     uyelik = tsv_oku(kay.hedef_uyelik)
     hdisi = tsv_oku(kay.hedef_disi)
 
-    # ---- DESEN 1: SESSIZ SIFIR ---------------------------------------
-    # Desenin TAM tanimi: bir KATMAN kosmamis ya da hukum verememis, ama o
-    # katmanin sayisal alani yine de 0 olarak yazilmis. Boyle bir 0 "hedef disi
-    # bulunmadi" gibi okunur; oysa "bakilmadi" demektir.
+    # ---- PATTERN 1: A SILENT ZERO ------------------------------------
+    # The EXACT definition of the pattern: a LAYER did not run, or could not reach a
+    # verdict, and yet that layer's numeric field was still written as 0. Such a 0 reads
+    # like "no off-target was found", when it means "nobody looked".
     #
-    # DIKKAT - burada gecmiste bir sinir hatasi yapmak cok kolay: "her 0 supheli"
-    # demek 58 sahte bulgu uretiyor ve gercek olani bogar. O yuzden 0, YALNIZCA
-    # kendi katmani "kosmadim" diyorsa bulgu sayilir. Alan -> katman eslemesi
-    # sutun onekinden okunur.
+    # CAUTION - it is very easy to get the boundary wrong here, and it has been:
+    # calling "every 0 suspicious" produces 58 false findings and drowns the real one.
+    # So a 0 counts as a finding ONLY IF its own layer says "I did not run". The field
+    # to layer mapping is read from the column prefix.
     KATMAN_ONEKI = ((u'NCBI_', u'NCBI'), (u'MFE_', u'MFEprimer'),
                     (u'yerel_', u'yerel'))
     KOSMADI = re.compile(
@@ -2309,13 +2312,13 @@ def modul_5_desenler(kay, rap):
             baglam = u' '.join([r.get(u'GEREKCE') or u'',
                                 r.get(u'hukmu_veren_katman') or u'',
                                 r.get(u'NCBI_durumu') or u''])
-            # CUMLE CUMLE bakilir. Tek bir uzun gerekce icinde "MFEprimer 0
-            # buldu. NCBI hukum veremedi." gibi IKI AYRI ifade olabilir; butun
-            # metne birden bakan bir kontrol, MFE alanlarini da NCBI'nin
-            # kosmamasi yuzunden suclardi (olculdu: 88 bulgunun 80'i boyleydi).
+            # It is examined SENTENCE BY SENTENCE. One long reason can hold TWO SEPARATE
+            # statements, such as "MFEprimer found 0. NCBI could not decide.", and a check
+            # looking at the whole text at once would blame the MFE fields for NCBI not
+            # running as well (measured: 80 of 88 findings were like that).
             cumleler = [c for c in re.split(r'[.;|]\s*', baglam) if c.strip()]
-            # Katman basina TEK gerekce cumlesi tutulur; ayni katmani iki ayri
-            # cumlede sucladigimizda rapor ayni bulguyu iki kez basiyordu.
+            # ONE reason sentence is kept per layer; when we blamed the same layer in two
+            # separate sentences, the report printed the same finding twice.
             kosmayan = collections.OrderedDict()
             for c in cumleler:
                 if not KOSMADI.search(c):
@@ -2354,7 +2357,7 @@ def modul_5_desenler(kay, rap):
                      u'katman oneki tasiyan sayisal alan bulunamadi',
                      kay.nihai_siparis)
 
-    # ---- DESEN 2: HEDEFIN KENDI UYELERINI HEDEF DISI SAYMA -----------
+    # ---- PATTERN 2: COUNTING THE TARGET'S OWN MEMBERS AS OFF-TARGET ---
     if uyelik is None or hdisi is None:
         rap.atla(M, u'M5-D2', u'hedefin kendi uyelerini hedef disi saymamasi',
                  u'hedef_uyelik.tsv ya da HEDEF_DISI_AYRINTI yok',
@@ -2413,7 +2416,7 @@ def modul_5_desenler(kay, rap):
                              yol,
                              u'Yutulan hata, kosunun basarili sanilmasina yol acar.')
     for yol in sorted(glob.glob(os.path.join(kay.kok, u'*.bat'))):
-        # Kosan .bat dosyalari OKUNUR ama DEGISTIRILMEZ.
+        # The .bat files that run are READ but NOT MODIFIED.
         icerik = metin_oku(yol)
         if icerik is None:
             continue
@@ -2437,8 +2440,8 @@ def modul_5_desenler(kay, rap):
         rap.atla(M, u'M5-D4', u'bayat kontrol noktasi taramasi',
                  u'hicbir */kontrol klasoru bulunamadi', kay.kok)
     else:
-        # Girdi olarak konsensus indeksi ve panel tanimi alinir: kontrol
-        # noktasi bunlardan ESKIYSE, o kosunun sonucu bayattir.
+        # The consensus index and the panel definition are taken as input: if the
+        # checkpoint is OLDER than either, the result of that run is stale.
         girdiler = [kay.konsensus_indeks, kay.ciftler, kay.hedef_uyelik]
         en_yeni = 0
         for g in girdiler:
@@ -2462,12 +2465,12 @@ def modul_5_desenler(kay, rap):
                          u'yeniden kullandirir.')
         rap.olcum[u'M5 D4 kontrol noktasi'] = u'%d dosya, %d bayat' % (toplam, bayat)
 
-    # ---- DESEN 5: TAVAN DEGERININ SAYIM SANILMASI --------------------
-    # Yalniz SAYIM alanlarina bakilir. Urun uzunlugu (urun_bp = 100) bir sayim
-    # degildir ve tavanla ilgisi yoktur; butun sutunlara bakan bir kontrol
-    # boyle sahte bulgular uretiyordu.
-    # Ayrica satir zaten "SONUC TAVANI" diyorsa proje bunu bilerek isaretlemis
-    # demektir; bilinen bir sorunu yeniden bagirmak raporu kirletir.
+    # ---- PATTERN 5: MISTAKING A CAP VALUE FOR A COUNT -----------------
+    # Only COUNT fields are examined. A product length (urun_bp = 100) is not a count
+    # and has nothing to do with a cap; a check that looked at every column was
+    # producing false findings like that.
+    # And if the row already says "SONUC TAVANI", the project has marked it
+    # deliberately; shouting again about a known problem pollutes the report.
     SAYIM_DESENI = re.compile(
         r'(sayi|sayisi|adet|urun$|_urun|hedef_disi|klad_disi|kayit|hit|isabet)', re.I)
     if siparis is None:
@@ -2502,10 +2505,10 @@ def modul_5_desenler(kay, rap):
                          u'gercek sayi daha buyuktur.')
         rap.olcum[u'M5 D5 tavana esit sayim'] = u'%d' % bakilan
 
-    # ---- DESEN 6: TOTOLOJIK OLCUM ------------------------------------
-    # M3 uyelik tarafini bakiyor; burada KANIT DOSYASI kendisini dogruluyor mu
-    # sorusuna bakilir: bir hedefin kaniti olarak gosterilen dosya, o hedefin
-    # hukmunun yazildigi dosyanin ta kendisiyse olcum kendini kanitliyordur.
+    # ---- PATTERN 6: A TAUTOLOGICAL MEASUREMENT -----------------------
+    # M3 looks at the membership side; here the question is whether THE EVIDENCE FILE
+    # verifies itself: if the file shown as the evidence for a target is the very file
+    # the target's verdict was written into, the measurement is proving itself.
     if siparis is not None:
         for r in siparis:
             kanit = (r.get(u'GEREKCE') or u'') + u' ' + (r.get(u'hukmu_veren_katman') or u'')
@@ -2517,16 +2520,15 @@ def modul_5_desenler(kay, rap):
                          % (r.get(u'hedef'), os.path.basename(kay.nihai_siparis)),
                          u'%s (satir %s)' % (kay.nihai_siparis, r.get('_satir')))
 
-    # ---- DESEN 7: AYNI MOTORU KULLANAN IKI KATMAN = BAGIMSIZ KANIT SANMA
-    # Iki katman ayni hizalama cekirdegini kullaniyorsa BAGIMSIZ IKI KANIT
-    # DEGILDIR: cekirdegin ortak hatasi iki kez oy verir.
+    # ---- PATTERN 7: TAKING TWO LAYERS THAT SHARE AN ENGINE AS INDEPENDENT EVIDENCE
+    # If two layers use the same alignment core they ARE NOT TWO INDEPENDENT PIECES OF
+    # EVIDENCE: a shared bug in the core votes twice.
     #
-    # BAGIMLILIK TAHMIN EDILMEZ, KODDAN OKUNUR. Bir katmanin proje ici olup
-    # olmadigi, o katmanin betiginin engine_gateway.py'yi ice aktarip aktarmadigina
-    # bakilarak belirlenir. Disaridan gelen ucuncu araclar (MFEprimer ikilisi,
-    # NCBI web hizmeti) proje motorunu kullanmaz ve BAGIMSIZDIR - bunlari
-    # "ayni motor" saymak, saglam bir capraz dogrulamayi hata diye gostermek
-    # olurdu.
+    # THE DEPENDENCE IS NOT GUESSED, IT IS READ FROM THE CODE. Whether a layer is inside
+    # the project is determined by looking at whether that layer's script imports
+    # engine_gateway.py. Third party tools from outside (the MFEprimer binary, the NCBI
+    # web service) do not use the project engine and ARE INDEPENDENT. Counting those as
+    # "the same engine" would present a sound cross-validation as an error.
     ici_motor = set()
     for klasor in kay.kod_klasorleri:
         for yol in glob.glob(os.path.join(klasor, u'*.py')):
@@ -2535,7 +2537,7 @@ def modul_5_desenler(kay, rap):
             icerik = metin_oku(yol) or u''
             if re.search(r'^\s*(from\s+\S*\s+)?import\s+.*\bmotor\b', icerik, re.M):
                 ici_motor.add(os.path.splitext(os.path.basename(yol))[0])
-    # Karar tablosunda gecen katman adlarinin hangi betige karsilik geldigi.
+    # Which script each layer name in the decision table corresponds to.
     KATMAN_BETIK = {u'yerel': u'motor', u'kapsam': u'motor', u'okuma': u'okuma_motoru',
                     u'in siliko': u'motor', u'uyelik': u'uyelik_denetimi'}
     DIS_ARAC = (u'mfeprimer', u'mfe', u'ncbi', u'blast', u'kraken', u'bracken')
@@ -2576,10 +2578,10 @@ def modul_5_desenler(kay, rap):
                              u'Ayni motorun iki ciktisi tek kanittir; ortak hatasi '
                              u'iki kez oy verir.')
 
-    # ---- DESEN 8: DEJENERE BAZ KACAGI --------------------------------
-    # Dejenere baz tasiyan primerlerin, dejenere bazi ISLEYEN bir olcumle
-    # degerlendirildigi gosterilmeli. Aksi halde arac dejenere bazi N sayip
-    # sessizce elemis olabilir.
+    # ---- PATTERN 8: A DEGENERATE BASE LEAK ---------------------------
+    # Primers carrying a degenerate base must be shown to have been evaluated by a
+    # measurement that HANDLES degenerate bases. Otherwise the tool may have counted the
+    # degenerate base as an N and silently discarded it.
     DEJ = set(u'RYSWKMBDHVN')
     if ciftler is None:
         rap.atla(M, u'M5-D8', u'dejenere baz kacagi taramasi', u'ciftler.tsv yok',
@@ -2630,17 +2632,17 @@ def modul_5_desenler(kay, rap):
                                                  for r in yon_yok[:8])),
                      kay.konsensus_indeks,
                      u'Ters yonlu bir konsensuste in siliko PCR SESSIZCE 0 urun verir.')
-        # Kanonik olmayan, karisik yonlu klasorun hala okunuyor olmasi risklidir.
+        # Still reading the non-canonical, mixed orientation directory is a risk.
         #
-        # B DUZELTMESI (2026-08-21): bu kontrol eskiden dosyanin TAMAMINDA duz
-        # metin aramasi yapiyordu, yorum ve docstring'ler dahil. Aciklama
-        # satirinda klasor adini ANAN dosyalar da RISKLI isaretleniyordu;
-        # 2026-08-09 kosusunda bes yanlis pozitif uretti (ornegin
-        # steps/generate_primer_candidates.py ve design_group_primers.py, ikisi de
-        # yolu CLI argumani olarak alir, gomulu yol tasimaz).
-        # Ayni kontrolun DOGRU surumu projede zaten vardi:
-        # screening/yon_kod_taramasi.kod_govdesi(). Iki tarayici ayni
-        # soruya farkli cevap veriyordu; artik ikisi de govdeye bakiyor.
+        # THE B FIX (2026-08-21): this check used to do a plain text search over THE WHOLE
+        # file, comments and docstrings included. Files that merely MENTIONED the directory
+        # name in a comment were being marked RISKLI; in the 2026-08-09 run that produced
+        # five false positives (steps/generate_primer_candidates.py and
+        # design_group_primers.py among them, both of which take the path as a CLI argument
+        # and carry no embedded path).
+        # The CORRECT version of the same check already existed in the project:
+        # screening/yon_kod_taramasi.kod_govdesi(). Two scanners were giving different
+        # answers to the same question; both now look at the body.
         for klasor in kay.kod_klasorleri:
             for yol in sorted(glob.glob(os.path.join(klasor, u'*.py'))):
                 if u'.orig' in yol:
@@ -2659,19 +2661,19 @@ def modul_5_desenler(kay, rap):
                              u'sessizce 0 urun verir.')
 
 
-# ===========================================================================
-# MODUL 6 - VERITABANI SAGLIGI
-# ===========================================================================
-# SORU: her veritabani indeksi GERCEKTEN calisiyor mu?
+# =========================================================================
+# MODULE 6 - DATABASE HEALTH
+# =========================================================================
+# THE QUESTION: is every database index REALLY working?
 #
-# NEDEN: SILVA indeksi aylarca SESSIZCE sifir dondu. Bozuk indeksin kaniti hala
-# duruyor (SILVA_138.2_SSURef_NR99.fasta.BOZUK_KANIT.txt): bozuk kurulumda
-# "Sorting 19683 kmers" yaziyordu; 19683 = 3^9, yani dort bazdan biri dusmustu.
-# Saglam indekste kmer_count = 4^9 = 262144 olmali. Bu yuzden k-mer sayisi
-# DOGRUDAN denetlenir.
-# ---------------------------------------------------------------------------
+# WHY: the SILVA index returned zero SILENTLY for months. The evidence of the broken
+# index is still there (SILVA_138.2_SSURef_NR99.fasta.BOZUK_KANIT.txt): the broken
+# build said "Sorting 19683 kmers", and 19683 = 3^9, which means one of the four
+# bases had dropped out. On a sound index kmer_count must be 4^9 = 262144. That is
+# why the k-mer count is checked DIRECTLY.
+# -------------------------------------------------------------------------
 
-KMER_BEKLENEN = 262144      # 4^9 - saglam indeksin k-mer sayisi
+KMER_BEKLENEN = 262144      # 4^9 - the k-mer count of a sound index
 KVALUE_BEKLENEN = 9
 
 
@@ -2741,7 +2743,7 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
                              u'19683 = 3^9 bozuk indeksin imzasidir: bir baz dusmus '
                              u'demektir ve indeks SESSIZCE sifir doner.')
 
-        # --- 2) indeks dosyasi FASTA'dan yeni mi (bayat indeks)
+        # --- 2) is the index file newer than the FASTA (a stale index)
         indeksler = [yol + u'.primerqc.bin', yol + u'.primerqc']
         var = [i for i in indeksler if os.path.exists(i)]
         if not var:
@@ -2763,7 +2765,7 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
                                 time.strftime('%Y-%m-%d', time.localtime(os.path.getmtime(yol)))),
                              i, u'FASTA guncellenmis ama indeks yeniden kurulmamis.')
 
-        # --- 3) kayit sayisi beklenen kadar mi
+        # --- 3) is the record count what was expected
         bekl_n = beklenen_kayit.get(etiket)
         fai = yol + u'.fai'
         gercek_n = None
@@ -2809,9 +2811,9 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
                  u'VTB listesinde kullanilan kaynak yok', kay.kimlik_dogrulama)
 
 
-# Bilinen korunmus bolgeler. Bunlar TASARIM primerlerimiz degildir; genel
-# kabul gormus evrensel primer dizileridir ve ilgili lokusta MUTLAKA bulunmalari
-# beklenir. Bulunmuyorsa dosya/indeks bozuktur.
+# Known conserved regions. These are NOT our DESIGN primers; they are widely
+# accepted universal primer sequences and they MUST be present at the relevant
+# locus. If they are not, the file or the index is broken.
 _SINAMA_DIZILERI = {
     'SSU': [u'GTGCCAGCMGCCGCGGTAA',    # 515F, SSU'da evrensel
             u'GGATTAGATACCC'],          # 787 bolgesi, cok korunmus
@@ -2835,11 +2837,12 @@ def _dizi_desen(d):
 
 
 def _baglanma_sinamasi(K, yol, lokus, tavan=20000):
-    u"""Bilinen korunmus dizilerden en az biri, ilk `tavan` kayitta geciyor mu?
+    """Does at least one of the known conserved sequences occur in the first `tavan` records?
 
-    Donen: bulunan baglanma sayisi, ya da dosya okunamazsa None.
-    Hem duz hem ters tumleyen yonde aranir; tek yon aramak kayitlarin yarisini
-    kacirirdi (kume kume yon degisiyor).
+        Returns: the number of bindings found, or None if the file cannot be read.
+        It searches both forward and reverse complement; searching one direction would
+        miss half the records (the orientation varies from set to set).
+
     """
     desenler = []
     for d in _SINAMA_DIZILERI.get(lokus, _SINAMA_DIZILERI['KARISIK']):
@@ -2861,21 +2864,24 @@ def _baglanma_sinamasi(K, yol, lokus, tavan=20000):
     return bulunan
 
 
-# ===========================================================================
-# MODUL 7 - TAKSON KAPSAMI
-# ===========================================================================
-# SORU: toplanti kararlarinda istenen HER hedef panelde bir karsilik buluyor mu?
-# Bulmuyorsa sebebi hangi kategoride?
+# =========================================================================
+# MODULE 7 - TAXON COVERAGE
+# =========================================================================
+# THE QUESTION: does EVERY target requested in the decisions find a counterpart in
+# the panel? If not, which category does the reason fall into?
 #
-# DORT KATEGORI (bunlar birbirinden farkli sonuclar dogurur):
-#   ORGANIZMA YOK      - istenen takson numunede hic yok. Primer tasarlanamaz;
-#                        bu bir basarisizlik degil, bir bulgudur.
-#   AYRIM YOK          - organizma var ama akrabalarindan ayrilamiyor.
-#   LOKUS YOK          - organizma var, ayrilabilir, ama elimizdeki lokusta
-#                        ayirt edici bolge yok (baska lokus gerekir).
-#   UYE KUMESI AYRISIK - hedef tek bir soy degil; uyeler birbirinden uzak.
-# Kategorisi belirlenemeyen bir bosluk, KAPATILMAMIS bir bosluktur.
-# ---------------------------------------------------------------------------
+# FOUR CATEGORIES (they lead to different conclusions):
+#   ORGANIZMA YOK      - the requested taxon is not in the sample at all. No primer
+#                        can be designed; that is not a failure, it is a finding.
+#   AYRIM YOK          - the organism is there but cannot be separated from its
+#                        relatives.
+#   LOKUS YOK          - the organism is there and can be separated, but there is no
+#                        discriminating region at the locus we have (another locus
+#                        is needed).
+#   UYE KUMESI AYRISIK - the target is not a single lineage; its members are far
+#                        apart from one another.
+# A gap whose category cannot be determined is an UNCLOSED gap.
+# -------------------------------------------------------------------------
 
 _KATEGORI = (
     (u'ORGANIZMA YOK', re.compile(
@@ -2941,9 +2947,9 @@ def modul_7_kapsam(kay, rap):
         rap.atla(M, u'M7-PANEL-YOK', u'panel cift listesi okunabilmeli',
                  u'ciftler.tsv yok', kay.ciftler)
 
-    # Panel hedeflerinin toplanti kararlarina baglanmasi target_taxon_mapping.py
-    # icindeki KARAR sozlugunde tutuluyor. Dosya CALISTIRILMAZ, ast ile
-    # ayristirilir - salt okunur denetci bir betigi kosturmaz.
+    # The link between the panel targets and the meeting decisions is held in the KARAR
+    # dictionary inside target_taxon_mapping.py. The file IS NOT EXECUTED, it is parsed
+    # with ast; a read only auditor does not run a script.
     esleme_karar = {}
     kaynak = metin_oku(kay.takson_esleme)
     if kaynak is None:
@@ -3018,15 +3024,15 @@ def modul_7_kapsam(kay, rap):
            or u'-', kapatilmamis))
 
 
-# ===========================================================================
-# RAPOR YAZIMI
-# ===========================================================================
+# =========================================================================
+# WRITING THE REPORT
+# =========================================================================
 def _tsv_kacis(s):
     return unicode_(s).replace(u'\t', u' ').replace(u'\n', u' ').replace(u'\r', u' ')
 
 
 def raporla(kay, rap, cikti, kosulan, sureler):
-    u"""Tek markdown raporu + makine okunur TSV. Baska hicbir yere yazilmaz."""
+    """One markdown report plus a machine readable TSV. Nothing is written anywhere else."""
     if not os.path.isdir(cikti):
         os.makedirs(cikti)
     damga = time.strftime('%Y-%m-%d_%H%M')
@@ -3175,19 +3181,20 @@ def raporla(kay, rap, cikti, kosulan, sureler):
     return md_yol, tsv_yol, kimlik_yol
 
 
-# ===========================================================================
-# KENDINI SINAMA  -  BILEREK BOZUK GIRDI
-# ===========================================================================
-# "Her zaman gecen bir kontrol aslinda hicbir sey olcmuyordur." Bu bolum her
-# module BILEREK BOZULMUS bir girdi verir ve o modulun hatayi GERCEKTEN
-# yakalayip yakalamadigini gosterir. Yakalamayan modul, yesil gorunse bile
-# ise yaramaz demektir ve sinama BASARISIZ sayilir.
+# =========================================================================
+# THE SELF TEST  -  DELIBERATELY BROKEN INPUT
+# =========================================================================
+# "A check that always passes is probably measuring nothing." This section gives
+# every module a DELIBERATELY BROKEN input and shows whether that module REALLY
+# catches the error. A module that does not catch it is useless however green it
+# looks, and the self test counts as FAILED.
 #
-# Sinama gecici bir klasorde kurulur; gercek proje dosyalarina DOKUNULMAZ.
-# ---------------------------------------------------------------------------
+# The test is set up in a temporary directory; the real project files ARE NOT
+# TOUCHED.
+# -------------------------------------------------------------------------
 
 def _sinama_kok_kur(gecici, kay):
-    u"""Kucuk, tam ve SAGLAM bir sahte proje kokü kur. Sonra uzerine hata ekilir."""
+    """Set up a small, complete and SOUND fake project root. Errors are seeded into it after."""
     os.makedirs(os.path.join(gecici, 'screening'))
     os.makedirs(os.path.join(gecici, 'verification'))
     os.makedirs(os.path.join(gecici, 'REFERANS_DB'))
@@ -3198,7 +3205,7 @@ def _sinama_kok_kur(gecici, kay):
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(icerik)
 
-    # --- panel tanimi: iki hedef, ikisi de saglam
+    # --- the panel definition: two targets, both sound
     d(y('screening', 'ciftler.tsv'),
       u'satir\thedef\tsinif\tF\tR\tuye_taksonlar\tolcu_tipi\tuye_kumesi_durumu\n'
       u'2\tHedef_A\tA\tACGTACGTACGTACGTACGT\tTTGCATGCATGCATGCATGC\t111,222\tayrim\tPANELLE_TUTUYOR\n'
@@ -3210,7 +3217,7 @@ def _sinama_kok_kur(gecici, kay):
     d(y('screening', 'target_taxon_mapping.py'),
       u"KARAR = {\n 2: ('Hedef_A', 'cins', 'Karar 1', 'not'),\n"
       u" 3: ('Hedef_B', 'cins', 'Karar 1', 'not'),\n}\n")
-    # --- karar tablolari: tutarli
+    # --- the decision tables: consistent
     d(y('NIHAI_SIPARIS_LISTESI_2026-08-07.tsv'),
       u'sira\tHUKUM\thedef\turun_bp\tF\tR\thukmu_veren_katman\tGEREKCE\t'
       u'yerel_hedef_disi\tkraken_etiketi\tolculen_kimlik\tdCq\n'
@@ -3224,7 +3231,7 @@ def _sinama_kok_kur(gecici, kay):
       u'sira\thedef\tF\tR\turun_bp\tkraken_etiketi\tolculen_kimlik\tdCq_karsiligi\n'
       u'1\tHedef_A\tACGTACGTACGTACGTACGT\tTTGCATGCATGCATGCATGC\t150\tTaxon A\tTaxon A\t5,00\n'
       u'2\tHedef_B\tGGGTACGTACGTACGTACGT\tCCGCATGCATGCATGCATGC\t120\tTaxon B\tTaxon B\t4,00\n')
-    # R=1 -> log2(1)+4,3 = 4,3 ; taban 3,32 -> gerekli 4,30
+    # R=1 -> log2(1)+4.3 = 4.3 ; floor 3.32 -> required 4.30
     d(y('ESIK_VE_OLCUT_2026-08-08.tsv'),
       u'hedef\tESKI_HUKUM\tYENI_HUKUM\tdCq_olculen\tR\tgerekli_dCq\t'
       u'yeni_kural_durum\tuyelik_gecerli_mi\n'
@@ -3244,7 +3251,7 @@ def _sinama_kok_kur(gecici, kay):
     d(y('konsensus_kanonik', 'INDEKS.tsv'),
       u'kutu\tsinif\tdosya\tkaynak\teski_yon\tcevrildi\tuzunluk\n'
       u'A-1_111\tA\tA-1_111.kanonik.fa\tkons\tSENSE\thayir\t800\n')
-    # --- kimlik motorunu kopyala (VTB listesi M6 icin gerekli)
+    # --- copy the identity engine (the VTB list is needed for M6)
     if os.path.exists(kay.kimlik_dogrulama):
         with io.open(kay.kimlik_dogrulama, encoding='utf-8', errors='replace') as fh:
             d(y('verification', 'identity_verification.py'), fh.read())
@@ -3255,11 +3262,12 @@ def _sinama_kok_kur(gecici, kay):
 
 
 def _sinama_vtb_dosyalari(gecici, kay, kmer_satiri=u'kvalue=9, kmer_count=262144'):
-    u"""VTB listesindeki her dosya icin kucuk ama GERCEKCI bir kopya uret.
+    """Produce a small but REALISTIC copy of every file in the VTB list.
 
-    Baglanma sinamasinin gecmesi icin dosyalarda bilinen korunmus diziler
-    bulunmali; boylece "saglam" durum gercekten saglam gorunur ve ekilen hata
-    ayirt edilebilir.
+        For the binding test to pass, the files have to hold the known conserved
+        sequences; that way the "sound" state really looks sound and the seeded error
+        can be told apart.
+
     """
     K, _h = modul_yukle(kay.kimlik_dogrulama, 'kd_sinama')
     if K is None:
@@ -3286,20 +3294,21 @@ def _sinama_vtb_dosyalari(gecici, kay, kmer_satiri=u'kvalue=9, kmer_count=262144
 
 
 def kendini_sina(kay, cikti):
-    u"""Her module bilerek bozuk girdi ver, hatayi yakalayip yakalamadigini olc.
+    """Give every module a deliberately broken input and measure whether it catches the error.
 
-    Donen: (gecen_modul_sayisi, toplam_modul, ayrinti_listesi)
+        Returns: (modules_passed, total_modules, detail_list)
+
     """
     import shutil
     import tempfile
 
     def kur_m1(g):
-        # HATA: indekste yazan konsensus dosyasi diskte YOK.
+        # THE ERROR: the consensus file named in the index IS NOT on disk.
         os.remove(os.path.join(g, 'konsensus_kanonik', 'A-1_111.kanonik.fa'))
         return u'INDEKS.tsv bir konsensus dosyasi gosteriyor ama dosya silindi'
 
     def kur_m2(g):
-        # HATA: ayni hedefin ileri primeri iki dosyada FARKLI.
+        # THE ERROR: the forward primer of the same target DIFFERS between two files.
         yol = os.path.join(g, 'SIPARIS_LISTESI.tsv')
         s = metin_oku(yol).replace(u'ACGTACGTACGTACGTACGT', u'AAAAACGTACGTACGTACGT', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
@@ -3307,7 +3316,7 @@ def kendini_sina(kay, cikti):
         return u'Hedef_A ileri primeri SIPARIS_LISTESI icinde farkli yazildi'
 
     def kur_m3(g):
-        # HATA: bir ciftin uye kumesi BOSALTILDI ama dCq yerinde duruyor.
+        # THE ERROR: a pair's member set was EMPTIED but its dCq is still there.
         yol = os.path.join(g, 'screening', 'ciftler.tsv')
         s = metin_oku(yol).replace(u'\t111,222\t', u'\t\t', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
@@ -3315,7 +3324,7 @@ def kendini_sina(kay, cikti):
         return u'Hedef_A uye_taksonlar sutunu bosaltildi, dCq korundu'
 
     def kur_m4(g):
-        # HATA: gerekli_dCq elle yanlis degere cekildi (4,30 -> 2,00).
+        # THE ERROR: required_dCq was pulled to a wrong value by hand (4.30 -> 2.00).
         yol = os.path.join(g, 'ESIK_VE_OLCUT_2026-08-08.tsv')
         s = metin_oku(yol).replace(u'\t4,30\tGECER', u'\t2,00\tGECER', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
@@ -3323,14 +3332,14 @@ def kendini_sina(kay, cikti):
         return u'gerekli_dCq 4,30 yerine 2,00 yazildi (log2(R)+4,3 kuralina aykiri)'
 
     def kur_m5(g):
-        # HATA: hedefin KENDI uyesi (111) hedef disi listesine sokuldu.
+        # THE ERROR: the target's OWN member (111) was put on the off-target list.
         yol = os.path.join(g, 'HEDEF_DISI_AYRINTI_2026-08-07.tsv')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'hedef\ttaxid\tnot\nHedef_A\t111\tits own member was counted as off-target\n')
         return u'Hedef_A kendi uyesi olan 111 taxid\'i hedef disi listesine eklendi'
 
     def kur_m6(g):
-        # HATA: bir veritabaninin k-mer sayisi 3^9 = 19683 (bozuk indeks imzasi).
+        # THE ERROR: a database's k-mer count is 3^9 = 19683 (the broken index signature).
         K, _h = modul_yukle(kay.kimlik_dogrulama, 'kd_sinama6')
         ilk = next(d for _e, d, _t, k, _n in K.VTB if k)
         yol = os.path.join(g, 'REFERANS_DB', ilk + u'.log')
@@ -3339,7 +3348,7 @@ def kendini_sina(kay, cikti):
         return u'%s indeks gunlugu kmer_count=19683 (3^9, bozuk indeks imzasi)' % ilk
 
     def kur_m7(g):
-        # HATA: karsilanmayan bir hedefin sebebi hicbir kategoriye girmiyor.
+        # THE ERROR: the reason for an unmet target falls into no category.
         yol = os.path.join(g, 'TOPLANTI_KARARLARI_SON_DURUM.md')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'## Decision 1\n\n| Requested species | Status |\n|---|---|\n| *Taxon C* | **Not achieved.** No reason recorded |\n')
@@ -3520,8 +3529,8 @@ def main():
             ISLER[no]()
             rap.modul_durumu[ad] = dict(durum=u'kostu')
         except KeyboardInterrupt:
-            # Kesinti YUTULMAZ: kontrol noktalari yazildigi icin kaldigi yerden
-            # devam edilebilir, ama kosu YARIM oldugu acikca soylenir.
+            # AN INTERRUPTION IS NOT SWALLOWED: because the checkpoints are written it can be
+            # resumed where it stopped, but the run is said openly to be INCOMPLETE.
             yaz(u'INTERRUPTED (Ctrl+C). The checkpoints were kept, so run it again.')
             rap.modul_durumu[ad] = dict(durum=u'KESILDI')
             rap.atla(ad, u'KESINTI', u'modul bastan sona kosmali',
@@ -3529,8 +3538,8 @@ def main():
             sureler[ad] = time.time() - t0
             break
         except Exception as e:
-            # HATA MASKELENMEZ: modul cokerse bu bir ATLANDI bulgusudur ve
-            # cikis kodunda gorunur.
+            # ERRORS ARE NOT MASKED: if a module crashes that is an ATLANDI finding and it
+            # shows in the exit code.
             iz = traceback.format_exc()
             yaz(u'MODUL COKTU: %s: %s' % (type(e).__name__, e))
             rap.modul_durumu[ad] = dict(durum=u'COKTU')

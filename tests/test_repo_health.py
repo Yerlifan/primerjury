@@ -223,21 +223,37 @@ def kontrol_ciplak_import(bulgu):
     DIS = {'numpy', 'Bio', 'primer3', 'openpyxl', 'pysam', 'matplotlib',
            'mappy', 'requests', 'yaml', 'scipy', 'pandas', 'playwright',
            'setuptools', 'pkg_resources'}
-    desen = re.compile(r'^\s*(?:import|from)\s+([a-z_][a-z0-9_]*)\s',
-                       re.M | re.I)
+    # MEASURED TWICE: a regex over the raw text reads prose as an import.
+    # An English sentence wrapped so that a line begins with "from" ("...different
+    # enough / from one another?") matched `^\s*from\s+(\w+)\s` and was reported as
+    # a bare import of the module "one". The imports are now read from the AST, so
+    # only real import statements are seen and comments and docstrings cannot
+    # produce a finding.
+    PAKETLER_KOK = ('screening', 'verification', 'steps', 'protocol',
+                    'scoring', 'engine', 'tools', 'tests')
     for y in metin_dosyalari():
         if not y.endswith('.py'):
             continue
-        for m in desen.finditer(oku(y)):
-            ad = m.group(1)
-            if ad in var or ad in std or ad in DIS:
+        try:
+            agac = ast.parse(oku(y))
+        except SyntaxError:
+            continue                  # the PARSE check reports this separately
+        for n in ast.walk(agac):
+            if isinstance(n, ast.Import):
+                adlar = [(a.name.split('.')[0], n.lineno) for a in n.names]
+            elif isinstance(n, ast.ImportFrom):
+                if n.level:            # a relative import names no top level module
+                    continue
+                adlar = [((n.module or '').split('.')[0], n.lineno)]
+            else:
                 continue
-            if ad in ('screening', 'verification', 'steps', 'protocol',
-                      'scoring', 'engine', 'tools', 'tests'):
-                continue
-            satir = oku(y)[:m.start()].count(chr(10)) + 1
-            bulgu.append(('IMPORT', '%s:%d' % (rel(y), satir),
-                          'bare import of unknown module: %s' % ad))
+            for ad, satir in adlar:
+                if not ad or ad in var or ad in std or ad in DIS:
+                    continue
+                if ad in PAKETLER_KOK:
+                    continue
+                bulgu.append(('IMPORT', '%s:%d' % (rel(y), satir),
+                              'bare import of unknown module: %s' % ad))
 
 
 # ------------------------------------------------------------ 6 LINE ENDINGS
