@@ -1,24 +1,27 @@
 cff-version: 1.2.0
 title: PrimerJury
 message: >-
-  If you use this software, please cite it. Fill in the author and
-  identifier fields below before publishing the repository.
+  If you use this software, please cite it.
 type: software
 authors:
-  - given-names: ""        # TODO: your given name
-    family-names: ""       # TODO: your family name
-    orcid: ""              # TODO: optional
-repository-code: ""        # TODO: GitHub URL after upload
-license: MIT
+  - given-names: Burak Aslancan
+    family-names: Pak
+    orcid: "https://orcid.org/0000-0002-7793-2215"
+repository-code: ""        # TODO: fill in after the first push
+license: PolyForm-Noncommercial-1.0.0
 abstract: >-
-  qPCR primer design for anaerobic digester microbiomes, with
-  taxonomy-tree-free identity verification requiring agreement between at
-  least two independent reference databases, and four-layer primer
-  specificity validation.
+  qPCR primer design from amplicon sequencing data, built around independent
+  verification. Identity is established without a taxonomy tree, by seed and
+  full alignment across twelve reference databases, and a claim is only
+  accepted when at least two independent databases agree. Primer specificity
+  is then checked by four layers deliberately built on different mechanisms
+  (in-sample in-silico PCR, local databases, MFEprimer, NCBI Primer-BLAST);
+  when the layers disagree the pair is blocked rather than averaged.
 keywords:
   - qPCR
   - primer design
-  - anaerobic digestion
-  - microbiome
+  - amplicon sequencing
   - nanopore
-  - amplicon
+  - microbiome
+  - taxonomic identification
+  - specificity validation
