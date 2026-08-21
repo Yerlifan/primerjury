@@ -230,10 +230,9 @@ def xlsx_yaz(xlsx, satirlar):
         return h
 
     yaz(n, 1, 'HEDEF - TAKSON ESLEMESI', bold=True); n += 1
-    yaz(n, 1, 'Paneldeki 21 hedef, numunedeki 44 taksonun kendisi DEGILDIR. Hedefler toplanti '
-              'kararlarindan ve olcumden turetilmistir.'); n += 2
+    yaz(n, 1, u'The 21 targets in the panel are NOT the same thing as the 44 taxa in the sample. The targets are derived from the meeting decisions and from measurement.'); n += 2
 
-    yaz(n, 1, 'TABLO A - paneldeki 21 hedef, kaynagina gore', bold=True, fill=GRI); n += 1
+    yaz(n, 1, u'TABLE A - the 21 targets in the panel, by where each came from', bold=True, fill=GRI); n += 1
     for j, h in enumerate(['#', 'Hedef', 'Duzey', 'Kaynak', 'Aciklama'], 1):
         yaz(n, j, h, bold=True, fill=GRI)
     n += 1
@@ -269,10 +268,8 @@ def xlsx_yaz(xlsx, satirlar):
         n += 1
     n += 1
 
-    yaz(n, 1, 'TABLO B - numunedeki 44 takson, hangi hedefin kapsaminda', bold=True, fill=GRI); n += 1
-    yaz(n, 1, 'Olcum: duzeltilmis okuma motoru, kutu basina <=3000 okuma, esik >=%10 urun. '
-              'Evrensel/genis bes hedef SINIF SINIRI OLMADAN 99 kutunun hepsinde olculdu '
-              '(panelin kendi olcumleri sinif bazliydi).')
+    yaz(n, 1, u'TABLE B - the 44 taxa in the sample, and which target covers each', bold=True, fill=GRI); n += 1
+    yaz(n, 1, u'Measurement: the corrected read engine, <=3000 reads per bin, threshold >=%10 product. The five universal or broad targets were measured across all 99 bins WITH NO CLASS BOUNDARY (the panel\'s own measurements were class based).')
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 30
     n += 1
@@ -321,7 +318,7 @@ def main():
     md_yaz(a.md, satirlar)
     n = xlsx_yaz(a.xlsx, satirlar)
     print('md:', a.md)
-    print('xlsx sayfasi eklendi, takson:', n)
+    print(u'xlsx sheet added, taxon:', n)
     for r in satirlar:
         if not r['durum'].startswith('kapsanan'):
             print(' ', r['durum'], '|', r['ad'])

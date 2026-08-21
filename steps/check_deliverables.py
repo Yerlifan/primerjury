@@ -131,9 +131,9 @@ def main():
 
     kaliplar = kalip_yukle(a.kons)
     print("=" * 72)
-    print("TESLIM DENETIMI  (bagimsiz yeniden olcum)")
+    print(u'DELIVERY AUDIT  (an independent re-measurement)')
     print("=" * 72)
-    print("denetlenen satir : %d" % len(rows))
+    print(u'rows audited : %d' % len(rows))
     print("kalip dosyasi    : %d" % len(kaliplar))
     print("termodinamik     : Na=%.0f Mg=%.1f dNTP=%.1f DNA=%.0f"
           % (a.mv, a.dv, a.dntp, a.dna))
@@ -306,7 +306,7 @@ def main():
             print("      %-30s %-4s %-20s %s"
                   % (b["hedef"][:29], b["sinif"], b["kural"], b["ayrinti"][:60]))
         if len(liste) > sinir:
-            print("      ... %d kayit daha" % (len(liste) - sinir))
+            print(u'      ... %d more records' % (len(liste) - sinir))
 
     dok("KRITIK bulgu", kritik)
     dok("UYARI (tercih araligi disi, kural ihlali degil)", uyari)
@@ -322,11 +322,10 @@ def main():
 
     print("\n" + "=" * 72)
     if kritik:
-        print("SONUC: %d KRITIK bulgu var. Teslim edilmemeli." % len(kritik))
+        print(u'RESULT: there are %d CRITICAL findings. This should not be delivered.' % len(kritik))
         print("=" * 72)
         sys.exit(1)
-    print("SONUC: %d satirin tamami kurallara uyuyor. "
-          "Tercih araligi disi %d uyari var, bunlar kural ihlali degildir."
+    print(u'RESULT: all %d rows follow the rules. There are %d warnings outside the preferred range, and those are not rule violations.'
           % (len(rows), len(uyari)))
     print("=" * 72)
 

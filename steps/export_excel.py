@@ -120,9 +120,9 @@ def main():
     for r in tsv(kyol):
         kimlik[r["hedef"]] = r
     if kimlik:
-        print("olculen kimlik tablosu okundu: %s (%d hedef)" % (kyol, len(kimlik)))
+        print(u'measured identity table read: %s (%d targets)' % (kyol, len(kimlik)))
     else:
-        print("UYARI: olculen kimlik tablosu yok (%s); kimlik sutunu bos kalacak"
+        print(u'WARNING: there is no measured identity table (%s), so the identity column will stay empty'
               % kyol)
 
     UYUM_METIN = {
@@ -197,7 +197,7 @@ def main():
         else:
             temiz.append(x)
     if alan_disi:
-        print("ALAN KARISIMI nedeniyle teslimden cikarilan cift: %d (%s)"
+        print(u'pairs removed from delivery because of a DOMAIN MIX: %d (%s)'
               % (len(alan_disi),
                  ", ".join(sorted(set("%s/%s" % (z["hedef"], z["sinif"])
                                       for z in alan_disi)))))
@@ -842,7 +842,7 @@ def main():
     wb.save(a.out)
     print("yazildi: %s" % a.out)
     print("sayfa: %s" % ", ".join(wb.sheetnames))
-    print("gecen primer cifti: %d, kapsanan hedef: %d" % (len(gecen), len(kapsanan)))
+    print(u'primer pairs passing: %d, targets covered: %d' % (len(gecen), len(kapsanan)))
 
 
 if __name__ == "__main__":

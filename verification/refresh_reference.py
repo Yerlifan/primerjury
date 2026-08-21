@@ -57,10 +57,7 @@ def main():
         fh.write(u'# HIZLI TEST REFERANS DEGERLERI\n')
         fh.write(u'# Uretim: %s\n' % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'# Kaynak : %s\n' % os.path.relpath(kaynak, kok))
-        fh.write(u'# Her satir, o olcumun yapildigi F/R DIZISINI tasir. Hizli test\n'
-                 u'# once diziyi karsilastirir; cift degismisse eski sayiyla\n'
-                 u'# karsilastirma YAPMAZ, "referans bayat" der ve zinciri\n'
-                 u'# durdurmaz. Sabit sayi ezberlemek bu yuzden birakildi.\n')
+        fh.write(u'# Every row carries the F/R SEQUENCE the measurement was made with. The quick\n# test compares the sequence first; if the pair changed it does NOT\n# compare against the old number, it says "reference stale" and does\n# not stop the chain. That is why hard coded numbers were abandoned.\n')
         fh.write(u'hedef\tF\tR\treferans_x\tkarar\tkapsam\n')
         for r in satirlar:
             ad = (r.get('hedef') or '').strip()
@@ -78,9 +75,9 @@ def main():
             n += 1
 
     print('yazildi: %s' % cikti)
-    print('  %d satir referans olarak kaydedildi' % n)
+    print(u'  %d rows recorded as the reference' % n)
     if atlanan:
-        print('  atlanan (dizi ya da olcum bos): %s' % ', '.join(atlanan))
+        print(u'  skipped (the sequence or the measurement is empty): %s' % ', '.join(atlanan))
     return 0 if n else 1
 
 

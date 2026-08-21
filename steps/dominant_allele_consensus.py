@@ -63,7 +63,7 @@ def fastq_bul(kok, grp, taxid):
         return p
     gz = sorted(glob.glob(os.path.join(d, "*reads[-_]%s.fastq.gz" % taxid)))
     if gz:
-        print("   UYARI: yalnizca sikistirilmis dosya var, desteklenmiyor: %s"
+        print(u'   WARNING: only a compressed file is present and that is not supported: %s'
               % os.path.basename(gz[0]))
     return None
 
@@ -96,7 +96,7 @@ def main():
     if not dosyalar:
         sys.exit("konsensus bulunamadi: %s" % a.kons)
     print(hizalama.durum())
-    print("konsensus dosyasi: %d" % len(dosyalar))
+    print(u'consensus files: %d' % len(dosyalar))
     for f in dosyalar:
         etiket = re.sub(r"_(ref|self)_konsensus\.fasta$", "", os.path.basename(f))
         m = re.match(r"((?:A1|A2|B|F1|F2)-\d+)_(\d+)$", etiket)
@@ -120,11 +120,11 @@ def main():
         cekirdek = ref[bas:son]
         ic_n = cekirdek.count("N")
         if len(cekirdek) - ic_n < 200:
-            print("   ATLANDI, konsensus cok kisa: %s" % etiket)
+            print(u'   SKIPPED, the consensus is too short: %s' % etiket)
             continue
         fq = fastq_bul(a.fastq, grp, taxid)
         if not fq:
-            print("   ATLANDI, fastq yok: %s" % etiket)
+            print(u'   SKIPPED, no fastq: %s' % etiket)
             continue
         try:
             A = hizalama.Hizalayici(seq=cekirdek, preset="map-ont")
