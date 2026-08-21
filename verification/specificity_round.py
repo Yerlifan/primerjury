@@ -31,53 +31,32 @@ THREE STATES, NOT TWO
     can never say RISKLI. Letting a constant vote made 16 of 16 rows come out
     CELISKILI mechanically (fixed 2026-08-06).
 
---- ozgun aciklama ---
-DOGRULAMA TURU - kurtarilan ciftleri siparise gondermeden once uc bagimsiz
-kanit katmaniyla sinar.
-
-NEDEN AYRI BIR SECENEK
-----------------------
-Numunede iyi gorunen bir cift laboratuvarda tutmayabilir: numune 99 kutudan
-ibarettir, dunya degildir. Bir cift numunede hic rakip gormeyebilir ama
-veritabaninda binlerce hedef disi organizmaya baglanabiliyor olabilir.
-
-Bu betik verification turunun (secenek K) esigi gecirdigi HER YENI ya da DEGISMIS
-cift icin iki kanit katmani daha kosar ve ucunu YAN YANA koyar:
-
-  1) NUMUNE OLCUMU        - kurtarma turundan gelir (zaten olculdu)
-  2) YEREL VERITABANI      - REFERANS_DB altindaki kumeler; mevcut kuresel
-                             tarama kodu (screening/global_scan.py)
-                             AYNEN kullanilir, yeniden yazilmaz
-  3) NCBI                  - otomatik (URL API) ya da elle (Primer-BLAST)
-
-UC SONUC AYRILIYORSA satir CELISKILI isaretlenir ve SIPARIS EDILEBILIR SAYILMAZ.
-Celiskiler bu turun EN DEGERLI ciktisidir; raporun en basinda dururlar.
-
-Panel dosyalarina YAZMAZ. Yalniz okur, DOGRULAMA_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# specificity_round.py, kurtarma turunun esigi gecirdigi YENI/DEGISMIS ciftleri,
-# siparise gonderilmeden once dort bagimsiz kanit katmaniyla yan yana sinar.
+# specificity_round.py takes the NEW or CHANGED pairs that passed the threshold in
+# the recovery round and tests them side by side against four independent layers of
+# evidence, before any of them is ordered.
 #
-# GİRDİ  : KURTARMA_SONUC/kurtarma_satirlari.tsv (hangi ciftler dogrulanacak),
-#          TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (primer dizileri),
-#          REFERANS_DB/ altindaki KUMELER listesi, tools/mfeprimer indeksleri,
-#          NCBI Primer-BLAST (ag) ya da elle doldurulmus NCBI_SONUC_SABLONU.tsv.
-# ÇIKTI  : DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv (asil tablo),
-#          DOGRULAMA_SONUC/CELISKILER.md (once bu okunur),
+# INPUT  : KURTARMA_SONUC/kurtarma_satirlari.tsv (which pairs to verify),
+#          TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the primer sequences),
+#          the KUMELER list under REFERANS_DB/, the tools/mfeprimer indexes,
+#          NCBI Primer-BLAST (over the network) or a hand filled
+#          NCBI_SONUC_SABLONU.tsv.
+# OUTPUT : DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv (the main table),
+#          DOGRULAMA_SONUC/CELISKILER.md (read this one first),
 #          DOGRULAMA_SONUC/yerel_vuruslar.tsv, DOGRULAMA_RAPORU.md,
-#          NCBI_PRIMER_BLAST_GIRDI.tsv + NCBI_SONUC_SABLONU.tsv (elle yol),
-#          DOGRULAMA_SONUC/kontrol/ (kume basina kontrol noktalari).
-# ÇAĞRAN : verification/full_chain.py -> D tusu
-#          (bat icinde: wsl -e python3 "verification/specificity_round.py" --kok . ...)
+#          NCBI_PRIMER_BLAST_GIRDI.tsv + NCBI_SONUC_SABLONU.tsv (the manual route),
+#          DOGRULAMA_SONUC/kontrol/ (a checkpoint per set).
+# CALLED BY: verification/full_chain.py -> key D
+#          (python3 verification/specificity_round.py --root . ...)
 #
-# NEDEN DORT KATMAN: numunede iyi gorunen bir cift laboratuvarda tutmayabilir,
-# cunku numune 99 kutudan ibarettir, dunya degildir. Katman 1 ve 2 BIZIM
-# kodumuzdur ve ayni motoru kullanir - o motorda hata varsa ikisi de ayni yonde
-# yanilir. Katman 3 (MFEprimer) disaridan gelen bagimsiz bir aractir, katman 4
-# (NCBI) ise bizim veritabani secimimizden bagimsiz bir kaynaktir. Katmanlar
-# ayrilirsa satir CELISKILI isaretlenir ve SIPARIS EDILEMEZ.
+# WHY FOUR LAYERS: a pair that looks good in the sample may not hold in the lab,
+# because the sample is 99 bins, not the world. Layers 1 and 2 are OUR code and
+# use the same engine, so if that engine has a bug both go wrong in the same
+# direction. Layer 3 (MFEprimer) is an independent tool from outside, and layer 4
+# (NCBI) is a source independent of our own database choices. When the layers
+# disagree the row is marked CONTRADICTORY and CANNOT BE ORDERED.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, argparse, re
 
@@ -85,37 +64,40 @@ VERSIYON = '1.0 (2026-08-03)'
 
 URUN_ALT, URUN_UST = 70, 400          # yalanci urun aranan mesafe araligi
 
-# VURUS_ESIGI = 0  -> TEK bir hedef disi urun bile katmani RISKLI yapar.
+# VURUS_ESIGI = 0  -> even ONE off-target product makes the layer RISKLI.
 #
-# A3 (2026-08-21): bu deger gerekcesiz duruyordu; projedeki her sabit gerekcesini
-# tasidigi icin istisnaydi. Gerekce su ve BILINCLI bir katiliktir:
-#   * Panelin kabul kurali "siparise tek bir yanlis primer gitmesin"dir. Yanlis
-#     siparis hem pahali hem yavastir; bir yalanci urunu kacirmanin bedeli, bir
-#     adayi haksiz yere elemenin bedelinden buyuktur.
-#   * Esik TEK BASINA hukum vermez. RISKLI bir katman yalnizca bir OY'dur;
-#     karar dort katmanin UYUSMASINA baglanir (bkz. birlestir()). Yani sifir
-#     esik, tek basina siparisi engellemez, ikinci bir kaynagin onaylamasini
-#     sart kosar.
-#   * Sayim zaten bir SUZGECTEN gecmis urunlerdir: URUN_ALT..URUN_UST araliginda
-#     ve baglanma kuralini saglayan urunler. Rastgele gurultu buraya girmez.
+# A3 (2026-08-21): this value stood without a reason, which made it the exception
+# in a project where every constant carries one. The reason is this, and the
+# strictness is DELIBERATE:
+#   * The panel's acceptance rule is "not one wrong primer goes to order". A wrong
+#     order is both expensive and slow; the cost of missing a false product is
+#     larger than the cost of unfairly rejecting a candidate.
+#   * The threshold DOES NOT DECIDE ON ITS OWN. A RISKLI layer is only a VOTE; the
+#     decision is tied to the AGREEMENT of the four layers (see birlestir()). So a
+#     zero threshold does not block an order by itself, it requires a second source
+#     to confirm.
+#   * What is being counted has already passed A FILTER: products inside the
+#     URUN_ALT..URUN_UST range that satisfy the binding rule. Random noise does not
+#     get this far.
 #
-# NE ZAMAN DEGISTIRILIR: kesif kipinde (hangi aday hic sansi var sorusu) 1-2'ye
-# cikarilabilir. Siparis oncesi hukumde YUKSELTILMEMELIDIR. Degistirirseniz
-# raporda hangi esikle kosuldugu yazilir - sessizce degismez.
+# WHEN TO CHANGE IT: in exploration mode (the question "which candidate has any
+# chance at all") it can be raised to 1 or 2. It MUST NOT BE RAISED in a pre-order
+# verdict. If you change it, the report says which threshold the run used, so it
+# never changes silently.
 VURUS_ESIGI = int(os.environ.get('PT_VURUS_ESIGI', '0'))
-NCBI_SONUC_TAVANI = 1000               # Primer-BLAST sonuc sayfasinin urun tavani.
-                                       # n==tavan ise deger SAYIM DEGIL. D-3.
-# D-12 (2026-08-07): panelin gercek baglanma sicakligi. Bir hedef disi
-# amplikonun "olusabilir" sayilip sayilmayacagi bununla karsilastirilir.
-# Kaynak: panelin kendi Ta'si (panel karari, 2026-08-07). MFEprimer her amplikon icin
-# KENDI Ta'sini yazar; o deger amplikonun GC'sinden turetilir ve bizim
-# termosiklerimizde kullanacagimiz sicaklik DEGILDIR.
+NCBI_SONUC_TAVANI = 1000               # the product cap of the Primer-BLAST result page.
+                                       # If n == the cap, the value IS NOT A COUNT. D-3.
+# D-12 (2026-08-07): the panel's real annealing temperature. Whether an off-target
+# amplicon counts as "able to form" is judged against this.
+# The source: the panel's own Ta (a panel decision, 2026-08-07). MFEprimer writes
+# ITS OWN Ta for every amplicon; that value is derived from the amplicon's GC and
+# IS NOT the temperature we will use in our thermocyclers.
 TA_PANEL = 57.9
 BOY_TOL = 10                           # beklenen urun boyuna bu kadar yakin vurus
-                                       # HEDEFIN KENDI urunudur (MFEprimer katmani
-                                       # ile ayni tolerans). D-1 duzeltmesi.
+                                       # It is THE TARGET'S OWN product (the same tolerance as the
+                                       # MFEprimer layer). The D-1 correction.
 
-# Taranacak yerel kumeler: (etiket, dosya adi, aciklama)
+# The local sets to scan: (label, file name, description)
 KUMELER = [
     ('SILVA SSU NR99', 'SILVA_138.2_SSURef_NR99.fasta', u'510 495 kayit; SSU (16S/18S)'),
     ('SILVA LSU NR99', 'SILVA_138.2_LSURef_NR99.fasta', u'95 279 kayit; LSU (23S/28S)'),
@@ -129,11 +111,11 @@ KUMELER = [
     ('RefSeq mantar 18S', 'fungi.18SrRNA.fna', u'4 037 kayit'),
     ('RefSeq ref_all2', 'ref_all2.fna', u'65 358 kayit; RefSeq birlesik'),
 ]
-# OZGULLUK taramasinda SILVA Parc BILEREK kullanilmaz: 1,3 milyon kayitlik
-# tekrarsizlastirilmamis kume, yalanci urun riski sorusuna NR99'un uzerine
-# yeni bilgi katmaz ama kosuyu saatlerce uzatir. KIMLIK sorusu farklidir -
-# orada Parc SARTTIR (bkz. identity_verification.py) cunku NR99 nadir cinsleri siler.
-# Istenirse acilir:
+# SILVA Parc is DELIBERATELY not used in the SPECIFICITY scan: a non-dereplicated
+# set of 1.3 million records adds no new information to the false product question
+# over NR99, but it lengthens the run by hours. THE IDENTITY question is different;
+# there Parc is REQUIRED (see identity_verification.py), because NR99 deletes rare
+# genera. It can be turned on if wanted:
 PARC_ISTEGE_BAGLI = ('SILVA LSU Parc', 'SILVA_138.2_LSUParc.fasta',
                      u'1 312 521 kayit; tekrarsizlastirilmamis')
 
@@ -173,31 +155,31 @@ def vir(x, b=2):
         return str(x)
 
 
-# ---------------------------------------------------------------- girdi
+# ---------------------------------------------------------------- input
 _ATLANAN = []
 
 
-# ---------------------------------------------------------------------------
-# Dogrulanacak cift kumesini kurar. Iki tur satir vardir:
-#   YENI CIFT   - kurtarma turu yeni bir F/R buldu; diziler satirin metninden
-#                 dogrudan cikarilir.
-#   DEGISMIS    - primerler ayni, degisen sey OLCU ya da UYELIK; diziler
-#                 P asamasinin panel tablosundan alinir.
-# Primer dizisi hicbir kaynaktan bulunamayan satir SESSIZCE atlanmaz, _ATLANAN
-# listesine yazilir ve kosu basliginda gosterilir.
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# SIPARIS LISTESI KIPI (--siparis) - 2026-08-06
+# -------------------------------------------------------------------------
+# Builds the set of pairs to verify. There are two kinds of row:
+#   A NEW PAIR  - the recovery round found a new F/R; the sequences are taken
+#                 straight out of the row's text.
+#   CHANGED     - the primers are the same and what changed is the MEASUREMENT or
+#                 the MEMBERSHIP; the sequences come from stage P's panel table.
+# A row whose primer sequence cannot be found in any source is NOT skipped
+# silently; it goes into the _ATLANAN list and is shown in the run header.
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# THE ORDER LIST MODE (--siparis) - 2026-08-06
 #
-# NEDEN EKLENDI: bu betik varsayilan olarak yalnizca KURTARILAN ciftleri
-# dogruluyordu (kurtarma_satirlari.tsv). Son kosuda o liste tek satirdi, yani
-# siparise giden 15 ciftin 14'u Primer-BLAST katmanini HIC gormedi. Siparis
-# oncesi sorulan soru "listedeki her cift yalanci urun riski tasiyor mu"
-# oldugu icin girdi kumesi siparis listesi olmalidir.
+# WHY IT WAS ADDED: by default this script only verified the RECOVERED pairs
+# (kurtarma_satirlari.tsv). In the last run that list was a single row, which means
+# 14 of the 15 pairs going to order NEVER SAW the Primer-BLAST layer. Since the
+# question asked before an order is "does every pair on the list carry a false
+# product risk", the input set has to be the order list.
 #
-# Ayni dort katman kosar (numune / yerel DB / MFEprimer / NCBI Primer-BLAST);
-# degisen tek sey HANGI ciftlerin sinandigi.
-# ---------------------------------------------------------------------------
+# The same four layers run (sample / local DB / MFEprimer / NCBI Primer-BLAST); the
+# only thing that changes is WHICH pairs are tested.
+# -------------------------------------------------------------------------
 def siparistekiler(kok, hepsi=False):
     """SIPARIS_LISTESI.tsv -> siparise giden ciftler (KESIN + EVRENSEL).
 
@@ -273,21 +255,23 @@ def kurtarilanlar(kok):
     return out, yol
 
 
-# ---------------------------------------------------------------- katman 1
-# ---------------------------------------------------------------------------
-# KATMAN 2 - yerel veritabani taramasi. Aranan sey: hedef disi bir organizmada
-# iki primerin karsilikli yonelimde ve 70-400 bp mesafede baglandigi bir yer var
-# mi. Mevcut kuresel tarama kodu (screening/global_scan.py) AYNEN
-# kullanilir; ikinci bir tarayici yazmak iki farkli olcut demek olurdu.
+# ---------------------------------------------------------------- layer 1
+# -------------------------------------------------------------------------
+# LAYER 2 - the local database scan. What it looks for: is there a place in an
+# off-target organism where the two primers bind facing one another and 70-400 bp
+# apart. The existing global scan code (screening/global_scan.py) is used AS IT IS;
+# writing a second scanner would mean two different criteria.
 #
-# Bu katmanin olcutu 3' son iki baz sarti TASIMAZ, yani gercek PCR olcutunden
-# DAHA GEVSEKtir: bulunan vuruslarin bir kismi gercekte urun vermeyebilir. Risk
-# taramasinda guvenli taraf budur - gercek riski kacirmaktansa fazladan uyari.
+# This layer's criterion DOES NOT CARRY the last-two-bases-at-the-3'-end condition,
+# so it is LOOSER than the real PCR criterion: some of the hits it finds may give
+# no product in reality. In a risk scan that is the safe side. An extra warning is
+# better than a missed real risk.
 #
-# SILVA Parc BILEREK disaridadir: 1,3 milyon kayitlik tekrarsizlastirilmamis kume
-# yalanci urun sorusuna NR99'un ustune bilgi katmaz ama kosuyu saatlerce uzatir.
-# KIMLIK sorusunda durum tersidir (orada Parc SARTTIR) - iki soru ayni degildir.
-# ---------------------------------------------------------------------------
+# SILVA Parc is DELIBERATELY out: a non-dereplicated set of 1.3 million records adds
+# nothing to the false product question over NR99 and lengthens the run by hours.
+# For THE IDENTITY question it is the other way round (there Parc is REQUIRED); the
+# two questions are not the same.
+# -------------------------------------------------------------------------
 def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
     """MEVCUT kuresel tarama kodunu kullanir. Her kume icin ayri kontrol noktasi."""
     sys.path.insert(0, kok)
@@ -295,28 +279,30 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
 
     adaylar = [dict(ad=c['hedef'], F=c['F'], R=c['R'], lo=URUN_ALT, hi=URUN_UST)
                for c in ciftler]
-    # 2026-08-06 HATA DUZELTMESI (D-1): eskiden yalniz 'urun' (TOPLAM vurus)
-    # tutuluyordu ve o sayi '2_hedef_disi_urun' sutununa yaziliyordu. YANLISTI:
-    # kuresel_tarama HEDEFIN KENDI UYELERINI de sayar (Methanosarcina cifti
-    # SILVA'da 485 Methanosarcina dizisi bulur; bunlar hedef DISI degil, hedefin
-    # TA KENDISI). MFEprimer katmani bu ayrimi zaten 'ayni_boyda' / 'hedef_disi'
-    # olarak yapiyordu; iki katman AYNI soruyu sormadigi icin birlestir() surekli
-    # CELISKILI uretiyordu. Artik yerel katman da beklenen urun boyunu (+-BOY_TOL)
-    # ayri sayar ve hukme yalniz 'hedef_disi' girer.
+    # THE 2026-08-06 BUG FIX (D-1): only 'urun' (the TOTAL hits) used to be kept, and
+    # that number was written into the '2_hedef_disi_urun' column. IT WAS WRONG:
+    # kuresel_tarama also counts THE TARGET'S OWN MEMBERS (the Methanosarcina pair
+    # finds 485 Methanosarcina sequences in SILVA; those are not off-target, they are
+    # THE TARGET ITSELF). The MFEprimer layer already made that distinction as
+    # 'ayni_boyda' / 'hedef_disi'; because the two layers were not asking THE SAME
+    # question, birlestir() kept producing CONTRADICTORY. The local layer now counts
+    # the expected product length (+-BOY_TOL) separately, and only 'hedef_disi' enters
+    # the verdict.
     bek = {c['hedef']: int(c['urun']) for c in ciftler
            if str(c.get('urun', '')).strip().isdigit()}
 
     # ----------------------------------------------------------------- A2
-    # TAKSONOMIK AYRIM (2026-08-21). Bu katman eskiden hedef ICI / hedef DISI
-    # ayrimini yalniz BOYA bakarak yapiyordu; katman 3 (MFEprimer, D-12) ayni
-    # soruyu TAKSONA bakarak cevapliyordu. D-12'de olculdu: "hedef disi" sayilan
-    # 1.605 amplikonun %95,7'si hedef kladin KENDI ICINDENdi, yalniz boyu
-    # farkliydi. Iki katman AYNI soruyu sormadikca birlestir() yapisal olarak
-    # celiski uretir - D-1 yorumunun uyardigi sey tam da budur.
+    # THE TAXONOMIC SEPARATION (2026-08-21). This layer used to make the in-target /
+    # off-target distinction by LENGTH ALONE, while layer 3 (MFEprimer, D-12) answered
+    # the same question by TAXON. Measured under D-12: 95.7% of the 1,605 amplicons
+    # counted as "off-target" were from INSIDE the target clade itself and differed
+    # only in length. Unless two layers ask THE SAME question, birlestir() produces
+    # contradictions structurally, and that is exactly what the D-1 comment warns about.
     #
-    # Siniflandirma TARAMA SIRASINDA yapilir ve SAYILIR; kimlikler saklanmaz.
-    # Olculdu: Bakteri_universal 483.098 vurus veriyor, kimlikleri saklamak
-    # ~100 MB eder. Sayac aday basina sabit bellek tutar ve sayi EKSIKSIZ olur.
+    # The classification happens DURING THE SCAN and is COUNTED; the identities are not
+    # stored. Measured: Bakteri_universal gives 483,098 hits, and storing their
+    # identities comes to ~100 MB. A counter holds constant memory per candidate and
+    # the count stays COMPLETE.
     try:
         sys.path.insert(0, kok)
         from screening import taxonomy as TX
@@ -344,7 +330,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
               for c in ciftler}
     kumeler = list(KUMELER) + ([PARC_ISTEGE_BAGLI] if parc else [])
     if kume_ust:
-        # yalniz en kucuk N kume (hizli sinama icin - kapsam degil CALISMA kaniti)
+        # only the N smallest sets (for a quick test; this is evidence that it RUNS, not coverage)
         var = [(e, d, a) for e, d, a in kumeler
                if os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]
         var.sort(key=lambda t: os.path.getsize(os.path.join(kok, 'REFERANS_DB', t[1])))
@@ -359,11 +345,12 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
                 toplam[h]['kume'][etiket] = 'dosya yok'
                 toplam[h]['atlanan'] += 1
             continue
-        # K-7: pickle'in icinde aday bazli sonuclar var; aday kumesi her kosuda
-        # degisiyor. Imza olmadan ikinci gece KeyError ile oluyordu.
+        # K-7: the pickle holds per-candidate results, and the candidate set changes on
+        # every run. Without a signature the second night died with KeyError.
         import hashlib
-        # 2026-08-10 DIZI MUHRU: imza yalnizca aday ADLARINDAN uretiliyordu,
-        # dizi degisince ayni imza cikip eski tarama geri okunuyordu.
+        # THE 2026-08-10 SEQUENCE SEAL: the signature was built from the candidate NAMES
+        # alone, so when a sequence changed the same signature came out and the old scan
+        # was read back.
         imza = hashlib.md5(
             '|'.join(sorted('%s>%s<%s' % (a['ad'], a.get('F', ''), a.get('R', ''))
                             for a in adaylar)).encode('utf-8')).hexdigest()[:10]
@@ -379,9 +366,9 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
             res = KT.tara(adaylar, db=db, durum_yolu=dy, ilerle=ilerle,
                           siniflandirici=_siniflandirici)
         except TypeError:
-            # Eski imzali kuresel_tarama (siniflandirici parametresi yok).
-            # Bu SESSIZ bir dususe donusmemeli: taksonomik ayrim yapilmadigi
-            # raporda acikca gorunur ('2_klad_ayrimi' sutunu HAYIR olur).
+            # An old-signature kuresel_tarama (no classifier parameter).
+            # This must not turn into a SILENT fallback: that no taxonomic separation was made
+            # is visible in the report (the '2_klad_ayrimi' column reads HAYIR).
             yaz(u'  WARNING: kuresel_tarama has the old signature, so there is NO taxonomic separation')
             res = KT.tara(adaylar, db=db, durum_yolu=dy)
         for h, r in res.items():
@@ -426,73 +413,75 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
 # ---------------------------------------------------------------- katman 2
 PB_URL = 'https://www.ncbi.nlm.nih.gov/tools/primer-blast/primertool.cgi'
 
-# NCBI'ye ardisik gonderim arasi asgari bekleme (sn). Primer-BLAST'a hizli
-# ardisik is gonderimi IP engellemesine yol acar. Eski kod is anahtari
-# ALINAMADIGINDA hic beklemeden bir sonraki cifte geciyordu; 16 cift saniyeler
-# icinde pespese gonderiliyordu. Artik her gonderim arasi beklenir.
+# The minimum wait between consecutive submissions to NCBI (seconds). Submitting
+# jobs to Primer-BLAST in quick succession leads to an IP block. The old code moved
+# straight to the next pair with no wait at all WHEN THE JOB KEY COULD NOT BE
+# OBTAINED, so 16 pairs were submitted back to back within seconds. Now every
+# submission is spaced.
 PB_GONDERIM_ARASI = 10
 
-# ---------------------------------------------------------------------------
-# D-8 HATA DUZELTMESI (2026-08-07) - IKI AYRI HATA, IKISI DE SIPARIS ONCESI
-# NCBI KATMANINI TAMAMEN ISLEVSIZ BIRAKIYORDU.
+# -------------------------------------------------------------------------
+# THE D-8 BUG FIX (2026-08-07) - TWO SEPARATE BUGS, AND EITHER ONE LEFT THE
+# PRE-ORDER NCBI LAYER COMPLETELY USELESS.
 #
-# HATA 1 - "is anahtari alinamadi" (16/16 cift).
-#   Gonderilen deger: ORGANISM='Bacteria (taxid:2) OR Archaea (taxid:2157) OR
-#   Fungi (taxid:4751)'. NCBI'nin HAM yaniti (tahmin degil, okundu):
+# BUG 1 - "the job key could not be obtained" (16/16 pairs).
+#   The value sent: ORGANISM='Bacteria (taxid:2) OR Archaea (taxid:2157) OR
+#   Fungi (taxid:4751)'. NCBI's RAW reply (read, not guessed):
 #     "Exception error: Invalid organism or taxonomy id input: 2 OR Archaea .
 #      Please check the spelling and make sure it is on the suggested organism
 #      list in organism input field"
-#   Yani ORGANISM alani TEK organizma alir; 'OR' sozdizimi YOKTUR. Primer-BLAST
-#   sayfasinin KENDI javascript'i (js/primerInit.js) coklu organizmayi soyle
-#   yapar:
+#   So the ORGANISM field takes ONE organism; there is NO 'OR' syntax. The
+#   Primer-BLAST page's OWN javascript (js/primerInit.js) does multiple organisms
+#   like this:
 #     function AddOneOrgField(e, orgName, orgVal) { ... name=\"ORGANISM\" ... }
 #     function AddOrgField(e) { AddOneOrgField(e,"ORGANISM"); ... }
 #     function GetOrganismURL(){ jQuery(".multiOrg").each(function(){
 #         url += "&ORGANISM=" + $(this).value; }); }
-#   Yeni alanlarin name'i de "ORGANISM"dir - yani coklu organizma TEKRARLANAN
-#   ORGANISM alanidir. Python'da dict ile bu YAPILAMAZ (tek anahtar); ikili
-#   listesi + urlencode(liste) gerekir. Duzeltme budur.
+#   The new fields are named "ORGANISM" too, so multiple organisms means a
+#   REPEATED ORGANISM field. That CANNOT BE DONE with a Python dict (one key per
+#   name); it needs a list of pairs plus urlencode(list). That is the fix.
 #
-# HATA 2 - "BOS SONUC" (onceki kosuda 9/15 cift; organizma kisitindan BAGIMSIZ).
-#   Sonuc sayfasi "No target templates were found in selected database" diyordu
-#   ve hicbir urun listelenmiyordu. Sebep: istekte Primer3 alanlarinin cogunu
-#   HIC gondermiyorduk. Gondermeyince CGI o alanlari BASLATILMAMIS bellekten
-#   okuyor. Ham sonuc sayfasindaki "Search Summary" tablosu bunu acikca
-#   gosteriyordu:
+# BUG 2 - "EMPTY RESULT" (9/15 pairs in the earlier run; INDEPENDENT of the
+#   organism restriction).
+#   The result page said "No target templates were found in selected database" and
+#   listed no product at all. The cause: we were NOT SENDING most of the Primer3
+#   fields. When they are not sent, the CGI reads those fields out of UNINITIALISED
+#   memory. The "Search Summary" table on the raw result page showed it plainly:
 #         Opt Primer size      1086305756
 #         Min Tm               4.94733e-316
 #         Opt Tm               2.18186e+243
-#         Max Tm               0            <-- OLDURUCU OLAN BU
+#         Max Tm               0            <-- THIS IS THE FATAL ONE
 #         Max Tm difference    6.95299e-310
-#   "Max Tm = 0" ile hicbir urun olcute giremez, sayfa bos doner ve bu bizde
-#   "temiz" degil ama "veri yok" olarak isaretlenirdi - yani katman hicbir sey
-#   olcmezdi. Duzeltme: NCBI'nin KENDI formundaki (primer-blast/ sayfasi,
-#   defVal ozniteligi) varsayilan degerlerin TAMAMI gonderilir. Ayni istek
-#   duzeltmeden sonra ayni cift icin 1000 urun satiri dondurdu ve Search
-#   Summary'de Max Tm=75, Min Tm=45, Opt Primer size=20 yaziyordu.
+#   With "Max Tm = 0" no product can meet the criterion, the page comes back empty,
+#   and on our side that was marked not "clean" but "no data", which means the
+#   layer measured nothing at all. The fix: send ALL the default values from NCBI's
+#   OWN form (the primer-blast/ page, the defVal attribute). After the fix the same
+#   request returned 1000 product rows for the same pair, and the Search Summary
+#   read Max Tm=75, Min Tm=45, Opt Primer size=20.
 #
-# NOT: primer boyu/Tm sinirlari kasten GENISLETILMISTIR. Bu turda primer
-# TASARLAMIYORUZ, ELDEKI oligolari sinatiyoruz; Primer3'un tasarim suzgeci
-# bizim sabit oligolarimizi elemesin diye sinirlar genis tutulur.
-# ---------------------------------------------------------------------------
+# NOTE: the primer size and Tm limits are WIDENED DELIBERATELY. In this round we
+# are not DESIGNING primers, we are testing the oligos WE ALREADY HAVE, and the
+# limits are kept wide so that Primer3's design filter does not reject our fixed
+# oligos.
+# -------------------------------------------------------------------------
 PB_VARSAYILAN = {
-    # --- NCBI formunun kendi varsayilanlari (defVal ozniteliginden alindi) ---
+    # --- NCBI's own form defaults (taken from the defVal attribute) ---
     'PRIMER_NUM_RETURN': '10', 'PRIMER_MAX_DIFF_TM': '20',
     'PRIMER_ON_SPLICE_SITE': '0',
     'SPLICE_SITE_OVERLAP_5END': '7', 'SPLICE_SITE_OVERLAP_3END': '4',
     'SPLICE_SITE_OVERLAP_3END_MAX': '8',
     'MIN_INTRON_SIZE': '1000', 'MAX_INTRON_SIZE': '1000000',
     'SEARCHMODE': '0', 'MAX_TARGET_SIZE': '4000',
-    # D-13 (2026-08-07, OLCULDU): 1000 bir SINIR DEGIL, formun VARSAYILANI.
-    # NCBI form kaynagi: <input name="NUM_TARGETS_WITH_PRIMERS" defVal="1000">
-    # ("Max targets to show (for pre-designed primers)"). Istemci tarafinda ust
-    # sinir dogrulamasi YOK. Ayni cift ayni veritabaniyla kosuldugunda:
-    #     gonderilen 3000  -> donen 3000 satir
-    #     gonderilen 8000  -> donen 8000 satir
-    #     gonderilen 20000 -> donen 11999 satir (sinir baglamadi, hedef tukendi)
-    # Ucu birlikte kirpiyor: NUM_TARGETS_WITH_PRIMERS, MAX_TARGET_PER_TEMPLATE,
-    # HITSIZE. Ucu de yukseltildi. Sayfa kesildiginde HICBIR uyari basmadigi
-    # icin eski 1000 "tavan" gibi gorunuyordu.
+    # D-13 (2026-08-07, MEASURED): 1000 is NOT A LIMIT, it is the form's DEFAULT.
+    # The NCBI form source: <input name="NUM_TARGETS_WITH_PRIMERS" defVal="1000">
+    # ("Max targets to show (for pre-designed primers)"). There is NO upper bound
+    # validation on the client side. Running the same pair against the same database:
+    #     sent 3000  -> 3000 rows returned
+    #     sent 8000  -> 8000 rows returned
+    #     sent 20000 -> 11999 rows returned (the limit did not bind, the targets ran out)
+    # Three settings trim together: NUM_TARGETS_WITH_PRIMERS, MAX_TARGET_PER_TEMPLATE
+    # and HITSIZE. All three were raised. Because the page prints NO warning when it
+    # truncates, the old 1000 looked like a "cap".
     'NUM_TARGETS': '20', 'NUM_TARGETS_WITH_PRIMERS': '20000',
     'MAX_TARGET_PER_TEMPLATE': '1000',
     'TOTAL_MISMATCH_IGNORE': '6', 'HITSIZE': '100000', 'EVALUE': '30000',
@@ -517,7 +506,7 @@ PB_VARSAYILAN = {
     'ALLOW_NO_ORGANISM': 'NO', 'UNGAPPED_BLAST': 'on',
     'LOW_COMPLEXITY_FILTER': 'on', 'SHOW_SVIEWER': 'on',
     'SEARCH_SPECIFIC_PRIMER': 'on',
-    # --- sabit oligo SINAMA modu icin kasten genisletilenler ---
+    # --- widened deliberately for FIXED OLIGO TESTING mode ---
     'PRIMER_MIN_SIZE': '15', 'PRIMER_OPT_SIZE': '20', 'PRIMER_MAX_SIZE': '30',
     'PRIMER_MIN_TM': '45.0', 'PRIMER_OPT_TM': '60.0', 'PRIMER_MAX_TM': '75.0',
     # --- bos birakilanlar (formda da bos) ---
@@ -528,12 +517,13 @@ PB_VARSAYILAN = {
 
 
 def pb_ac(url, veri=None, deneme=4, timeout=90, yaz=None):
-    """Primer-BLAST'a istek. Gecici ag/hiz-siniri hatalarinda yeniden dener.
+    """A request to Primer-BLAST. It retries on transient network and rate limit errors.
 
-    NCBI yogunlukta baglantiyi yanit vermeden kapatabilir
-    (RemoteDisconnected) ya da 429/502/503 dondurebilir. Eski kod ilk
-    hatada o cifti BASARISIZ yazip geciyordu; sinamada tam bu oldu.
-    Bekleme her denemede iki katina cikar (10, 20, 40 sn).
+        Under load NCBI can close the connection without answering
+        (RemoteDisconnected) or return 429/502/503. The old code wrote that pair off
+        as FAILED on the first error and moved on; that is exactly what happened in
+        testing. The wait doubles on every attempt (10, 20, 40 s).
+
     """
     import urllib.request, urllib.error
     son = None
@@ -546,7 +536,7 @@ def pb_ac(url, veri=None, deneme=4, timeout=90, yaz=None):
         except Exception as e:
             son = e
             kod = getattr(e, 'code', None)
-            # 400/404 gibi KALICI hatalarda yeniden denemenin anlami yok
+            # On PERMANENT errors such as 400/404 there is no point retrying
             if kod is not None and kod not in (429, 500, 502, 503, 504):
                 raise
             if i == deneme - 1:
@@ -560,12 +550,13 @@ def pb_ac(url, veri=None, deneme=4, timeout=90, yaz=None):
 
 
 def organizma_listesi(s):
-    """'--organizma' dizgesini AYRI organizmalara boler.
+    """Splits the '--organizma' string into SEPARATE organisms.
 
-    Primer-BLAST'in ORGANISM alani TEK organizma alir (bkz. yukaridaki D-8
-    notu). Kullanicinin yazdigi 'A OR B OR C' bicimi kabul edilir ama ISTEGE
-    o bicimde GONDERILMEZ - burada parcalanip TEKRARLANAN ORGANISM alanlarina
-    donusturulur. ';' ve yeni satir da ayirac sayilir.
+        Primer-BLAST's ORGANISM field takes ONE organism (see the D-8 note above).
+        The 'A OR B OR C' form the user writes is accepted, but it is NOT SENT to the
+        request in that form: it is broken up here and turned into REPEATED ORGANISM
+        fields. ';' and a newline count as separators too.
+
     """
     if not s or not s.strip():
         return []
@@ -573,39 +564,42 @@ def organizma_listesi(s):
     return [x.strip() for x in parcalar if x.strip()]
 
 
-# KATMAN 4 - NCBI. blastn -remote KULLANILMAZ: 45 saniyelik surec tavanini asiyor
-# ve is yarida kesiliyordu. Yerine Primer-BLAST'in URL API'si kullanilir: is
-# gonderilir, is anahtari alinir, bitene kadar yoklanir. Her yanit ham olarak
-# diske yazilir ki sayilar tartisildiginda kaynak metne bakilabilsin.
+# LAYER 4 - NCBI. blastn -remote IS NOT USED: it exceeds the 45 second process cap
+# and the job was being cut off half way. The Primer-BLAST URL API is used instead:
+# the job is submitted, a job key is obtained, and it is polled until it finishes.
+# Every reply is written to disk raw, so that when the numbers are argued about the
+# source text can be looked at.
 
-# D-13b (2026-08-07): Primer-BLAST sonuc sayfasinda urunler
-# <div class="prPairTl">BASLIK</div> ... bloklarina bolunur. Butun sayfayi
-# saymak "hedefteki urun" ile "hedef disi urun"u ayni kefeye koyar.
-# 2026-08-10 OLCULDU (canli tek cift denemesi, Proteolitik_Cloacimonas):
-# Hedefin kendi taksonu ENTREZ_QUERY ile dislandiginda bile Primer-BLAST
-# "potentially unintended templates" bolumunu ACMIYOR - sablon dizi
-# bildirilmedigi surece bulunan her urunu "target templates" altina koyuyor.
-# Sayfadaki "Products on potentially unintended templates" yazisi bir BOLUM
-# BASLIGI degil, sayfanin ust kismindaki BAG LISTESIDIR; bos bolum icin de
-# basiliyor. Bu yuzden bolum sayimina dayali hukum YAPISAL OLARAK calismaz.
+# D-13b (2026-08-07): on the Primer-BLAST result page the products are split into
+# <div class="prPairTl">HEADER</div> ... blocks. Counting the whole page puts "a
+# product on the target" and "an off-target product" in the same bucket.
+# MEASURED 2026-08-10 (a live single pair trial, Proteolitik_Cloacimonas):
+# even when the target's own taxon is excluded with ENTREZ_QUERY, Primer-BLAST does
+# NOT OPEN the "potentially unintended templates" section. Unless a template
+# sequence is declared, it puts every product it finds under "target templates".
+# The "Products on potentially unintended templates" text on the page is not a
+# SECTION HEADING but the LINK LIST at the top of the page, and it is printed for
+# an empty section too. So a verdict based on counting sections CANNOT WORK
+# STRUCTURALLY.
 #
-# Olculen sayilar (Proteolitik_Cloacimonas, txid112 dislanmis):
-#   42 urun -> 40'i "uncultured bacterium clone ...", 2'si "Methanogenic
-#   prokaryote enrichment culture ..." -> ADLI takson SIFIR.
-# Adsiz cevre klonlari hicbir taksona bagli olmadigi icin ENTREZ_QUERY onlari
-# eleyemez; ustelik hedeflerimiz zaten adlandirilmamis soylar oldugundan bu
-# klonlarin buyuk kismi HEDEFIN KENDISI olabilir. Etiketten karar verilemez.
+# The measured numbers (Proteolitik_Cloacimonas, txid112 excluded):
+#   42 products -> 40 of them "uncultured bacterium clone ...", 2 "Methanogenic
+#   prokaryote enrichment culture ..." -> ZERO named taxa.
+# Unnamed environmental clones belong to no taxon, so ENTREZ_QUERY cannot exclude
+# them; and since our targets are themselves unnamed lineages, most of those clones
+# could BE THE TARGET. The label cannot decide it.
 #
-# Bu yuzden hukum artik boluma degil BASLIGA bakar: kimligi ADLI olan urun
-# hedef disi kanitidir, adsiz cevre klonu ise "karar veremez" hanesine yazilir
-# ve kimligine dizi karsilastirmasi (katman 2-3) karar verir.
+# So the verdict now looks at THE HEADER rather than the section: a product with a
+# NAMED identity is evidence of an off-target, while an unnamed environmental clone
+# goes into the "cannot decide" column and its identity is settled by sequence
+# comparison (layers 2 and 3).
 _ADSIZ_IZLERI = (u'uncultured', u'unidentified', u'unclassified', u'metagenome',
                  u'environmental sample', u'enrichment culture', u'clone',
                  u'synthetic construct')
 
 
 def _ncbi_urunleri(html):
-    """Sonuc sayfasindaki her urunu (erisim_no, baslik, urun_boyu) olarak dondurur."""
+    """Returns every product on the result page as (accession, header, product_length)."""
     d = re.sub(r'<[^>]+>', ' ', html)
     d = re.sub(r'&nbsp;?', ' ', d)
     d = re.sub(r'\s+', ' ', d)
@@ -616,17 +610,18 @@ def _ncbi_urunleri(html):
 
 
 def _adsiz_mi(baslik):
-    """Kayit ADSIZ mi. TEK TANIM: ncbi_yeniden_siniflandir.adli_mi().
+    """Is the record UNNAMED? A SINGLE DEFINITION: ncbi_yeniden_siniflandir.adli_mi().
 
-    2026-08-10 gece duzeltmesi. Ilk kural yalniz anahtar kelime ariyordu
-    (uncultured, clone, metagenome...) ve su basliklari ADLI sayiyordu:
-        "Bacterium LC2012 16S ribosomal RNA gene"
-        "Archaeon 2022-TM-MRBT1 gene for 16S rRNA"
-        "anaerobic methanogenic archaeon E15-5 16S rRNA gene"
-        "Environmental 16s rDNA sequence from Evry wastewater treatment plant"
-    Hicbirinin cins adi yok. Bu yuzden hedef disi sayilari sisiyordu:
-    Bacteroidales 650 -> 82, Nitrosocosmicus 170 -> 9, Methanothrix cinsi
-    22 -> 1. Yeni kural anahtar kelime aramaz, AD arar.
+        The overnight fix of 2026-08-10. The first rule looked only for keywords
+        (uncultured, clone, metagenome and so on) and counted these headers as NAMED:
+            "Bacterium LC2012 16S ribosomal RNA gene"
+            "Archaeon 2022-TM-MRBT1 gene for 16S rRNA"
+            "anaerobic methanogenic archaeon E15-5 16S rRNA gene"
+            "Environmental 16s rDNA sequence from Evry wastewater treatment plant"
+        None of them has a genus name. That is what inflated the off-target counts:
+        Bacteroidales 650 -> 82, Nitrosocosmicus 170 -> 9, the Methanothrix genus
+        22 -> 1. The new rule does not look for keywords, it looks for A NAME.
+
     """
     try:
         from ncbi_reclassify import adli_mi as _adli
@@ -637,7 +632,7 @@ def _adsiz_mi(baslik):
 
 
 def _ncbi_bolum_say(html, baslik):
-    """Verilen bolum basligindan sonraki 'product length' satirlarini sayar."""
+    """Counts the 'product length' lines following the given section heading."""
     par = re.split(r'<div class="prPairTl">(.*?)</div>', html)
     t = 0
     for i in range(1, len(par), 2):
@@ -649,11 +644,12 @@ def _ncbi_bolum_say(html, baslik):
 
 def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                 haric_taxid=''):
-    """NCBI Primer-BLAST URL API. blastn -remote KULLANILMAZ (45 sn tavanini asar).
+    """The NCBI Primer-BLAST URL API. blastn -remote IS NOT USED (it exceeds the 45 s cap).
 
-    Gonder -> is anahtari al -> bitene kadar yokla. Her yanit ham olarak diske
-    yazilir; agsiz makinede ya da NCBI kuyruklu oldugunda DUZGUNCE vazgecer ve
-    elle yola dusulmesini soyler.
+        Submit -> get a job key -> poll until it finishes. Every reply is written to
+        disk raw; on a machine with no network, or when NCBI is queued, it gives up
+        CLEANLY and says to fall back to the manual route.
+
     """
     import urllib.request, urllib.parse
     ham = os.path.join(cikti, 'ncbi_ham')
@@ -664,27 +660,27 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             % (len(orgs), ' | '.join(orgs)))
     else:
         yaz(u'  NO organism restriction, the whole of nt will be scanned (broad targets are likely to hit the result cap)')
-    # D-13c (2026-08-07, OLCULDU): ciplak 'NOT txidN[Organism]' filtreyi TERSINE
-    # CEVIRIR - o taksonu DISLAMAK yerine YALNIZ onu getirir. Olculmus kanit
-    # (ayni cift, ayni veritabani, cins dagilimi):
-    #   ENTREZ_QUERY bos                      -> Escherichia 45, Bacillus 34,
+    # D-13c (2026-08-07, MEASURED): a bare 'NOT txidN[Organism]' INVERTS the filter. It
+    # returns ONLY that taxon instead of EXCLUDING it. The measured evidence (the same
+    # pair, the same database, the genus distribution):
+    #   ENTREZ_QUERY empty                    -> Escherichia 45, Bacillus 34,
     #                                            Pseudomonas 32, Staphylococcus 25
-    #   'NOT txid1279[Organism]'              -> YALNIZ Staphylococcus 196  (TERS!)
+    #   'NOT txid1279[Organism]'              -> ONLY Staphylococcus 196  (INVERTED!)
     #   'all[filter] NOT txid1279[Organism]'  -> Escherichia 14, Bacillus 13,
-    #                                            ..., Staphylococcus 1  (DOGRU)
-    # Bu yuzden onek KODUN ICINDE zorunlu kilinir; kullanici ciplak NOT yazsa da
-    # duzeltilir.
-    # 2026-08-10 HEDEF BAZLI DISLAMA. Tek ve genel bir taxid butun kosuya
-    # uygulaniyordu; oysa her hedefin KENDI taksonu dislanmali. Genel organizma
-    # kisiti (Bacteria OR Archaea OR Fungi) ile calisildiginda Primer-BLAST
-    # bulunan her urunu "target templates" hanesine koyuyor ve "unintended"
-    # bolumu bos kaliyor - 22 sayfanin 22'sinde olculdu. Cozum: hedefin kendi
-    # taksonunu ENTREZ_QUERY ile disla, o zaman kalan her urun tanimi geregi
-    # hedef disidir. Harita dosyasi: screening/hedef_taxid.tsv
+    #                                            ..., Staphylococcus 1  (CORRECT)
+    # So the prefix is enforced IN THE CODE; even if the user writes a bare NOT, it is
+    # corrected.
+    # 2026-08-10 PER-TARGET EXCLUSION. A single general taxid was being applied to the
+    # whole run, when each target's OWN taxon has to be excluded. Under a general
+    # organism restriction (Bacteria OR Archaea OR Fungi) Primer-BLAST puts every
+    # product it finds under "target templates" and leaves the "unintended" section
+    # empty; measured on 22 of 22 pages. The fix: exclude the target's own taxon with
+    # ENTREZ_QUERY, and then every remaining product is off-target by definition. The
+    # map file: screening/hedef_taxid.tsv
     def _ent_of(_tx):
-        # Birden cok taxid virgulle verilebilir; her biri AYRI bir NOT terimi
-        # olur. Evrensel primerlerde (ornek: Metanojen_universal) hedef tek bir
-        # takson degil, birkac takimin birlesimidir - tek terim yetmez.
+        # Several taxids can be given comma separated; each becomes a SEPARATE NOT term.
+        # For universal primers (Metanojen_universal, for example) the target is not one
+        # taxon but the union of several orders, and one term is not enough.
         _ler = [x.strip().lstrip('txid') for x in str(_tx).split(',') if x.strip()]
         if not _ler:
             return ''
@@ -729,15 +725,15 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             p['ENTREZ_QUERY'] = _ent_c
             if ad in HARITA:
                 yaz(u'  [%s] its own taxon was excluded: txid%s' % (ad[:40], HARITA[ad]))
-        # ORGANISM dict'e KONULMAZ: coklu organizma TEKRARLANAN alan demektir ve
-        # bir dict tek anahtar tutar. Ikili listesi olarak eklenir.
+        # ORGANISM IS NOT PUT IN THE DICT: multiple organisms means a REPEATED field, and a
+        # dict holds one key. It is added as a list of pairs instead.
         alanlar = list(p.items()) + [('ORGANISM', o) for o in orgs]
         try:
             veri = urllib.parse.urlencode(alanlar).encode()
             s = pb_ac(PB_URL, veri, yaz=yaz)
             m = re.search(r'job_key=([A-Za-z0-9_\-]+)', s)
             if not m:
-                # Sebebi TAHMIN ETME - NCBI'nin kendi hata metnini oku ve yaz.
+                # DO NOT GUESS THE REASON - read NCBI's own error text and write it.
                 _h = re.search(r'(?:Exception error|Error)\s*:\s*([^<\n]{5,300})', s, re.I)
                 _sebep = _h.group(1).strip() if _h else u'NCBI hata metni bulunamadi'
                 open(os.path.join(ham, '%s_ANAHTARSIZ.html' % re.sub(r'\W+', '_', ad)),
@@ -753,14 +749,14 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                 time.sleep(bekleme)
                 u2 = PB_URL + '?job_key=' + anahtar
                 son = pb_ac(u2, yaz=yaz)
-                # 2026-08-06 HATA DUZELTMESI - siparis oncesi olcumde yakalandi.
-                # Eski kosul yalniz 'still running' ve 'please wait' ariyordu.
-                # Primer-BLAST'in bekleme sayfasi bu iki dizgeyi ICERMIYOR; sayfa
-                # "Status Running" ve "Time since submission" yaziyor. Sonuc:
-                # dongu ILK yoklamada kiriliyor, henuz KOSAN bir isin sayfasinda
-                # 'product length' bulunamiyor ve satir "hedef disi 0" yani
-                # TEMIZ raporlaniyordu. Siparis oncesi yanlis guvence tam olarak
-                # kacinmamiz gereken sey. Artik BITTIGI POZITIF olarak dogrulanir.
+                # THE 2026-08-06 BUG FIX - caught in the pre-order measurement.
+                # The old condition looked only for 'still running' and 'please wait'.
+                # Primer-BLAST's waiting page CONTAINS NEITHER string; the page says
+                # "Status Running" and "Time since submission". The result: the loop broke
+                # on the FIRST poll, 'product length' could not be found on the page of a job
+                # that was still RUNNING, and the row was reported as "0 off-target", that is,
+                # CLEAN. A false assurance before an order is exactly what we have to avoid.
+                # Completion is now confirmed POSITIVELY.
                 _d = son.lower()
                 _kosuyor = ('still running' in _d or 'please wait' in _d
                             or 'status</th><td>running' in _d.replace(' ', '')
@@ -787,39 +783,40 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                 continue
             n = len(re.findall(r'product length\s*=\s*\d+', son, re.I))
             hedefsiz = bool(re.search(r'no significant|not find any target', son, re.I))
-            # D-13b (2026-08-07, OLCULDU): sayfa urunleri AYRI BOLUMLERE koyar
-            # ('Products on intended targets', '... on potentially unintended
-            # templates', '... on target templates'). Butun sayfayi saymak bu
-            # ayrimi yok eder. 2026-08-07 kosusunun 22 ham HTML'inin 22'sinde
-            # "potentially unintended templates" bolumu BOSTU ve butun urunler
-            # "target templates" altindaydi - yani max(0,n-1) bir HEDEF DISI
-            # SAYIMI DEGIL, nt icinde bulunan TOPLAM urun sayisidir. Ustelik
-            # organizma kisiti Bacteria/Archaea/Fungi oldugu icin hedefin kendi
-            # uyeleri de o listede. Ornek olcum: Proteiniphilum_cinsi 876 urun,
-            # basliklarin 110'u "Proteiniphilum", 760'i adlandirilamayan cevre
-            # klonu ("uncultured bacterium clone ...") - yani NCBI baslıklari
-            # bu sorunun cevabini TASIMIYOR.
+            # D-13b (2026-08-07, MEASURED): the page puts products in SEPARATE
+            # SECTIONS ('Products on intended targets', '... on potentially
+            # unintended templates', '... on target templates'). Counting the whole
+            # page destroys that distinction. In 22 of the 22 raw HTML pages from the
+            # 2026-08-07 run the "potentially unintended templates" section was EMPTY
+            # and every product sat under "target templates", which means max(0,n-1)
+            # IS NOT AN OFF-TARGET COUNT but the TOTAL number of products found in nt.
+            # On top of that, because the organism restriction was Bacteria/Archaea/
+            # Fungi, the target's own members are in that list too. A measured example:
+            # Proteiniphilum_cinsi 876 products, 110 of the headers "Proteiniphilum"
+            # and 760 unnameable environmental clones ("uncultured bacterium clone
+            # ..."), so the NCBI headers DO NOT CARRY the answer to this question.
             n_unint = _ncbi_bolum_say(son, 'potentially unintended templates')
             n_target = _ncbi_bolum_say(son, 'target templates')
-            # D-3 HATA DUZELTMESI (2026-08-06): 'n' iki ayri sekilde sahte deger
-            # uretiyordu ve ikisi de TAMAM sayiliyordu.
-            #   (a) TAVAN: Primer-BLAST sonuc sayfasi en cok 1000 urun listeler.
-            #       n==1000 ise gercek sayi 1000 ya da DAHA FAZLA'dir; max(0,n-1)
-            #       ile 999 yazmak bir SAYIM degil, tavana carpma isaretidir.
-            #       Bu kosuda tam bes hedefte (Metanomikrobiyales, Nitrosocosmicus,
-            #       Microascaceae, Metanojen_universal, Mantar F2) 999 cikti -
-            #       hepsi genis kapsamli hedef, hepsi tavana carpmis.
-            #   (b) BOS: 'Products on ...' bolumleri BOS donen sayfada n==0 olur ve
-            #       max(0, 0-1)==0 yani TEMIZ raporlanirdi. Hicbir urun (hedefteki
-            #       bile) listelenmemis bir sayfa 'temiz' DEGIL, 'veri yok'tur.
-            #       Bu kosuda dokuz hedefte boyle oldu.
+            # THE D-3 BUG FIX (2026-08-06): 'n' was producing a false value in two
+            # separate ways, and both of them counted as FINE.
+            #   (a) THE CAP: the Primer-BLAST result page lists at most 1000 products.
+            #       If n==1000 the real number is 1000 OR MORE, and writing 999 with
+            #       max(0,n-1) is not a COUNT, it is the sign of hitting the cap.
+            #       In that run exactly five targets came out at 999 (Metanomikrobiyales,
+            #       Nitrosocosmicus, Microascaceae, Metanojen_universal, Mantar F2), all
+            #       of them broad targets, all of them at the cap.
+            #   (b) EMPTY: on a page where the 'Products on ...' sections come back EMPTY,
+            #       n==0 and max(0, 0-1)==0, so it was reported CLEAN. A page that lists
+            #       no product at all, not even the intended one, is not 'clean', it is
+            #       'no data'. That happened on nine targets in that run.
             _ur = _ncbi_urunleri(son)
             _adli = [(a, b, L) for a, b, L in _ur if not _adsiz_mi(b)]
             _adsiz = [(a, b, L) for a, b, L in _ur if _adsiz_mi(b)]
             if not hedefsiz and n >= NCBI_SONUC_TAVANI:
-                # Sayfa kirpilmis. Ama kirpilmis listede ADLI bir hedef disi
-                # takson varsa o bir ALT SINIRDIR ve gecerlidir: "en az bu kadar"
-                # denebilir. Sifir cikarsa hicbir sey denemez - liste eksik.
+                # The page is truncated. But if the truncated list holds a NAMED
+                # off-target taxon, that is a LOWER BOUND and it is valid: "at least this
+                # many" can be said. If it comes out zero, nothing can be said; the list is
+                # incomplete.
                 if _kendi_dislandi and _adli:
                     out[ad] = dict(durum='TAMAM (alt sinir)', hedef_disi=len(_adli),
                                    ncbi_toplam_urun=n, ncbi_adsiz_klon=len(_adsiz),
@@ -850,15 +847,17 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                                     u'VERI YOK. Sinanmadi sayilir.')
                 yaz(u'  [%s] NCBI: EMPTY result page - not tested' % ad)
                 continue
-            # ORGANIZMA KISITI YOKSA (--organizma bos) Primer-BLAST hedefin KENDI
-            # uyelerini de "unintended template" altinda listeler; max(0,n-1) ancak
-            # "tam bir tane amaclanan urun var" varsayimiyla dogrudur ve grup/
-            # evrensel primerlerde bu varsayim GECERSIZDIR. Bunu acikca isaretle.
-            # D-13b: hukme giren deger artik "unintended templates" BOLUMUNUN
-            # sayimidir. O bolum bos ve butun urunler "target templates" altinda
-            # ise sayfa bu soruya cevap VERMIYOR (hedef sablonu bildirilmedigi
-            # icin Primer-BLAST hicbir urunu 'unintended' saymiyor). Bu durumda
-            # katman OY VERMEZ - 'temiz' sayilmaz.
+            # IF THERE IS NO ORGANISM RESTRICTION (--organizma empty), Primer-BLAST also
+            # lists the target's OWN members under "unintended template"; max(0,n-1) is
+            # only correct under the assumption that "there is exactly one intended
+            # product", and for group and universal primers that assumption IS INVALID.
+            # Mark this openly.
+            # D-13b: the value that enters the verdict is now the count of the
+            # "unintended templates" SECTION. If that section is empty and every product
+            # sits under "target templates", the page IS NOT ANSWERING this question
+            # (because no target template was declared, Primer-BLAST counts no product as
+            # 'unintended'). In that case the layer DOES NOT VOTE; it does not count as
+            # 'clean'.
             if hedefsiz:
                 out[ad] = dict(durum='TAMAM', hedef_disi=0, ncbi_toplam_urun=0,
                                not_=u'Primer-BLAST hic urun bulamadi.')
@@ -875,8 +874,8 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                              u'ayirt edilemez. SINANMADI.' % n_target)
                     yaz(u'  [%s] NCBI: not in the exclusion map, not tested' % ad)
                     continue
-                # Kendi taksonu dislandi. Bolum basligi acilmasa da geriye kalan
-                # ADLI her urun tanimi geregi hedef disidir.
+                # Its own taxon was excluded. Even if the section heading never opens, every
+                # remaining NAMED product is off-target by definition.
                 out[ad] = dict(
                     durum='TAMAM', hedef_disi=len(_adli),
                     ncbi_toplam_urun=n_target, ncbi_adsiz_klon=len(_adsiz),
@@ -908,7 +907,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
 
 
 def katman2_elle_girdi(ciftler, cikti, yaz, organizma=''):
-    """Kullanicinin Chromium'da Primer-BLAST kosmasi icin hazir girdi + sonuc sablonu."""
+    """A ready input plus a result template, so the user can run Primer-BLAST in a browser."""
     g = os.path.join(cikti, 'NCBI_PRIMER_BLAST_GIRDI.tsv')
     with open(g, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# READY-MADE INPUT for NCBI Primer-BLAST, paste it straight in.\n')
@@ -944,14 +943,16 @@ def katman2_elle_girdi(ciftler, cikti, yaz, organizma=''):
 
 
 def ncbi_yukle(yol, yaz=None):
-    """Elle doldurulan NCBI sablonunu okur.
+    """Reads the hand filled NCBI template.
 
-    A5 DUZELTMESI (2026-08-21): bozuk sayi alani eskiden sessizce 'pass'
-    ediliyordu. Insan sablonu doldururken '~3' ya da '3 (belki)' yazdiginda o
-    hedef icin NCBI katmani HIC olusmuyor, hukum tablosunda 'BILINMIYOR'
-    goruluyordu. Kullanici degeri girdigini saniyor, katman dusmus oluyordu.
-    BOS birakmak ile BOZUK yazmak ayni sey degildir: birincisi 'bakmadim'
-    demektir ve mesrudur, ikincisi bir yazim hatasidir ve gorunmelidir.
+        THE A5 FIX (2026-08-21): a malformed number field used to be silently
+        'passed'. When a person filling in the template wrote '~3' or '3 (maybe)',
+        the NCBI layer for that target was NEVER FORMED and the verdict table showed
+        'BILINMIYOR'. The user thought they had entered a value while the layer had
+        dropped. Leaving a field EMPTY and writing something MALFORMED are not the
+        same thing: the first means "I did not look" and is legitimate, the second is
+        a typing mistake and has to be visible.
+
     """
     out = {}
     bozuk = []
@@ -972,65 +973,72 @@ def ncbi_yukle(yol, yaz=None):
     return out
 
 
-# ---------------------------------------------------------------- birlestir
-# Bir katmanin ham sayisini uc duruma indirger. "BILINMIYOR" AYRI BIR DURUMDUR:
-# olculmemis bir katman "temiz" sayilmaz, yoksa kosulmamis katmanlar sessizce
-# olumlu oy verirdi.
-# C-1 HATA DUZELTMESI (2026-08-07): ozet satiri okunmuyordu.
+# ---------------------------------------------------------------- combine
+# Reduces a layer's raw count to three states. "BILINMIYOR" IS A SEPARATE STATE: an
+# unmeasured layer does not count as "clean", or layers that never ran would quietly
+# vote in favour.
+# THE C-1 BUG FIX (2026-08-07): the summary line was unreadable.
 #   "INCELEME - gevsek olcut vurusu (1 adet); 3' son iki baz sinanmali: 1
 #    KOSULLU ...: 6   RISKLI ...: 3
 #    INCELEME - gevsek olcut vurusu (11 adet)...: 1
 #    INCELEME - gevsek olcut vurusu (22 adet)...: 1 ..."
-# Sebep: sayac HUKUM DIZGESININ TAMAMINI anahtar yapiyordu. Dizgenin icinde
-# vurus SAYISI gectigi icin ("(11 adet)", "(22 adet)") ayni kategorideki her
-# satir AYRI bir anahtar oluyordu; 16 cift 10+ sozde kategoriye dagiliyor ve
-# ozet hicbir sey ozetlemiyordu. Kategori artik SAYIDAN AYRILIR: hukum
-# dizgesinin ilk sozcugu kategoridir, gerisi ayrinti olarak AYRI satirda durur.
+# The cause: the counter was using THE WHOLE VERDICT STRING as its key. Because the
+# hit COUNT appears inside the string ("(11 adet)", "(22 adet)"), every row in the
+# same category became A SEPARATE key; 16 pairs spread across 10+ pseudo-categories
+# and the summary summarised nothing. The category is now SEPARATED FROM THE NUMBER:
+# the first word of the verdict string is the category, and the rest stands on ITS
+# OWN LINE as detail.
 KATEGORILER = ('KESIN', 'KOSULLU', 'INCELEME', 'RISKLI', 'CELISKILI', 'EKSIK')
-# Bu dordu SIFIR olsa da yazilir: "INCELEME gorunmuyor" ile "INCELEME sifir"
-# arasindaki farki okuyan kisi gormeli.
+# These four are written even when they are ZERO: the reader has to see the
+# difference between "no INCELEME appears" and "INCELEME is zero".
 ANA_KATEGORILER = ('KESIN', 'KOSULLU', 'INCELEME', 'RISKLI')
 
 
 def karar_kategorisi(karar):
     """Hukum dizgesinden SAYISIZ kategori anahtarini cikarir."""
     k = (karar or '').strip()
-    # D-16 (2026-08-07): maxsplit KONUMSAL argument olarak verilmisti;
-    # Python 3.13'ten itibaren DeprecationWarning, sonra hata olacak.
+    # D-16 (2026-08-07): maxsplit was passed as a POSITIONAL argument; from
+    # Python 3.13 that is a DeprecationWarning, and later an error.
     ilk = re.split(r'[\s\-:(]', k, maxsplit=1)[0].upper()
     return ilk if ilk in KATEGORILER else (k.split(' ')[0].upper() or 'BILINMIYOR')
 
 
-# --------------------------------------------------------------- D-18 olcut
-# "3' son iki baz TAM eslesiyor mu" ikili sorusunun YERINE gecen olcut.
+# --------------------------------------------------------------- the D-18 measure
+# The measure that REPLACES the yes/no question "do the last two bases at the 3'
+# end match exactly".
 #
-# NEDEN DEGISTI. Eski soru bir olcum degildi: MFEprimer 3.0 ve sonrasi 3'
-# terminal bazda uyumsuzluga tanim geregi izin vermiyor [K16], dolayisiyla
-# 69/69 kayitta terminal bazin uyusmasi algoritmanin zorunlu ciktisiydi.
-# Ustelik ikili soru, literaturde VERIMLI cogaldigi olculmus terminal
-# uyumsuzluklari (ozellikle terminal T) sistematik olarak eliyordu [K13].
+# WHY IT CHANGED. The old question was not a measurement: MFEprimer 3.0 and later
+# do not allow a mismatch at the 3' terminal base by definition [K16], so the
+# terminal base matching in 69/69 records was a forced output of the algorithm.
+# On top of that, the yes/no question systematically discarded terminal mismatches
+# that the literature has MEASURED as amplifying EFFICIENTLY (terminal T in
+# particular) [K13].
 #
-# YENI OLCUT. Uyumsuzluk var/yok degil, BEKLENEN DONGU CEZASI. Bir baglanma
-# bolgesi ancak beklenen cezasi o hedef icin GEREKLI dCq'dan kucukse gercek
-# rakip sayilir. Boylece olcut, bolluga duyarli esikle ayni para biriminde
-# konusur (dongu) ve iki olcut carpistirilabilir.
+# THE NEW MEASURE. Not mismatch present or absent, but THE EXPECTED CYCLE PENALTY.
+# A binding region counts as a real competitor only when its expected penalty is
+# smaller than the dCq REQUIRED for that target. The measure then speaks in the
+# same currency as the abundance sensitive threshold (cycles), and the two can be
+# set against one another.
 #
-# SAYILAR LITERATURDEN, uydurulmadi (LITERATUR_2026-08-07.md, bolum 3):
-#   [K13] Kwok 1990 : 3' terminal A:G, G:A, C:C  -> ~100 kat  = 6,6 dongu
-#                     3' terminal A:A            -> ~20 kat   = 4,3 dongu
-#                     diger 3' terminal uyumsuzluklar VERIMLI cogaldi = 0
-#                     terminal T (T:G, T:C, T:T) en az etkili; bitisik bir
-#                     uyumsuzlukla birlikte bile anlamli amplifikasyon = 0
-#   [K14] Bru 2008  : 3' uctan BIR ONCEKI pozisyon -> ~3 log = 10 dongu
-#                     3' uctan 5., 6., 8. pozisyon -> ~1 log = 3,3 dongu
-#                     geri primerde 3' uctan 4 bazdan uzagi -> etkisiz = 0
-#   [K17] Sozhamannan 2025 : son DORT baz icinde UC uyumsuzluk -> >15 dongu
+# THE NUMBERS COME FROM THE LITERATURE, they are not invented
+# (LITERATUR_2026-08-07.md, section 3):
+#   [K13] Kwok 1990 : 3' terminal A:G, G:A, C:C  -> ~100 fold  = 6.6 cycles
+#                     3' terminal A:A            -> ~20 fold   = 4.3 cycles
+#                     other 3' terminal mismatches amplified EFFICIENTLY = 0
+#                     terminal T (T:G, T:C, T:T) is the least consequential; even
+#                     with an adjacent mismatch, meaningful amplification = 0
+#   [K14] Bru 2008  : the position ONE BEFORE the 3' end -> ~3 log = 10 cycles
+#                     positions 5, 6 and 8 from the 3' end -> ~1 log = 3.3 cycles
+#                     further than 4 bases from the 3' end on the reverse primer
+#                     -> no effect = 0
+#   [K17] Sozhamannan 2025 : THREE mismatches within the last FOUR bases -> >15 cycles
 #
-# OLCULMEYEN ARALIK ACIKCA ISARETLI: 3. ve 4. pozisyon icin dogrudan olcum
-# YOK; Bru'nun 5-8 degeri ALT SINIR olarak kullanilir ve 'tahmin' dondurulur.
+# THE UNMEASURED RANGE IS MARKED OPENLY: there is NO direct measurement for
+# positions 3 and 4; Bru's 5-8 value is used as a LOWER BOUND and 'tahmin' is
+# returned.
 #
-# BU FONKSIYON TEK BASINA HUKUM VERMEZ. Ciktisi bir dongu tahminidir; hukum,
-# gerekli dCq = log2(R) + 4,3 ile karsilastirilarak verilir.
+# THIS FUNCTION DOES NOT DECIDE ON ITS OWN. Its output is a cycle estimate; the
+# verdict comes from comparing it against the required dCq = log2(R) + 4.3.
 
 UC3_TERMINAL_CEZA = {              # (primer_bazi, sablon_bazi) -> dongu
     ('A', 'G'): 6.6, ('G', 'A'): 6.6, ('C', 'C'): 6.6,
@@ -1041,14 +1049,16 @@ UC3_TERMINAL_VARSAYILAN = 0.0      # Kwok: geri kalani verimli cogaldi
 
 
 def uc3_ceza_dongu(uyumsuz_konumlar, terminal_ciftler=None):
-    """3' uca yakin uyumsuzluklarin BEKLENEN dongu cezasini dondurur.
+    """Returns the EXPECTED cycle penalty of mismatches near the 3' end.
 
-    uyumsuz_konumlar : 3' uctan 1 tabanli konum listesi (1 = terminal baz).
-    terminal_ciftler : {konum: (primer_bazi, sablon_bazi)} - yalniz konum 1
-                       icin kullanilir; verilmezse Kwok'un en kotu degeri
-                       (6,6 dongu) alinir, yani TEMKINLI taraf.
+        uyumsuz_konumlar : the list of 1-based positions from the 3' end (1 = the
+                           terminal base).
+        terminal_ciftler : {position: (primer_base, template_base)} - used only for
+                           position 1; if it is not given, Kwok's worst value
+                           (6.6 cycles) is taken, which is the CAUTIOUS side.
 
-    Doner: (ceza_dongu, dayanak_metni, olculdu_mu)
+        Returns: (penalty_cycles, the_basis_text, was_it_measured)
+
     """
     if not uyumsuz_konumlar:
         return (0.0, 'uyumsuzluk yok', True)
@@ -1097,39 +1107,42 @@ def hukum(v):
     return 'TEMIZ' if v <= VURUS_ESIGI else 'RISKLI'
 
 
-# ---------------------------------------------------------------------------
-# DORT KAYNAK YAN YANA. Karar kaynaklarin UYUSMASINA baglanir, bir kaynagin
-# kendi sayisina degil:
-#   dort kaynak da TEMIZ            -> KESIN
-#   uc kaynak TEMIZ, biri eksik     -> KOSULLU
-#   kaynaklar AYRILIYOR             -> CELISKILI (siparis edilemez)
-#   hicbiri sonuc vermedi           -> EKSIK
-# "Sifir veritabani tarandi" ile "hepsi tarandi ve temiz cikti" ayni sey
-# degildir; bu yuzden yerel katmanin degeri ancak gercekten tarama yapildiysa
-# (tarandi > 0) sayisal kabul edilir, aksi halde BILINMIYOR olur.
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# FOUR SOURCES SIDE BY SIDE. The decision is tied to the sources AGREEING, not to
+# any one source's own number:
+#   all four sources CLEAN            -> KESIN
+#   three sources CLEAN, one missing  -> KOSULLU
+#   the sources DISAGREE              -> CELISKILI (cannot be ordered)
+#   none of them gave a result        -> EKSIK
+# "Zero databases were scanned" and "all of them were scanned and came out clean"
+# are not the same thing, which is why the local layer's value is accepted as a
+# number only if a scan really happened (tarandi > 0); otherwise it is BILINMIYOR.
+# -------------------------------------------------------------------------
 def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
-    """UC OLCUM katmani yan yana (yerel DB / MFEprimer / NCBI).
+    """THREE MEASUREMENT layers side by side (local DB / MFEprimer / NCBI).
 
-    numune katmani KASTEN oy vermez: sabit 'TEMIZ' uretir, dolayisiyla bir
-    olcum degil totolojidir (D-2 duzeltmesi, 2026-08-06).
-    Uc katman da TEMIZ ve uctu de olctuyse KESIN; ikisi olctuyse KOSULLU;
-    olcen katmanlar AYRILIYORSA CELISKILI."""
+        The sample layer DELIBERATELY does not vote: it produces a constant 'TEMIZ',
+        so it is a tautology rather than a measurement (the D-2 fix, 2026-08-06).
+        If all three layers are TEMIZ and all three measured, KESIN; if two measured,
+        KOSULLU; if the layers that measured DISAGREE, CELISKILI.
+
+    """
     out = []
     for c in ciftler:
         h = c['hedef']
-        # D-2 HATA DUZELTMESI (2026-08-06): n_ok SABIT 'TEMIZ' idi ve yine de
-        # 'bilinen' oy kumesine katiliyordu. Bu bir totoloji: numune katmani bir
-        # OLCUM degil, cifti bu listeye SOKAN kabul olcutudur - tanimi geregi
-        # asla RISKLI diyemez. Sabit bir TEMIZ oyu, uyusma testine sokuldugunda
-        # herhangi bir katmanin TEK bir RISKLI okumasi set'i {TEMIZ,RISKLI}
-        # yapiyor ve satir ZORUNLU olarak CELISKILI cikiyordu. 16 ciftin 16'si
-        # bu yuzden celiskili isaretlendi. Artik numune SUTUN olarak gosterilir
-        # ama OY VERMEZ.
+        # THE D-2 BUG FIX (2026-08-06): n_ok was a CONSTANT 'TEMIZ' and it still joined
+        # the set of 'known' votes. That is a tautology: the sample layer is not a
+        # MEASUREMENT, it is the acceptance criterion that PUT the pair on this list, and
+        # by definition it can never say RISKLI. A constant TEMIZ vote, once put into the
+        # agreement test, made a SINGLE RISKLI reading from any layer turn the set into
+        # {TEMIZ,RISKLI}, and the row came out NECESSARILY CONTRADICTORY. All 16 of the 16
+        # pairs were marked contradictory for that reason. The sample is now shown AS A
+        # COLUMN but IT DOES NOT VOTE.
         n_ok = 'TEMIZ'
         yv = yerel.get(h, {}) if yerel else {}
-        # O-1: 'sifir veritabani tarandi' ile 'hepsi tarandi, temiz' ayni degildir
-        # D-1: hukme TOPLAM vurus degil, beklenen boydan FARKLI olanlar girer.
+        # O-1: 'zero databases were scanned' is not 'all scanned, clean'
+        # D-1: what enters the verdict is not the TOTAL hits but the ones DIFFERING from
+        # the expected length.
         y_tum = yv.get('urun') if yv.get('tarandi') else None
         if yv.get('tarandi') and not yv.get('boy_ayrimi_yok'):
             y = yv.get('hedef_disi')
@@ -1141,14 +1154,15 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
         nb_ok = hukum(nb_v)
         mv = (mfe or {}).get(h)
         m_ham = mv.get('hedef_disi') if mv else None
-        # D-12 (2026-08-07): HUKME GIREN OLCU DEGISTI. MFEprimer'in "hedef disi"
-        # sayisi SADECE BOYA dayanir; evrensel/grup primerlerinde hedef kladin
-        # kendi uyeleri de farkli boyda amplikon verir. OLCUM (2026-08-07 kosusu,
-        # 1605 amplikon, mfe_hedef_disi_kimlikleri.tsv taksonomi dizgeleri):
-        #   (a) hedef klad ici, boyu farkli  1536  (b) ayni alan/klad disi  24
-        #  (ao) hedef alan ici ama ORGANEL     31  (c) farkli alan          14
-        # Yani ham sayinin %95,7'si zararsiz uzunluk varyanti. Hukme artik
-        # klad_disi = (b)+(c) giriyor; ham sayi sutun olarak KALIYOR.
+        # D-12 (2026-08-07): THE MEASURE ENTERING THE VERDICT CHANGED. MFEprimer's
+        # "off-target" count rests ON LENGTH ALONE; for universal and group primers the
+        # target clade's own members also give amplicons of a different length. THE
+        # MEASUREMENT (the 2026-08-07 run, 1605 amplicons, the taxonomy strings in
+        # mfe_hedef_disi_kimlikleri.tsv):
+        #   (a) inside the target clade, different length  1536  (b) same domain, outside the clade  24
+        #  (ao) inside the target domain but an ORGANELLE     31  (c) a different domain               14
+        # So 95.7% of the raw count is a harmless length variant. What enters the verdict
+        # now is klad_disi = (b)+(c); the raw count STAYS as a column.
         kl = (klad or {}).get(h)
         if kl is not None:
             m_urun = kl['klad_disi']
@@ -1157,7 +1171,7 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
             m_urun = m_ham
             m_klad_ayrimi = False
         m_ok = hukum(m_urun) if mv else 'BILINMIYOR'
-        # D-2: numune BILEREK disarida - sabit deger oy veremez.
+        # D-2: the sample is DELIBERATELY out; a constant value cannot vote.
         kaynaklar = dict(yerel=y_ok, mfeprimer=m_ok, ncbi=nb_ok)
         bilinen = [x for x in kaynaklar.values() if x != 'BILINMIYOR']
         uyusan = 0
@@ -1165,34 +1179,36 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
             en_cok = max(bilinen.count(x) for x in set(bilinen))
             uyusan = en_cok
         n_kaynak = len(bilinen)
-        # D-6 (2026-08-06): 'yerel RISKLI + MFEprimer TEMIZ' bir CELISKI DEGILDIR.
-        # Iki olcut IC ICE gecmis: yerel tarama en cok 5 toplam uyumsuzluga izin
-        # verir ve 3' son iki baz sartini UYGULAMAZ (global_scan.py, need_tail=
-        # False); MFEprimer ise termodinamik olcut kullanir (Tm kesimi 30 C). Yani
-        # yerel olcut MFEprimer olcutunu KAPSAR. Gevsek olcutun sikisindan FAZLA
-        # vurus bulmasi BEKLENEN sonuctur, bir kaynak catismasi degil. Gercek
-        # celiski TERSIDIR: sikinin bulup gevsegin kacirdigi vurus.
-        # Bu satirlar 'temiz' de sayilmaz - siparise girmez, 3' ucu elle sinanir.
-        # D-15 (2026-08-07): yerel katmanin hedef disi sayisi TAKSONOMIK olarak
-        # suzulemiyor. Sebep olculdu: yerel_vuruslar.tsv kume basina en cok 20
-        # vurus tutuyor (raporla(), '_vurus' listesi), yani 4702 farkli-boy
-        # vurusun kimligi diskte YOK. Bakteri_universal icin ornekteki 100
-        # vurusun yalniz 2'si farkli boyda - ornek bu soruya cevap vermiyor.
-        # Bu yuzden yerel katmanin RISKLI oyu, MFEprimer'in KLAD SUZGECINDEN
-        # gecmis sayisi 0 iken tek basina RISKLI uretemez -> INCELEME.
+        # D-6 (2026-08-06): 'local RISKLI plus MFEprimer TEMIZ' IS NOT A CONTRADICTION.
+        # The two criteria are NESTED: the local scan allows up to 5 total mismatches and
+        # DOES NOT APPLY the last-two-bases-at-the-3'-end condition (global_scan.py,
+        # need_tail=False), while MFEprimer uses a thermodynamic criterion (a Tm cut at
+        # 30 C). In other words the local criterion CONTAINS the MFEprimer criterion. The
+        # looser criterion finding MORE hits than the stricter one is the EXPECTED result,
+        # not a conflict between sources. A real contradiction is THE OTHER WAY ROUND: a hit
+        # the strict one finds and the loose one misses.
+        # These rows do not count as 'clean' either; they do not go to order, and the 3' end
+        # is tested by hand.
+        # D-15 (2026-08-07): the local layer's off-target count CANNOT be filtered
+        # TAXONOMICALLY. The reason was measured: yerel_vuruslar.tsv keeps at most 20 hits
+        # per set (raporla(), the '_vurus' list), so the identity of 4702 different-length
+        # hits IS NOT on disk. For Bakteri_universal only 2 of the 100 sampled hits are of a
+        # different length, so the sample does not answer this question.
+        # For that reason the local layer's RISKLI vote cannot produce RISKLI on its own
+        # while MFEprimer's CLADE FILTERED count is 0 -> INCELEME.
         _gevsek_fazla = (y_ok == 'RISKLI' and m_ok == 'TEMIZ'
                          and nb_ok != 'RISKLI')
-        # D-17 (2026-08-07, OLCULDU): ORGANEL urunleri gizlenmesin.
-        # SILVA kloroplast ve mitokondri kayitlarini "Bacteria;..." ile baslatir
-        # (mitokondri Rickettsiales, kloroplast Cyanobacteriota altinda). Alan
-        # sinamasi bu yuzden onlari hedef ICI sayar - Bakteri_universal icin
-        # taksonomik olarak dogru ama PRATIKTE yanlis: bunlar bitki organeli.
-        # OLCUM: Bakteri_universal'in 31 organel amplikonunun 31'inde de F ve R
-        # uyumsuzlugu SIFIR ve FpTm 62,97 / RpTm 61,33 - ikisi de Ta 57,9 C'nin
-        # USTUNDE. Yani 31 urunun 31'i standart kosulda OLUSUR (91-302 bp,
-        # beklenen 130 bp). Konaklar: Azolla, Isoetes, Equisetum, Ipomoea,
-        # Welwitschia, Silene... yani bitki besleme yapilan bir curutucude
-        # gerceklesebilecek urunler. Bu satir 'temiz' sayilamaz.
+        # D-17 (2026-08-07, MEASURED): do not let ORGANELLE products be hidden.
+        # SILVA starts its chloroplast and mitochondrion records with "Bacteria;..."
+        # (mitochondria under Rickettsiales, chloroplasts under Cyanobacteriota). The domain
+        # test therefore counts them as INSIDE the target, which is taxonomically correct
+        # for Bakteri_universal but wrong IN PRACTICE: these are plant organelles.
+        # THE MEASUREMENT: in all 31 of Bakteri_universal's 31 organelle amplicons the F and
+        # R mismatch count is ZERO and FpTm is 62.97 / RpTm 61.33, both ABOVE the Ta of
+        # 57.9 C. So all 31 of the 31 products DO FORM under standard conditions (91-302 bp,
+        # expected 130 bp). The hosts: Azolla, Isoetes, Equisetum, Ipomoea, Welwitschia,
+        # Silene, and so on, that is, products that can occur in a digester fed with plant
+        # material. This row cannot count as 'clean'.
         _organel = (kl or {}).get('ao') or 0
         _organel_notu = ''
         if _organel:
@@ -1200,17 +1216,17 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
                              u'mitokondri) amplikonu; olusabilir %s'
                              % (_organel, (kl or {}).get('olusabilir')))
         if _gevsek_fazla:
-            # D-18 (2026-08-09): "3' son iki baz" HUKUM VERMEZ, artik istenmez.
-            # Gerekce OLCULDU ve iki katmanlidir:
-            #  (a) MFEprimer 3.0 ve sonrasi 3' terminal bazda uyumsuzluga TANIM
-            #      GEREGI izin vermiyor; 69/69 kayitta terminal bazin uyusmasi
-            #      algoritmanin zorunlu ciktisi, verinin bulgusu degil.
-            #  (b) Kutu taramasinda son2 sarti KALDIRILARAK yeniden olculdu
-            #      (2026-08-09, 17 hedef): dCq degisimi en cok 0,41 dongu
-            #      (Proteolitik_Synergistaceae -0,41; Petrimonas +0,36; geri
-            #      kalan 15 hedefte |fark| <= 0,09). Hicbir hukum degismedi.
-            # Yerine istenen: uyumsuzlugun 3' uca UZAKLIGI ve TIPI (bkz.
-            # uc3_ceza_dongu). Ayrinti: ESIK_VE_OLCUT_2026-08-08.md.
+            # D-18 (2026-08-09): "the last two bases at the 3' end" DOES NOT DECIDE and is no
+            # longer required. The reason was MEASURED and it has two layers:
+            #  (a) MFEprimer 3.0 and later do not allow a mismatch at the 3' terminal base BY
+            #      DEFINITION; the terminal base matching in 69/69 records is a forced output of
+            #      the algorithm, not a finding in the data.
+            #  (b) The bin scan was re-measured WITH the last-two condition REMOVED
+            #      (2026-08-09, 17 targets): the dCq change was at most 0.41 cycles
+            #      (Proteolitik_Synergistaceae -0.41; Petrimonas +0.36; on the remaining 15
+            #      targets |difference| <= 0.09). No verdict changed.
+            # What is asked for instead: the DISTANCE of the mismatch from the 3' end, and its
+            # TYPE (see uc3_ceza_dongu). Detail: ESIK_VE_OLCUT_2026-08-08.md.
             karar = ('INCELEME - gevsek olcut vurusu (%s adet); 3\' uca yakin '
                      'uyumsuzlugun KONUMU ve TIPI degerlendirilmeli '
                      '(son iki baz sarti hukum vermez)' % y)
@@ -1220,8 +1236,8 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
             karar = 'EKSIK - hicbir kaynak sonuc vermedi'
         elif set(bilinen) == {'TEMIZ'}:
             if _organel:
-                # D-17: butun katmanlar temiz gorunse bile olusabilir organel
-                # urunu varsa satir temiz DEGILDIR - insan karari gerekir.
+                # D-17: even when every layer looks clean, if there is an organelle
+                # product that can form, the row is NOT clean; a human decision is needed.
                 karar = ('INCELEME - katmanlar temiz ama %d organel amplikonu var'
                          % _organel)
             elif n_kaynak >= 3:
@@ -1239,10 +1255,10 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
                         yerel=y_ok, yerel_urun=y, yerel_tum=y_tum,
                         yerel_ayni_boyda=yv.get('ayni_boyda'),
                         yerel_kume=(yerel.get(h, {}) or {}).get('kume', {}),
-                        # A2: taksonomik sayaclar. HUKME HENUZ GIRMIYOR -
-                        # boy tabanli 'yerel_urun' hukum kaynagi olarak
-                        # duruyor. Ikisi yan yana yazilir ki farki once
-                        # OLCULSUN, sonra karar verilsin.
+                        # A2: the taxonomic counters. THEY DO NOT ENTER THE VERDICT
+                        # YET; the length based 'yerel_urun' still stands as the
+                        # source of the verdict. The two are written side by side so
+                        # that the difference is MEASURED first and decided after.
                         yerel_klad_ayrimi=(yv.get('siniflandirildi') or False),
                         yerel_a=(yv.get('sinif') or {}).get('a'),
                         yerel_ao=(yv.get('sinif') or {}).get('ao'),
@@ -1265,14 +1281,16 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
     return out
 
 
-# ---------------------------------------------------------------------------
-# Dort dosya yazar. CELISKILER.md kasten ayri bir dosyadir: bu turun en degerli
-# ciktisi celiskilerdir ve uzun bir tablonun icinde kaybolmamalidir.
+# -------------------------------------------------------------------------
+# It writes four files. CELISKILER.md is deliberately a separate file: the
+# contradictions are the most valuable output of this round and must not get lost
+# inside a long table.
 #
-# Celiski yoksa yazilan cumle "her sey temiz" DEGILDIR: kosulmamis katmanlar
-# EKSIK sayilir ve tanimi geregi celiski uretmez. Bu ayrim raporun icinde acikca
-# yazilidir, cunku "hic celiski cikmadi" ifadesi yanlis okunmaya cok musait.
-# ---------------------------------------------------------------------------
+# When there is no contradiction, the sentence written is NOT "everything is clean":
+# layers that never ran count as MISSING and by definition produce no contradiction.
+# That distinction is stated openly inside the report, because "no contradiction
+# came up" is very easy to misread.
+# -------------------------------------------------------------------------
 def raporla(cikti, satirlar, yaz):
     t = os.path.join(cikti, 'dogrulama_uc_sutun.tsv')
     with open(t, 'w', encoding='utf-8', newline='') as fh:
@@ -1294,9 +1312,9 @@ def raporla(cikti, satirlar, yaz):
         except Exception:
             pass
         fh.write(u'# THE MEASUREMENT LAYERS SIDE BY SIDE. If they disagree the row is CELISKILI (contradictory) and cannot be ordered.\n')
-        # A3 (2026-08-21): esik artik PT_VURUS_ESIGI ile degistirilebiliyor.
-        # Degistirilebilen bir olcut, hangi degerle kosuldugu YAZILMADIKCA
-        # olcumu okunamaz kilar; bu yuzden ciktinin basinda durur.
+        # A3 (2026-08-21): the threshold can now be changed with PT_VURUS_ESIGI.
+        # A criterion that can be changed makes its own measurement unreadable UNLESS the
+        # value it ran with is written down, so it stands at the top of the output.
         fh.write(u'# VURUS_ESIGI = %d%s  (a layer that sees MORE off-target products than\n#   this votes RISKLI. It does not decide on its own; the verdict\n#   depends on the layers AGREEING)\n'
                  % (VURUS_ESIGI,
                     u'  [CHANGED via PT_VURUS_ESIGI, default is 0]'
@@ -1414,7 +1432,7 @@ def raporla(cikti, satirlar, yaz):
         fh.write(u'\n## How to complete the NCBI layer\n\nIf the automatic route did not run, or failed:\n\n1. Paste the rows from `NCBI_PRIMER_BLAST_GIRDI.tsv` into https://www.ncbi.nlm.nih.gov/tools/primer-blast/\n2. Write the results into `NCBI_SONUC_SABLONU.tsv`.\n3. Run `verification/full_chain.py` -> (D) -> "load manual results".\n')
     yaz(u'  written: %s' % r)
     yaz('')
-    # OZET: dort ana kategori tek satirda, SAYIDAN arindirilmis anahtarlarla.
+    # SUMMARY: the four main categories on one line, with keys stripped OF THE NUMBER.
     sirali = [k for k in KATEGORILER if k in say or k in ANA_KATEGORILER] + \
              sorted(x for x in say if x not in KATEGORILER)
     yaz(u'  SUMMARY   ' + '   '.join('%s: %d' % (k, say.get(k, 0)) for k in sirali)
@@ -1428,11 +1446,13 @@ def raporla(cikti, satirlar, yaz):
 
 # --------------------------------------------------------------- guvenlik agi
 def cikti_denetle(yaz, ad, dosyalar, asgari=1):
-    """Asama bittiginde KENDI ciktisini denetler.
+    """When the stage ends, it audits ITS OWN output.
 
-    Beklenen satir sayisi sifirsa ya da dosya hic yoksa SESSIZCE DEVAM ETMEZ:
-    acik Turkce hata basar ve sifirdan farkli kod dondurur. Gece boyunca bos
-    sonuc uretip sabah "hicbir sey bulunamadi" dememesi icin.
+        If the expected row count is zero, or the file is missing entirely, it DOES
+        NOT CARRY ON SILENTLY: it prints a clear error and returns a non-zero code.
+        This is so that it cannot produce an empty result overnight and then say
+        "nothing was found" in the morning.
+
     """
     sorun = []
     for yol, etiket in dosyalar:
@@ -1465,7 +1485,7 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
 
 
 def girdi_denetle(yaz, ad, dosyalar):
-    """Asama BASLAMADAN once ihtiyac duydugu dosyalar var mi ve dolu mu."""
+    """Before the stage STARTS: do the files it needs exist, and are they non-empty?"""
     eksik = []
     for yol, etiket, uretici in dosyalar:
         if not os.path.exists(yol):
@@ -1486,16 +1506,17 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# ---------------------------------------------------------------------------
-# Bu betikte surucu dogrudan main() icindedir. Katmanlar sirayla kosar:
-#   2) yerel veritabani  ->  3) MFEprimer  ->  4) NCBI  ->  birlestir/raporla
-# (1. katman numune olcumudur ve K turundan hazir gelir, burada kosulmaz.)
+# -------------------------------------------------------------------------
+# In this script the driver sits directly inside main(). The layers run in order:
+#   2) the local database  ->  3) MFEprimer  ->  4) NCBI  ->  combine and report
+# (Layer 1 is the sample measurement and arrives ready from round K; it is not run
+# here.)
 #
-# CIKIS KODLARI: 7 = ARDISIK COKUS - K asamasi hic satir uretmedigi icin girdi
-# bos; bu D'nin hatasi DEGILDIR ve oyle yazilir. 5 = kendi girdisi eksik,
-# 4 = kendi ciktisi bos. Ayrim onemlidir: yanlis asamayi ayiklamaya calismak
-# saatler kaybettirir.
-# ---------------------------------------------------------------------------
+# EXIT CODES: 7 = A CASCADED FAILURE. Stage K produced no rows at all, so the input
+# is empty; this IS NOT D's fault and it says so. 5 = its own input is missing,
+# 4 = its own output is empty. The distinction matters: debugging the wrong stage
+# costs hours.
+# -------------------------------------------------------------------------
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
@@ -1521,11 +1542,11 @@ def main():
                    help='auto: NCBI URL API; manual: write pasteable input; none: skip')
     p.add_argument('--ncbi-load', '--ncbi-yukle', dest='ncbi_yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
     p.add_argument('--organism', '--organizma', dest='organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
-    # D-13c (2026-08-07, OLCULDU): ENTREZ_QUERY ile hedefin KENDI taksonu
-    # dislanabilir; o zaman sayfada kalan her urun tanimi geregi hedef disidir.
-    # DIKKAT - olculmus tuzak: ciplak 'NOT txidN[Organism]' filtreyi TERSINE
-    # CEVIRIR (yalniz o taksonu getirir). Dogru bicim 'all[filter] NOT
-    # txidN[Organism]'. Kod bu oneki kendisi ekler.
+    # D-13c (2026-08-07, MEASURED): the target's OWN taxon can be excluded with
+    # ENTREZ_QUERY, and then every product left on the page is off-target by definition.
+    # CAUTION, a measured trap: a bare 'NOT txidN[Organism]' INVERTS the filter (it
+    # returns only that taxon). The correct form is 'all[filter] NOT txidN[Organism]'.
+    # The code adds that prefix itself.
     p.add_argument('--ncbi-exclude-taxid', '--ncbi-haric-taxid', dest='ncbi_haric_taxid', default='',
                    help="taxid to EXCLUDE at NCBI (example: 2157). Added to ENTREZ_QUERY "
                         "'all[filter] NOT txid<N>[Organism]' olarak gonderilir.")
@@ -1543,11 +1564,11 @@ def main():
                    help='with --order: include CONDITIONAL and NOT-RECOMMENDED rows as well')
     # -----------------------------------------------------------------------
     # --tumu  (2026-08-07)
-    # Kullanici istegi: "hepsini ekstra o veritabaninda da arasin". --siparis
-    # yalniz KESIN+EVRENSEL (16 cift) sinar; KOSULLU ve ONERILMEZ satirlar
-    # (6 cift) SILVA'ya HIC sokulmadi. --tumu bunlari da katar -> 22 cift,
-    # butun indeksli veritabanlarina, SILVA dahil.
-    # --siparis kipi DEGISMEDI; --tumu onun uzerine kurulu ayri bir bayraktir.
+    # A user request: "search all of them in that database as well". --siparis tests
+    # only KESIN and EVRENSEL (16 pairs); the KOSULLU and ONERILMEZ rows (6 pairs) were
+    # NEVER put through SILVA. --tumu adds those too -> 22 pairs, against every indexed
+    # database, SILVA included.
+    # The --siparis mode IS UNCHANGED; --tumu is a separate flag built on top of it.
     # -----------------------------------------------------------------------
     p.add_argument('--all', '--tumu', dest='tumu', action='store_true',
                    help='EVERY pair in the panel (CERTAIN + UNIVERSAL + CONDITIONAL +'
@@ -1561,13 +1582,13 @@ def main():
     a = p.parse_args()
     a = _ing_deger(a)
 
-    # --tumu = --siparis + --siparis-hepsi. Ayri bir yol DEGIL, var olan
-    # yolun genis girdi kumesi. Boylece --siparis kipinin davranisi degismez.
+    # --tumu = --siparis plus --siparis-hepsi. NOT a separate route, the existing route
+    # with a wider input set. That way the behaviour of --siparis mode does not change.
     if getattr(a, 'tumu', False):
         a.siparis = True
         a.siparis_hepsi = True
     if getattr(a, 'ncbi_yalniz_siparis', False) and not getattr(a, 'siparis_hepsi', False):
-        # Kisitlanacak bir sey yok: girdi kumesi zaten yalniz siparis listesi.
+        # There is nothing to restrict: the input set is already the order list alone.
         a.ncbi_yalniz_siparis = False
 
     kok = os.path.abspath(a.kok)
@@ -1605,7 +1626,7 @@ def main():
         yaz(u'  D is sound on its own; it was tested with a hand prepared input.')
         yaz('  ' + '!' * 70)
         g.close()
-        return 7           # 7 = ARDISIK COKUS (girdi bos), 5 = kendi girdisi eksik
+        return 7           # 7 = A CASCADED FAILURE (empty input), 5 = its own input is missing
     if getattr(a, 'siparis', False):
         ciftler, kyol = siparistekiler(kok, hepsi=getattr(a, 'siparis_hepsi', False))
     else:
@@ -1626,11 +1647,11 @@ def main():
         yaz(u'     - %-42s %s' % (c['hedef'][:42], c['tur']))
     n_kume = sum(1 for _, d, _ in KUMELER if os.path.exists(os.path.join(kok, 'REFERANS_DB', d)))
     yaz('')
-    # SURE BEYANI (2026-08-07): eski satir kume basina 240 sn TAHMIN ediyordu ve
-    # "11,7 saat" yaziyordu. OLCUM bunu dogrulamadi: kontrol noktalari hazirken
-    # yerel katman 11 kume x 16 cift icin 26 sn surdu (2026-08-07 olcumu).
-    # Tahmin yerine, HAZIR KONTROL NOKTASI SAYISI bildirilir - okuyan kisi neyin
-    # yeniden kosacagini gorsun.
+    # THE TIME STATEMENT (2026-08-07): the old line ESTIMATED 240 s per set and printed
+    # "11.7 hours". MEASUREMENT did not bear that out: with the checkpoints ready, the
+    # local layer took 26 s for 11 sets x 16 pairs (the 2026-08-07 measurement).
+    # Instead of an estimate, THE NUMBER OF READY CHECKPOINTS is reported, so the reader
+    # can see what will actually be re-run.
     import hashlib as _h
     _imza = _h.md5('|'.join(sorted('%s>%s<%s' % (a['hedef'], a.get('F', ''),
                    a.get('R', '')) for a in ciftler)).encode()).hexdigest()[:10]
@@ -1680,8 +1701,8 @@ def main():
             yaz(u'  ikili: %s' % mfe)
             dur, spec = MK.spec_kos(kok, mfe, ciftler, CIKTI, yaz, KONTROL)
             yapi = MK.yapi_kos(kok, mfe, ciftler, CIKTI, yaz)
-            # D-7: 'hedef disi N' sayisinin yanina KIMLIK dosyasi. Sayi tek
-            # basina yanlis okunuyor (bkz. mfe_katmani.hedef_disi_kimlikleri).
+            # D-7: an IDENTITY file beside the 'off-target N' count. The number on its own
+            # is read wrongly (see mfe_katmani.hedef_disi_kimlikleri).
             try:
                 MK.hedef_disi_kimlikleri(CIKTI, ciftler, yaz)
             except Exception as _e:
@@ -1715,10 +1736,10 @@ def main():
         yaz(u'--- LAYER 4: NCBI MANUAL (writing the input and the template) ---')
         katman2_elle_girdi(_ncbi_ciftler, CIKTI, yaz, a.organizma)
 
-    # D-12: MFEprimer'in ham (boya dayali) sayisi degil, TAKSONOMIK olarak
-    # suzulmus klad_disi hukme girsin. Suzgec mfe_hedef_disi_kimlikleri.tsv'yi
-    # ve screening/hedef_klad.tsv'yi okur; ikisinden biri yoksa BOS doner
-    # ve o zaman ham sayi kullanilir ama rapor bunu acikca yazar.
+    # D-12: what should enter the verdict is not MFEprimer's raw (length based) count
+    # but the TAXONOMICALLY filtered klad_disi. The filter reads
+    # mfe_hedef_disi_kimlikleri.tsv and screening/hedef_klad.tsv; if either is missing
+    # it returns EMPTY, the raw count is used, and the report says so openly.
     klad_sonuc = {}
     try:
         import verification.mfeprimer_layer as _MK2
