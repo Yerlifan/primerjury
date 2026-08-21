@@ -444,12 +444,12 @@ def on_kontrol(kok, ayar, yaz):
     zorunlu_dusen, uyari, sayac = [], [], [0]
     yaz(u'')
     yaz(u'=' * 78)
-    yaz(u'  ON KONTROL - kosmadan once her sart olculuyor')
+    yaz(u'  PRE-CHECK - every precondition is measured before running')
     yaz(u'=' * 78)
 
     def satir(ad, ok, ayrinti, zorunlu=True):
         sayac[0] += 1
-        yaz(u'  [%s] %-46s %s' % (u' OK  ' if ok else u'EKSIK', ad, ayrinti))
+        yaz(u'  [%s] %-46s %s' % (u' OK  ' if ok else u'MISSING', ad, ayrinti))
         if not ok:
             (zorunlu_dusen if zorunlu else uyari).append(u'%s -> %s' % (ad, ayrinti))
 
@@ -597,7 +597,7 @@ def on_kontrol(kok, ayar, yaz):
         os.makedirs(t, exist_ok=True)
         p = os.path.join(t, '_yazma_denemesi.txt')
         with io.open(p, 'w', encoding='utf-8') as fh:
-            fh.write(u'yazma denemesi %s\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
+            fh.write(u'write attempt %s\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
         try:
             os.remove(p)
             ek = u'yazilabiliyor'
@@ -610,24 +610,24 @@ def on_kontrol(kok, ayar, yaz):
 
     yaz(u'')
     if uyari:
-        yaz(u'  UYARILAR (kosu durmaz, ama bilerek gecmis olun):')
+        yaz(u'  WARNINGS (the run continues, but know what you are passing over):')
         for u_ in uyari:
             yaz(u'    ! %s' % u_)
         yaz(u'')
     if zorunlu_dusen:
         yaz(u'=' * 78)
-        yaz(u'  ON KONTROL DUSTU - KOSU BASLAMADI')
+        yaz(u'  PRE-CHECK FAILED - THE RUN DID NOT START')
         yaz(u'=' * 78)
-        yaz(u'  Eksik olan %d madde:' % len(zorunlu_dusen))
+        yaz(u'  %d items are missing:' % len(zorunlu_dusen))
         for z in zorunlu_dusen:
             yaz(u'    * %s' % z)
         yaz(u'')
-        yaz(u'  Hicbir asama kosulmadi. Yarim kosu, sabah okunacak yaniltici bir')
-        yaz(u'  ozet uretirdi; bu yuzden BILEREK durduruldu.')
-        yaz(u'  Eksikleri giderip ayni tusa yeniden basin.')
+        yaz(u'  No stage was run. A half-finished run would produce a misleading')
+        yaz(u'  summary, so it was stopped DELIBERATELY.')
+        yaz(u'  Fix what is missing and run the same command again.')
         yaz(u'=' * 78)
         return False, zorunlu_dusen, uyari
-    yaz(u'  ON KONTROL GECTI - %d madde denetlendi, zorunlu eksik yok.' % sayac[0])
+    yaz(u'  PRE-CHECK PASSED - %d items checked, nothing mandatory is missing.' % sayac[0])
     return True, zorunlu_dusen, uyari
 
 
@@ -797,7 +797,7 @@ def asama_kos(kok, a, ayar, yaz):
         if KESME['var']:
             raise Kesildi()
         if rc != 0:
-            yaz(u'   >>> komut %d/%d SIFIR DISI KOD DONDURDU: %s'
+            yaz(u'   >>> command %d/%d RETURNED A NON-ZERO CODE: %s'
                 % (i, len(komutlar), rc))
             break
     return rc, son_cikti, time.time() - t0
@@ -817,7 +817,7 @@ def kraken_bul(kok):
 def plan_yaz(kok, asamalar, durum, ayar, yaz):
     yaz(u'')
     yaz(u'=' * 78)
-    yaz(u'  PLAN - hangi asama kosacak, hangisi atlanacak')
+    yaz(u'  PLAN - which stages will run and which will be skipped')
     yaz(u'=' * 78)
     toplam, olculmeyen = 0.0, []
     for a in asamalar:
@@ -834,15 +834,15 @@ def plan_yaz(kok, asamalar, durum, ayar, yaz):
         else:
             sure = sn_metni(a['sure_sn'])
             toplam += a['sure_sn']
-        yaz(u'  %-2s %-8s %-12s %s' % (a['kod'], u'ATLANIR' if atla else u'KOSACAK',
+        yaz(u'  %-2s %-8s %-12s %s' % (a['kod'], u'SKIPPED' if atla else u'KOSACAK',
                                        sure, a['ad'][:44]))
         yaz(u'       %s' % sebep)
     yaz(u'')
-    yaz(u'  OLCULMUS asamalarin toplami : %s' % sn_metni(toplam))
+    yaz(u'  Sum of the MEASURED stages    : %s' % sn_metni(toplam))
     if olculmeyen:
-        yaz(u'  SURESI OLCULMEMIS asamalar : %s' % u', '.join(olculmeyen))
-        yaz(u'  Bu asamalara sayi UYDURULMADI. Yukaridaki toplam bu yuzden bir')
-        yaz(u'  ALT SINIRDIR - tahmin degil, eksik olcumdur.')
+        yaz(u'  Stages with NO MEASURED duration : %s' % u', '.join(olculmeyen))
+        yaz(u'  No number was INVENTED for those stages. The total above is therefore')
+        yaz(u'  a LOWER BOUND: not an estimate, but an incomplete measurement.')
     yaz(u'=' * 78)
     return toplam, olculmeyen
 
@@ -960,25 +960,24 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
                if (durum.get(a['kod'], {}).get('durum') or '').startswith('atlandi')]
     with io.open(yol, 'w', encoding='utf-8') as fh:
         w = fh.write
-        w(u'# Sabah özeti — tek tuş koşusu\n\n')
-        w(u'Üretim: %s · sürüm %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), SURUM))
-        w(u'Koşu başladı: %s · geçen süre: %s\n\n'
+        w(u'# Morning summary, one-key run\n\n')
+        w(u'Generated: %s, version %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), SURUM))
+        w(u'Run started: %s, elapsed: %s\n\n'
           % (time.strftime('%Y-%m-%d %H:%M', time.localtime(baslangic)),
              sn_metni(time.time() - baslangic)))
         if kesildi:
-            w(u'> **KOŞU KESİLDİ** (Ctrl+C ya da pencere kapatıldı). Biten aşamalar '
-              u'kayıtlı; aynı tuşa yeniden basmak kaldığı yerden devam ettirir.\n\n')
+            w(u'> **RUN INTERRUPTED** (Ctrl+C or the window was closed). Finished stages are saved; running the same command again resumes where it stopped.\n\n')
 
-        w(u'## 1. Hangi aşama ne oldu\n\n')
-        w(u'| aşama | durum | süre | çıkış kodu | not |\n|---|---|---|---|---|\n')
+        w(u'## 1. What happened at each stage\n\n')
+        w(u'| stage | status | time | exit code | note |\n|---|---|---|---|---|\n')
         for a in asamalar:
             d = durum.get(a['kod'], {})
             w(u'| **%s** %s | %s | %s | %s | %s |\n'
               % (a['kod'], a['ad'][:40],
-                 (u'bitti (UYARILI)' if d.get('uyarili') else d.get('durum', 'koşulmadı')),
+                 (u'done (with warnings)' if d.get('uyarili') else d.get('durum', u'not run')),
                  sn_metni(d.get('sure', 0)) if d.get('sure') else '-',
                  d.get('cikis', '-'), (d.get('sebep') or '').replace('|', '/')[:170]))
-        w(u'\n**Başarılı %d · Düşen %d · Atlanan %d**\n\n'
+        w(u'\n**Succeeded %d | Failed %d | Skipped %d**\n\n'
           % (len(basari), len(dusen), len(atlanan)))
 
         uyarili = [a for a in asamalar if durum.get(a['kod'], {}).get('uyarili')]
@@ -986,15 +985,14 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
             # Danisma asamasi zinciri durdurmaz ama SESSIZ de kalmaz. Bulgu
             # varsa ozetin basinda gorunur; yoksa denetim yapilmis ama kimse
             # bakmamis olur ve kapinin bir anlami kalmaz.
-            w(u'## UYARI — denetim bulgu buldu, zincir yine de koştu\n\n')
+            w(u'## WARNING: the audit found something, but the chain still ran\n\n')
             for a in uyarili:
                 d = durum[a['kod']]
                 w(u'- **%s** %s — %s\n' % (a['kod'], a['ad'], (d.get('sebep') or '')[:200]))
-            w(u'\nAyrıntı: `TEK_TUS_SONUC/DENETIM_RAPORU.md` ve '
-              u'`GECE_BULGULARI.md`.\n\n')
+            w(u'\nDetail: `TEK_TUS_SONUC/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`.\n\n')
 
         if dusen:
-            w(u'## 2. DÜŞEN AŞAMALAR — önce bunlara bakın\n\n')
+            w(u'## 2. FAILED STAGES: look at these first\n\n')
             for a in dusen:
                 d = durum[a['kod']]
                 w(u'### %s — %s\n\n' % (a['kod'], a['ad']))
@@ -1003,14 +1001,13 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
                     w(u'- aşamanın son çıktısı:\n\n```\n%s\n```\n' % d['son_satirlar'])
                 w(u'\n')
         else:
-            w(u'## 2. DÜŞEN AŞAMA YOK\n\nHiçbir aşama sıfır dışı kod döndürmedi ve '
-              u'hiçbir çıktı denetimi düşmedi.\n\n')
+            w(u'## 2. NO STAGE FAILED\n\nNo stage returned a non-zero code and no output check failed.\n\n')
 
-        w(u'## 3. Nihai sipariş tablosu\n\n')
+        w(u'## 3. Final order table\n\n')
         w(siparis_tablosu(kok))
 
-        w(u'\n## 4. kullanici\'ın bakması gereken dosyalar\n\n')
-        w(u'| soru | dosya |\n|---|---|\n')
+        w(u'\n## 4. Files you should look at\n\n')
+        w(u'| question | file |\n|---|---|\n')
         for soru, dosya in (
             (u'Ne sipariş edeyim (NİHAİ)',
              u'`TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` — `durum` ve '
@@ -1032,16 +1029,16 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
             w(u'| %s | %s |\n' % (soru, dosya))
 
         if on_uyari:
-            w(u'\n## 5. Ön kontrol uyarıları\n\n')
+            w(u'\n## 5. Pre-check warnings\n\n')
             for u_ in on_uyari:
                 w(u'- %s\n' % u_)
 
-        w(u'\n---\n\n### Bu koşunun ölçemedikleri\n\n')
+        w(u'\n---\n\n### What this run did not measure\n\n')
         olcumsuz = [a for a in asamalar if a['sure_sn'] is None]
         for a in olcumsuz:
-            w(u'- **%s** süresi ölçülmedi: %s\n' % (a['kod'], a['kaynak']))
+            w(u'- **%s** duration was not measured: %s\n' % (a['kod'], a['kaynak']))
         if not olcumsuz:
-            w(u'- Koşan bütün aşamaların süresi daha önce ölçülmüştü.\n')
+            w(u'- Every stage that ran had been timed before.\n')
         if not ayar.get('karac'):
             w(u'- Kraken karşılaştırması (W, X, Z) KOŞULMADI: %s\n'
               % ayar.get('kraken_sebep', ''))
@@ -1113,7 +1110,7 @@ def main():
 
     def sig(signum, frame):
         KESME['var'] = True
-        yaz(u'\n  !! KESME ISTEGI ALINDI. Durum yaziliyor, temiz cikiliyor...')
+        yaz(u'\n  !! INTERRUPT RECEIVED. Writing state and exiting cleanly...')
     signal.signal(signal.SIGINT, sig)
     try:
         signal.signal(signal.SIGTERM, sig)
@@ -1122,7 +1119,7 @@ def main():
 
     baslangic = time.time()
     yaz(u'=' * 78)
-    yaz(u'  TEK TUS - PrimerJury tam zinciri   surum %s' % SURUM)
+    yaz(u'  ONE KEY - the full PrimerJury chain   version %s' % SURUM)
     yaz(u'  %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     yaz(u'  kok    : %s' % kok)
     yaz(u'  gunluk : %s' % os.path.relpath(gunluk_yolu, kok).replace('\\', '/'))
@@ -1134,8 +1131,7 @@ def main():
 
     on_uyari = []
     if A.on_kontrol_atla:
-        yaz(u'\n  !! ON KONTROL ATLANDI (--on-kontrol-atla). Eksik bir sey varsa '
-            u'kosunun ORTASINDA cikacak.')
+        yaz(u'\n  !! PRE-CHECK SKIPPED (--skip-precheck). If something is missing it will surface MID-RUN.')
     else:
         ok, _dusen, on_uyari = on_kontrol(kok, ayar, yaz)
         if not ok:
@@ -1148,7 +1144,7 @@ def main():
            if (not A.yalniz or a['kod'] in A.yalniz.upper())
            and a['kod'] not in A.atla.upper()]
     if not sec:
-        yaz(u'  Secilen asama yok (--yalniz / --atla). Hicbir sey kosulmadi.')
+        yaz(u'  No stage selected (--only / --skip). Nothing was run.')
         gunluk.close()
         return 0
 
@@ -1161,7 +1157,7 @@ def main():
             yaz(u'  UYARI: durum.json okunamadi (%s) - kontrol noktalari yok sayildi.' % e)
             durum = {}
     if A.yeniden:
-        yaz(u'  --yeniden verildi: butun kontrol noktalari yok sayiliyor.')
+        yaz(u'  --rerun was given: every checkpoint is being ignored.')
         durum = {}
 
     plan_yaz(kok, sec, durum, ayar, yaz)
@@ -1185,7 +1181,7 @@ def main():
 
     kesildi = False
     kalan = [a for a in sec if not a['_atla']]
-    yaz(u'\n  Kosacak asama sayisi: %d' % len(kalan))
+    yaz(u'\n  Stages to run: %d' % len(kalan))
     sirano = 0
     for a in sec:
         kod = a['kod']
@@ -1196,8 +1192,8 @@ def main():
             yeni_atla, yeni_sebep = kontrol_noktasi_gecerli(kok, a, durum)
             if yeni_atla != a['_atla']:
                 yaz(u'\n   NOT: %s icin karar PLANDAN FARKLI cikti (%s -> %s). '
-                    u'Sebep: %s' % (kod, u'ATLANIR' if a['_atla'] else u'KOSACAK',
-                                    u'ATLANIR' if yeni_atla else u'KOSACAK', yeni_sebep))
+                    u'Sebep: %s' % (kod, u'SKIPPED' if a['_atla'] else u'KOSACAK',
+                                    u'SKIPPED' if yeni_atla else u'KOSACAK', yeni_sebep))
             a['_atla'], a['_sebep'] = yeni_atla, yeni_sebep
 
         if a['_atla']:
@@ -1230,11 +1226,11 @@ def main():
         kalan_sn = sum(x['sure_sn'] or 0 for x in kalan[sirano - 1:])
         yaz(u'\n' + u'-' * 78)
         yaz(u'>> [%d/%d] %s  %s' % (sirano, len(kalan), kod, a['ad']))
-        yaz(u'   basladi : %s' % time.strftime('%H:%M:%S'))
-        yaz(u'   olculmus sure: %s   (kaynak: %s)'
-            % (sn_metni(a['sure_sn']) if a['sure_sn'] is not None else u'OLCULMEDI',
+        yaz(u'   started : %s' % time.strftime('%H:%M:%S'))
+        yaz(u'   measured time: %s   (source: %s)'
+            % (sn_metni(a['sure_sn']) if a['sure_sn'] is not None else u'NOT MEASURED',
                a['kaynak']))
-        yaz(u'   kalan asama: %d | kalan olculmus sure: %s'
+        yaz(u'   stages left: %d | measured time left: %s'
             % (len(kalan) - sirano, sn_metni(kalan_sn)))
         yaz(u'-' * 78)
 
@@ -1296,17 +1292,17 @@ def main():
                  if durum.get(a['kod'], {}).get('durum') == 'atlandi (bagimli)']
     yaz(u'\n' + u'=' * 78)
     if kesildi:
-        yaz(u'  KOSU KESILDI. Biten asamalar kayitli; ayni tusa yeniden basin.')
+        yaz(u'  RUN INTERRUPTED. Finished stages are saved; run the same command again.')
     elif dusen:
         yaz(u'  KOSU BITTI ama %d ASAMA DUSTU: %s' % (len(dusen), u', '.join(dusen)))
         if atlanan_b:
             yaz(u'  Bagimli oldugu icin kosulmayanlar: %s' % u', '.join(atlanan_b))
     else:
         yaz(u'  BUTUN ASAMALAR BASARILI.')
-    yaz(u'  Toplam gecen sure: %s' % sn_metni(time.time() - baslangic))
+    yaz(u'  Total elapsed time: %s' % sn_metni(time.time() - baslangic))
     yaz(u'')
-    yaz(u'  SABAH BUNA BAKIN : %s' % os.path.relpath(ozet, kok).replace('\\', '/'))
-    yaz(u'  Ham cikti        : %s' % os.path.relpath(gunluk_yolu, kok).replace('\\', '/'))
+    yaz(u'  LOOK AT THIS FIRST : %s' % os.path.relpath(ozet, kok).replace('\\', '/'))
+    yaz(u'  Raw output         : %s' % os.path.relpath(gunluk_yolu, kok).replace('\\', '/'))
     yaz(u'=' * 78)
     gunluk.flush()
     gunluk.close()

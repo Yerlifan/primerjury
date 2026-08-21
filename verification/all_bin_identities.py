@@ -402,11 +402,11 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
         print(s, flush=True); g.write(s + '\n'); g.flush()
 
     yaz('=' * 78)
-    yaz(u'  G - TUM KUTU KIMLIKLERININ BAGIMSIZ DOGRULANMASI')
+    yaz(u'  G - INDEPENDENT VERIFICATION OF EVERY BIN IDENTITY')
     yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
-    yaz(u'  `I` 12 IDDIAYI sinar - supheli olanlari. Bu asama panel olcumlerine')
-    yaz(u'  giren BUTUN kutulari sinar: sessiz cogunlugu.')
+    yaz(u'  `I` tests 12 CLAIMS, the suspicious ones. This stage tests EVERY bin')
+    yaz(u'  that enters the panel measurements: the silent majority.')
     yaz('')
 
     katilan, atlanan, uye, rakip, kons, H = kutu_envanteri(kok, K)
@@ -425,28 +425,26 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
         (var if os.path.exists(p) else yok).append((e, d, t))
     lokus_tab = {e: t for e, _d, t, _k, _n in K.VTB}
 
-    yaz(u'  kutu (olcume katilan)     : %d' % len(katilan))
-    yaz(u'  kutu (ATLANAN)            : %d  %s'
+    yaz(u'  bins (included in the measurement) : %d' % len(katilan))
+    yaz(u'  bins (SKIPPED)                     : %d  %s'
         % (len(atlanan), ', '.join(k for k, _s in atlanan) or '-'))
-    yaz(u'  VERITABANI                : %d sorgulanacak, %d dosyasi yok'
+    yaz(u'  DATABASES                          : %d to query, %d files missing'
         % (len(var), len(yok)))
     for e, d, _t in var:
-        yaz(u'      [SORULACAK] %-20s %-32s beklenen %s kayit'
+        yaz(u'      [WILL ASK]  %-20s %-32s expected %s records'
             % (e, d, '{:,}'.format(BEKLENEN_KAYIT.get(e, 0)).replace(',', ' ') or '?'))
     for e, d, _t in yok:
-        yaz(u'      [DOSYA YOK] %-20s %-32s REFERANS_DB altinda bulunamadi' % (e, d))
-    yaz(u'  ALAN FILTRESI             : YOK. Her kutuya %d veritabaninin HEPSI'
+        yaz(u'      [NO FILE]   %-20s %-32s not found under REFERANS_DB' % (e, d))
+    yaz(u'  DOMAIN FILTER                      : NONE. Every bin is asked against ALL'
         % len(var))
-    yaz(u'    sorulur. Alani Kraken etiketine gore secmek tehlikeli olurdu -')
-    yaz(u'    bu asamanin varlik sebebi zaten o etiketlerin yanlis olabilmesi.')
-    yaz(u'    Alakasiz veritabanlari SONUCTA dusurulur ("SONUC YOK"), sorgudan')
-    yaz(u'    ONCE elenmez. Kutunun alani ETIKETTEN DEGIL OLCUMDEN cikarilir.')
-    yaz(u'  NCBI nt                   : %s'
-        % {'oto': u'otomatik (URL API) - her kutu icin ayri BLAST',
-           'elle': u'elle (sorgu dosyasi uretilir)',
-           'yok': u'SORULMADI (varsayilan): %d kutu x BLAST kuyrugu gunlerce '
-                  u'surer. `I` asamasindan kalan nt onbellegi VARSA kullanilir. '
-                  u'--nt oto ile acilir.' % len(katilan)}[nt_kip])
+    yaz(u'    %d databases. Choosing the domain from the Kraken label would be')
+    yaz(u'    dangerous: this stage exists precisely because those labels can be wrong.')
+    yaz(u'    Irrelevant databases are dropped from the RESULT ("NO RESULT"), never')
+    yaz(u'    filtered out BEFORE the query. A bin\'s domain comes from MEASUREMENT, not from its label.')
+    yaz(u'  NCBI nt                            : %s'
+        % {'oto': u'automatic (URL API), a separate BLAST per bin',
+           'elle': u'manual (a query file is written)',
+           'yok': u'NOT ASKED (default): %d bins x the BLAST queue would take days. Any nt cache left from stage `I` IS reused. Enable with --nt auto.' % len(katilan)}[nt_kip])
     yaz('')
 
     # --- SURE TAHMINI ---
@@ -468,19 +466,19 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     _kume = max(1, (n_tekil + kume_boyu - 1) // kume_boyu)
     _kayit = sum(BEKLENEN_KAYIT.get(e, 100000) for e, _d, _t in var)
     _tara = _kume * _kayit / TARAMA_HIZI
-    yaz(u'  TAHMINI SURE: ~%s   (GECE BIRAKILACAK IS)' % K.sure_metni(_hiz + _tara))
-    yaz(u'    tekil konsensus %d x %d veritabani = %d sorgu'
+    yaz(u'  ESTIMATED TIME: ~%s   (AN OVERNIGHT JOB)' % K.sure_metni(_hiz + _tara))
+    yaz(u'    unique consensus %d x %d databases = %d queries'
         % (n_tekil, len(var), n_tekil * len(var)))
-    yaz(u'    hizalama payi  ~%s  (%d sorgu x %d aday, ort %d bp) <- BASKIN maliyet'
+    yaz(u'    alignment cost  ~%s  (%d queries x %d candidates, avg %d bp) <- DOMINANT cost'
         % (K.sure_metni(_hiz), n_tekil * len(var), kl_ust, int(_oq)))
-    yaz(u'    tarama payi    ~%s  (%d kume x %d veritabani akisi = %d akis, %s kayit)'
+    yaz(u'    scan cost       ~%s  (%d sets x %d database streams = %d streams, %s records)'
         % (K.sure_metni(_tara), _kume, len(var), _kume * len(var),
            '{:,}'.format(_kayit).replace(',', ' ')))
-    yaz(u'    NOT: kutu basina AYRI akis olsaydi %d akis ve ~%s tarama gerekirdi;'
+    yaz(u'    NOTE: a separate stream per bin would need %d streams and ~%s of scanning;'
         % (n_tekil * len(var), K.sure_metni(n_tekil * _kayit / 2200.0)))
-    yaz(u'    toplu tarama bunu %d akisa indirir (~70 kat).' % (_kume * len(var)))
-    yaz(u'    Kesintiye dayaniklidir: her kutu bitince diske yazilir, ayrica')
-    yaz(u'    veritabani taramalari `I` ile ORTAK onbellekte durur.')
+    yaz(u'    batching brings that down to %d streams, about 70 times fewer.' % (_kume * len(var)))
+    yaz(u'    Resumable: state is written to disk after every bin, and the database')
+    yaz(u'    scans share a cache with stage `I`.')
     yaz('')
 
     # --- KOSU: kume kume, veritabani veritabani ---
@@ -495,14 +493,14 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
             except Exception:
                 pass
         bekleyen.append(k)
-    yaz(u'  onceki kosudan alinan: %d kutu | taranacak: %d kutu'
+    yaz(u'  taken from the previous run: %d bins | to scan: %d bins'
         % (len(sonuc), len(bekleyen)))
 
     kapsam_kayit = {}          # etiket -> (taranan, beklenen, kapsam)
     for ki in range(0, len(bekleyen), kume_boyu):
         kume = bekleyen[ki:ki + kume_boyu]
         yaz('')
-        yaz(u'[kume %d/%d] %d kutu: %s'
+        yaz(u'[set %d/%d] %d bins: %s'
             % (ki // kume_boyu + 1, (len(bekleyen) + kume_boyu - 1) // kume_boyu,
                len(kume), ', '.join(kume[:6]) + (' ...' if len(kume) > 6 else '')))
         bulgular = {k: {} for k in kume}
@@ -705,13 +703,10 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
     beklenen_et = [e for e, _d, _t in var] + [e for e, _d, _t in yok] + [K.NT_ETIKET]
     t = os.path.join(CIKTI, 'tum_kutu_kimlikleri.tsv')
     with open(t, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Panel olcumlerine giren HER kutunun kimligi bagimsiz sinandi.\n')
-        fh.write(u'# Yontem `I` ile ayni: %d\'luk kisa liste, hepsi hizalanir, en az '
-                 u'IKI bagimsiz veritabani uyusmasi.\n' % kl_ust)
-        fh.write(u'# ALAN FILTRESI YOK: her kutuya butun veritabanlari sorulur; '
-                 u'alakasiz olanlar SONUCTA dusurulur ("SONUC YOK"), sorgudan once '
-                 u'ELENMEZ. Kutunun alani etiketten degil OLCUMDEN cikar.\n')
-        fh.write(u'# UYUSMAYAN satirlar EN BASTA.\n')
+        fh.write(u'# The identity of EVERY bin entering the panel measurements was tested independently.\n')
+        fh.write(u'# Same method as `I`: a short list of %d, all aligned, at least TWO independent databases must agree.\n' % kl_ust)
+        fh.write(u'# NO DOMAIN FILTER: every database is asked for every bin; irrelevant ones are dropped from the RESULT ("NO RESULT"), never filtered out before the query. A bin\'s domain comes from MEASUREMENT, not from its label.\n')
+        fh.write(u'# DISAGREEING rows come FIRST.\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['kutu', 'taxid', 'MEVCUT_KAYITLI_KIMLIK', 'DOGRULANAN_KIMLIK',
                     'UYUSUYOR_MU', 'uyusma_notu', 'HUKUM',
@@ -785,23 +780,14 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
     uye_etkilenen = {h for s in degisen for h in s['uye_hedefler']}
     r = os.path.join(CIKTI, 'TUM_KUTU_KIMLIK_RAPORU.md')
     with open(r, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Tum kutu kimliklerinin bagimsiz dogrulanmasi\n\n')
-        fh.write(u'Uretim: %s · betik %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
-        fh.write(u'`I` asamasi 12 **iddiayi** sinar - supheli olanlari. Bu asama panel '
-                 u'olcumlerine giren **butun kutulari** sinar: uyelik ve rakip '
-                 u'kumelerini belirleyen, yani her ayrim katini etkileyen sessiz '
-                 u'cogunlugu.\n\n')
+        fh.write(u'# Independent verification of all bin identities\n\n')
+        fh.write(u'Generated: %s, script %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
+        fh.write(u'Stage `I` tests 12 **claims**, the suspicious ones. This stage tests **every bin** that enters the panel measurements: the silent majority that defines the member and competitor sets, and therefore affects every discrimination figure.\n\n')
 
         # --- KAYNAK KAPSAMI (kanit) ---
-        fh.write(u'## Veritabani kapsami\n\n')
-        fh.write(u'**Alan filtresi UYGULANMADI.** Her kutuya %d yerel veritabaninin '
-                 u'hepsi soruldu. Alani Kraken etiketine gore secmek tehlikeli olurdu: '
-                 u'bu asamanin varlik sebebi zaten o etiketlerin yanlis olabilmesi. '
-                 u'Alakasiz veritabanlari **sonucta** dusuruldu (`SONUC YOK`), sorgudan '
-                 u'once elenmedi. Kutunun alani etiketten degil **olcumden** cikarildi '
-                 u'(`alan_olcumden` sutunu).\n\n' % len(var))
-        fh.write(u'| # | veritabani | beklenen kayit | taranan | kapsam |\n'
-                 u'|---|---|---|---|---|\n')
+        fh.write(u'## Database coverage\n\n')
+        fh.write(u'**NO DOMAIN FILTER WAS APPLIED.** Every bin was asked against all %d local databases. Choosing the domain from the Kraken label would be dangerous: this stage exists precisely because those labels can be wrong. Irrelevant databases were dropped from the **result** (`NO RESULT`), not filtered out before the query. A bin\'s domain was derived from **measurement**, not from its label (the `alan_olcumden` column).\n\n' % len(var))
+        fh.write(u'| # | database | expected records | scanned | coverage |\n|---|---|---|---|---|\n')
         for i, (e, _d, _t) in enumerate(var, 1):
             tar, bek, kap = kapsam_kayit.get(e, (None, BEKLENEN_KAYIT.get(e), None))
             fh.write(u'| %d | %s | %s | %s | %s |\n'
@@ -812,26 +798,19 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         for e, d, _t in yok:
             fh.write(u'| - | %s | - | - | **DOSYA YOK** (`REFERANS_DB/%s`) |\n' % (e, d))
         fh.write(u'| - | NCBI nt | - | - | %s |\n'
-                 % {'yok': u'**SORULMADI** (--nt yok; kutu basina ayri BLAST kuyrugu)',
-                    'oto': u'otomatik (URL API)', 'elle': u'elle'}[nt_kip])
+                 % {'yok': u'**NOT ASKED** (--nt none; a separate BLAST queue per bin)',
+                    'oto': u'automatic (URL API)', 'elle': u'elle'}[nt_kip])
         eksik = [e for e, (tar, bek, kap) in kapsam_kayit.items()
                  if kap and kap.startswith('EKSIK')]
-        fh.write(u'\n> **Tavan sorunu tekrarlanmadi.** Erisim testinde ilk kosu '
-                 u'120 001 kayitta kesiyordu ve SILVA SSU NR99 (510 495), LSU Parc '
-                 u'(1 312 521), UNITE ITS (2 069 189) budanmis taraniyordu. Burada '
-                 u'akiticida tavan **yoktur**; taranan kayit sayisi sayilir ve '
-                 u'beklenenle karsilastirilir. Bu kosuda kapsami eksik veritabani: '
-                 u'**%s**.\n\n' % (', '.join(eksik) if eksik else u'YOK'))
-        fh.write(u'> Bir veritabani sonuc dondurmediyse **"temiz" sayilmadi**: '
-                 u'`SONUC YOK` diye ayri isaretlendi ve satirda gorunur. Her kutu '
-                 u'satirinda %d kaynagin %d\'si de listelenir.\n\n'
+        fh.write(u'\n> **The cap problem did not recur.** In the access test the first run stopped at 120,001 records, so SILVA SSU NR99 (510,495), LSU Parc (1,312,521) and UNITE ITS (2,069,189) were being scanned truncated. There is **no cap** in the streamer here; the number of records scanned is counted and compared against what was expected. Databases with incomplete coverage in this run: **%s**.\n\n' % (', '.join(eksik) if eksik else u'YOK'))
+        fh.write(u'> A database that returned nothing was **not counted as clean**: it is marked separately as `NO RESULT` and shown in the row. Every bin row also lists %d of the %d sources.\n\n'
                  % (len(beklenen_et), len(beklenen_et)))
 
         # --- ETKI OZETI ---
-        fh.write(u'## Etki ozeti\n\n')
-        fh.write(u'| olcu | deger |\n|---|---|\n')
-        fh.write(u'| sinanan kutu | %d |\n' % len(sonuc))
-        fh.write(u'| **kimligi DEGISEN kutu** | **%d** |\n' % len(degisen))
+        fh.write(u'## Impact summary\n\n')
+        fh.write(u'| measure | value |\n|---|---|\n')
+        fh.write(u'| bins tested | %d |\n' % len(sonuc))
+        fh.write(u'| **bins whose identity CHANGED** | **%d** |\n' % len(degisen))
         fh.write(u'| kimligi dogrulanan kutu | %d |\n'
                  % len([s for s in sonuc if s['uyusuyor'] == 'EVET']))
         fh.write(u'| belirsiz / kayitli adi olmayan | %d |\n' % len(belirsiz))
@@ -889,8 +868,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             fh.write(u'\n')
     yaz(u'  written: %s' % r)
     yaz('')
-    yaz(u'  ETKI: %d kutu sinandi | kimligi DEGISEN %d | etkilenen hedef %d '
-        u'| uyelik degisen %d | atlanan %d'
+    yaz(u'  IMPACT: %d bins tested | identity CHANGED for %d | targets affected %d | membership changed %d | skipped %d'
         % (len(sonuc), len(degisen), len(etkilenen), len(uye_etkilenen), len(atlanan)))
     if eksik:
         yaz(u'  >>> UYARI: kapsami EKSIK veritabani: %s' % ', '.join(eksik))
