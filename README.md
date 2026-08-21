@@ -2,12 +2,13 @@
 
 <https://github.com/Yerlifan/primerjury>
 
-**qPCR primer design for anaerobic digester microbiomes — with independent identity verification that does not trust a single database.**
+**qPCR primer design from amplicon sequencing data, with identity verification that does not trust a single database.**
 
-This pipeline was built for one stubborn problem: a Kraken2 label is not an
-identification. On real nanopore rDNA amplicon data from an anaerobic digester,
-Kraken2's lowest-common-ancestor calls and alignment-based identity **disagreed
-on a large fraction of read bins** — not marginally, but at genus and phylum level:
+This pipeline was built for one stubborn problem: a classifier label is not an
+identification. On real nanopore rDNA amplicon data, Kraken2's
+lowest-common-ancestor calls and alignment-based identity **disagreed on a large
+fraction of read bins**. The disagreement was not marginal. It reached genus and
+phylum level:
 
 | Kraken2 label | alignment-based identity |
 |---|---|
@@ -16,9 +17,9 @@ on a large fraction of read bins** — not marginally, but at genus and phylum l
 | *Ca. Nitrosocosmicus hydrocola* | *Nitrososphaera* |
 | *Colletotrichum higginsianum* | *Ramicandelaber* |
 
-Designing species-specific primers on top of a wrong label produces a primer
-that works perfectly — for the wrong organism. So this project verifies identity
-independently before designing anything, and verifies the resulting primers
+Design a species-specific primer on top of a wrong label and you get a primer
+that works perfectly on the wrong organism. So this project verifies identity
+independently before designing anything, then checks the resulting primers
 against four independent layers before anything is ordered.
 
 > **Status: research code, being generalised.** It runs and produces the
@@ -66,7 +67,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 - **No taxonomy tree, no k-mer LCA, no primers.** Seeds are extracted from the
   query consensus, the database is streamed, a short list is built, and every
   short-listed record is fully aligned (Levenshtein DP, infix).
-- **Identity is measured twice** — over the whole overlap, and over the
+- **Identity is measured twice**, over the whole overlap, and over the
   *discriminating window*: the columns where the best reference records differ
   from each other. Conserved regions (18S, 5.8S, LSU core) fall outside it, so a
   claim resting on false-high conserved-region identity becomes visible.
@@ -76,7 +77,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
   the same release).
 - **Unnamed environmental records cannot become a name.** A 99% match to
   `Uncultured bacterium clone 4B-11` is evidence that your sequence overlaps
-  environmental clones — it is not a species. Reported as
+  environmental clones, it is not a species. Reported as
   `ADLANDIRILAMIYOR (referans adsız)`, never as a taxon.
 - Output includes the **five nearest organisms**, deduplicated by organism
   rather than by record, so the list shows what else is close instead of the
@@ -94,7 +95,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 | MFEprimer 4.4 | thermodynamics, off-target amplicons (layer 3) |
 | minimap2, samtools | read alignment, consensus |
 | seqkit | sequence handling |
-| Kraken2 + Bracken | classification (optional — see note) |
+| Kraken2 + Bracken | classification (optional, see note) |
 | QIIME2 + PICRUSt2 | community/function analysis (optional) |
 
 Python packages are in `requirements.txt`.
@@ -127,8 +128,7 @@ RNA or DNA alphabet. If the measurement fails the file is renamed `.SUPHELI`
 worse than not running at all.
 
 This also protects against the real failure mode of hard-coded URLs: SILVA and
-UNITE rename files every release, so a stale URL would otherwise fetch nothing —
-or the wrong release — without complaint. UNITE's URL is not hard-coded at all
+UNITE rename files every release, so a stale URL would otherwise fetch nothing, or the wrong release, without any complaint. UNITE's URL is not hard-coded at all
 because it changes per release DOI; the installer tells you where to get the
 current one and verifies whatever you hand it.
 
@@ -162,7 +162,7 @@ Put your sequences in `sequences/`, then:
 The full chain runs ten stages in dependency order and **checks the output of
 each one**. A zero exit code is not accepted as success: the expected file must
 exist, be non-empty, and in several stages its contents are inspected. A failed
-check stops the chain rather than quietly continuing — the recurring failure
+check stops the chain rather than quietly continuing, the recurring failure
 mode in this domain is a program that produces a wrong or empty answer without
 erroring.
 
@@ -200,7 +200,7 @@ These are not style preferences; each was paid for with a real bug.
    votes in favour. `BILINMIYOR` is never folded into `TEMIZ`.
 4. **Expensive measurement and cheap judgment are cached separately.** Scans are
    checkpointed; verdicts are re-derived every run. Caching a verdict means a
-   fix to the judgment logic silently does nothing — this happened, and was
+   fix to the judgment logic silently does nothing, this happened, and was
    caught only by diffing before/after outputs.
 5. **Long runs are resumable.** Every stage records where it stopped.
 6. **Nothing is skipped silently.** Anything that could not be installed, read,
@@ -218,7 +218,7 @@ Honest list; these are the gaps between "runs for the original study" and
   amplicon groups. Samples in `examples/` show the format. Generalising the
   target definition is the main open work item.
 - **`screening/config.py` holds every path and constant** and is
-  meant to be edited. Moving it to YAML/TOML is planned — the good news is that
+  meant to be edited. Moving it to YAML/TOML is planned, the good news is that
   it is genuinely the only place paths are defined.
 - **Layer 2 taxonomic discrimination is new** and its effect on verdicts is
   still being measured; the size-based criterion remains the one that votes.
@@ -241,7 +241,7 @@ Honest list; these are the gaps between "runs for the original study" and
 | `scoring/` | shared scoring |
 | `tests/` | tests |
 | `tools/` | Kraken2 environment/database tooling |
-| `primerjury` | **the single entry point — start here** |
+| `primerjury` | **the single entry point, start here** |
 | `docs/` | user guide, audit report, measurements |
 | `sequences/` | **your input goes here** |
 
@@ -249,7 +249,7 @@ Honest list; these are the gaps between "runs for the original study" and
 
 ## Documentation
 
-**[Full user guide → `docs/GUIDE.md`](docs/GUIDE.md)** — installation, input
+**[Full user guide → `docs/GUIDE.md`](docs/GUIDE.md)**, installation, input
 preparation, defining your own targets, reading the output, and troubleshooting.
 
 `docs/DENETIM_2026-08-21.md` is the pre-release code audit (Turkish): what was
@@ -257,11 +257,11 @@ measured, what was broken, and what was fixed.
 
 ## Licence
 
-**[PolyForm Noncommercial 1.0.0](LICENSE)** — free for any noncommercial purpose.
+**[PolyForm Noncommercial 1.0.0](LICENSE)**, free for any noncommercial purpose.
 
 - **Anyone may use it**: researchers, students, universities, public research
   organisations, health and environmental organisations, government institutions,
-  hobbyists — regardless of how they are funded.
+  hobbyists, regardless of how they are funded.
 - **You may modify and redistribute it**, keeping this licence.
 - **You may not make money from it**: no commercial products, paid services, or
   commercial advantage built on this software.
@@ -273,11 +273,10 @@ one; GitHub will show it as "Other". That is the intended trade-off.
 
 Author: **Burak Aslancan Pak** ([ORCID 0000-0002-7793-2215](https://orcid.org/0000-0002-7793-2215))
 
-If this is useful in published work, please cite the repository — see
+If this is useful in published work, please cite the repository, see
 [CITATION.cff](CITATION.cff).
 
 ## Contributing
 
 Issues and pull requests are welcome, in English or Turkish. If you change
-anything that produces a number, please include the before/after measurement —
-that is the standard the rest of the codebase is held to.
+anything that produces a number, please include the before/after measurement: that is the standard the rest of the codebase is held to.

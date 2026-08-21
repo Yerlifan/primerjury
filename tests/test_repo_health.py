@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Repository health check — catches the gaps that syntax checking cannot.
+"""Repository health check, catches the gaps that syntax checking cannot.
 
 WHY THIS EXISTS
 ---------------
@@ -54,7 +54,7 @@ PAKETLER = [
 #
 # WARNING TO FUTURE MAINTAINERS: this list contains the very strings a bulk
 # rename would target. A search-and-replace run over the repository WILL
-# corrupt it — that happened once already: the pattern for the old project
+# corrupt it, that happened once already: the pattern for the old project
 # name was rewritten to the new one, which would have made this check reject
 # the correct name. Exclude this file from any bulk rewrite, and re-read the
 # list afterwards.

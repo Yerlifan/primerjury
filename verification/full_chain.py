@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Full-chain driver — runs the whole pipeline from one command.
+Full-chain driver, runs the whole pipeline from one command.
 
 THIS SCRIPT TAKES NO MEASUREMENTS. Its job is to call ten stages in dependency
 order, INSPECT each stage's output, and STOP if anything does not hold. The
@@ -16,7 +16,7 @@ THREE DESIGN DECISIONS
        that keeps recurring in this domain is a program that produces a WRONG
        or EMPTY answer without erroring. A zero exit code does not mean the
        work was done. So after every stage: does the expected file exist, is it
-       non-empty, and — for some stages — what does it actually say? A failed
+       non-empty, and, for some stages, what does it actually say? A failed
        inspection STOPS the chain; it is never skipped over quietly.
 
     3  KRAKEN STAGES DO NOT BREAK THE CHAIN. Those stages need a separate tool
@@ -679,7 +679,7 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
         A(u'Bu adımlar koşulmadı. Zincir bu yüzden durmadı, ama sonuçları '
           u'da elde yok.\n')
         for k in sorted(atlanan):
-            A(u'* **%s** — %s' % (k, durum[k].get('sebep', '')))
+            A(u'* **%s**, %s' % (k, durum[k].get('sebep', '')))
         A(u'')
         if not ayar['kraken_var']:
             A(u'### Kraken kısmını sonradan tamamlamak\n')

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  primerjury — single entry point.
+#  primerjury: the single entry point.
 #
 #  Everything you can do with this project runs through this file. Run it with
 #  no arguments for the built-in guide.
@@ -9,8 +9,8 @@
 #  from a WSL shell.
 #
 #  WHY A SINGLE ENTRY POINT
-#  The underlying stages are separate scripts on purpose — each is independently
-#  runnable and independently testable. But a user should not have to know which
+#  The underlying stages are separate scripts on purpose. Each one is
+#  independently runnable and independently testable. But a user should not have to know which
 #  of ninety files to call, in what order, with which flags. This file is the
 #  contract; the layout behind it can change without breaking anyone's habits.
 #
@@ -26,7 +26,7 @@ cd "$KOK" || exit 1
 
 # Interpreter is DETECTED, not assumed. `python3` is absent on some shells
 # (Git Bash ships `python` only) and assuming it made every test report FAIL
-# when the tests were in fact fine — measured.
+# when the tests were in fact fine. That was measured, not guessed.
 if [ -n "${PYTHON:-}" ]; then
     PY="$PYTHON"
 elif command -v python3 >/dev/null 2>&1; then
@@ -47,8 +47,8 @@ i()  { printf '  %s\n' "$*"; }
 # The pipeline shells out to Linux bioinformatics tools throughout. Running it
 # from Git Bash or MSYS on Windows "works" far enough to be misleading: the
 # filesystem is visible, so databases are counted correctly, but the WSL $HOME
-# and the conda/micromamba environment are not — installed tools report as
-# missing. Refusing early is kinder than a wrong report.
+# and the conda/micromamba environment are not. Installed tools then report
+# as missing. Refusing early is kinder than a wrong report.
 platform_check() {
     case "$(uname -s 2>/dev/null)" in
         Linux) return 0 ;;
@@ -67,7 +67,7 @@ platform_check() {
 guide() {
 cat <<'EOF'
 
-  PrimerJury — qPCR primer design with independent verification
+  PrimerJury: qPCR primer design with independent verification
 
   No single method decides anything here. Identity claims must be supported by
   at least two independent reference databases, and primer specificity is
@@ -84,7 +84,7 @@ cat <<'EOF'
     ./primerjury install kraken        Kraken2 database (see note below)
     ./primerjury index <file.fasta>    Build the MFEprimer index for a database
 
-  Reference databases are verified after download — record count and alphabet
+  Reference databases are verified after download. Record count and alphabet
   are measured, and a file that fails is quarantined rather than used.
 
   Do not skip `index` for SILVA: SILVA stores RNA (U instead of T), and
@@ -107,7 +107,7 @@ cat <<'EOF'
     ./primerjury audit                 Independent read-only audit of a run
 
   The full chain inspects the output of every stage. A zero exit code is not
-  accepted as success — the expected file must exist, be non-empty, and in
+  accepted as success. The expected file must exist, be non-empty, and in
   several stages its contents are read. A failed check stops the chain.
 
   Every stage is resumable. Re-running skips completed work.
@@ -130,7 +130,7 @@ cat <<'EOF'
       ./primerjury install kraken --kmer 31
 
   Full documentation:  docs/GUIDE.md
-  Licence:             PolyForm Noncommercial 1.0.0 — free for any
+  Licence:             PolyForm Noncommercial 1.0.0. Free for any
                        noncommercial use; you may not sell it or build a
                        commercial product on it.
 
@@ -175,7 +175,7 @@ cmd_status() {
     if [ -f GUNCEL_DURUM.md ]; then
         cat GUNCEL_DURUM.md
     else
-        i "No panel state yet — nothing has been run in this directory."
+        i "No panel state yet, nothing has been run in this directory."
         i "Start with:  ./primerjury check"
     fi
 }

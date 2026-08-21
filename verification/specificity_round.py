@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Specificity verification — four independent evidence layers before ordering.
+"""Specificity verification, four independent evidence layers before ordering.
 
 WHY A SEPARATE STAGE
     A pair that looks clean in your sample can still fail in the lab: a sample
@@ -10,7 +10,7 @@ THE FOUR LAYERS, AND WHY THEY ARE BUILT DIFFERENTLY
     1  in-sample    in-silico PCR against the raw reads.
                     Independent of every reference database.
     2  local DB     scan of the local reference sets. Uses OUR code and OUR
-                    engine — so it shares our bugs, and cannot corroborate
+                    engine, so it shares our bugs, and cannot corroborate
                     itself. That is exactly why layers 3 and 4 exist.
     3  MFEprimer    an external binary. Different implementation, different
                     thermodynamic model, written by other people.
@@ -57,7 +57,7 @@ Panel dosyalarina YAZMAZ. Yalniz okur, DOGRULAMA_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# specificity_round.py — kurtarma turunun esigi gecirdigi YENI/DEGISMIS ciftleri,
+# specificity_round.py, kurtarma turunun esigi gecirdigi YENI/DEGISMIS ciftleri,
 # siparise gonderilmeden once dort bagimsiz kanit katmaniyla yan yana sinar.
 #
 # GİRDİ  : KURTARMA_SONUC/kurtarma_satirlari.tsv (hangi ciftler dogrulanacak),
@@ -1378,7 +1378,7 @@ def raporla(cikti, satirlar, yaz):
     celiskili = [s for s in satirlar if s['karar'] == 'CELISKILI']
     c = os.path.join(cikti, 'CELISKILER.md')
     with open(c, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Celiskiler — bu turun en degerli ciktisi\n\n')
+        fh.write(u'# Celiskiler, bu turun en degerli ciktisi\n\n')
         if not celiskili:
             fh.write(u'Bu kosuda uc katman **hicbir satirda ayrilmadi**.\n\n'
                      u'Bu, "her sey temiz" demek DEGILDIR: NCBI ya da yerel katmani '

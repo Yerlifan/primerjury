@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Single-protocol measurement — one rule, one depth, for the whole panel.
+"""Single-protocol measurement, one rule, one depth, for the whole panel.
 
 Every pair in the panel is measured under IDENTICAL settings, so the numbers
 are comparable across targets. Mixed protocols were the earlier failure mode:
@@ -28,7 +28,7 @@ Panel dosyalarina YAZMAZ. Yalniz okur, TEK_PROTOKOL_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# single_protocol_measure.py — paneldeki BUTUN ciftleri tek kural ve tek derinlikle
+# single_protocol_measure.py, paneldeki BUTUN ciftleri tek kural ve tek derinlikle
 # yeniden olcer, tek bir siparis listesi uretir. Satir bazinda istisna yoktur.
 #
 # GİRDİ  : primer_final/ altindaki panel tablosu (screening.targets.

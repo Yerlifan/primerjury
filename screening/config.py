@@ -27,7 +27,7 @@ Butun sabitler ve yollar tek yerde. Kullanici bu dosyayi duzenleyebilir.
 qPCR kisitlari QIAGEN Rotor-Gene Q + QuantiNova SYBR Green icin SABIT tutuldu.
 """
 # ---------------------------------------------------------------------------
-# config.py — butun dosya yollarinin ve sayisal sabitlerin tek tanim yeri.
+# config.py, butun dosya yollarinin ve sayisal sabitlerin tek tanim yeri.
 #
 # GIRDI  : yalnizca kendi konumunu okur; KOK, bu paketin bir ust dizinidir.
 #          Baska dosya okumaz, olcum yapmaz.

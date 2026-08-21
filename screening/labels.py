@@ -15,7 +15,7 @@ existing result file and checkpoint would stop being readable, silently, and
 the failure would surface as an empty table rather than as an error.
 
 So the internal values stay exactly as they are, and this module supplies the
-English wording where a HUMAN reads the output — Markdown reports, screen
+English wording where a HUMAN reads the output: Markdown reports, screen
 messages, and the legend printed at the top of each TSV. Machine-readable
 column names are left untouched on purpose; a program that reads these files
 keeps working.
@@ -113,12 +113,12 @@ SUTUN = {
     '2_tum_vurus':                    'all hits',
     '2_kume_dagilimi':                'distribution across database sets',
     '2_klad_ayrimi_yapildi':          'was taxonomic separation possible?',
-    '2_klad_disi_b_c':                'outside clade (b + c) — TAXONOMIC measure',
+    '2_klad_disi_b_c':                'outside clade (b + c), TAXONOMIC measure',
     '2_a_klad_ici':                   'a: inside the target clade',
     '2_ao_organel':                   'ao: inside clade, organelle',
     '2_b_ayni_alan_klad_disi':        'b: same domain, outside clade',
     '2_c_farkli_alan':                'c: different domain',
-    '2_bilinmiyor':                   'undecidable — NOT evidence of cross-reaction',
+    '2_bilinmiyor':                   'undecidable, NOT evidence of cross-reaction',
 
     '3_MFEPRIMER':                    'layer 3, MFEprimer (external tool)',
     '3_hedef_disi_amplikon':          'off-target amplicons, taxonomically filtered',

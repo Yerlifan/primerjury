@@ -1,4 +1,4 @@
-# PrimerJury — User Guide
+# PrimerJury, User Guide
 
 A step-by-step guide for running the pipeline on your own sequencing data.
 
@@ -19,8 +19,8 @@ A step-by-step guide for running the pipeline on your own sequencing data.
 
 ## 1. What this tool is for
 
-PrimerJury designs qPCR primers from amplicon sequencing data and — more
-importantly — **refuses to trust any single source when doing it**.
+PrimerJury designs qPCR primers from amplicon sequencing data and, more
+importantly, **refuses to trust any single source when doing it**.
 
 The name is the design: every claim faces a jury of independent methods, and a
 split jury blocks the decision rather than being averaged away.
@@ -43,7 +43,7 @@ different mechanisms, so a bug in one cannot confirm itself in another.
 - You have amplicon sequencing data (16S/18S/ITS/28S; nanopore or Illumina).
 - You want qPCR primers for specific taxa, functional groups, or universal
   controls.
-- Getting it wrong is expensive — you are ordering oligos, or publishing.
+- Getting it wrong is expensive, you are ordering oligos, or publishing.
 
 ### When it is not
 
@@ -92,7 +92,7 @@ RNA or DNA alphabet. If the check fails the file is renamed `.SUPHELI` (suspect)
 and is **not used**.
 
 This matters because SILVA and UNITE rename their files every release. A
-hard-coded URL silently goes stale and fetches nothing — or the wrong release.
+hard-coded URL silently goes stale and fetches nothing, or the wrong release.
 UNITE's URL is not hard-coded at all; the installer points you to the current
 release page and verifies whatever you give it:
 
@@ -125,7 +125,7 @@ bash install.sh kraken-kur --kmer 31 --db ~/k2db_k31
 ```
 
 Shorter *k* raises sensitivity on error-prone long reads (nanopore) but pushes
-the LCA up the tree — you get genus where you wanted species. Longer *k* is more
+the LCA up the tree, you get genus where you wanted species. Longer *k* is more
 specific but loses hits to single sequencing errors.
 
 Build parameters are written to `$DB/KURULUM_BILGISI.txt`, because `opts.k2d` is
@@ -160,7 +160,7 @@ picking one.
 
 Consensus sequences must be **orientation-normalised** before in-silico PCR. In
 the source dataset the raw consensus folder was mixed: 71 antisense, 27 sense.
-A reverse-oriented consensus silently yields **zero products** — measured loss
+A reverse-oriented consensus silently yields **zero products**, measured loss
 100%. The candidate then looks like it fails, when in fact it was never tested.
 
 The pipeline produces a canonical, single-orientation set and reads only from
@@ -172,18 +172,18 @@ there. If you add consensus sequences by hand, normalise them first.
 
 This is currently the least generalised part of the tool. Two tables drive it:
 
-### `steps/hedefler.tsv` — what you want to amplify
+### `steps/hedefler.tsv`, what you want to amplify
 
 | column | meaning |
 |---|---|
 | `karar` | decision group: 1 species, 2 genus, 3 functional group, 4 universal |
 | `hedef` | target name (used as an identifier everywhere downstream) |
 | `duzey` | level the primer must discriminate at: `tur` (species), `cins` (genus) |
-| `in_taxid` | taxids of members — the product **must** form in all of them |
+| `in_taxid` | taxids of members, the product **must** form in all of them |
 | `haric` | taxids deliberately excluded from the competitor set |
 | `hedef_tur` | human-readable organism name |
 
-### `screening/hedef_klad.tsv` — how to tell inside from outside
+### `screening/hedef_klad.tsv`, how to tell inside from outside
 
 | column | meaning |
 |---|---|
@@ -193,7 +193,7 @@ This is currently the least generalised part of the tool. Two tables drive it:
 
 This second table is what lets the pipeline say *"this off-target hit is actually
 a length variant of the target itself"* rather than counting it as cross-reaction.
-Without it, group and universal primers look far worse than they are — measured:
+Without it, group and universal primers look far worse than they are, measured:
 of 1,605 amplicons flagged "off-target" by size alone, **95.7% were inside the
 target clade**.
 
@@ -225,15 +225,15 @@ Ten stages run in dependency order. Order is not arbitrary:
 
 | Stage | What it does | Typical time |
 |---|---|---|
-| self-test | code verifies itself before any measurement | 1–2 min |
-| quick consistency | runs the whole chain on a small subset with a known answer | 25–40 min |
-| Kraken environment | reports what is installed and which database | 1–5 min |
-| identity verification | tests every identity claim independently | 3–4 h |
-| all bin identities | verifies every bin entering the panel | 4–6 h |
-| full measurement | panel measurement, recovery, verification | 30–90 min |
-| threshold scan | Kraken confidence threshold sweep | 1–2 h |
-| second database | re-run with a different Kraken database | 2–8 h |
-| comparison table | four methods side by side | 1–2 min |
+| self-test | code verifies itself before any measurement | 1, 2 min |
+| quick consistency | runs the whole chain on a small subset with a known answer | 25, 40 min |
+| Kraken environment | reports what is installed and which database | 1, 5 min |
+| identity verification | tests every identity claim independently | 3, 4 h |
+| all bin identities | verifies every bin entering the panel | 4, 6 h |
+| full measurement | panel measurement, recovery, verification | 30, 90 min |
+| threshold scan | Kraken confidence threshold sweep | 1, 2 h |
+| second database | re-run with a different Kraken database | 2, 8 h |
+| comparison table | four methods side by side | 1, 2 min |
 | summary | single combined report | 1 min |
 
 Kraken stages are **skipped, not failed**, if Kraken2 is absent. The reason is
@@ -274,7 +274,7 @@ whether the packages actually *import* (side effects included), whether every
 script referenced by another script exists, whether any pre-rename or personal
 name survived, and whether what git ships is enough to run. It exists because
 `screening/engine_gateway.py` once passed every parse check and still could not be
-imported — it loads its engine from disk, and those files had not been copied.
+imported, it loads its engine from disk, and those files had not been copied.
 "110 files, 0 errors" was true and useless.
 
 ---
@@ -285,14 +285,14 @@ imported — it loads its engine from disk, and those files had not been copied.
 |---|---|
 | `KIMLIK_SONUC/kimlik_iddialari.tsv` | identity claims, verdicts, five nearest organisms |
 | `DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv` | the four layers side by side, per pair |
-| `DOGRULAMA_SONUC/CELISKILER.md` | contradictions — the most valuable output |
+| `DOGRULAMA_SONUC/CELISKILER.md` | contradictions, the most valuable output |
 | `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` | the order list |
 | `GUNCEL_DURUM.md` | current panel state, regenerated every run |
 
 ### The five nearest organisms
 
 Identity output lists the five closest organisms, **deduplicated by organism
-rather than by record** — otherwise the same species from five databases fills
+rather than by record**, otherwise the same species from five databases fills
 the list and tells you nothing.
 
 Three kinds of entry appear, and the distinction is deliberate:
@@ -303,10 +303,10 @@ Three kinds of entry appear, and the distinction is deliberate:
 3) uncultured bacterium (Petrimonas)              %96,79  [SILVA SSU NR99]
 ```
 
-- A **name** — the record is identified to species or genus.
-- **`adsiz:`** — the record carries no taxonomy at all (an environmental clone).
+- A **name**, the record is identified to species or genus.
+- **`adsiz:`**, the record carries no taxonomy at all (an environmental clone).
   A 99% match here is *not* an identification.
-- **`deepest (parent)`** — the record has full taxonomy but no species binomial.
+- **`deepest (parent)`**, the record has full taxonomy but no species binomial.
   Classified, just not to species level. This is not the same as unnamed.
 
 ---
@@ -322,7 +322,7 @@ Three kinds of entry appear, and the distinction is deliberate:
 | `DOGRULANAMADI` | evidence insufficient, contradictory, or single-source |
 
 A single database's best hit is never an identification. Deduplicated sets delete
-rare genera — measured: 0 *Petriella* records in SILVA LSURef NR99, 82 in the
+rare genera, measured: 0 *Petriella* records in SILVA LSURef NR99, 82 in the
 Parc set of the same release. A verdict resting on one source would inherit that
 gap as fact.
 
@@ -332,7 +332,7 @@ gap as fact.
 |---|---|
 | `KESIN` | three layers measured and all clean |
 | `KOSULLU` | two layers measured and agreeing |
-| `CELISKILI` | measuring layers disagree — **not orderable** |
+| `CELISKILI` | measuring layers disagree, **not orderable** |
 | `RISKLI` | off-target products found |
 | `EKSIK` | too few layers measured to judge |
 
@@ -366,7 +366,7 @@ primerjury/
 
 ### Pipeline order
 
-File names no longer carry numbers — a number in a filename breaks the moment
+File names no longer carry numbers, a number in a filename breaks the moment
 you insert a step. The order lives here instead:
 
 | # | Script (`steps/`) | Purpose |
@@ -417,7 +417,7 @@ they were measured from. If you changed a pair, the reference is stale, and the
 run reports "reference invalid, pair changed" instead of failing the chain.
 
 **Everything is `BILINMIYOR`.**
-Usually missing databases. Run `bash install.sh durum` — it reports how many of
+Usually missing databases. Run `bash install.sh durum`, it reports how many of
 the independent sources are present and what that does to the verdicts.
 
 **A rerun reports "taken from previous run" and nothing changed after I fixed
@@ -442,18 +442,18 @@ Being honest about what is not yet general:
   `hedef_klad.tsv` work, but assume a structure close to the original study
   (amplicon groups, bin naming). Generalising this is the main open work.
 - **`screening/config.py` holds every path and constant.** It is meant to
-  be edited and is genuinely the only place paths are defined — moving it to
+  be edited and is genuinely the only place paths are defined, moving it to
   YAML/TOML is planned and should be straightforward.
 - **Layer 2 taxonomic discrimination is reported but does not vote.** The
   before/after study has now been run across all five taxonomy-carrying
   databases (`docs/layer2_taxonomy_measurement.txt`) and the answer was *do not
-  switch yet*. Taxonomy is clearly right for universal primers — the bacterial
+  switch yet*. Taxonomy is clearly right for universal primers, the bacterial
   universal pair went from 171,080 size-flagged "off-target" hits to 122 real
   ones, with 419,750 correctly recognised as inside the target clade. But for
   the other 21 targets the taxonomic count explodes (Microascaceae: 11 -> 69,786),
   because layer 2's scan is deliberately *looser* than real PCR: no 3'-terminal
   clamp, up to 5 mismatches. The size window was accidentally acting as a
-  stringency filter. The fix is taxonomy **plus** stringency — a 3' clamp or Tm
+  stringency filter. The fix is taxonomy **plus** stringency, a 3' clamp or Tm
   proximity, which the MFEprimer layer already applies. Until that lands, the
   size criterion keeps the vote.
 - **Code comments and identifiers are Turkish.** Interface, docs and file names
@@ -471,7 +471,7 @@ with a real bug:
 2. **A zero exit code is not success.** Check the output, not the return value.
 3. **"Unknown" is distinct from "clean".** An unmeasured layer never votes yes.
 4. **Cache expensive measurement, re-derive cheap judgment.** Caching a verdict
-   means a fix to judgment logic silently does nothing — this happened, and was
+   means a fix to judgment logic silently does nothing, this happened, and was
    caught only by diffing before/after output.
 5. **Long runs are resumable.**
 6. **Nothing is skipped silently.** Anything not installed, read, or measured is
@@ -481,5 +481,5 @@ with a real bug:
 ### Reporting problems
 
 Issues and pull requests are welcome, in English or Turkish. For a suspected
-wrong result, please include the relevant `*_SONUC/` tables — the verdicts carry
+wrong result, please include the relevant `*_SONUC/` tables, the verdicts carry
 their own evidence columns, which usually make the cause visible.
