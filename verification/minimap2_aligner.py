@@ -7,42 +7,44 @@ saf Python + numpy hizalayicisi (hizala) yerinde kalir ve varsayilan olmaya
 devam eder. Buradaki minimap2 yolu ancak iki sart birden saglanirsa devreye
 girer: mappy kurulu olacak VE kullanici acikca secmis olacak.
 """
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # minimap2_aligner.py
 #
-# GIRDI  : sorgu dizisi (kutu konsensusu) ve hedef kayitlar (veritabani kayitlari)
-# CIKTI  : (yuzde_kimlik, uzaklik) ciftleri - kimlik_dogrulama.hizala ile AYNI
-#          bicimde, boylece yer degistirebilirler
-# CAGRAN : verification/identity_verification.py (I tusu) ve verification/all_bin_identities.py
-#          (G tusu), yalniz HIZALAYICI=minimap2 verildiginde
+# INPUT  : a query sequence (a bin consensus) and the target records (the database
+#          records)
+# OUTPUT : (percent_identity, distance) pairs - in THE SAME form as
+#          kimlik_dogrulama.hizala, so that the two can be swapped
+# CALLED BY: verification/identity_verification.py (key I) and
+#          verification/all_bin_identities.py (key G), only when HIZALAYICI=minimap2
+#          is given
 #
-# NEDEN VAR
-# En yavas adimimiz kimlik asamasidir: bir kutu konsensusu on iki veritabanina
-# karsi taranir ve her veritabaninda 500 aday TAM hizalanir. Saf Python yolu
-# her cift icin O(len(q) x len(t)) dinamik programlama yapar; numpy ile
-# vektorlestirilmis olsa bile is yine kuadratiktir. minimap2 tam bu is icin
-# tasarlandi: uzun ve hatali okumalari buyuk referans kumelerine tohum-zincir-uzat
-# ile hizalar, kuadratik DP'yi yalniz zincirin etrafindaki dar bantta yapar.
+# WHY IT EXISTS
+# Our slowest step is the identity stage: one bin consensus is scanned against twelve
+# databases and 500 candidates are FULLY aligned in each. The pure Python route does
+# O(len(q) x len(t)) dynamic programming for every pair, and even vectorised with
+# numpy the work is still quadratic. minimap2 was designed for exactly this job: it
+# aligns long, error prone reads against large reference sets with seed, chain and
+# extend, and does the quadratic DP only in a narrow band around the chain.
 #
-# NEREDE KULLANILMAZ - bu sinir onemlidir
-#   * PRIMER BAGLANMA ARAMASI. Primerler 18-25 bazdir. minimap2 varsayilan
-#     tohumu (k=15, w=10) ve zincirleme mantigi bu boydaki sorgular icin
-#     tasarlanmadi; kisa sorgularda tohum bulamayip baglanma yerini SESSIZCE
-#     kacirir. Orada guvercin yuvasi motoru (screening/read_engine.py)
-#     kalir ve kalmalidir, cunku o motorun kayipsizligi bir GARANTIDIR.
-#   * IN-SILIKO PCR URUN HESABI. Ayni sebep: iki primerin karsilikli ve dogru
-#     yonde baglandigi yerleri bulmak, kisa ve TAM eslesmeye yakin arama
-#     isidir. minimap2'nin yaklasik cevabi burada kabul edilemez.
+# WHERE IT IS NOT USED - this boundary matters
+#   * SEARCHING FOR PRIMER BINDINGS. Primers are 18-25 bases. minimap2's default
+#     seed (k=15, w=10) and its chaining logic were not designed for queries of that
+#     length; on short queries it fails to find a seed and SILENTLY misses the
+#     binding site. There the pigeonhole engine (screening/read_engine.py) stays,
+#     and must stay, because that engine's losslessness is A GUARANTEE.
+#   * THE IN-SILICO PCR PRODUCT CALCULATION. The same reason: finding the places
+#     where two primers bind facing one another in the right direction is a job of
+#     short, near exact search. minimap2's approximate answer is not acceptable here.
 #
-# KURULUM
+# INSTALLATION
 #     pip install mappy
-#   ya da proje ortamina:
+#   or into the project environment:
 #     micromamba install -n mikro -c bioconda minimap2
 #     micromamba run -n mikro pip install mappy
 #
-# GUVENLIK: mappy yoksa bu dosya HICBIR SEY BOZMAZ. var_mi() False doner,
-# cagiran taraf mevcut motorla devam eder ve zincir kirilmaz.
-# ---------------------------------------------------------------------------
+# SAFETY: if mappy is missing, this file BREAKS NOTHING. var_mi() returns False, the
+# caller carries on with the existing engine, and the chain is not broken.
+# -------------------------------------------------------------------------
 
 from __future__ import print_function
 
@@ -52,11 +54,12 @@ _SEBEP = u''
 
 
 def var_mi():
-    """mappy kurulu ve calisir durumda mi. Tek sefer olcer, sonra onbellekten.
+    """Is mappy installed and working? It measures once, then serves from a cache.
 
-    'import edilebiliyor' yetmez: gercekten bir indeks kurulup kurulamadigi da
-    denenir, cunku bozuk bir kurulum import asamasini gecip ilk kullanimda
-    patlayabilir ve o an saatler suren bir kosunun ortasidir.
+        'it can be imported' is not enough: whether an index can really be built is
+        tested too, because a broken installation can pass the import stage and blow up
+        on first use, and that moment is in the middle of a run lasting hours.
+
     """
     global _MAPPY, _DENENDI, _SEBEP
     if _DENENDI:
@@ -90,33 +93,30 @@ def surum():
     return getattr(_MAPPY, '__version__', u'bilinmiyor')
 
 
-# ---------------------------------------------------------------------------
-# KIMLIK YUZDESI NASIL HESAPLANIR
+# -------------------------------------------------------------------------
+# HOW THE IDENTITY PERCENTAGE IS COMPUTED
 #
-# Mevcut motor (kimlik_dogrulama.hizala) sunu doner:
-#     yuzde = 100 * (1 - duzenleme_uzakligi / len(sorgu))
-# yani sorgunun TAMAMI hedefin icine oturtulur (infix/HW hizalama) ve maliyet
-# sorgu uzunluguna bolunur.
+# The existing engine (kimlik_dogrulama.hizala) returns this:
+#     percent = 100 * (1 - edit_distance / len(query))
+# that is, THE WHOLE query is seated inside the target (an infix/HW alignment) and
+# the cost is divided by the query length.
 #
-# minimap2 ise yerel (local) hizalama yapar: sorgunun yalniz hizalanan parcasini
-# bildirir. Bu iki sayi AYNI SEY DEGILDIR ve dogrudan karsilastirilamaz.
-# Karsilastirilabilir kilmak icin yerel sonuc sorgu uzunluguna gore yeniden
-# olceklenir: hizalanmayan her baz bir uyumsuzluk sayilir.
+# minimap2, by contrast, does local alignment: it reports only the aligned part of
+# the query. Those two numbers ARE NOT THE SAME THING and cannot be compared
+# directly. To make them comparable, the local result is rescaled against the query
+# length: every unaligned base counts as a mismatch.
 #
-#     hizalanan_dogru = blen - NM
-#     hizalanmayan    = len(q) - (q_en - q_st)
-#     uzaklik         = NM + hizalanmayan
-#     yuzde           = 100 * (1 - uzaklik / len(q))
+#     aligned_correct = blen - NM
+#     unaligned       = len(q) - (q_en - q_st)
+#     distance        = NM + unaligned
+#     percent         = 100 * (1 - distance / len(q))
 #
-# Boylece iki motor ayni tanimi olcer ve karsilastirma anlamli olur. Bu
-# donusum KARSILASTIRMANIN GECERLILIGI icin sarttir; atlanirsa minimap2
-# sistematik olarak daha yuksek yuzde verir ve "uyusuyorlar" sanilir.
-# ---------------------------------------------------------------------------
+# That way the two engines measure the same definition and the comparison means
+# something. This conversion is REQUIRED FOR THE COMPARISON TO BE VALID; skipped,
+# minimap2 systematically gives a higher percentage and the two are taken to agree.
+# -------------------------------------------------------------------------
 def hizala_mm(q, t):
-    """kimlik_dogrulama.hizala ile AYNI imza ve AYNI donus bicimi.
-
-    Doner: (yuzde_kimlik, uzaklik). Hizalama bulunamazsa (0.0, len(q)).
-    """
+    """THE SAME signature and THE SAME return form as kimlik_dogrulama.hizala."""
     if not var_mi():
         raise RuntimeError(u'mappy yok: %s' % _SEBEP)
     if not q or not t:
@@ -136,25 +136,28 @@ def hizala_mm(q, t):
         yuzde = round(100.0 * (1 - uzaklik / float(len(q))), 2)
         return (max(yuzde, 0.0), uzaklik)
     except Exception:
-        # Tek bir kaydin hizalanamamasi butun kosuyu dusurmemeli.
+        # One record failing to align must not fail the whole run.
         return (0.0, len(q))
 
 
 def toplu_hizala(q, hedefler, iplik=3):
-    """ASIL HIZ KAZANCI BURADADIR: TEK indeks, TEK haritalama.
+    """THE REAL SPEED GAIN IS HERE: ONE index, ONE mapping.
 
-    2026-08-05 DUZELTMESI - SESSIZ YOL DEGISIMI KAPATILDI
-    Ilk surum mappy.Aligner(seq=<liste>) cagiriyordu. mappy bunu KABUL ETMIYOR
-    ve TypeError atiyor; kod da onu yakalayip sessizce hedef basina tek tek
-    indeks kuran YAVAS yola dusuyordu. Olcumler yine dogruydu ama "toplu indeks"
-    iddiasi gercek DEGILDI ve yorum bunun tersini soyluyordu. Tam olarak bu
-    projenin kovaladigi hata turu: kod hata vermeden BASKA bir sey yapiyor.
+        THE 2026-08-05 FIX - A SILENT CHANGE OF ROUTE, CLOSED
+        The first version called mappy.Aligner(seq=<list>). mappy DOES NOT ACCEPT that
+        and raises TypeError; the code caught it and fell silently back to the SLOW route
+        that builds an index per target one at a time. The measurements were still
+        correct, but the claim of a "bulk index" WAS NOT TRUE and the comment said the
+        opposite. Exactly the kind of bug this project chases: the code does SOMETHING
+        ELSE without raising an error.
 
-    Dogru yol: diziler gecici bir FASTA'ya yazilir ve indeks dosyadan kurulur.
-    Boylece h.ctg GERCEK kayit adini tasir, isim eslesmesi tahmine kalmaz.
+        The right route: the sequences are written to a temporary FASTA and the index is
+        built from the file. That way h.ctg carries THE REAL record name and the name
+        matching is not left to guesswork.
 
-    hedefler: [(anahtar, dizi), ...]
-    Doner   : {anahtar: (yuzde, uzaklik)}   - hizalanmayanlar (0.0, len(q))
+        hedefler: [(key, sequence), ...]
+        Returns : {key: (percent, distance)}   - the unaligned ones as (0.0, len(q))
+
     """
     if not var_mi():
         raise RuntimeError(u'mappy yok: %s' % _SEBEP)
@@ -162,9 +165,9 @@ def toplu_hizala(q, hedefler, iplik=3):
     if not q or not hedefler:
         return sonuc
 
-    # Anahtarlar FASTA basligi olacagi icin bosluk ve satir sonu tasiyamaz.
-    # Gecici ad -> gercek anahtar eslemesi ayrica tutulur; boylece ayni
-    # basligi tasiyan iki kayit birbirine karismaz.
+    # Since the keys become FASTA headers, they cannot carry spaces or newlines.
+    # The temporary name -> real key mapping is kept separately, so that two records
+    # carrying the same header are not confused with one another.
     import os as _os
     import tempfile as _tf
     esleme = {}
@@ -175,11 +178,11 @@ def toplu_hizala(q, hedefler, iplik=3):
                 ad = 's%d' % i
                 esleme[ad] = a
                 fh.write('>%s\n%s\n' % (ad, d))
-        # best_n YUKSEK TUTULUR. Varsayilan minimap2 yalnizca BIRINCIL isabeti
-        # bildirir; toplu indekste bu, "en iyi kayit disindaki her sey gorunmez"
-        # demek olurdu ve tam da kaldirmaya calistigimiz KESME NOKTASINI geri
-        # getirirdi. Aday bulucu olarak kullanacaksak butun makul isabetler
-        # gelmelidir; eleme kararini Python puanlayicisi verir, minimap2 degil.
+        # best_n IS KEPT HIGH. By default minimap2 reports only the PRIMARY hit; in a bulk
+        # index that would mean "everything except the best record is invisible", and would
+        # bring back exactly THE CUT OFF we are trying to remove. If we are to use it as a
+        # candidate finder, every reasonable hit has to come through; the elimination
+        # decision is made by the Python scorer, not by minimap2.
         ind = _MAPPY.Aligner(fn_idx_in=yol, preset='map-ont', n_threads=iplik,
                              best_n=max(len(hedefler), 50))
         if not ind:
@@ -207,14 +210,15 @@ def toplu_hizala(q, hedefler, iplik=3):
 
 
 def secili_mi():
-    """Kullanici minimap2'yi ACIKCA sectiyse True.
+    """True when the user has chosen minimap2 EXPLICITLY.
 
-    Iki sart birden: ortam degiskeni HIZALAYICI=minimap2 VE mappy calisiyor.
-    Varsayilan olarak KAPALIDIR. Sebep: karsilastirma raporu (bkz.
-    MINIMAP2_KARSILASTIRMA.md) iki motorun ayni sonucu verdigini gosterene
-    kadar hizli olani dogru saymayiz. Proje kurali 1: hicbir karar tek bir kod
-    yoluna birakilmaz ve iki olcum ayrilirsa hizli olan degil, ELLE DOGRULANAN
-    kazanir.
+        Two conditions at once: the environment variable HIZALAYICI=minimap2 AND mappy
+        working. It is OFF by default. The reason: until the comparison report (see
+        MINIMAP2_KARSILASTIRMA.md) shows the two engines giving the same answer, we do
+        not take the fast one for the correct one. Project rule 1: no decision is left to
+        a single code path, and if two measurements diverge it is not the fast one that
+        wins but the one VERIFIED BY HAND.
+
     """
     import os
     if os.environ.get('HIZALAYICI', '').strip().lower() != 'minimap2':
@@ -233,59 +237,62 @@ if __name__ == '__main__':
     print(u'HIZALAYICI secili  : %s' % (u'minimap2' if secili_mi() else u'python (varsayilan)'))
 
 
-# ---------------------------------------------------------------------------
-# HIBRIT YOL - asil onerilen kullanim (2026-08-05 olcumu)
+# -------------------------------------------------------------------------
+# THE HYBRID ROUTE - the recommended use (the 2026-08-05 measurement)
 #
-# NEDEN TAM DEGISIM DEGIL
-# Olcum sunu gosterdi: minimap2 ile saf Python motoru AYNI SORUYU SORMUYOR.
-#   * Python'un hizala() fonksiyonu infix (HW) hizalamadir: sorguyu hedefin
-#     ICINE ZORLA oturtur ve HER hedef icin bir sayi uretir. Alakasiz bir
-#     veritabaninda bile yuzde 50-65 arasi degerler dondurur. Bu degerler
-#     korunmus bolgelerden ve zorlamali hizalamadan gelen GURULTUDUR.
-#   * minimap2 yerel hizalamadir: gercek bir homoloji yoksa HIC hizalama
-#     bildirmez. Yani alakasiz veritabaninda 0 aday doner.
+# WHY NOT A FULL REPLACEMENT
+# The measurement showed this: minimap2 and the pure Python engine ARE NOT ASKING
+# THE SAME QUESTION.
+#   * Python's hizala() is an infix (HW) alignment: it FORCES the query INSIDE the
+#     target and produces a number for EVERY target. Even in an irrelevant database
+#     it returns values between 50 and 65 percent. Those values are NOISE, coming
+#     from conserved regions and from the forced alignment.
+#   * minimap2 is local alignment: with no real homology it reports NO alignment at
+#     all. So in an irrelevant database it returns 0 candidates.
 #
-# Olculen ornek (A1-1_1826872, veritabani basina 150 kayit):
-#     SILVA SSU NR99 (dogru lokus) : minimap2 2 aday buldu, hibritin sectigi
-#                                    en iyi isabet Python'un tam taramasiyla
-#                                    AYNI cikti (%73,2)
-#     SILVA LSU NR99 / LSU Parc / UNITE ITS (yanlis lokus):
-#                                    minimap2 0 aday, Python %60,4 / %52,1 /
-#                                    %51,3 uretti - hicbiri gercek eslesme degil
+# The measured example (A1-1_1826872, 150 records per database):
+#     SILVA SSU NR99 (the right locus) : minimap2 found 2 candidates, and the best
+#                                        hit the hybrid chose came out THE SAME as
+#                                        Python's full scan (73.2%)
+#     SILVA LSU NR99 / LSU Parc / UNITE ITS (the wrong locus):
+#                                        minimap2 0 candidates, Python produced
+#                                        60.4% / 52.1% / 51.3% - none of them a real
+#                                        match
 #
-# Yani "ayrilik" minimap2'nin yanilmasi degil, COPU BILDIRMEYI REDDETMESIDIR.
-# Zaten bu degerler hukum esiklerinin (tur %98,7, cins %90) cok altinda kalir
-# ve hicbir karara girmez.
+# So the "divergence" is not minimap2 being wrong, it is minimap2 REFUSING TO REPORT
+# RUBBISH. Those values fall far below the verdict thresholds anyway (species 98.7%,
+# genus 90%) and enter no decision.
 #
-# DOGRU ENTEGRASYON BU YUZDEN HIBRITTIR:
-#     minimap2 ADAYLARI BULUR  ->  Python o adaylari PUANLAR
-# Kimlik yuzdesi tanimi degismez (mevcut motorun tanimi korunur), ama her
-# veritabaninda binlerce kaydi tam hizalamak yerine yalnizca gercekten
-# hizalanan bir avuc kayit puanlanir.
+# THE RIGHT INTEGRATION IS THEREFORE HYBRID:
+#     minimap2 FINDS THE CANDIDATES  ->  Python SCORES those candidates
+# The definition of the identity percentage does not change (the existing engine's
+# definition is kept), but instead of fully aligning thousands of records in every
+# database, only the handful that really align are scored.
 #
-# EK KAZANC: KISA LISTE SORUNU
-# Mevcut yolda adaylar TOHUM SAYISINA gore siralanip ilk 500'u aliniyordu ve
-# olcum kesme noktasinin BAGLAYICI oldugunu gosterdi (kazanan bir sorguda
-# 4171. siradan geldi, 118 sorgunun 13'unde 400'un otesinden). minimap2
-# minimizer zincirlemesiyle arar; "ilk N" diye bir kesme yoktur, hizalanan
-# her kayit gelir. Yani hibrit yol kisa liste kesmesini TUMDEN ORTADAN
-# KALDIRIR. Bu, hiz kazancindan daha degerli olabilir.
-# ---------------------------------------------------------------------------
+# AN EXTRA GAIN: THE SHORT LIST PROBLEM
+# On the existing route the candidates were ranked BY SEED COUNT and the first 500
+# taken, and measurement showed the cut off WAS BINDING (in one query the winner came
+# from position 4171, and in 13 of 118 queries from beyond 400). minimap2 searches by
+# minimizer chaining; there is no "first N" cut, and every record that aligns comes
+# through. So the hybrid route REMOVES the short list cut ENTIRELY. That may be worth
+# more than the speed gain.
+# -------------------------------------------------------------------------
 def hibrit_adaylar(q, hedefler):
-    """minimap2 ile GERCEKTEN hizalanan hedefleri secer.
+    """Selects the targets minimap2 REALLY aligns.
 
-    Doner: [(anahtar, dizi), ...] - yalnizca hizalama bulunanlar.
-    mappy yoksa bos liste yerine None doner; cagiran taraf o zaman mevcut
-    kisa liste yolunu kullanmalidir. None ile bos liste AYRI SEYLERDIR:
-      None     -> minimap2 yok, karar verilemedi, eski yola dus
-      []       -> minimap2 var ve bu veritabaninda hicbir sey hizalanmadi
-    Bu ayrim onemlidir; karistirilirsa bir veritabani sessizce atlanir.
+        Returns: [(key, sequence), ...] - only the ones with an alignment.
+        With no mappy it returns None rather than an empty list; the caller must then use
+        the existing short list route. None and an empty list ARE DIFFERENT THINGS:
+          None     -> there is no minimap2, no decision could be made, fall back
+          []       -> minimap2 is there and nothing aligned in this database
+        That distinction matters; confused, a database is silently skipped.
+
     """
     if not var_mi():
         return None
-    # OLCULDU 2026-08-05: toplu_hizala TEK indeks kurar ve minimap2 o kipte
-    # IKINCIL hizalamalari ELER. Dort hedefli sinamada gercek %75,76'lik iki
-    # homolog "0" gorundu. Aday bulucu olarak kullanilamaz: kaldirmaya
-    # calistigimiz kisa liste kesmesinin yerine daha OPAK bir kesme koyar.
-    # Bu yuzden burada hedef basina AYRI indeks kurulur - yavas ama kayipsiz.
+    # MEASURED 2026-08-05: toplu_hizala builds ONE index and in that mode minimap2
+    # DISCARDS SECONDARY alignments. In a four target test two real homologues at 75.76%
+    # appeared as "0". It cannot be used as a candidate finder: it puts a more OPAQUE cut
+    # in place of the short list cut we are trying to remove. So a SEPARATE index is built
+    # per target here; slower, but lossless.
     return [(a, d) for a, d in hedefler if hizala_mm(q, d)[0] > 0]
