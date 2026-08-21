@@ -124,7 +124,7 @@ COLL=0
 for f in "${FQ[@]}"; do
   b=$(basename "$f"); b=${b%.gz}; b=${b%.fastq}; b=${b%.fq}
   if [ -n "${SEEN[$b]:-}" ]; then
-    printf 'CAKISMA: "%s" ile "%s" ayni cikti adina (%s) iniyor\n' "${SEEN[$b]}" "$f" "$b" >&2
+    printf 'CLASH: "%s" and "%s" both land on the same output name (%s)\n' "${SEEN[$b]}" "$f" "$b" >&2
     COLL=1
   else
     SEEN[$b]="$f"
@@ -160,9 +160,9 @@ ELAPSED=$(( T1 - T0 )); [ "$ELAPSED" -lt 1 ] && ELAPSED=1
 log "olcum suresi: ${ELAPSED} saniye"
 awk -v e="$ELAPSED" -v s="$SMALLB" -v t="$TOTBYTES" 'BEGIN{
   r=e/s; tot=r*t;
-  printf "[tahmin] toplam kaba sure: %.1f dakika (%.2f saat)\n", tot/60, tot/3600;
-  printf "[tahmin] not: ilk cagride veritabani yuklemesi de sureye dahildir,\n";
-  printf "         sonraki dosyalar bellek esleme kapaliysa daha hizli olur.\n"}'
+  printf "[estimate] rough total time: %.1f minutes (%.2f hours)\n", tot/60, tot/3600;
+  printf "[estimate] note: the first call includes loading the database,\n";
+  printf "           and later files are faster when memory mapping is off.\n"}'
 
 [ "$ONLYBENCH" = 1 ] && { log "yalnizca olcum istendi, duruluyor"; exit 0; }
 if [ "$ASSUME_YES" != 1 ]; then
@@ -196,6 +196,6 @@ for f in sorted(glob.glob(os.path.join(out,"*_kraken2.report"))):
 PY
 log "bitti. cikti: $OUT"
 echo
-echo "Sonraki adim Bracken yeniden tahminidir, ancak once bu klasordeki"
-echo "raporlari ve ortam_raporu.txt dosyasini paylasin; Bracken icin uygun"
+echo "The next step is the Bracken re-estimation, but first share the reports in"
+echo "this directory and ortam_raporu.txt; the kmer_distrib file that suits"
 echo "kmer_distrib uzunlugunu veriden secip betigi kesinlestirecegim."
