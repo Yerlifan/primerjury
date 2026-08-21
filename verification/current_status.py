@@ -52,20 +52,18 @@ def main():
 
     y = os.path.join(kok, 'GUNCEL_DURUM.md')
     with io.open(y, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Panelin bugünkü hâli\n\n')
-        fh.write(u'Üretim: %s · kaynak `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv`\n\n'
+        fh.write(u'# The panel as it stands today\n\n')
+        fh.write(u'Generated: %s, source `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv`\n\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'> Bu dosya **elle yazılmaz**, her koşuda panelin kendi çıktısından '
-                 u'üretilir. Başka bir belgede bununla çelişen bir sayı görürseniz '
-                 u'doğru olan budur; o belge yazıldığı günün sayısını taşıyordur.\n\n')
-        fh.write(u'| | çift | oligo |\n|---|---|---|\n')
-        fh.write(u'| **Sipariş edilecek** | **%d** | **%d** |\n'
+        fh.write(u'> This file is **never written by hand**. It is regenerated from the panel\'s own output on every run. If another document contradicts it')
+        fh.write(u'| | pairs | oligos |\n|---|---|---|\n')
+        fh.write(u'| **To order** | **%d** | **%d** |\n'
                  % (len(kesin) + len(evr), 2 * (len(kesin) + len(evr))))
-        fh.write(u'| bunun hedef özgül olanı | %d | %d |\n' % (len(kesin), 2 * len(kesin)))
-        fh.write(u'| bunun evrensel/kontrol olanı | %d | %d |\n' % (len(evr), 2 * len(evr)))
-        fh.write(u'| Sipariş dışı (silinmedi) | %d | — |\n\n' % len(disi))
-        fh.write(u'## Sipariş edilecek çiftler\n\n')
-        fh.write(u'| hedef | sınıf | şart | ürün (bp) | dCq |\n|---|---|---|---|---|\n')
+        fh.write(u'| of which target-specific | %d | %d |\n' % (len(kesin), 2 * len(kesin)))
+        fh.write(u'| of which universal/control | %d | %d |\n' % (len(evr), 2 * len(evr)))
+        fh.write(u'| Not ordered (not deleted) | %d | - |\n\n' % len(disi))
+        fh.write(u'## Pairs to order\n\n')
+        fh.write(u'| target | class | condition | product (bp) | dCq |\n|---|---|---|---|---|\n')
         for r in kesin + evr:
             fh.write(u'| %s | %s | %s | %s | %s |\n'
                      % (r.get('hedef', ''), (r.get('SINIF') or '').strip(),
@@ -73,22 +71,17 @@ def main():
                         (r.get('urun_bp') or '—').strip(),
                         (r.get('dCq_karsiligi') or '—').strip()))
         if disi:
-            fh.write(u'\n## Sipariş dışı\n\n| hedef | durum | dCq |\n|---|---|---|\n')
+            fh.write(u'\n## Not ordered\n\n| target | status | dCq |\n|---|---|---|\n')
             for r in disi:
                 fh.write(u'| %s | %s | %s |\n'
                          % (r.get('hedef', ''), (r.get('durum') or '—').strip(),
                             (r.get('dCq_karsiligi') or '—').strip()))
-        fh.write(u'\n## Bu sayının anlamadığı şey\n\n')
-        fh.write(u'Bu tablo **eşik ve kapsam** hükmüdür. Bir çiftin burada olması '
-                 u'geometri kapısından geçtiği, plaka içi jel ayrımının temiz olduğu '
-                 u'ya da NCBI katmanının onayladığı anlamına gelmez. Onlar ayrı '
-                 u'dosyalarda ölçülür: `primer_final/geometri_denetimi_*.tsv`, '
-                 u'`TEK_TUS_SONUC/DENETIM_RAPORU.md`, '
-                 u'`DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md`.\n')
+        fh.write(u'\n## What this number does not know\n\n')
+        fh.write(u'This table is a verdict on **threshold and coverage**. A pair appearing here does not mean it passed the geometry gate, that in-plate gel separation is clean')
     print('yazildi: %s' % y)
-    print('  siparis edilecek: %d cift (%d hedef ozgul + %d evrensel), %d oligo'
+    print(u'  to order: %d pairs (%d target-specific + %d universal), %d oligos'
           % (len(kesin) + len(evr), len(kesin), len(evr), 2 * (len(kesin) + len(evr))))
-    print('  siparis disi: %d' % len(disi))
+    print(u'  not ordered: %d' % len(disi))
     return 0
 
 

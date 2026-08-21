@@ -553,7 +553,7 @@ def pb_ac(url, veri=None, deneme=4, timeout=90, yaz=None):
                 break
             b = PB_GONDERIM_ARASI * (2 ** i)
             if yaz:
-                yaz(u'    ag hatasi (%s) - %d sn sonra yeniden deneniyor (%d/%d)'
+                yaz(u'    network error (%s), retrying in %d s (%d/%d)'
                     % (type(e).__name__, b, i + 2, deneme))
             time.sleep(b)
     raise son
@@ -831,7 +831,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                                         u'klonu: %d (etiketten karar verilemez, katman 2-3 '
                                         u'karar verir).'
                                         % (n, HARITA.get(ad, '?'), len(_adli), len(_adsiz)))
-                    yaz(u'  [%s] NCBI: tavan (%d) ama ADLI hedef disi >= %d (alt sinir)'
+                    yaz(u'  [%s] NCBI: hit the cap (%d) but NAMED off-target >= %d (a lower bound)'
                         % (ad, n, len(_adli)))
                     continue
                 out[ad] = dict(durum='BASARISIZ - SONUC TAVANI',
@@ -841,14 +841,14 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                                     u'icin kullanilamaz. Organizma kisiti (--organizma) '
                                     u'ile daraltip yeniden kosun.'
                                     % (n, NCBI_SONUC_TAVANI))
-                yaz(u'  [%s] NCBI: SONUC TAVANI (%d) - sayim degil, sinanmadi' % (ad, n))
+                yaz(u'  [%s] NCBI: RESULT CAP (%d) - not a count, not tested' % (ad, n))
                 continue
             if not hedefsiz and n == 0:
                 out[ad] = dict(durum='BASARISIZ - BOS SONUC',
                                not_=u'Sayfa bitti ama hicbir "product length" satiri yok '
                                     u'(hedefteki urun bile listelenmemis). Bu TEMIZ degil, '
                                     u'VERI YOK. Sinanmadi sayilir.')
-                yaz(u'  [%s] NCBI: BOS sonuc sayfasi - sinanmadi' % ad)
+                yaz(u'  [%s] NCBI: EMPTY result page - not tested' % ad)
                 continue
             # ORGANIZMA KISITI YOKSA (--organizma bos) Primer-BLAST hedefin KENDI
             # uyelerini de "unintended template" altinda listeler; max(0,n-1) ancak
@@ -862,7 +862,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             if hedefsiz:
                 out[ad] = dict(durum='TAMAM', hedef_disi=0, ncbi_toplam_urun=0,
                                not_=u'Primer-BLAST hic urun bulamadi.')
-                yaz(u'  [%s] NCBI: hic urun yok -> hedef disi 0' % ad)
+                yaz(u'  [%s] NCBI: no products at all -> off-target 0' % ad)
                 continue
             if n_unint == 0 and n_target > 0:
                 if not _kendi_dislandi:
@@ -873,7 +873,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                              u'screening/hedef_taxid.tsv icinde dislanacak takson '
                              u'yazili degil. Hedefin kendi uyeleri de listede olabilir, '
                              u'ayirt edilemez. SINANMADI.' % n_target)
-                    yaz(u'  [%s] NCBI: dislama haritasinda yok - sinanmadi' % ad)
+                    yaz(u'  [%s] NCBI: not in the exclusion map, not tested' % ad)
                     continue
                 # Kendi taksonu dislandi. Bolum basligi acilmasa da geriye kalan
                 # ADLI her urun tanimi geregi hedef disidir.
@@ -890,7 +890,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                          u'Bolum basligina bakilmadi - sablon dizi bildirilmedigi surece '
                          u'Primer-BLAST "unintended" bolumunu hic acmiyor (olculdu).'
                          % (HARITA.get(ad, '?'), n_target, len(_adli), len(_adsiz)))
-                yaz(u'  [%s] NCBI: adli hedef disi %d / adsiz klon %d / toplam %d'
+                yaz(u'  [%s] NCBI: named off-target %d / unnamed clones %d / total %d'
                     % (ad, len(_adli), len(_adsiz), n_target))
                 continue
             _kusur = (u'ORGANIZMA KISITI YOK: hedefin kendi uyeleri de "unintended" '
@@ -899,8 +899,8 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                            ncbi_toplam_urun=n_target,
                            not_=_kusur + u'"unintended templates" bolumunun sayimi; '
                                 u'ham yanit ncbi_ham/ altinda')
-            yaz(u'  [%s] NCBI: hedef disi (unintended bolumu) %s / toplam urun %s%s'
-                % (ad, n_unint, n_target, u' (organizma kisiti yok)' if _kusur else u''))
+            yaz(u'  [%s] NCBI: off-target (unintended section) %s / total products %s%s'
+                % (ad, n_unint, n_target, u' (no organism restriction)' if _kusur else u''))
         except Exception as e:
             out[ad] = dict(durum='BASARISIZ', not_=u'%s: %s' % (type(e).__name__, e))
             yaz(u'  [%s] NCBI BASARISIZ (%s) - elle yola dusun' % (ad, type(e).__name__))
@@ -968,8 +968,7 @@ def ncbi_yukle(yol, yaz=None):
     if bozuk and yaz:
         yaz(u'  WARNING: "hedef_disi_urun_sayisi" is NOT a number on %d rows. The NCBI layer was NOT built for those targets and the verdict will show BILINMIYOR (unknown):' % len(bozuk))
         for h, n in bozuk:
-            yaz(u'    %-40s deger: %r  (tam sayi bekleniyor; hic yoksa 0 yazin, '
-                u'bakmadiysaniz BOS birakin)' % (h[:40], n))
+            yaz(u'    %-40s value: %r  (an integer is expected; write 0 if there are none, leave EMPTY if you did not look)' % (h[:40], n))
     return out
 
 
@@ -1350,29 +1349,18 @@ def raporla(cikti, satirlar, yaz):
     with open(c, 'w', encoding='utf-8') as fh:
         fh.write(u'# Contradictions, the most valuable output of this round\n\n')
         if not celiskili:
-            fh.write(u'Bu kosuda uc katman **hicbir satirda ayrilmadi**.\n\n'
-                     u'Bu, "her sey temiz" demek DEGILDIR: NCBI ya da yerel katmani '
-                     u'kosulmamis satirlar "EKSIK" sayilir ve celiski uretmez.\n')
+            fh.write(u'In this run the layers **did not disagree on a single row**.\n\nThat does NOT mean "everything is clean": the NCBI or the local layer')
         for s in celiskili:
             fh.write(u'## %s\n\n' % s['hedef'])
-            fh.write(u'| kaynak | sonuc | deger |\n|---|---|---|\n')
-            fh.write(u'| 1 numune olcumu | (OY VERMEZ - sabit deger) | %s |\n' % s['numune_deger'])
-            fh.write(u'| 2 yerel veritabani (bizim) | %s | %s hedef disi (+ %s tanesi hedefin '
-                     u'KENDI boyunda, toplam %s) |\n'
+            fh.write(u'| source | result | value |\n|---|---|---|\n\n')
+            fh.write(u'| 1 in-sample measurement | (DOES NOT VOTE - fixed value) | %s |\n\n' % s['numune_deger'])
+            fh.write(u'| 2 local databases (ours) | %s | %s off-target (+ %s at the target\'s OWN length, %s in total) |\n\n'
                      % (s['yerel'], s['yerel_urun'], s.get('yerel_ayni_boyda', '-'),
                         s.get('yerel_tum', '-')))
             fh.write(u'| 3 MFEprimer (BAGIMSIZ) | %s | %s amplikon |\n' % (s.get('mfeprimer', '-'), s.get('mfe_urun', '-')))
             fh.write(u'| 4 NCBI (BAGIMSIZ) | %s | %s |\n\n' % (s['ncbi'], s['ncbi_urun']))
-            fh.write(u'**Ne anlama gelir:** numune 99 kutudan ibarettir. Numunede temiz '
-                     u'gorunup veritabaninda vurus veren bir cift, numunede BULUNMAYAN '
-                     u'bir organizmayi cogaltiyor demektir - o organizma laboratuvara '
-                     u'baska bir numuneyle girerse yalanci urun verir. Tersi de olur: '
-                     u'veritabaninda temiz gorunup numunede rakip veren cift, '
-                     u'veritabaninda temsil edilmeyen bir soyu cogaltiyordur.\n\n')
-            fh.write(u'**Yapilmasi gereken:** bu satir SIPARIS EDILEMEZ. Vurusun hangi '
-                     u'organizmada oldugu `dogrulama_uc_sutun.tsv` ve `yerel_vuruslar.tsv` '
-                     u'dosyalarindan okunup, o organizmanin bu matriste bulunup '
-                     u'bulunmadigi karara baglanmalidir.\n\n')
+            fh.write(u'**What it means:** a sample is 99 bins, not the world. A pair that looks clean in the sample but hits in a database')
+            fh.write(u'**What to do:** this row CANNOT BE ORDERED. Which organism the hit is in is shown in `dogrulama_uc_sutun.tsv` and')
     yaz(u'  written: %s' % c)
 
     v = os.path.join(cikti, 'yerel_vuruslar.tsv')
@@ -1400,10 +1388,7 @@ def raporla(cikti, satirlar, yaz):
         fh.write(u'# Dogrulama turu\n\nUretim: %s · betik %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         if VURUS_ESIGI != 0:
-            fh.write(u'> **UYARI: vurus esigi varsayilan degil.** Bu kosu '
-                     u'`PT_VURUS_ESIGI=%d` ile yapildi (varsayilan 0). Siparis '
-                     u'oncesi hukumde esik YUKSELTILMEMELIDIR; asagidaki sayilar '
-                     u'gevsetilmis olcutle uretilmistir.\n\n' % VURUS_ESIGI)
+            fh.write(u'> **WARNING: the hit threshold is not the default.** This run used `PT_VURUS_ESIGI=%d` (the default is 0). Before ordering' % VURUS_ESIGI)
         fh.write(u'## Result\n\n')
         for k in KATEGORILER:
             if k in say or k in ANA_KATEGORILER:
@@ -1614,7 +1599,7 @@ def main():
         yaz('  ' + '!' * 70)
         yaz(u'  D ASAMASI CALISTIRILMADI - GIRDI BOS')
         yaz(u'  Cause: stage K (recovery) produced no rows at all, so')
-        yaz(u'  dogrulanacak cift YOK. Bu D\'nin hatasi DEGILDIR; K\'nin')
+        yaz(u'  NO pairs to verify. This is NOT a failure of D; it is a knock-on from K,')
         yaz(u'  falling is a KNOCK-ON effect of that.')
         yaz(u'  What to do: first find out why stage K produced no rows.')
         yaz(u'  D kendi basina saglamdir - elle hazirlanmis girdiyle sinandi.')
@@ -1626,7 +1611,7 @@ def main():
     else:
         ciftler, kyol = kurtarilanlar(kok)
     if not ciftler:
-        yaz(u'  Kurtarma turunda esigi gecen YENI/DEGISMIS cift yok - dogrulanacak bir sey yok.')
+        yaz(u'  The recovery round produced no NEW or CHANGED pair above the threshold, so there is nothing to verify.')
         return 0
     yaz(u'  kaynak            : %s' % os.path.basename(kyol))
     yaz(u'  source path       : %s' % kyol)
@@ -1635,7 +1620,7 @@ def main():
         _sip = sum(1 for c in ciftler if c.get('sipariste'))
         yaz(u'  MODE: --all  (EVERY pair in the panel; %d on the order list, %d outside it)' % (_sip, len(ciftler) - _sip))
     if _ATLANAN:
-        yaz(u'  ATLANAN (primer dizisi bulunamadi - protocol ciktisinda yok): %s'
+        yaz(u'  SKIPPED (primer sequence not found; absent from the protocol output): %s'
             % ', '.join(_ATLANAN))
     for c in ciftler:
         yaz(u'     - %-42s %s' % (c['hedef'][:42], c['tur']))
@@ -1665,7 +1650,7 @@ def main():
            sure_metni(_n4 * 75 + max(0, _n4 - 1) * PB_GONDERIM_ARASI)))
     if getattr(a, 'ncbi_yalniz_siparis', False):
         _dis = [c['hedef'] for c in ciftler if not c.get('sipariste')]
-        yaz(u'  KATMAN 4 KISITLI (--ncbi-yalniz-siparis): %d cift NCBI GORMEYECEK.'
+        yaz(u'  LAYER 4 RESTRICTED (--ncbi-order-only): %d pairs will NOT be seen by NCBI.'
             % len(_dis))
         yaz(u'     The NCBI column stays BILINMIYOR (unknown) on those rows. That is NOT "clean".')
         for _d in _dis:
@@ -1680,9 +1665,9 @@ def main():
     mfe_sonuc = {}
     if not a.mfe_yok:
         yaz(u'--- LAYER 3: MFEprimer (INDEPENDENT TOOL) ---')
-        yaz(u'  Ilk iki katman da BIZIM kodumuz ve ayni motoru kullaniyor; o motorda')
-        yaz(u'  bir hata varsa ikisi de ayni yonde yanilir. Bu katman disaridan gelen')
-        yaz(u'  bagimsiz bir araci ayni sorulara sokar.')
+        yaz(u'  The first two layers are also OUR code and share the same engine; if that')
+        yaz(u'  engine has a bug, both will be wrong in the same direction. This layer puts')
+        yaz(u'  an independent, external tool to the same questions.')
         import importlib.util as _u
         _sp = _u.spec_from_file_location(
             'mfe_katmani', os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -1690,7 +1675,7 @@ def main():
         MK = _u.module_from_spec(_sp); _sp.loader.exec_module(MK)
         mfe = MK.mfe_bul(kok)
         if not mfe:
-            yaz(u'  MFEprimer ikilisi bulunamadi (tools/mfeprimer) - katman ATLANDI.')
+            yaz(u'  MFEprimer binary not found (tools/mfeprimer); the layer was SKIPPED.')
         else:
             yaz(u'  ikili: %s' % mfe)
             dur, spec = MK.spec_kos(kok, mfe, ciftler, CIKTI, yaz, KONTROL)
@@ -1700,14 +1685,14 @@ def main():
             try:
                 MK.hedef_disi_kimlikleri(CIKTI, ciftler, yaz)
             except Exception as _e:
-                yaz(u'  UYARI: hedef disi kimlik dosyasi yazilamadi: %s' % _e)
+                yaz(u'  WARNING: could not write the off-target identity file: %s' % _e)
             if dur.get('durum') == 'TAMAM':
                 for c in ciftler:
                     mfe_sonuc[c['hedef']] = dict(
                         durum='TAMAM', hedef_disi=MK.hedef_disi_say(spec, c['hedef'], ciftler),
                         yapi=yapi, kullanilan_db=dur.get('kullanilan', []))
             else:
-                yaz(u'  MFEprimer katmani sonuc vermedi: %s' % dur.get('sebep', ''))
+                yaz(u'  The MFEprimer layer returned no result: %s' % dur.get('sebep', ''))
 
     ncbi = {}
     if a.ncbi_yukle:
@@ -1720,15 +1705,14 @@ def main():
         yaz(u'--- KATMAN 4: NCBI OTOMATIK (URL API) ---')
         yaz(u'  Not: blastn -remote KULLANILMIYOR (45 sn tavanini asiyor).')
         if _n4 != len(ciftler):
-            yaz(u'  KAPSAM: %d/%d cift (siparis listesindekiler). Digerleri '
-                u'yalniz katman 2+3 gordu.' % (_n4, len(ciftler)))
+            yaz(u'  COVERAGE: %d/%d pairs (those on the order list). The rest were only seen by layers 2 and 3.' % (_n4, len(ciftler)))
         ncbi = katman2_oto(_ncbi_ciftler, CIKTI, yaz, a.organizma,
                           haric_taxid=getattr(a, 'ncbi_haric_taxid', '') or '')
         if not any(v.get('durum', '').startswith('TAMAM') for v in ncbi.values()):
-            yaz(u'  Otomatik yol sonuc vermedi - elle yol dosyalari uretiliyor.')
+            yaz(u'  The automatic route returned nothing; writing the manual route files.')
             katman2_elle_girdi(_ncbi_ciftler, CIKTI, yaz, a.organizma)
     else:
-        yaz(u'--- KATMAN 4: NCBI ELLE (girdi ve sablon uretiliyor) ---')
+        yaz(u'--- LAYER 4: NCBI MANUAL (writing the input and the template) ---')
         katman2_elle_girdi(_ncbi_ciftler, CIKTI, yaz, a.organizma)
 
     # D-12: MFEprimer'in ham (boya dayali) sayisi degil, TAKSONOMIK olarak

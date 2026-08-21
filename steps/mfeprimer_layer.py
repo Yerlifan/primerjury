@@ -134,9 +134,9 @@ def main():
             k = (x["hedef"], x["sinif"], x["ileri_dizi"], x["geri_dizi"],
                  x["veritabani"])
             blast[k] = blast.get(k, 0) + int(x.get("hedef_disi_urun", 0) or 0)
-        print("14'un ciktisi okundu: %s (%d kayit)" % (byol, len(blast)))
+        print(u'read the external-databases output: %s (%d records)' % (byol, len(blast)))
     else:
-        print("UYARI: 14'un ciktisi yok, karsilastirma yapilamayacak: %s" % byol)
+        print(u'WARNING: the external-databases output is missing, no comparison will be possible: %s' % byol)
 
     calisma = tempfile.mkdtemp(prefix="mfe_")
     sonuc = []
@@ -159,7 +159,7 @@ def main():
             if eks:
                 print("   mfeprimer indeksi eksik (%s): %s"
                       % (", ".join(eks), dbad))
-                print("   Kurmak icin: %s index -i %s -c %d"
+                print(u'   To build it: %s index -i %s -c %d'
                       % (a.mfe, fna, a.cpu))
                 hata += 1
                 continue
@@ -187,13 +187,13 @@ def main():
                    "-t", str(a.tm_min), "-c", str(a.cpu),
                    "--misMatch", str(a.mismatch),
                    "--misStart", "1", "--misEnd", str(a.mis_end)]
-            print("   mfeprimer %-4s x %-22s (%d cift)"
+            print(u'   mfeprimer %-4s x %-22s (%d pairs)'
                   % (sinif, dbad, len(ciftler)))
             try:
                 p = subprocess.run(cmd, capture_output=True, text=True,
                                    timeout=a.zaman_asimi)
             except subprocess.TimeoutExpired:
-                print("      ZAMAN ASIMI (%d sn), atlandi" % a.zaman_asimi)
+                print(u'      TIMEOUT (%d s), skipped' % a.zaman_asimi)
                 continue
             ciktisi = (p.stdout or "") + (p.stderr or "")
             if p.returncode != 0:
@@ -204,7 +204,7 @@ def main():
             # ekrana yazar. Cikis kodunu tek olcut saymak, bu durumda
             # "hedef disi urun yok" gibi okunan sahte bir temizlik uretir.
             if "no valid db" in ciktisi.lower() or "error" in ciktisi.lower():
-                print("      HATA (cikis kodu 0 ama ileti var): %s"
+                print(u'      ERROR (exit code 0 but there is a message): %s'
                       % ciktisi.strip()[:220])
                 hata += 1
                 continue
@@ -220,8 +220,7 @@ def main():
                     okunan = c
                     break
             if not okunan:
-                print("      .spec.tsv olusmadi, bu veritabani OLCULEMEDI. "
-                      "mfeprimer iletisi: %s" % (ciktisi.strip()[:160] or "yok"))
+                print(u'      no .spec.tsv was produced, so this database was NOT MEASURED. mfeprimer said: %s' % (ciktisi.strip()[:160] or "yok"))
                 hata += 1
                 continue
             with open(okunan, encoding="utf-8", errors="replace") as fh:
@@ -288,29 +287,26 @@ def main():
     print("\nyazildi: %s" % a.out)
 
     say_uyum = collections.Counter(x["uyum"] for x in sonuc)
-    print("kayit: %d" % len(sonuc))
+    print(u'records: %d' % len(sonuc))
     for k in ("iki_olcum_uyustu", "ayrisan_olcum", "tek_olcum"):
         if say_uyum.get(k):
             print("   %-20s %d" % (k, say_uyum[k]))
     ayrisan = [x for x in sonuc if x["uyum"] == "ayrisan_olcum"]
     if ayrisan:
-        print("\nAYRISAN OLCUMLER (biri urun buldu, oteki bulmadi):")
+        print(u'\nDIVERGING MEASUREMENTS (one found a product, the other did not):')
         for x in ayrisan[:20]:
             print("   %-30s %-3s %-18s blast=%-5s mfe=%-5s"
                   % (x["hedef"][:29], x["sinif"], x["veritabani"][:17],
                      x["blast_urun"], x["mfe_urun"]))
         if len(ayrisan) > 20:
-            print("   ... %d kayit daha" % (len(ayrisan) - 20))
-        print("Bu satirlar elenmis sayilmaz; iki yontemin ayrildigi yerlerdir "
-              "ve laboratuvarda ayri dikkat gerektirir.")
+            print(u'   ... %d more records' % (len(ayrisan) - 20))
+        print(u'These rows do not count as eliminated. They are where the two methods disagree, and they need separate attention in the laboratory.')
     temiz = sorted(set((x["hedef"], x["sinif"]) for x in sonuc
                        if x["mfe_urun"] == 0))
-    print("\nmfeprimer'e gore hedef disi amplikon vermeyen hedef-sinif: %d"
+    print(u'\ntarget classes with no off-target amplicon according to mfeprimer: %d'
           % len(temiz))
     if hata:
-        print("\nDIKKAT: %d veritabani olculemedi. Bu veritabanlari icin "
-              "ikinci olcum YAPILMAMISTIR; eksikligi sonuc dosyasinda "
-              "'tek_olcum' olarak degil, hic satir olmayarak gorunur." % hata)
+        print(u'\nCAUTION: %d databases could not be measured. No second measurement was made for them, and the gap is recorded in the result file' % hata)
         return 1
     return 0
 
