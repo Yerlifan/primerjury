@@ -1,32 +1,36 @@
 # -*- coding: utf-8 -*-
-"""HEPSINI SIRAYLA KOS - P -> K -> D -> I, bagimlilik sirasiyla, tek tusla.
+"""RUN THEM ALL IN ORDER - P -> K -> D -> I, in dependency order, from one key.
 
-Her asama bitince duruma yazilir; kesilirse BITMIS asamalar atlanir ve
-kaldigi yerden devam eder. Sonunda tek bir birlesik ozet uretilir:
-son siparis listesi + kurtarilan hedefler + celiskiler + kimlik tablosu.
+The state is written as each stage finishes; if it is interrupted the FINISHED
+stages are skipped and it continues where it stopped. At the end one combined
+summary is produced: the final order list plus the recovered targets plus the
+contradictions plus the identity table.
 
-Gece baslatilip sabah TEK DOSYAYA bakilmak icin tasarlandi:
+It is designed to be started at night and read from ONE FILE in the morning:
     TUM_KOSU_SONUC/00_BIRLESIK_OZET.md
+
 """
 
 # -------------------------------------------------------------------------
-# run_all_stages.py — dort olcum asamasini bagimlilik sirasiyla (P -> K -> D -> I)
-# kosar ve sabah tek dosyadan okunacak birlesik ozeti uretir.
+# run_all_stages.py runs the four measurement stages in dependency order
+# (P -> K -> D -> I) and produces the combined summary to be read from one file in
+# the morning.
 #
-# GİRDİ  : ASAMALAR tablosundaki dort betik (protocol/single_protocol_measure.py,
-#          verification/recovery_round.py, verification/specificity_round.py,
-#          verification/identity_verification.py) ve onlarin urettigi TSV dosyalari;
-#          ayrica TUM_KOSU_SONUC/durum.json (onceki kosunun nerede kaldigi).
-# ÇIKTI  : TUM_KOSU_SONUC/00_BIRLESIK_OZET.md (sabah okunacak tek dosya),
+# INPUT  : the four scripts in the ASAMALAR table
+#          (protocol/single_protocol_measure.py, verification/recovery_round.py,
+#          verification/specificity_round.py,
+#          verification/identity_verification.py) and the TSV files they produce;
+#          plus TUM_KOSU_SONUC/durum.json (where the previous run stopped).
+# OUTPUT : TUM_KOSU_SONUC/00_BIRLESIK_OZET.md (the one file to read in the morning),
 #          TUM_KOSU_SONUC/durum.json, TUM_KOSU_SONUC/kosu_gunlugu.txt.
-# ÇAĞRAN : verification/full_chain.py -> T tusu
-#          (bat icinde: wsl -e python3 "verification/run_all_stages.py" --kok .)
+# CALLED BY: verification/full_chain.py -> key T
+#          (python3 verification/run_all_stages.py --root .)
 #
-# SIRA ZORUNLUDUR, KEYFI DEGIL: K girdisini P'nin panel tablosundan, D girdisini
-# K'nin kurtardigi ciftlerden alir. Bir asama satir uretmezse sonraki asamanin
-# girdisi bostur; zincir orada BILEREK durdurulur (bkz. calistir icindeki cikti
-# denetimi). Bos girdiyle devam etmek cokme uretmez, gece boyunca anlamsiz ama
-# inandirici bir ozet uretir.
+# THE ORDER IS REQUIRED, NOT ARBITRARY: K takes its input from P's panel table and D
+# takes its input from the pairs K recovered. If a stage produces no rows the next
+# stage's input is empty; the chain is DELIBERATELY stopped there (see the output
+# audit inside calistir). Carrying on with an empty input produces no crash, it
+# produces a meaningless but convincing summary overnight.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, subprocess, argparse
 
@@ -49,11 +53,12 @@ ASAMALAR = [
 
 
 
-# --- TOPLANTI TALEPLERININ TAM LISTESI ---------------------------------
-# Kaynak: "6 Karar Durumu" sayfasi. O sayfada 29 satir var ama hepsi TALEP
-# DEGIL: Karar 1-4 = 21 TOPLANTI TALEBI, Karar 5 = 8 OLCUMDEN TURETILEN hedef
-# (toplantida istenmedi, olcum sirasinda ortaya cikti). Bu tablo 21 talebi
-# tasir ve her birinin hangi panel satir(lar)iyla karsilandigini soyler.
+# --- THE FULL LIST OF THE MEETING REQUESTS ------------------------------
+# The source: the "6 Karar Durumu" sheet. That sheet holds 29 rows but not all of
+# them are REQUESTS: decisions 1-4 are 21 MEETING REQUESTS and decision 5 is 8
+# targets DERIVED FROM MEASUREMENT (not asked for in the meeting, they came up
+# during measurement). This table carries the 21 requests and says which panel row
+# or rows each of them is met by.
 TOPLANTI_TALEPLERI = [
  ('Karar 1', 'Methanosarcina mazei',              ['mazei']),
  ('Karar 1', 'Methanothrix soehngenii',           ['soehngenii', 'Methanothrix_cinsi']),
@@ -89,22 +94,24 @@ def tsv_oku(yol):
     if not os.path.exists(yol):
         return []
     with open(yol, encoding='utf-8') as fh:
-        # K-2 ikinci savunma hatti: BOS satir da atlanmali, yoksa
-        # DictReader bos satiri baslik sanip fieldnames=[] yapiyor.
+        # The K-2 second line of defence: a BLANK row must be skipped too, or
+        # DictReader takes the blank row for a header and sets fieldnames=[].
         return list(csv.DictReader(
             (s for s in fh if s.strip() and not s.startswith('#')), delimiter='\t'))
 
 
-# ---------------------------------------------------------------------------
-# Dort asamayi sirayla kosar. Kesintiye dayaniklidir: her asama bitince durumu
-# durum.json icine yazar, tekrar kosuldugunda "bitti" damgali asamalari atlar.
+# -------------------------------------------------------------------------
+# It runs the four stages in order. It is interruption tolerant: as each stage
+# finishes it writes the state into durum.json, and on a re-run it skips the stages
+# stamped "bitti".
 #
-# NEDEN "cikis kodu 0" YETMEZ: bir asama sifir donup hicbir cikti uretmemis
-# olabilir. Yalniz cikis koduna bakilsaydi o asamaya "bitti" damgasi vurulur ve
-# bir sonraki gece sessizce atlanirdi - hata kalicilasirdi. Bu yuzden her
-# asamadan sonra beklenen TSV dosyasi ACILIP veri satiri sayilir; dosya yoksa ya
-# da bossa durum "CIKTI YOK" / "CIKTI BOS" yazilir ve zincir durdurulur.
-# ---------------------------------------------------------------------------
+# WHY "exit code 0" IS NOT ENOUGH: a stage can return zero and have produced no
+# output at all. Looking only at the exit code would stamp that stage "bitti" and it
+# would be skipped silently the following night, so the bug would become permanent.
+# So after every stage the expected TSV is OPENED and its data rows counted; if the
+# file is missing or empty the state is written "CIKTI YOK" / "CIKTI BOS" and the
+# chain is stopped.
+# -------------------------------------------------------------------------
 def calistir(kok, ncbi, yeniden, atla):
     CIKTI = os.path.join(kok, 'TUM_KOSU_SONUC')
     os.makedirs(CIKTI, exist_ok=True)
@@ -150,8 +157,8 @@ def calistir(kok, ncbi, yeniden, atla):
             arg += (['--ncbi', ncbi] if ncbi != 'yok' else ['--yalniz-yerel'])
         ta = time.time()
         rc = subprocess.call(arg)
-        # O-14: rc==0 YETMEZ. Asama sifir donup hicbir cikti uretmemis olabilir;
-        # o zaman 'bitti' damgasi vurulursa sonraki gece sessizce atlanir.
+        # O-14: rc==0 IS NOT ENOUGH. A stage can return zero and have produced no output; if
+        # it is stamped 'bitti' then, it is skipped silently the following night.
         bekl = os.path.join(kok, ciktilar)
         satir = len(tsv_oku(bekl)) if os.path.exists(bekl) else -1
         if rc != 0:
@@ -188,16 +195,16 @@ def calistir(kok, ncbi, yeniden, atla):
     return 0
 
 
-# ---------------------------------------------------------------------------
-# Dort asamanin ciktisini TEK markdown dosyasinda birlestirir. Olcum YAPMAZ,
-# yalniz mevcut TSV dosyalarini okur; bu yuzden zincir yarida kesilse bile
-# cagrilabilir ve elde ne varsa onu gosterir.
+# -------------------------------------------------------------------------
+# It combines the output of the four stages into ONE markdown file. It MAKES NO
+# measurement, it only reads the existing TSV files; so it can be called even when
+# the chain was interrupted, and it shows whatever there is.
 #
-# Siparis listesi burada iki suzgecten gecer: P asamasinin esigi gecirdigi
-# ciftlerden, D asamasinin CELISKILI ya da RISKLI isaretledikleri DUSULUR.
-# "EKSIK" isaretliler sayidan dusulmez ama ayrica yazilir - dogrulamasi
-# tamamlanmamis bir cift "temiz" ile ayni sey degildir.
-# ---------------------------------------------------------------------------
+# The order list goes through two filters here: from the pairs stage P passed over
+# the threshold, the ones stage D marked CELISKILI or RISKLI are SUBTRACTED. The ones
+# marked "EKSIK" are not subtracted from the count but are written out separately; a
+# pair whose verification did not complete is not the same thing as a clean one.
+# -------------------------------------------------------------------------
 def ozet(kok, CIKTI, durum, yaz):
     d_bitti = durum.get('D', {}).get('durum') == 'bitti'
     k_bitti = durum.get('K', {}).get('durum') == 'bitti'
@@ -229,17 +236,18 @@ def ozet(kok, CIKTI, durum, yaz):
         celiskili = {r['hedef'] for r in D if r.get('KARAR') == 'CELISKILI'}
         riskli = {r['hedef'] for r in D if (r.get('KARAR') or '').startswith('RISKLI')}
         eksik = {r['hedef'] for r in D if (r.get('KARAR') or '').startswith('EKSIK')}
-        # D-6: 'INCELEME' = gevsek yerel olcutte vurus var, MFEprimer temiz.
-        # Celiski degil ama TEMIZ de degil - 3' son iki baz sinanana kadar
-        # siparise GIRMEZ. Dusulenler ayri yazilir ki sayi kaybolmasin.
+        # D-6: 'INCELEME' = there is a hit under the loose local criterion and MFEprimer is
+        # clean. Not a contradiction, but not CLEAN either; it DOES NOT GO to order until the
+        # last two bases at the 3' end are tested. The subtracted ones are written separately
+        # so that the count is not lost.
         inceleme = {r['hedef'] for r in D
                     if (r.get('KARAR') or '').startswith('INCELEME')}
         temiz = [r for r in gecen if r['hedef'] not in celiskili
                  and r['hedef'] not in riskli and r['hedef'] not in inceleme]
-        # --- 2026-08-06: UC SAYI AYRI AYRI. SIP satirlari artik SINIF sutunu
-        # tasiyor (KESIN / EVRENSEL / KOSULLU / ONERILMEZ). Esigi gecemeyen satir
-        # listeden SILINMEZ; ozet de bunu boyle yazmali, yoksa siparis dosyasi ile
-        # bu ozet farkli sey soyler - bu projede daha once tam olarak bu oldu.
+        # --- 2026-08-06: THREE NUMBERS, SEPARATELY. The SIP rows now carry a CLASS column
+        # (KESIN / EVRENSEL / KOSULLU / ONERILMEZ). A row that fails the threshold IS NOT
+        # DELETED from the list; the summary has to say so too, or the order file and this
+        # summary say different things - which has already happened in this project.
         _sn = lambda r: (r.get('SINIF') or '').strip().upper()
         kesin = [r for r in SIP if _sn(r) in ('KESIN', 'EVRENSEL')]
         kosullu = [r for r in SIP if _sn(r) == 'KOSULLU']
@@ -264,8 +272,8 @@ def ozet(kok, CIKTI, durum, yaz):
                  % (len(gecen) - len(temiz)))
         if eksik:
             fh.write(u'- Verification NOT COMPLETE (NCBI missing): %d. These ARE included in the number above, but they cannot be ordered before the NCBI step finishes' % len(eksik))
-        # ESKI/YENI KIMLIK yan yana: ">>" isareti toplantida konusulan ad ile
-        # olculen kimligin AYNI OLMADIGINI gosterir.
+        # THE OLD AND NEW IDENTITY side by side: a ">>" marks that the name discussed in the
+        # meeting and the measured identity ARE NOT THE SAME.
         fh.write(u'\n| # | CLASS | target | Kraken label | Measured identity | Level | product bp | discrimination mm<=1 | dCq | verification |\n|---|---|---|---|---|---|---|---|---|---|\n')
         _sirali = (kesin + kosullu + onerilmez) if (kesin or kosullu or onerilmez) else gecen
         for i, r in enumerate(_sirali, 1):
@@ -275,8 +283,8 @@ def ozet(kok, CIKTI, durum, yaz):
                   ('temiz' if d_bitti else 'DOGRULANMADI'))
             _f = (r.get('ad_farkli_mi') or '')
             _im = u'**>>** ' if _f.startswith('>>') else u''
-            # '|' MARKDOWN SUTUN AYIRICISIDIR. Kimlik dizeleri birden fazla adi
-            # ' | ' ile birlestirdigi icin tabloyu kaydiriyordu; ' / ' yapilir.
+            # '|' IS THE MARKDOWN COLUMN SEPARATOR. Because identity strings join several names
+            # with ' | ', they were shifting the table; ' / ' is used instead.
             _t = lambda v, n: ((v or '-').replace('|', '/'))[:n]
             fh.write(u'| %d | %s%s | `%s` | %s | %s | %s | %s | %s | %s | %s |\n'
                      % (i, _im, _sn(r) or '-', r['hedef'],
@@ -395,8 +403,9 @@ def ozet(kok, CIKTI, durum, yaz):
     yaz(u'  LOOK AT THIS FIRST: %s' % yol)
 
 
-# Komut satiri: --kok proje klasoru, --ncbi D asamasinin NCBI kipi, --yeniden
-# bitmis asamalari da tekrar kosar, --atla belirli asamalari atlar (orn. "DI").
+# The command line: --root the project directory, --ncbi stage D's NCBI mode,
+# --yeniden re-runs the finished stages too, --atla skips particular stages
+# ("DI", for example).
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
