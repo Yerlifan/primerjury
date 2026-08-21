@@ -182,7 +182,7 @@ def uyelik_dosyasi(kok):
     """En yeni uyelik dosyasini bulur - ADA gore degil, ZAMANA gore.
 
     2026-08-10 duzeltmesi. Eski kod iki globu birlestirip a[-1] aliyordu; bu
-    "en yeni" DEMEK DEGILDI. Siralama alfabetikti ve UYELIK_YENIDEN_SONUC
+    "en yeni" DEMEK DEGILDI. Siralama alfabetikti ve engine_SONUC
     girdileri her zaman kokteki girdilerden SONRA geliyordu. Yani alt
     klasorde 1 Agustos tarihli bir dosya olsa, kokteki 3 Agustos tarihliyi
     yenerdi. Su an tek aday var, o yuzden davranis degismiyor; ama bir
@@ -192,7 +192,7 @@ def uyelik_dosyasi(kok):
     """
     import glob
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'UYELIK_YENIDEN_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
     if not a:
         return None
     # once zaman, esitlikte ad - iki olcut de ACIK yazili

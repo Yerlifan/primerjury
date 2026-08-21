@@ -73,7 +73,7 @@ CIFTLER = [
 
 # --- ESKI (hatali) motorun birebir kopyasi - yalniz karsilastirma icin -------
 def eski_yerler(seq, primer, max_mm=1, uc5=False, SEED=13):
-    """SON_ETAP_betikleri/okuma.py -> Sonda.bul davranisinin birebir kopyasi."""
+    """engine/okuma.py -> Sonda.bul davranisinin birebir kopyasi."""
     sd = primer[:SEED] if uc5 else primer[-SEED:]
     off = 0 if uc5 else len(primer) - SEED
     tohumlar = [''.join(x) for x in itertools.product(

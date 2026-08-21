@@ -315,11 +315,11 @@ def ASAMALAR(ayar):
              denet=d_tsv_dolu(['ERISIM_SONUC/erisim_dogrulama.tsv'])),
 
         dict(kod='U', ad=u'UYELIGI OLCULEN KIMLIKTEN YENIDEN TURET',
-             grup=u'Grup 4', betik='UYELIK_YENIDEN/uyelik_yeniden_turet.py',
-             argv=lambda kok, a: [_py(os.path.join('UYELIK_YENIDEN',
+             grup=u'Grup 4', betik='engine/uyelik_yeniden_turet.py',
+             argv=lambda kok, a: [_py(os.path.join('engine',
                                                    'uyelik_yeniden_turet.py'),
                                       '--kok', '.')],
-             girdi=['UYELIK_YENIDEN/uyelik_yeniden_turet.py', 'consensus sequences'],
+             girdi=['engine/uyelik_yeniden_turet.py', 'consensus sequences'],
              cikti=['GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'], bagimli=[],
              sure_sn=None,
              kaynak=u'OLCULMEDI - menudeki "1-3 saat" bir tahmindir, olcum degil',
@@ -476,8 +476,8 @@ def on_kontrol(kok, ayar, yaz):
     for d, zor in (('fastq files', True), ('consensus sequences', True),
                    ('primer_final', True), ('REFERANS_DB', True),
                    ('screening', True), ('protocol', True),
-                   ('SON_ETAP_betikleri', True), ('MADDE123_betikleri', True),
-                   ('DUZELTME_betikleri', True), ('UYELIK_YENIDEN', True),
+                   ('engine', True), ('engine', True),
+                   ('engine', True), ('engine', True),
                    ('konsensus_kanonik', False)):
         t = os.path.join(kok, d)
         var = os.path.isdir(t)

@@ -128,7 +128,7 @@ def main():
             (u'sentetik: KODDA gercekten okuyor', GERCEK_RISK, True),
             (u'sentetik: yalniz aciklamada aniyor', SADECE_ACIKLAMA, False),
             (u'sentetik: yalniz ekrana basiyor', SADECE_MESAJ, False)]:
-        y = riskli(metin, u'sentetik.py')
+        y = riskli(metin, u'<synthetic>')
         ok = (y == beklenen)
         gecti = gecti and ok
         print(u'%-42s | %-8s | %-8s | %-8s | %s'

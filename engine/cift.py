@@ -7,7 +7,7 @@
 #          ve SEED=10 icin indekslenmis olarak) + F ve R primer dizileri.
 # ÇIKTI  : dosyaya YAZMAZ. urunler() -> (m, boy). m = okuma sayisi uzunlugunda
 #          bool maske (hangi okumada urun var), boy = urun boyu -> okuma sayisi.
-# ÇAĞRAN : KAPSAMLI_ARAMA/motor.py bu dosyayi ada gore bulup yukler (zorunlu
+# ÇAĞRAN : screening/motor.py bu dosyayi ada gore bulup yukler (zorunlu
 #          degil; yoksa cift=None kalir) ve kendini_sina.py yuklendigini
 #          dogrular. Ayni klasordeki son_sec.py, nd_v2/v2b/v3/v4.py, esle.py,
 #          arke_esle.py, arke_skor.py, clo_ara.py, clo_ara2.py,
@@ -28,7 +28,7 @@
 import sys,pickle,numpy as np
 # Oturuma bagli mutlak yollar - bu betikler bir WSL calisma dizininde yazildi.
 # motor.py ice aktarmadan once bu yollari gecerli hale getirir.
-sys.path.insert(0,'/tmp/wk2/SON_ETAP_betikleri'); sys.path.insert(0,'/tmp/wk2/is')
+sys.path.insert(0,'/tmp/wk2/engine'); sys.path.insert(0,'/tmp/wk2/is')
 import ispcr
 
 # ---------------------------------------------------------------------------

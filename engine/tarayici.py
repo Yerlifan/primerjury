@@ -1,7 +1,7 @@
 """Hizli KATI tarayici: 3' son 10-mer tohumu (son 2 baz tam) + tam primer dogrulamasi.
 Olcut ispcr.find_sites ile ayni: uyumsuzluk<=1, 3' son 2 baz tam."""
 import sys, numpy as np
-sys.path.insert(0,'/tmp/wk2/SON_ETAP_betikleri')
+sys.path.insert(0,'/tmp/wk2/engine')
 import ispcr
 SEED=10
 

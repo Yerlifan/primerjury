@@ -14,24 +14,24 @@ toplam uyumsuzluk <= max_mm, urun boyu araligi verilen pencerede olacak.
 #          amplify -> [(bas, bit, urun_bp, mm_F, mm_R)]; scan_file ->
 #          (toplam_dizi, urun_veren_dizi, boy_dagilimi, vurus_listesi).
 #          Yalniz __main__ ekrana ozet basar.
-# ÇAĞRAN : KAPSAMLI_ARAMA/motor.py bu dosyayi ada gore bulup yukler; bulamazsa
+# ÇAĞRAN : screening/motor.py bu dosyayi ada gore bulup yukler; bulamazsa
 #          "HATA: ispcr.py bulunamadi" deyip cikar, yani motor.py'siz hicbir
 #          olcum kosamaz. motor.py'yi de paketin butun olcum modulleri
 #          (numune.py, kuresel_tarama.py, referans.py, uretec.py, hedefler.py,
 #          konsensus_uret.py, panel_olcum.py, uyelik_denetimi.py,
-#          kendini_sina.py) ve disaridan KURTARMA/kurtarma_turu.py ile
-#          TEK_PROTOKOL/tek_protokol_olc.py kullanir. Ayrica ayni klasordeki
+#          kendini_sina.py) ve disaridan verification/kurtarma_turu.py ile
+#          protocol/tek_protokol_olc.py kullanir. Ayrica ayni klasordeki
 #          ara.py, hiza.py, mazei*.py, deg_*.py, mmb_*.py ve
-#          MADDE123_betikleri/tarayici.py, cift.py dogrudan "import ispcr" der.
+#          engine/tarayici.py, cift.py dogrudan "import ispcr" der.
 #          Menude her olcum tusunda yuklenir: P (tek protokolle panel olcumu),
 #          K (kurtarma), D (dogrulama), I ve G (kimlik), T (P->K->D->I),
 #          U (uyelik), H (hizli test), 1-9 (kapsamli arama).
-#          KAPSAMLI_ARAMA.bat bu dosyayi DOGRUDAN cagirmaz ama acilista
-#          "SON_ETAP_betikleri\ispcr.py" var mi diye bakar; yoksa arac acilmaz.
+#          screening.bat bu dosyayi DOGRUDAN cagirmaz ama acilista
+#          "engine\ispcr.py" var mi diye bakar; yoksa arac acilmaz.
 #
 # NEDEN TOHUMSUZ: bu motor find_sites icinde tam kayan pencere tarar, hicbir
 # tohum/kisayol varsayimi yoktur; dolayisiyla kayipsizligi tanim geregidir.
-# Tohumlu hizli yollar (KAPSAMLI_ARAMA/okuma_motoru.py, tarayici.py Havuz)
+# Tohumlu hizli yollar (screening/okuma_motoru.py, tarayici.py Havuz)
 # bu dosyanin olcutunu taklit etmek zorundadir ve kendini_sina.py ucunu
 # birebir karsilastirir.
 # ---------------------------------------------------------------------------
@@ -200,7 +200,7 @@ def find_sites(enc, primer, max_mm, need_tail=True, tail_pos=(-1, -2)):
 # konsensus ters yonde uretilmis olabilir; ters yonlu bir dizide bu fonksiyon
 # urunlerin TAMAMINI kaybeder ve HATA DA ATMAZ, sessizce 0 doner. Bu yuzden:
 #   - konsensus tarafinda yon KANONIK KAYNAKTAN okunur
-#     (KAPSAMLI_ARAMA/hedefler.konsensusler -> konsensus_kanonik/INDEKS.tsv,
+#     (screening/hedefler.konsensusler -> konsensus_kanonik/INDEKS.tsv,
 #     hepsi SENSE). Eski "consensus sequences" klasoru KARISIK yonluydu
 #     (71 antisense / 27 sense) ve ona sessizce dusulmesi yasaklanmistir.
 #   - ham okuma tarafinda cagiran her okumayi iki yonde de dener

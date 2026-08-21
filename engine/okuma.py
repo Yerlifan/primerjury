@@ -9,19 +9,19 @@ okuma_pcr.py KULLANILMAZ; bagimsiz yazildi. Filtre 200-6000 bp (duzeltilmis).
 #          Komut satirindan: python okuma.py <F> <R> <fastq...>
 # ÇIKTI  : dosyaya YAZMAZ. kutu_pcr -> (toplam_okuma, urun_veren_okuma,
 #          urun_boyu_sayaci). __main__ kutu basina yuzde satiri basar.
-# ÇAĞRAN : KAPSAMLI_ARAMA/motor.py bu dosyayi ada gore bulup yukler (ispcr'in
+# ÇAĞRAN : screening/motor.py bu dosyayi ada gore bulup yukler (ispcr'in
 #          aksine ZORUNLU degil, bulunamazsa okuma=None kalir) ve yukledikten
 #          hemen sonra okuma uzunluk filtresini yapilandirmadaki duzeltilmis
 #          degerlerle EZER: okuma.MINL, okuma.MAXL = C.NUMUNE_OKUMA_MIN,
 #          C.NUMUNE_OKUMA_MAX. Ayrica ayni klasordeki numune.py ve
-#          MADDE123_betikleri/numune_olc.py, kutu_cache.py "import okuma" der.
+#          engine/numune_olc.py, kutu_cache.py "import okuma" der.
 #          Menude motor.py uzerinden her olcum tusunda yuklenir: P, K, D, I, G,
-#          T, U, H ve 1-9. KAPSAMLI_ARAMA.bat bu dosyayi dogrudan cagirmaz.
+#          T, U, H ve 1-9. screening.bat bu dosyayi dogrudan cagirmaz.
 #
 # DIKKAT - BU DOSYA PANELIN ESKI MOTORUDUR:
 # Asagidaki Sonda sinifi TEK ve SABIT 13 bazlik bir tohum kullanir; bu tohum
 # kayipli olabilir (ayrintili gerekce Sonda.__init__ basinda). Panelin bugunku
-# OTORITE olcum yolu KAPSAMLI_ARAMA/okuma_motoru.py'dir (guvercin yuvasi
+# OTORITE olcum yolu screening/okuma_motoru.py'dir (guvercin yuvasi
 # tohumlamasi, kayipsiz). kendini_sina.py bu iki motoru yan yana kosar ve
 # buradaki Sonda'nin ne kadar baglanma yeri kacirdigini olcup rapor eder.
 # ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ class Sonda:
     # m = 0 varsayimi) kullanmak, max_mm = 1 ile kosuldugunda tam olarak bu
     # cokmus durumdur.
     #
-    # Duzeltilmis surum: KAPSAMLI_ARAMA/okuma_motoru.py, primeri max_mm + 1
+    # Duzeltilmis surum: screening/okuma_motoru.py, primeri max_mm + 1
     # ortusmeyen bloga boler, her blok icin ayri tarama yapar ve bulunan her
     # adayi tam kural altinda yeniden dogrular. Panelin bugunku olcum yolu
     # odur; bu sinif tarihsel karsilastirma icin durur.

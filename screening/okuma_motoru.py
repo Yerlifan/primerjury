@@ -9,7 +9,7 @@ Windows/Linux farketmez. .bat icinden dogrudan cagrilabilir.
 ---------------------------------------------------------------------------
 NEYI DUZELTIYOR
 ---------------------------------------------------------------------------
-Eski motor (SON_ETAP_betikleri/okuma.py -> sinif `Sonda`, ayrica MADDE123_betikleri/
+Eski motor (engine/okuma.py -> sinif `Sonda`, ayrica engine/
 scb.py -> sinif `S`) primeri okumada ararken 13 bazlik TAM ESLESEN tek bir tohum
 kullaniyordu:
 

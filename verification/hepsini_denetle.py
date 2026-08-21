@@ -251,7 +251,7 @@ def d5_muhur_diziyi_iceriyor_mu(kok, yaz):
         ('verification/kurtarma_turu.py', True),
         ('verification/dogrulama_turu.py', True),
         ('verification/mfe_katmani.py', False),
-        ('UYELIK_YENIDEN/uyelik_yeniden_turet.py', True),
+        ('engine/uyelik_yeniden_turet.py', True),
     ]
     eksik = []
     for yol, zorunlu in bakilacak:
