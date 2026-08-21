@@ -212,13 +212,13 @@ def _f(s):
 def uyelik_dosyasi(kok):
     import glob
     # 2026-08-10: "a[-1]" EN YENI DEMEK DEGILDI. Iki glob alfabetik siralanip
-    # birlestiriliyordu, yani UYELIK_YENIDEN_SONUC girdileri tarihine
+    # birlestiriliyordu, yani engine_SONUC girdileri tarihine
     # bakilmaksizin kokteki girdileri yeniyordu. tek_protokol_olc.py ayni
     # tuzagi tasiyordu; ikisi ayri dosya secseydi K ile P farkli uyelikle
     # olcer ve dCq'lari karsilastirilamaz olurdu. Ikisi de artik ZAMANA gore
     # seciyor ve ayni dosyayi buluyor.
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'UYELIK_YENIDEN_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
     if not a:
         return None
     a.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))
@@ -344,7 +344,7 @@ _KOD = None
 
 
 def _enc(s):
-    """UYELIK_YENIDEN/uyelik_yeniden_turet.py ile AYNI kodlama."""
+    """engine/uyelik_yeniden_turet.py ile AYNI kodlama."""
     global _KOD
     import numpy as np
     if _KOD is None:
@@ -361,7 +361,7 @@ def _enc(s):
 # farkli gosterirdi.
 def hw_kimlik(a, b):
     """Kisa olani sorgu, uzun olanin ICINE (infix/HW) hizala; yuzde kimlik dondur.
-    UYELIK_YENIDEN/uyelik_yeniden_turet.py'deki hw_kimlik ile ayni tanim; o dosya
+    engine/uyelik_yeniden_turet.py'deki hw_kimlik ile ayni tanim; o dosya
     bir betik (paket degil) oldugu icin burada yeniden yazildi, ithal edilmedi."""
     import numpy as np
     q, t = (a, b) if len(a) <= len(b) else (b, a)

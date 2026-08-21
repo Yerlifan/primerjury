@@ -3,7 +3,7 @@
 bagimsiz_dogrulama.py - Baslik sayilarini UC AYRI yolla olcup tuttugunu gosterir.
 
   Yol A  ispcr.find_sites / amplify   : numpy vektor tarama, TOHUMSUZ.
-                                        Panelin KENDI kodu (SON_ETAP_betikleri/ispcr.py),
+                                        Panelin KENDI kodu (engine/ispcr.py),
                                         bu oturumda degistirilmedi.
   Yol B  kaba_kuvvet.py               : saf python, her pozisyon tek tek denenir.
                                         Bagimsiz yazildi, ortak kod yok.
@@ -22,7 +22,7 @@ Kullanim:
 # GIRDI  : --fastq ile "fastq files" klasoru (--mm uyumsuzluk tavani, --nmax
 #          kutu basina okuma, --seed ornekleme tohumu). Sinanan cift ve kutu
 #          listesi (TESTLER) dosyanin icinde sabittir. Uc yol:
-#          SON_ETAP_betikleri/ispcr.py, kaba_kuvvet.py ve okuma_motoru.py.
+#          engine/ispcr.py, kaba_kuvvet.py ve okuma_motoru.py.
 # CIKTI  : dosyaya yazmaz; uc yolun sayilarini yan yana ekrana basar.
 # CAGRAN : MENUDE DEGILDIR - elle calistirilan bir kanit uretecidir.
 #
@@ -36,7 +36,7 @@ import sys, os, glob, random, argparse
 
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
-sys.path.insert(0, os.path.join(os.path.dirname(BURA), 'SON_ETAP_betikleri'))
+sys.path.insert(0, os.path.join(os.path.dirname(BURA), 'engine'))
 
 import kaba_kuvvet as kk
 import okuma_motoru as om

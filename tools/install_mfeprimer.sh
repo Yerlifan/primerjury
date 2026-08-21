@@ -4,7 +4,7 @@
 #
 # NEDEN GEREKLI
 # tools/linux-x64 dosyasi MFEprimer DEGIL, "claude-science" adli baska bir program.
-# 110_DOGRULAMA.py onu MFEprimer sanip surumunu bile ekrana yaziyordu, cunku eski
+# dogrulama asamasi onu MFEprimer sanip surumunu bile ekrana yaziyordu, cunku eski
 # kimlik kontrolu "cikis kodu 0 VEYA ciktida mfeprimer gecsin" diyordu ve sifir donen
 # her ikili bu testi geciyordu. Klasordeki tek gercek MFEprimer mfeprimer.exe, o da
 # Windows ikilisi. Yani WSL'de calisan bir MFEprimer YOK.
@@ -161,11 +161,11 @@ echo
 echo "kuruldu: $HEDEF"
 echo "kimlik : $("$HEDEF" --version 2>&1 | head -1)"
 echo
-echo "110_DOGRULAMA.py bu dosyayi tools/mfeprimer adiyla kendisi buluyor."
+echo "verification/mfe_katmani.py bu dosyayi tools/mfeprimer adiyla kendisi buluyor."
 echo "Not: tools/linux-x64 MFEprimer DEGIL, silinmesi gerekmez ama kullanilmaz."
 echo
 echo "Sinama:"
 echo "  cd $PROJE/WSL"
-echo "  python3 110_DOGRULAMA.py --kok \"$PROJE\" --kuresel --db archaea.16S.fna"
+echo "  python3 verification/dogrulama_turu.py --kok \"$PROJE\""
 echo "Beklenen: 'MFEprimer bulundu' satirinda surum MFEprimer olmali ve"
 echo "indeks kurulumu bu sefer basarili olmali."

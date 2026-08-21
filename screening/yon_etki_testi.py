@@ -20,7 +20,7 @@ Kullanim: python yon_etki_testi.py --kok ..
 # GIRDI  : --kok altindaki --klasor ile verilen konsensus klasoru (varsayilan
 #          referans_konsensus/konsensus); panelin evrensel ciftleri ve uc ek
 #          cift dosyanin icinde sabit listedir. Olcumu okuma_motoru.py, varsa
-#          ayrica SON_ETAP_betikleri/ispcr.py yapar.
+#          ayrica engine/ispcr.py yapar.
 # CIKTI  : dosyaya yazmaz; dogru yonde ve ters yonde bulunan urun sayilarini
 #          ekrana basar.
 # CAGRAN : MENUDE DEGILDIR - elle calistirilan bir kanit uretecidir. Urettigi
@@ -36,7 +36,7 @@ import sys, os, glob, argparse
 
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
-sys.path.insert(0, os.path.join(os.path.dirname(BURA), 'SON_ETAP_betikleri'))
+sys.path.insert(0, os.path.join(os.path.dirname(BURA), 'engine'))
 import okuma_motoru as om
 try:
     import ispcr

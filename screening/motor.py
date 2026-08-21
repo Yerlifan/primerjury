@@ -4,10 +4,10 @@
 Bu dosya hicbir olcum algoritmasini yeniden yazmaz. Projede zaten calisan ve
 panelin sayilarini uretmis olan modulleri bulur ve disari acar:
 
-  SON_ETAP_betikleri/ispcr.py   -> find_sites / amplify / scan_file / rc / clean / encode
-  SON_ETAP_betikleri/okuma.py   -> Sonda / okumalar / kutu_pcr  (ham okuma hatti)
-  MADDE123_betikleri/tarayici.py-> Havuz  (3' tohumlu hizli havuz)
-  MADDE123_betikleri/cift.py    -> urunler (havuz uzerinde cift taramasi)
+  engine/ispcr.py   -> find_sites / amplify / scan_file / rc / clean / encode
+  engine/okuma.py   -> Sonda / okumalar / kutu_pcr  (ham okuma hatti)
+  engine/tarayici.py-> Havuz  (3' tohumlu hizli havuz)
+  engine/cift.py    -> urunler (havuz uzerinde cift taramasi)
 
 Betikler oturuma bagli mutlak yollar (sys.path.insert('/tmp/wk2/...')) iceriyor;
 ice aktarmadan once o yollar gecerli hale getirilir.
@@ -16,9 +16,9 @@ ice aktarmadan once o yollar gecerli hale getirilir.
 # motor.py — projede zaten calisan olcum kodunu ice aktaran tek kapi; hicbir
 #            algoritmayi yeniden yazmaz, yalnizca disari acar.
 #
-# GIRDI  : yapilandirma.BETIK_YOLLARI altindaki SON_ETAP_betikleri/ispcr.py,
-#          SON_ETAP_betikleri/okuma.py, MADDE123_betikleri/tarayici.py ve
-#          MADDE123_betikleri/cift.py dosyalari; ayrica bu paketin icindeki
+# GIRDI  : yapilandirma.BETIK_YOLLARI altindaki engine/ispcr.py,
+#          engine/okuma.py, engine/tarayici.py ve
+#          engine/cift.py dosyalari; ayrica bu paketin icindeki
 #          okuma_motoru.py ve kaba_kuvvet.py.
 # CIKTI  : dosyaya yazmaz. Modul duzeyinde fonksiyon ve modul nesneleri acar:
 #          rc, clean, encode, read_fasta, find_sites, amplify, scan_file,
@@ -69,7 +69,7 @@ _yol_hazirla()
 
 _p = _bul('ispcr.py')
 if _p is None:
-    raise SystemExit('HATA: ispcr.py bulunamadi. SON_ETAP_betikleri klasoru yerinde mi?')
+    raise SystemExit('HATA: ispcr.py bulunamadi. engine klasoru yerinde mi?')
 ispcr = _yukle('ispcr', _p)
 
 _p = _bul('okuma.py')

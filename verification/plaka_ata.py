@@ -66,7 +66,7 @@ def oku(kok, tm_kaynagi=None):
 def geo_tm(kok, ciftler):
     """Varsa panelin KENDI motoruyla Tm. Yoksa tablodaki deger kullanilir ve
     bu durum ACIKCA yazilir - sessizce bayat sayiya guvenilmez."""
-    for aday in ('DUZELTME_betikleri', 'MADDE123_betikleri'):
+    for aday in ('engine', 'engine'):
         d = os.path.join(kok, aday)
         if os.path.exists(os.path.join(d, 'geo.py')):
             sys.path.insert(0, d)

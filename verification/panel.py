@@ -61,7 +61,7 @@ KOMUT = {
                  u'tedarikciye gidecek TEK dogru oligo listesi (uretilir)', True),
     'excel':    ('verification/excel_uret.py',
                  u'butun guncel veriyi TEK Excel e yaz (uretilir)', True),
-    'lokus':    ('FARKLI_LOKUS_betikleri/hedef_tam.py',
+    'lokus':    ('engine/hedef_tam.py',
                  u'bir hedef icin BUTUN lokuslarda cift ara (primer3 gerekir)', False),
     'arsiv':    ('verification/arsivle.py',
                  u'eski dosyalari _SILINECEKLER e tasi (once PLAN basar)', False),

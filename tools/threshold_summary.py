@@ -550,10 +550,10 @@ def kalma_metni(sat, ozet, ad1, ad2, ali):
     return "\n".join(g)
 
 def isimleri_oku(ali):
-    """taxid -> ad. 86_KRAKEN_OZET.py ile ayni yol, numpy'a bagimlilik yok."""
+    """taxid -> ad. ozgun calismanin Kraken ozet betigiyle ayni yol, numpy'a bagimlilik yok."""
     import ast
-    adaylar = [os.path.join(ali, "WSL", "90_BLAST_ICPCR.py") if ali else "",
-               os.path.join(os.path.dirname(os.path.abspath(__file__)), "90_BLAST_ICPCR.py")]
+    adaylar = [os.path.join(ali, "WSL", "blast_ispcr.py") if ali else "",
+               os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
         if not yol or not os.path.exists(yol):
             continue

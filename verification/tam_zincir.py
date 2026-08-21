@@ -342,7 +342,7 @@ def kraken2_bul(karac, ortam):
 
     Duzeltme, aramayi burada yeniden yazmak DEGIL, aracin kendi arama mantigini
     cagirmaktir. kraken_tool.sh icindeki ortam_ac fonksiyonu kaynak calismanin
-    86_KRAKEN_YENIDEN.sh betiginden devralinmistir ve ortami etkinlestirmeyi,
+    rerun_kraken.sh betiginden devralinmistir ve ortami etkinlestirmeyi,
     ortam klasorlerine dogrudan bakmayi ve son care olarak ev dizininde aramayi
     sirayla dener. Arama mantigi TEK YERDE durur; iki ayri yerde iki farkli
     cevap uretmesi imkansiz olur.

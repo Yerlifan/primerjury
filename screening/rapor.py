@@ -369,10 +369,10 @@ def _rapor_md(sonuclar, panel, panel_yolu):
     A('')
     A('## Yontem ve sinirlar')
     A('')
-    A('- Olcum motoru **yeniden yazilmadi**: `SON_ETAP_betikleri/ispcr.py` '
-      '(`find_sites`/`amplify`), `MADDE123_betikleri/tarayici.py` (`Havuz`) ve '
-      '`MADDE123_betikleri/cift.py` (`urunler`) dogrudan ice aktarildi. '
-      'Geometri esikleri `DUZELTME_betikleri/geo.py` ile birebir olacak sekilde '
+    A('- Olcum motoru **yeniden yazilmadi**: `engine/ispcr.py` '
+      '(`find_sites`/`amplify`), `engine/tarayici.py` (`Havuz`) ve '
+      '`engine/cift.py` (`urunler`) dogrudan ice aktarildi. '
+      'Geometri esikleri `engine/geo.py` ile birebir olacak sekilde '
       'her koşuda sinaniyor (bkz. kendini sinama).')
     A('- **Olcut etiketi her satirda yazilidir** (`numune_olcut` sutunu). Eleme '
       '**<=1 uyumsuzluk** ile yapilir (panelin numune olcutu); en iyi adaylar '

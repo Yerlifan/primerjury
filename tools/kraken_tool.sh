@@ -17,11 +17,11 @@
 # KAYNAK CALISMANIN BETIKLERINDEN NE ALINDI
 #   troubleshooting tools/kraken2_driver.sh  cagri bicimi, --memory-mapping fikri
 #   troubleshooting tools/bracken_species.sh kmer_distrib ve -l S kullanimi
-#   WSL/02_kraken_bracken.sh                 VT butunluk denetimi (hash/opts/taxo),
+#   ozgun Kraken/Bracken betigi                 VT butunluk denetimi (hash/opts/taxo),
 #                                            bellek denetimi, log bicimi
-#   WSL/86_KRAKEN_YENIDEN.sh                 VT otomatik bulma, micromamba ortami,
+#   WSL/rerun_kraken.sh                 VT otomatik bulma, micromamba ortami,
 #                                            tek kosu birlestirme, kayipsizlik denetimi
-#   WSL/86_KRAKEN_OZET.py                    rapor ayristirma, tur duzeyi toplama
+#   WSL/ozgun Kraken ozet betigi                    rapor ayristirma, tur duzeyi toplama
 # Bu arac onlari yeniden yazmaz, cagirir ve uzerine ekler.
 #
 # TUSLAR
@@ -54,7 +54,7 @@ set -euo pipefail
 
 TUS="${1:-yardim}"
 
-# --- proje klasoru olculur, tahmin edilmez (86_KRAKEN_YENIDEN.sh ile ayni yol) ---
+# --- proje klasoru olculur, tahmin edilmez (rerun_kraken.sh ile ayni yol) ---
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
 if [ ! -d "$PROJE/TESLIM" ]; then
@@ -96,12 +96,12 @@ log_ac() {
   trap 'echo; echo "bitis $(date "+%Y-%m-%d %H:%M:%S %Z")"; echo "log: $LOG"' EXIT
 }
 
-# --- ortam. 86_KRAKEN_YENIDEN.sh ile ayni: kraken2 micromamba "mikro" icinde --
+# --- ortam. rerun_kraken.sh ile ayni: kraken2 micromamba "mikro" icinde --
 # ---------------------------------------------------------------------------
 # ortam_ac - kraken2'yi BULUNABILIR hale getirir.
 #
 # NEDEN GENISLETILDI (2026-08-04)
-# Bu fonksiyon kaynak calismanin 86_KRAKEN_YENIDEN.sh ve 02_kraken_bracken.sh betiklerinden
+# Bu fonksiyon kaynak calismanin ozgun Kraken betiklerinden
 # devralinmisti: kraken2 PATH'te degildir, micromamba'nin "mikro" ortamindadir.
 # Ancak yalnizca "ortami etkinlestir" yolu deneniyordu. Kullanicinin kosusunda
 # micromamba kabuk kancasi calismadi ve kraken2 bulunamadi diye butun Kraken
@@ -199,7 +199,7 @@ ortam_ac() {
   done
 
   # --- 3) KAYNAK CALISMANIN YOLU: ortami etkinlestir -------------------------------
-  # 86_KRAKEN_YENIDEN.sh ve 02_kraken_bracken.sh betiklerinden aynen devralindi.
+  # ozgun Kraken betiklerinden aynen devralindi.
   _kayit "micromamba/conda kabuk kancasi + '$ORTAM' ortaminin etkinlestirilmesi"
   export PATH="$HOME/bin:$PATH"
   if command -v micromamba >/dev/null 2>&1; then
@@ -745,7 +745,7 @@ tus_ali_vt() {
   set -e
 }
 
-# --- bellek. 02_kraken_bracken.sh ve 86_KRAKEN_YENIDEN.sh'teki karar ---------
+# --- bellek. ozgun Kraken/Bracken betigi ve rerun_kraken.sh'teki karar ---------
 bellek_bayragi() {
   local d="$1"
   local hb rb
@@ -768,7 +768,7 @@ bellek_bayragi() {
   fi
 }
 
-# --- okumalari tek dosyada birlestir (86_KRAKEN_YENIDEN.sh'ten aynen) --------
+# --- okumalari tek dosyada birlestir (rerun_kraken.sh'ten aynen) --------
 birlestir() {
   local hedef="$1"
   local eski="$PROJE/SONUCLAR/kraken_yeniden/tum.fastq"
@@ -778,7 +778,7 @@ birlestir() {
   fi
   mkdir -p "$(dirname "$hedef")"
   if [ -s "$eski" ]; then
-    echo "86_KRAKEN_YENIDEN.sh'in urettigi tum.fastq bulundu, AYNI okuma kumesi kullanilacak."
+    echo "rerun_kraken.sh'in urettigi tum.fastq bulundu, AYNI okuma kumesi kullanilacak."
     echo "  (Esikleri ve veritabanlarini karsilastirilabilir kilan sart budur.)"
     cp "$eski" "$hedef"
     cp "$PROJE/SONUCLAR/kraken_yeniden/kaynak_sayim.tsv" "$(dirname "$hedef")/" 2>/dev/null || true
@@ -1023,7 +1023,7 @@ tus_vt_kimlik() {
 tus_sinav() {
   echo "SELFTESTLER. Sinav gecmeden ana is baslamaz (proje kurali 2)."
   local hata=0
-  for p in threshold_summary.py comparison_table.py custom_taxonomy.py 86_KRAKEN_OZET.py; do
+  for p in threshold_summary.py comparison_table.py custom_taxonomy.py ozgun Kraken ozet betigi; do
     echo; echo "--- $p"
     if [ -f "$_BETIK_DIZIN/$p" ]; then
       python3 "$_BETIK_DIZIN/$p" --selftest || hata=1
@@ -1250,7 +1250,7 @@ tus_ozelvt_kos() {
           "$OZEL_IS/tum.fastq" 2>"$OZEL_IS/hata.txt" >/dev/null || {
     echo "kraken2 HATA:"; tail -5 "$OZEL_IS/hata.txt" | sed 's/^/  /'; exit 1; }
   rm -f "$OZEL_IS/hata.txt"
-  python3 "$_BETIK_DIZIN/86_KRAKEN_OZET.py" --is "$OZEL_IS" --kok "$PROJE" || true
+  python3 "$_BETIK_DIZIN/ozgun Kraken ozet betigi" --is "$OZEL_IS" --kok "$PROJE" || true
 }
 
 

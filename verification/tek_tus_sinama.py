@@ -62,7 +62,7 @@ BETIKLER = [
     ('screening/__main__.py', 'sina'),
     ('verification/hizli_tutarlilik_testi.py', 'H'),
     ('verification/erisim_dogrulama.py', 'E'),
-    ('UYELIK_YENIDEN/uyelik_yeniden_turet.py', 'U'),
+    ('engine/uyelik_yeniden_turet.py', 'U'),
     ('protocol/tek_protokol_olc.py', 'P'),
     ('verification/kurtarma_turu.py', 'K'),
     ('verification/dogrulama_turu.py', 'D'),
@@ -74,8 +74,8 @@ BETIKLER = [
 # VAR olmali; yoksa on kontrol dogru sekilde durur ve asil sinamaya
 # giremeyiz. (On kontrolun DURDUGUNU ayrica S4 senaryosu sinar.)
 KLASORLER = ['fastq files', 'consensus sequences', 'primer_final', 'REFERANS_DB',
-             'screening', 'protocol', 'SON_ETAP_betikleri',
-             'MADDE123_betikleri', 'DUZELTME_betikleri', 'UYELIK_YENIDEN',
+             'screening', 'protocol', 'engine',
+             'engine', 'engine', 'engine',
              'konsensus_kanonik', 'tools', 'verification']
 
 MFE_IX = ['archaea.16S.fna', 'bacteria.16S.fna', 'fungi.ITS.fna',

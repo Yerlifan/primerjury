@@ -34,10 +34,10 @@ from collections import Counter, defaultdict
 
 # ------------------------------------------------------------------ yardimci
 def isimleri_oku(ali):
-    """taxid -> ad. 86_KRAKEN_OZET.py ile ayni yol; modul CALISTIRILMAZ,
+    """taxid -> ad. ozgun calismanin Kraken ozet betigiyle ayni yol; modul CALISTIRILMAZ,
     kaynak metinden ast ile okunur, numpy'a bagimlilik olmaz."""
-    adaylar = [os.path.join(ali, "WSL", "90_BLAST_ICPCR.py") if ali else "",
-               os.path.join(os.path.dirname(os.path.abspath(__file__)), "90_BLAST_ICPCR.py")]
+    adaylar = [os.path.join(ali, "WSL", "blast_ispcr.py") if ali else "",
+               os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
         if not yol or not os.path.exists(yol):
             continue
@@ -105,7 +105,7 @@ def karsilastir(a, b):
 # ------------------------------------------------------------------ kraken okuma
 def tur_haritasi(rapor):
     """
-    tum.report'tan taxid -> (tur_taxid, tur_adi). 86_KRAKEN_OZET.py'deki
+    tum.report'tan taxid -> (tur_taxid, tur_adi). ozgun calismanin Kraken ozet betigindeki
     haritanin aynisi: kraken2 LCA'yi turun ALTINDA birakabilir (S1, S2 sus
     duzeyleri) ve ayni turun iki susu kutuyu bosuna KARISIK gosterir.
     """
@@ -259,7 +259,7 @@ def tablo_kur(ali, is_a, ad_a, is_b, ad_b, esik):
         h_ad, h_sonuc, h_baz, h_ref = h
 
         # Zayif atama, atama sayilmaz. %20'nin altinda kalan hakim kimlik
-        # "karar yok"tur; 86_KRAKEN_OZET.py ile ayni esik kullanilir.
+        # "karar yok"tur; ozgun calismanin Kraken ozet betigiyle ayni esik kullanilir.
         e_gos = e_ad if e_oran >= 0.20 else ""
         g_gos = g_ad if g_oran >= 0.20 else ""
 

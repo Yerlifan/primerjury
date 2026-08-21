@@ -3,7 +3,7 @@
 
 NEDEN GEREKLI
 -------------
-Panelin ham okuma motoru olan SON_ETAP_betikleri/okuma.py icindeki `Sonda`
+Panelin ham okuma motoru olan engine/okuma.py icindeki `Sonda`
 sinifi, primerin 3' ucundaki 13 bazi TAM eslesen bir tohum olarak ariyor
 (`variants()` yalniz IUPAC kodlarini acar, UYUMSUZLUK varyanti uretmez).
 Bu yuzden tek uyumsuzlugu 3' uctaki 13 baz icine dusen butun baglanma
@@ -305,7 +305,7 @@ def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
     A('')
     A('## Neden yeniden olculdu')
     A('')
-    A('Panelin ham okuma motoru `SON_ETAP_betikleri/okuma.py` icindeki `Sonda` sinifi, '
+    A('Panelin ham okuma motoru `engine/okuma.py` icindeki `Sonda` sinifi, '
       "primerin 3' ucundaki 13 bazi **tam eslesen** bir tohum olarak arar. "
       '`variants()` yalniz IUPAC kodlarini acar, **uyumsuzluk varyanti uretmez**. '
       "Sonuc: tek uyumsuzlugu 3' uctaki 13 baza dusen butun baglanma yerleri kacar.")

@@ -257,12 +257,21 @@ same command skips completed stages. Long scans checkpoint per chunk.
 ### Tests
 
 ```bash
+python3 tests/test_repo_health.py        # the repository itself: imports, references, packaging
 python3 tests/test_taxonomy.py           # 5 FASTA header formats, against real databases
 python3 tests/test_unnamed_records.py    # unnamed records cannot become species names
 python3 tests/test_orientation_trap.py   # the mixed-orientation detector
 ```
 
 Each exits non-zero on failure and prints what it measured.
+
+`test_repo_health.py` deserves a note. It checks what a syntax check cannot:
+whether the packages actually *import* (side effects included), whether every
+script referenced by another script exists, whether any pre-rename or personal
+name survived, and whether what git ships is enough to run. It exists because
+`screening/motor.py` once passed every parse check and still could not be
+imported — it loads its engine from disk, and those files had not been copied.
+"110 files, 0 errors" was true and useless.
 
 ---
 

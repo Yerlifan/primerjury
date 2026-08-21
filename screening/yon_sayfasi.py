@@ -275,7 +275,7 @@ def main():
               'MEVCUT sayilarini uretmiyor (devre disi hat) ama yeniden kosulursa yanlis sonuc '
               'verir. Kanonige cevrilmeli ya da arsivlenmeli.',
               'yon_kod_taramasi\'nda KAYNAK_BELIRSIZ isaretli betikler (cogu steps ve '
-              'SON_ETAP_betikleri altinda) konsensus yolunu komut satirindan aliyor; yonu cagiran '
+              'engine altinda) konsensus yolunu komut satirindan aliyor; yonu cagiran '
               'tarafa birakiyorlar. Bunlar eski hattir. Yeniden kosulacaksa kanonik klasor '
               'verilmelidir.',
               'Bu sayfadaki yon olcumu konsensus dosyalarinadir. HAM OKUMA olcumleri yondan '

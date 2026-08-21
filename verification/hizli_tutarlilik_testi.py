@@ -33,7 +33,7 @@ tutmaz; nitekim tutmasi da beklenmiyor - bkz. BANT GEREKCESI.
 # GİRDİ  : proje kokundeki dort betik ve olcum kaynaklari; bunlar HIZLI_TEST/
 #          altina sembolik baglarla baglanir (screening, protocol,
 #          verification, REFERANS_DB, konsensus_kanonik, primer_final, "fastq files",
-#          UYELIK_YENIDEN ve uyelik_yeniden_turetme_uyelik_*.tsv). Beklenen
+#          engine ve uyelik_yeniden_turetme_uyelik_*.tsv). Beklenen
 #          degerler bu dosyadaki BEKLENEN_UST / BEKLENEN_ALT / BEKLENEN_YENI
 #          sabitlerinden gelir; kaynaklari tam derinlikli referans kosusudur.
 # ÇIKTI  : HIZLI_TEST/HIZLI_TEST_RAPORU.md ve HIZLI_TEST/test_gunlugu.txt;
@@ -392,8 +392,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         os.makedirs(os.path.join(oz, 'KURTARMA_SONUC'), exist_ok=True)
         for ad in ('screening', 'verification', 'protocol', 'REFERANS_DB',
                    'konsensus_kanonik', 'TEK_PROTOKOL_SONUC', 'primer_final',
-                   'SON_ETAP_betikleri', 'MADDE123_betikleri', 'DUZELTME_betikleri',
-                   'steps', 'UYELIK_YENIDEN', 'fastq files'):
+                   'engine', 'engine', 'engine',
+                   'steps', 'engine', 'fastq files'):
             h = os.path.join(oz, ad)
             kaynak = os.path.join(hizli_kok, ad)
             if not os.path.exists(h) and os.path.exists(kaynak):
@@ -666,8 +666,8 @@ def main():
     # gecici kok: kaynaklar baglanti, ciktilar ayri
     for ad in ('screening', 'protocol', 'verification', 'REFERANS_DB',
                'konsensus_kanonik', 'primer_final', 'fastq files',
-               'SON_ETAP_betikleri', 'MADDE123_betikleri', 'DUZELTME_betikleri',
-               'steps', 'UYELIK_YENIDEN'):
+               'engine', 'engine', 'engine',
+               'steps', 'engine'):
         h = os.path.join(hizli, ad)
         if not os.path.exists(h) and os.path.exists(os.path.join(kok, ad)):
             try:

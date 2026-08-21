@@ -43,7 +43,7 @@ PANEL = os.path.join('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.ts
 def geo_yukle(kok):
     """Panelin KENDI geometri modulunu getirir. Ayri bir kopya YAZILMAZ -
     iki kopya zamanla ayrisir ve hangisinin dogru oldugu bilinmez."""
-    for aday in ('DUZELTME_betikleri', 'MADDE123_betikleri'):
+    for aday in ('engine', 'engine'):
         d = os.path.join(kok, aday)
         if os.path.exists(os.path.join(d, 'geo.py')):
             sys.path.insert(0, d)
@@ -57,7 +57,7 @@ def geo_yukle(kok):
                               u'--break-system-packages'
                               % (os.path.join(aday, 'geo.py'), e))
             return geo, os.path.join(aday, 'geo.py')
-    return None, u'geo.py bulunamadi (DUZELTME_betikleri ya da MADDE123_betikleri)'
+    return None, u'geo.py bulunamadi (engine ya da engine)'
 
 
 # --- URUN BOYU: yazilan degil OLCULEN --------------------------------------

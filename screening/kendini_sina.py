@@ -5,7 +5,7 @@ Amac: kullanicinin makinesinde ilk adimda patlamamak ve daha onemlisi
 SESSIZCE YANLIS OLCMEMEK. Sinamalardan biri bile duserse arama baslatilmaz.
 
 1. Gerekli paketler ve dosyalar yerinde mi.
-2. Geometri modulu, projede zaten calisan DUZELTME_betikleri/geo.py ile
+2. Geometri modulu, projede zaten calisan engine/geo.py ile
    BIREBIR ayni sayilari uretiyor mu (42 panel primerinin hepsi).
 3. ispcr motoru paneldeki ciftleri kendi konsensuslerinde dogru urun
    boyuyla buluyor mu.
@@ -22,7 +22,7 @@ SESSIZCE YANLIS OLCMEMEK. Sinamalardan biri bile duserse arama baslatilmaz.
 #                   bir sinama bile duserse hicbir asama baslatilmaz.
 #
 # GIRDI  : yapilandirma.py'deki yollar (panel TSV, hedefler.tsv, konsensus ve
-#          fastq klasorleri, hedef_uyelik.tsv, SILVA); DUZELTME_betikleri/geo.py
+#          fastq klasorleri, hedef_uyelik.tsv, SILVA); engine/geo.py
 #          (ayri surecte calistirilip geo.json ciktisi okunur); panel ciftleri
 #          ve kanonik konsensusler hedefler.py uzerinden; motorlar motor.py
 #          uzerinden (ispcr, tarayici, okuma_motoru, kaba_kuvvet, eski okuma.py).
@@ -152,7 +152,7 @@ def calistir(yaz):
                         if not ilk:
                             ilk = '%s %s: bizde %s, geo.py %s' % (p, k, m[k], ref)
                         break
-            tum &= _ok(yaz, 'geometri == DUZELTME_betikleri/geo.py (%d primer)' % n,
+            tum &= _ok(yaz, 'geometri == engine/geo.py (%d primer)' % n,
                        f == 0 and n >= 42, ilk or '%d/%d birebir' % (n - f, n))
         except Exception as e:
             tum &= _ok(yaz, 'geometri == geo.py', False, str(e)[:70])

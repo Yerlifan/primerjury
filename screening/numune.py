@@ -2,7 +2,7 @@
 """Numunenin HAM OKUMALARINDA in-silico PCR + Wilson ayrim orani.
 
 Olcut panelin numune olcutuyle birebir: uyumsuzluk <=1 ve 3' son 2 baz TAM.
-Motor MADDE123_betikleri/tarayici.py'nin Havuz sinifi + cift.py'nin urunler()
+Motor engine/tarayici.py'nin Havuz sinifi + cift.py'nin urunler()
 fonksiyonudur - bu dosya onlari ICE AKTARIR, yeniden yazmaz.
 
 Havuz kutu basina BIR KEZ kurulur ve onbellege alinir; sonraki her aday cift

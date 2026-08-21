@@ -196,6 +196,6 @@ for f in sorted(glob.glob(os.path.join(out,"*_kraken2.report"))):
 PY
 log "bitti. cikti: $OUT"
 echo
-echo "Sonraki adim: 02_bracken_yeniden_tahmin.sh, ancak once bu klasordeki"
+echo "Sonraki adim Bracken yeniden tahminidir, ancak once bu klasordeki"
 echo "raporlari ve ortam_raporu.txt dosyasini paylasin; Bracken icin uygun"
 echo "kmer_distrib uzunlugunu veriden secip betigi kesinlestirecegim."

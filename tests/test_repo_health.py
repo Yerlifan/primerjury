@@ -1,0 +1,270 @@
+# -*- coding: utf-8 -*-
+"""Repository health check — catches the gaps that syntax checking cannot.
+
+WHY THIS EXISTS
+---------------
+While reorganising this repository, `screening/motor.py` passed every syntax
+check and still could not be imported: it loads its sequence engine from disk
+at import time, and those modules had not been copied. A parse-only check said
+"110 files, 0 errors" about a package that did not work.
+
+That is the failure mode this file guards against. Each check below answers a
+question that `ast.parse` cannot:
+
+  1  IMPORT       do the packages actually import, side effects and all?
+  2  ENTRY POINTS do scripts referenced by other scripts exist?
+  3  STALE NAMES  is anything still pointing at a pre-rename path?
+  4  PRIVACY      did any personal or study-specific name survive?
+  5  CONFIG       do the paths in the config point at things that can exist?
+  6  PACKAGING    are the files git would ship actually sufficient?
+
+RUN
+---
+    python3 tests/test_repo_health.py
+    python3 tests/test_repo_health.py --ayrinti      # list every finding
+
+Exit code 0 only if every check passes.
+"""
+from __future__ import print_function
+
+import argparse
+import ast
+import importlib
+import io
+import os
+import re
+import subprocess
+import sys
+
+KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, KOK)
+
+ATLA_DIZIN = {'.git', '__pycache__', 'docs', 'sequences', 'examples'}
+
+# Packages that must import cleanly, side effects included.
+PAKETLER = [
+    'screening.yapilandirma', 'screening.taksonomi', 'screening.motor',
+    'screening.hedefler', 'screening.kuresel_tarama', 'screening.geometri',
+    'screening.siparis_siniflari', 'screening.numune', 'screening.referans',
+    'verification.mfe_katmani',
+]
+
+# Names that must not survive anywhere in shipped code.
+#
+# WARNING TO FUTURE MAINTAINERS: this list contains the very strings a bulk
+# rename would target. A search-and-replace run over the repository WILL
+# corrupt it — that happened once already: the pattern for the old project
+# name was rewritten to the new one, which would have made this check reject
+# the correct name. Exclude this file from any bulk rewrite, and re-read the
+# list afterwards.
+YASAK = [
+    (r'\bMicRho' + r'Booster\b', 'old project name'),
+    (r'\bKAPSAMLI_ARAMA\b', 'old package name (now screening)'),
+    (r'\bKURTARMA\b(?!_SONUC)', 'old package name (now verification)'),
+    (r'\bWSL_betikleri\b', 'old directory name (now steps)'),
+    (r'\bTEK_PROTOKOL\b(?!_SONUC)', 'old directory name (now protocol)'),
+    (r'\bORTAK_PUANLAYICI\b', 'old directory name (now scoring)'),
+    (r'\bDENETIM_SINAMALARI\b', 'old directory name (now tests)'),
+    (r'\bARACLAR\b', 'old directory name (now tools)'),
+    (r'\bsekanslar\b', 'old input directory (now sequences)'),
+    (r'\bornek_veri\b', 'old directory name (now examples)'),
+    (r'\bKUR\.sh\b', 'old entry point (now install.sh)'),
+    (r'\bINDEKS_KUR\.sh\b', 'old entry point (now build_index.sh)'),
+    (r'\bcapraz_kontrol\.py\b', 'old entry point (now cross_check.py)'),
+    # Personal names, split so a bulk rename cannot rewrite them (see warning).
+    (r'\bBur' + r'ak\b', 'personal name'),
+    (r'\bAl' + r"i'nin\b", 'personal name'),
+    (r'\bhoc' + r'aya\b', 'study-specific role'),
+    (r'\bhoc' + r'anin\b', 'study-specific role'),
+    (r'\bSON_ETAP_betikleri\b', 'directory that is not in this repository'),
+    (r'\bMADDE123_betikleri\b', 'directory that is not in this repository'),
+    (r'\bDUZELTME_betikleri\b', 'directory that is not in this repository'),
+    (r'^\s*\d\d_[a-z]', 'numbered script name'),
+]
+
+# Old numbered script names must be gone from references too.
+NUMARALI = re.compile(r'\b\d{2,3}_[A-Za-z_]+\.(py|sh)\b')
+
+
+def metin_dosyalari():
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        for d in dosyalar:
+            if d.endswith(('.py', '.sh', '.md', '.txt', '.cff', '.tsv')):
+                yield os.path.join(kok, d)
+
+
+def oku(y):
+    try:
+        return io.open(y, encoding='utf-8', errors='replace').read()
+    except Exception:
+        return ''
+
+
+def rel(y):
+    return os.path.relpath(y, KOK).replace(os.sep, '/')
+
+
+# ---------------------------------------------------------------- 1 IMPORT
+def kontrol_import(bulgu):
+    for m in PAKETLER:
+        try:
+            importlib.import_module(m)
+        except Exception as e:
+            bulgu.append(('IMPORT', m, '%s: %s' % (type(e).__name__, str(e)[:110])))
+
+
+# ----------------------------------------------------------- 2 ENTRY POINTS
+def kontrol_giris_noktalari(bulgu):
+    """Scripts referenced by other scripts must exist.
+
+    Only literal, repo-relative references are checked; a false alarm here is
+    worse than a miss, because it trains people to ignore the report.
+    """
+    var = set()
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        for d in dosyalar:
+            var.add(d)
+
+    desen = re.compile(r'[\'"]([A-Za-z0-9_./-]+\.(?:py|sh))[\'"]')
+    for y in metin_dosyalari():
+        s = oku(y)
+        for m in desen.finditer(s):
+            ref = m.group(1)
+            ad = os.path.basename(ref)
+            # skip obvious non-repo references
+            if ref.startswith(('/', 'http')) or ad in ('setup.py',):
+                continue
+            if '/' in ref and not ref.startswith('.'):
+                tam = os.path.join(KOK, ref)
+                if os.path.exists(tam):
+                    continue
+            if ad in var:
+                continue
+            bulgu.append(('ENTRY', rel(y), 'references missing file: %s' % ref))
+
+
+# ------------------------------------------------------------ 3+4 STALE/PRIVACY
+def kontrol_yasak_adlar(bulgu):
+    for y in metin_dosyalari():
+        if rel(y) == 'tests/test_repo_health.py':
+            continue                      # this file lists them on purpose
+        s = oku(y)
+        for desen, sebep in YASAK:
+            for m in re.finditer(desen, s, re.M):
+                satir = s[:m.start()].count('\n') + 1
+                bulgu.append(('NAME', '%s:%d' % (rel(y), satir),
+                              '%s -> %s' % (m.group(0).strip(), sebep)))
+        for m in NUMARALI.finditer(s):
+            satir = s[:m.start()].count('\n') + 1
+            bulgu.append(('NAME', '%s:%d' % (rel(y), satir),
+                          'numbered script reference: %s' % m.group(0)))
+
+
+# ---------------------------------------------------------------- 5 CONFIG
+def kontrol_yapilandirma(bulgu):
+    """Config paths must be inside the repo or be documented run outputs."""
+    try:
+        from screening import yapilandirma as C
+    except Exception as e:
+        bulgu.append(('CONFIG', 'screening/yapilandirma.py',
+                      'cannot import: %s' % type(e).__name__))
+        return
+    # Directories the config points at that the code loads AT IMPORT time
+    for ad in ('BETIK_YOLLARI',):
+        for p in getattr(C, ad, []):
+            if not os.path.isdir(p):
+                bulgu.append(('CONFIG', ad,
+                              'directory does not exist: %s' % rel(p)))
+    # Sanity: the engine modules motor.py needs
+    gerekli = ['ispcr.py']
+    for g in gerekli:
+        if not any(os.path.exists(os.path.join(p, g))
+                   for p in getattr(C, 'BETIK_YOLLARI', [])):
+            bulgu.append(('CONFIG', 'BETIK_YOLLARI',
+                          'required engine module not found: %s' % g))
+
+
+# ------------------------------------------------------------- 6 PACKAGING
+def kontrol_paketleme(bulgu):
+    """What git ships must be enough to import the packages."""
+    try:
+        cikti = subprocess.check_output(['git', 'ls-files'], cwd=KOK)
+    except Exception:
+        return                                    # not a git repo; skip quietly
+    izlenen = set(cikti.decode('utf-8', 'replace').split())
+    # every .py inside a package directory must be tracked
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        for d in dosyalar:
+            if not d.endswith('.py'):
+                continue
+            r = rel(os.path.join(kok, d))
+            if r not in izlenen:
+                bulgu.append(('PACKAGING', r, 'python file not tracked by git'))
+    # required top-level files
+    for zorunlu in ('README.md', 'LICENSE', 'requirements.txt', '.gitignore',
+                    'install.sh', 'docs/GUIDE.md'):
+        if zorunlu not in izlenen:
+            bulgu.append(('PACKAGING', zorunlu, 'required file missing from git'))
+
+
+# ------------------------------------------------------------------ 7 PARSE
+def kontrol_parse(bulgu):
+    for y in metin_dosyalari():
+        if not y.endswith('.py'):
+            continue
+        try:
+            ast.parse(oku(y))
+        except SyntaxError as e:
+            bulgu.append(('PARSE', '%s:%s' % (rel(y), e.lineno), e.msg))
+
+
+KONTROLLER = [
+    ('PARSE',     'every Python file parses',            kontrol_parse),
+    ('IMPORT',    'core packages import (side effects)', kontrol_import),
+    ('ENTRY',     'referenced scripts exist',            kontrol_giris_noktalari),
+    ('NAME',      'no stale or personal names',          kontrol_yasak_adlar),
+    ('CONFIG',    'config paths resolve',                kontrol_yapilandirma),
+    ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),
+]
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--ayrinti', action='store_true', help='list every finding')
+    a = p.parse_args()
+
+    bulgu = []
+    print('%-12s %-38s %s' % ('CHECK', 'QUESTION', 'RESULT'))
+    print('-' * 78)
+    for etiket, soru, fn in KONTROLLER:
+        onceki = len(bulgu)
+        fn(bulgu)
+        yeni = len(bulgu) - onceki
+        print('%-12s %-38s %s' % (etiket, soru,
+                                  'PASS' if yeni == 0 else 'FAIL (%d)' % yeni))
+
+    if bulgu:
+        print()
+        gruplu = {}
+        for tur, nerede, ne in bulgu:
+            gruplu.setdefault(tur, []).append((nerede, ne))
+        for tur in sorted(gruplu):
+            liste = gruplu[tur]
+            print('=== %s (%d) ===' % (tur, len(liste)))
+            for nerede, ne in (liste if a.ayrinti else liste[:12]):
+                print('   %-46s %s' % (nerede[:46], ne[:80]))
+            if not a.ayrinti and len(liste) > 12:
+                print('   ... %d more (use --ayrinti)' % (len(liste) - 12))
+            print()
+
+    print('-' * 78)
+    print('RESULT: %s' % ('ALL CHECKS PASSED' if not bulgu
+                          else '%d FINDINGS' % len(bulgu)))
+    return 0 if not bulgu else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

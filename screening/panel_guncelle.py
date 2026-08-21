@@ -61,7 +61,7 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, '1. HATA NEYDI', bold=True, fill=GRI); n += 1
     for s in [
-        'SON_ETAP_betikleri/okuma.py -> sinif `Sonda` (ve MADDE123_betikleri/scb.py -> sinif `S`) '
+        'engine/okuma.py -> sinif `Sonda` (ve engine/scb.py -> sinif `S`) '
         'primeri okumada ararken 13 BAZLIK TAM ESLESEN TEK BIR TOHUM kullaniyordu:  '
         's = primer[-13:] ;  i = seq.find(s)',
         'Olcut "toplam uyumsuzluk <= max_mm" oldugu halde, uyumsuzluk 13 bazlik tohumun ICINE '

@@ -54,7 +54,7 @@ def kimlikler(kok):
 
 def uyelik_dosyasi(kok):
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'UYELIK_YENIDEN_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
     if not a:
         return None
     a.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))

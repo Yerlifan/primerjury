@@ -9,7 +9,7 @@ panelin BUGUNKU ciktisiyla yan yana koyar.
 Elle yazilmis hicbir durum yoktur. Her satirin durumu su dosyalardan okunur:
     TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv     (hukum, dCq, kapsam)
     DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv     (kanit katmanlari)
-    UYELIK_YENIDEN_SONUC/kutu_olculen_kimlik.tsv (numunede var mi)
+    engine_SONUC/kutu_olculen_kimlik.tsv (numunede var mi)
 
 Kosum:
     python verification/toplanti_durumu.py --kok .

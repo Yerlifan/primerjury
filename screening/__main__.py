@@ -29,7 +29,7 @@ Kullanim (normalde screening.bat cagirir):
 #          uyelik), 6 (--mod konsensus), 7 (tek hedef; secime gore sorunlu /
 #          panel-olc / uyelik + --hedef), 8 (--sina), 9 (--mod hepsi),
 #          S (--mod ozet). P, K, D, T, I, G, E, R, U, H ve W/X/Y/Z tuslari
-#          verification/, protocol/, UYELIK_YENIDEN/ ve tools/WSL klasorlerindeki
+#          verification/, protocol/, engine/ ve tools/WSL klasorlerindeki
 #          ayri betikleri calistirir; bu paketi dogrudan cagirmazlar.
 # ---------------------------------------------------------------------------
 import os, sys, time, argparse, traceback

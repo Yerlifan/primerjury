@@ -183,13 +183,13 @@ def main():
         ad = os.path.basename(yol)
         gecen = [os.path.relpath(k, kok) for k, m in metinler.items() if ad in m]
         # kendi arsivleme betigi ve denetim betigi adi anmasi engel degil
-        # TARIHSEL TEK SEFERLIK betikler engel degildir: DUZELTME_betikleri/,
-        # SON_ETAP_betikleri/ ve MADDE123_betikleri/ altindakiler o gunku
+        # TARIHSEL TEK SEFERLIK betikler engel degildir: engine/,
+        # engine/ ve engine/ altindakiler o gunku
         # duzeltmeyi yapip bitmis islerdir, zincirde kosmuyorlar. Onlarin adi
         # anmasi bir dosyayi canli tutmaz - ama MANIFEST'e yazilir ki
         # birisi o betigi yeniden kosarsa nereye bakacagini bilsin.
-        tarihsel = ('DUZELTME_betikleri', 'SON_ETAP_betikleri',
-                    'MADDE123_betikleri', 'FARKLI_LOKUS_betikleri',
+        tarihsel = ('engine', 'engine',
+                    'engine', 'engine',
                     'REFERANS_TASARIM_betikleri')
         gecen = [g for g in gecen if os.path.basename(g) not in
                  ('arsivle.py', 'hepsini_denetle.py', 'excel_uret.py',

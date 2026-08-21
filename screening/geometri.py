@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Toplanti geometri kurallarinin PARAMETRELESTIRILMIS hali.
 
-Kural metni ve primer3 tuz kosullari DUZELTME_betikleri/geo.py ile birebir
+Kural metni ve primer3 tuz kosullari engine/geo.py ile birebir
 ayni tutulmustur; kendini_sina.py o dosyayi calistirip 42 panel primerinin
 her degerini bu modulle karsilastirir (birebir tutmazsa arama baslamaz).
 
