@@ -585,7 +585,7 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
                 fh.write(u'- **%s**\n' % h)
             fh.write(u'\n')
         if sonuc.get('referans_bayat'):
-            fh.write(u'## Referansi bayat satirlar (gerileme DEGIL)\n\n')
+            fh.write(u'## Rows whose reference is stale (NOT a regression)\n\n')
             fh.write(u'The primer pair on these rows changed since the reference was measured. Comparing a number belonging to the old pair against the new one')
             for h in sonuc['referans_bayat']:
                 fh.write(u'- %s\n' % h)

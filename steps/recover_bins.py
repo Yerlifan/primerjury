@@ -300,9 +300,7 @@ def main():
     kapsanan = len(tam) - tam.count("N")
     yol = os.path.join(a.out, "%s_baskin_konsensus.fasta" % a.etiket)
     with open(yol, "w", encoding="utf-8") as fh:
-        fh.write(">%s baskin_alel_referanssiz okuma=%d hizalanan=%d "
-                 "min_derinlik=%d min_oran=%.2f uzunluk=%d kapsanan=%d "
-                 "yari_ikame_farki=%.4f yari_indel_farki=%.4f yari_kapsam=%.4f %s\n"
+        fh.write(u'>%s dominant_allele_no_reference reads=%d aligned=%d min_depth=%d min_fraction=%.2f length=%d covered=%d half_substitution_diff=%.4f half_indel_diff=%.4f half_coverage=%.4f %s\n'
                  % (a.etiket, len(okumalar), hiz, a.min_derinlik, a.min_oran,
                     len(tam), kapsanan, f, fi, kaps, uyum))
         for k in range(0, len(tam), 70):
