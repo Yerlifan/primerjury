@@ -301,17 +301,16 @@ def main():
             print("ETIKET CAKISMASI: %s -> %s" % (t, v), file=sys.stderr)
         sys.exit("Ayni etikete dusen dosyalar var. Sessiz uye kaybini onlemek "
                  "icin duruldu; glob desenlerini ayirin.")
-    print("etiket            : %s" % a.label)
-    print("hedef uye sayisi  : %d" % len(ing))
+    print(u'label             : %s' % a.label)
+    print(u'target members    : %d' % len(ing))
     for t, s, p in ing:
-        print("    hedef  %-28s %5d bp  N=%d" % (t, len(s), s.count("N")))
-    print("rakip sayisi      : %d" % len(outg))
+        print(u'    target      %-28s %5d bp  N=%d' % (t, len(s), s.count("N")))
+    print(u'competitors       : %d' % len(outg))
     for t, s, p in outg:
-        print("    rakip  %-28s %5d bp  N=%d" % (t, len(s), s.count("N")))
-    print("baglanma kurali   : son %d baz birebir, son %d bazda en fazla %d "
-          "uyumsuzluk, toplamda en fazla %d"
+        print(u'    competitor  %-28s %5d bp  N=%d' % (t, len(s), s.count("N")))
+    print(u'binding rule      : last %d bases exact, at most %d mismatches in the last %d, at most %d in total'
           % (a.exact_last, a.tail_len, a.tail_max_mm, a.total_max_mm))
-    print("dejenere butcesi  : %d pozisyon, en fazla %d kat"
+    print(u'degeneracy budget : %d positions, at most %d fold'
           % (a.degeneracy_budget, a.degeneracy_fold_max))
 
     # --- capa secimi -------------------------------------------------
@@ -322,7 +321,7 @@ def main():
         anchor = anchor[0]
     else:
         anchor = min(ing, key=lambda x: (x[1].count("N"), -len(x[1])))
-    print("capa konsensus    : %s" % anchor[0])
+    print(u'anchor consensus  : %s' % anchor[0])
 
     # --- yon normalizasyonu -------------------------------------------
     # Konsensusler yon normalizasyonu yapilmadan uretilmis: consensus2.sh her
@@ -389,22 +388,22 @@ def main():
             if how == "KARARSIZ":
                 undecided.append((grp, tag, np_, nm))
     ing, outg = ing2, outg2
-    print("\nyon normalizasyonu: %d capa probu artı %d universal motif varyanti"
+    print(u'\norientation normalisation: %d anchor probes plus %d universal motif variants'
           % (len(probes), len(UNIV_EXP)))
     if flipped:
         for t, np_, nm, how in flipped:
             print("   TERS bulundu, cevrildi: %-30s arti=%d eksi=%d (%s)"
                   % (t, np_, nm, how))
     else:
-        print("   capayla ayni yonde olmayan dizi yok")
+        print(u'   no sequence disagrees with the anchor orientation')
     if undecided:
-        print("   UYARI: yonu belirlenemeyen %d dizi var, ikisi de sifir oy aldi:"
+        print(u'   WARNING: %d sequences could not be oriented; both directions scored zero:'
               % len(undecided))
         for grp, t, np_, nm in undecided:
             print("      %-6s %-30s arti=%d eksi=%d" % (grp, t, np_, nm))
-        print("   Bu diziler capadan cok uzak demektir. Hedef kumesindelerse")
-        print("   urun vermeyecek, rakip kumesindelerse ozgulluk denetimi")
-        print("   guvenilmez olur. Kumeleri gozden gecirin.")
+        print(u'   That means those sequences are far from the anchor. If they are in the target')
+        print(u'   set they will give no product; if they are in the competitor set the')
+        print(u'   specificity check becomes unreliable. Review the sets.')
 
     masked = set()
     if a.mask_dir:
@@ -433,7 +432,7 @@ def main():
             masked |= m
         print("capada yasak poz. : %d  (maske: %s)" % (len(masked), hits[0]))
     else:
-        print("capada yasak poz. : 0  (maske verilmedi)")
+        print(u'forbidden positions in anchor: 0  (no mask given)')
 
     # --- 1. capadan aday uretimi, kompozisyon suzgeci -----------------
     seq = anchor[1]
@@ -461,7 +460,7 @@ def main():
                         raw.append((strand, start, ln, oligo, kac))
                     else:
                         reasons[why] = reasons.get(why, 0) + 1
-    print("\nkompozisyon sonrasi oligo: %d" % len(raw))
+    print(u'\noligos after composition filter: %d' % len(raw))
     for k, v in sorted(reasons.items(), key=lambda x: -x[1])[:6]:
         print("   elenen %-16s %d" % (k, v))
     if not raw:
@@ -471,7 +470,7 @@ def main():
     tm3 = [tm_primer3(o, a) for _, _, _, o, _ in raw]
     tmb = [tm_biopython(o, a) for _, _, _, o, _ in raw]
     offset = statistics.median(x - y for x, y in zip(tm3, tmb))
-    print("\nprimer3 eksi Biopython medyan kayma: %+.2f C (tolerans %.2f)"
+    print(u'\nprimer3 minus Biopython, median offset: %+.2f C (tolerance %.2f)'
           % (offset, a.tm_cross_tol))
     kept = []
     for (strand, start, ln, o, kac), t3, tb in zip(raw, tm3, tmb):
@@ -490,7 +489,7 @@ def main():
         kept.append(dict(strand=strand, start=start, ln=ln, oligo=o, tm=t3,
                          tmb=tb, hairpin=hp, homodimer=hd, gc=gc_pct(o),
                          iupac=kac))
-    print("termodinamik sonrasi oligo: %d" % len(kept))
+    print(u'oligos after thermodynamics: %d' % len(kept))
     if not kept:
         sys.exit("termodinamik suzgecten gecen oligo yok")
 
@@ -503,7 +502,7 @@ def main():
     ing_tags = [t for t, _, _ in ing]
     out_tags = [t for t, _, _ in outg]
 
-    print("\n%d oligo x %d dizi taraniyor" % (len(kept), len(seqs)))
+    print(u'\nscanning %d oligos x %d sequences' % (len(kept), len(seqs)))
     bind = {}     # oligo -> {tag: {"plus":[(3'poz,mm)], "minus":[...]}}
     for k in kept:
         o = k["oligo"]
@@ -521,7 +520,7 @@ def main():
     universal = [k for k in kept
                  if all(bind[k["oligo"]][t]["plus"] or bind[k["oligo"]][t]["minus"]
                         for t in ing_tags)]
-    print("her hedef uyeye baglanan oligo: %d" % len(universal))
+    print(u'oligos binding every target member: %d' % len(universal))
     if not universal:
         sys.exit("butun uyelere baglanan oligo yok. Dejenere butcesini artirmayi "
                  "(--degeneracy-budget) ya da hedef kumesini daraltmayi deneyin.")
@@ -566,7 +565,7 @@ def main():
     # --- 4. ciftleme ve her uyede urun dogrulamasi --------------------
     Fs = [k for k in universal if k["strand"] == "F"]
     Rs = [k for k in universal if k["strand"] == "R"]
-    print("ileri aday: %d   geri aday: %d" % (len(Fs), len(Rs)))
+    print(u'forward candidates: %d   reverse candidates: %d' % (len(Fs), len(Rs)))
 
     def ozgulluk_skoru(k):
         """Oligonun rakiplerdeki EN IYI yerlesiminin uyumsuzluk sayisi.
@@ -718,17 +717,17 @@ def main():
                 uye_urunleri=";".join("%s=%d" % (t, prods[t]) for t in ing_tags),
                 ceza=round(pen, 3)))
     print(u'\npair construction')
-    print("   elenen, cift Tm farki             : %d" % n_tmd)
-    print("   elenen, bir uyede urun yok        : %d" % n_noprod)
+    print(u'   dropped, pair Tm difference        : %d' % n_tmd)
+    print(u'   dropped, no product in one member  : %d' % n_noprod)
     if fail_member:
         worst = sorted(fail_member.items(), key=lambda x: -x[1])[:5]
         print("      en cok engelleyen uyeler: %s"
               % ", ".join("%s=%d" % kv for kv in worst))
-    print("   elenen, rakipte urun olusuyor     : %d" % n_comp)
-    print("   elenen, yetim primer yok          : %d" % n_orph)
-    print("   elenen, hetero-dimer dG           : %d" % n_het)
-    print("gecerli cift sayisi                  : %d%s"
-          % (len(pairs), "  (--stop-after ile erken durduruldu)" if durdu else ""))
+    print(u'   dropped, product forms in a competitor : %d' % n_comp)
+    print(u'   dropped, no orphan primer          : %d' % n_orph)
+    print(u'   dropped, hetero-dimer dG           : %d' % n_het)
+    print(u'valid pairs                          : %d%s'
+          % (len(pairs), u'  (stopped early via --stop-after)' if durdu else ""))
     if not pairs:
         sys.exit("gecerli cift bulunamadi")
     pairs.sort(key=lambda x: x["ceza"])
@@ -759,7 +758,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(pairs[0].keys()), delimiter="\t")
         w.writeheader()
         w.writerows(pairs)
-    print("\nyazildi: %s" % a.out)
+    print(u'\nwritten: %s' % a.out)
     print(u'\nFive best candidates:')
     for p in pairs[:5]:
         print("  ceza=%.2f  urun %d-%d bp  yetim=%s  F=%s (Tm %.1f)  R=%s (Tm %.1f)"

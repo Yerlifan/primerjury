@@ -97,7 +97,7 @@ def d1_harita_anahtarlari(kok, yaz):
     H = _harita(hy)
     eksik = sorted(adlar - set(H))
     fazla = sorted(set(H) - adlar)
-    yaz(u'  [1] dislama haritasi anahtarlari: %d hedef, %d harita satiri'
+    yaz(u'  [1] exclusion map keys: %d targets, %d map rows'
         % (len(adlar), len(H)))
     if eksik:
         bulgu(u'Dislama haritasinda OLMAYAN hedef',
@@ -123,7 +123,7 @@ def d2_kapsama(kok, yaz, agsiz):
     if agsiz:
         ATLANAN.append(u'2 kapsama denetimi (--agsiz verildi; NCBI Taxonomy gerekir)')
         return
-    yaz(u'  [2] dislama kapsama denetimi kosuyor (NCBI Taxonomy)...')
+    yaz(u'  [2] running the exclusion coverage check (NCBI Taxonomy)...')
     try:
         p = subprocess.run([sys.executable, bet, '--kok', kok],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -143,7 +143,7 @@ def d2_kapsama(kok, yaz, agsiz):
                   u'\n      Kapsanmayan uye hedefin KENDISI oldugu halde hedef disi '
                   u'sayilir. Ayrinti: screening/exclusion_coverage_check.py', BLOKE)
         else:
-            yaz(u'      (kapsama tamam; yalniz denetlenemeyen hedef var)')
+            yaz(u'      (coverage is complete; only some targets could not be audited)')
 
 
 # --- 3 ------------------------------------------------------------------
@@ -171,7 +171,7 @@ def d3_referans_bayat(kok, yaz):
         simdi = ((r.get('F') or '').strip().upper(), (r.get('R') or '').strip().upper())
         if simdi[0] and simdi != ref[ad]:
             bayat.append(ad)
-    yaz(u'  [3] referans tazeligi: %d satir referansta, %d cift degismis'
+    yaz(u'  [3] reference freshness: %d rows in the reference, %d pairs changed'
         % (len(ref), len(bayat)))
     if bayat:
         bulgu(u'Referans BAYAT - primer cifti degismis',
@@ -224,8 +224,7 @@ def d4_kaynak_tutarliligi(kok, yaz):
     # satiri yoktu ve bu denetim "0 fark" diyordu.
     yalniz_listede = sorted(liste_adlari - set(panel))
     yalniz_panelde = sorted(set(panel) - liste_adlari)
-    yaz(u'  [4] kaynak tutarliligi: %d ortak hedef, %d dizi farki, '
-        u'%d yalniz listede, %d yalniz panelde'
+    yaz(u'  [4] source consistency: %d shared targets, %d sequence differences, %d only in the list, %d only in the panel'
         % (len(liste_adlari & set(panel)), len(fark),
            len(yalniz_listede), len(yalniz_panelde)))
     if yalniz_listede:
@@ -264,7 +263,7 @@ def d5_muhur_diziyi_iceriyor_mu(kok, yaz):
         anahtar = ('md5' in s or 'sha1' in s or 'hashlib' in s)
         if anahtar and not imzali and zorunlu:
             eksik.append(yol)
-    yaz(u'  [5] kontrol noktasi muhurleri: %d betik bakildi, %d suphe'
+    yaz(u'  [5] checkpoint seals: %d scripts examined, %d suspect'
         % (len(bakilacak), len(eksik)))
     if eksik:
         bulgu(u'Muhur diziyi ICERMIYOR olabilir',
@@ -349,7 +348,7 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
             bayat.append(u'%s (%s) < %s (%s)'
                          % (c, time.strftime('%d.%m %H:%M', time.localtime(os.path.getmtime(cp))),
                             g, time.strftime('%d.%m %H:%M', time.localtime(os.path.getmtime(gp)))))
-    yaz(u'  [6] cikti tazeligi: %d bagimlilik, %d bayat' % (len(ciftler), len(bayat)))
+    yaz(u'  [6] output freshness: %d dependencies, %d stale' % (len(ciftler), len(bayat)))
     if bayat:
         bulgu(u'Cikti girdisinden ESKI',
               u'\n      '.join(bayat) +
@@ -404,7 +403,7 @@ def d7_geometri_kapisi(kok, yaz):
         ad = r[iH].strip()
         if ad not in g or (F, R) != (g[ad].get('Ileri'), g[ad].get('Geri')):
             gecmemis.append(ad)
-    yaz(u'  [7] geometri kapisi: kaynak %s, gecmemis %d'
+    yaz(u'  [7] geometry gate: source %s, not passing %d'
         % (os.path.basename(gy), len(gecmemis)))
     if gecmemis:
         bulgu(u'Geometri kapisindan GECMEMIS cift',
@@ -461,7 +460,7 @@ def d8_plaka_jel_ve_bant(kok, yaz):
             if abs(u1 - u2) < 10:
                 cak.append(u'plaka %s Ta %s: %s (%d bp) / %s (%d bp) - fark %d bp'
                            % (k[0], k[1], a1, u1, a2, u2, abs(u1 - u2)))
-    yaz(u'  [8] plaka/jel: %d plaka grubu, %d cakisma, %d bant disi urun'
+    yaz(u'  [8] plate/gel: %d plate groups, %d overlaps, %d products outside the band'
         % (len(pl), len(cak), len(bant)))
     if cak:
         bulgu(u'Plaka ici JEL AYRIMI cakismasi',
@@ -513,7 +512,7 @@ def d9_belgelerde_bayat_sayi(kok, yaz):
                 kotu.append(u'%s: "%s" (bugunku dogru sayi: %d siparis, %d hedef '
                             u'ozgul, %d evrensel)'
                             % (ad, m.group(0).strip()[:60], kesin + evr, kesin, evr))
-    yaz(u'  [9] belgelerdeki cift sayilari: %d belge bakildi, %d bayat iddia'
+    yaz(u'  [9] pair counts in the documents: %d documents examined, %d stale claims'
         % (bakilan, len(kotu)))
     if kotu:
         bulgu(u'Belgede BAYAT cift sayisi',
@@ -545,7 +544,7 @@ def d10_ad_kurali_sinavi(kok, yaz):
         ATLANAN.append(u'10 ad kurali sinavi (kosturulamadi: %s)' % e)
         return
     son = [l for l in cik.splitlines() if 'sinavi:' in l]
-    yaz(u'  [10] NCBI ad kurali: %s' % (son[-1].strip() if son else cik[:60]))
+    yaz(u'  [10] NCBI naming rule: %s' % (son[-1].strip() if son else cik[:60]))
     if p.returncode != 0:
         bulgu(u'NCBI ad kurali sinavi DUSTU',
               cik[-600:] +
@@ -591,8 +590,7 @@ def d11_siparis_dizileri(kok, yaz):
             if _re.fullmatch(r'[ACGT]+', F or ''):
                 tsv[r[iH].strip()] = (F, r[iR].strip().upper())
     if not xl or not os.path.exists(xl):
-        yaz(u'  [11] siparis dizileri: uretilmis Excel yok - '
-            u'python verification/build_excel.py --kok . ile uretin')
+        yaz(u'  [11] order sequences: no Excel generated yet - build one with python verification/build_excel.py --root .')
         ATLANAN.append(u'11 siparis dizileri (uretilmis Excel yok)')
         return
     try:
@@ -643,7 +641,7 @@ def d11_siparis_dizileri(kok, yaz):
     _sip = set((r.get('hedef') or '').strip() for r in _sl
                if (r.get('SINIF') or '').strip().upper() in ('KESIN', 'EVRENSEL'))
     eksik = sorted((set(tsv) & _sip) - set(xls)) if _sip else sorted(set(tsv) - set(xls))
-    yaz(u'  [11] siparis dizileri: xlsx %d cift, panel %d cift, ayrisan %d'
+    yaz(u'  [11] order sequences: xlsx %d pairs, panel %d pairs, diverging %d'
         % (len(xls), len(tsv), len(fark)))
     if fark:
         bulgu(u'SIPARIS DIZILERI AYRISIYOR - xlsx ESKI',
@@ -719,7 +717,7 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
             eksik.append(u'uyusan veritabani sayisi: "%s"' % (uy or 'bos'))
         if eksik:
             supheli.append(u'%s -> %s' % (ad, '; '.join(eksik)))
-    yaz(u'  [12] kosulsuz siparis kaniti: %d satir bakildi, %d suphe'
+    yaz(u'  [12] evidence for unconditional ordering: %d rows examined, %d suspect'
         % (sum(1 for r in sl if (r.get('siparis_sarti') or '').strip().upper()
                .startswith('KOSULSUZ')), len(supheli)))
     if supheli:
@@ -832,7 +830,7 @@ def d13_urun_boyu(kok, yaz):
         if boylar and u not in boylar:
             sapan.append(u'%s: tabloda %d bp, olculen %s'
                          % (r[iH].strip(), u, sorted(boylar)[:5]))
-    yaz(u'  [13] urun boyu: %d cift olculdu, %d sapma' % (bakilan, len(sapan)))
+    yaz(u'  [13] product length: %d pairs measured, %d deviations' % (bakilan, len(sapan)))
     if sapan:
         bulgu(u'Tablodaki urun boyu olculenle TUTMUYOR',
               u'\n      '.join(sapan) +
@@ -888,7 +886,7 @@ def d14_bat_dosyalari(kok, yaz):
             sorun.append(u'%s: AYNI etiket birden cok kez tanimli: %s. goto ilk '
                          u'etikete atlar, o tus sessizce yanlis yere gider.'
                          % (ad, ', '.join(cift)))
-    yaz(u'  [14] bat dosyalari: %d dosya, %d sorun' % (n, len(sorun)))
+    yaz(u'  [14] batch files: %d files, %d problems' % (n, len(sorun)))
     if sorun:
         bulgu(u'.bat dosyasinda bicim sorunu',
               u'\n      '.join(sorun) +
@@ -930,7 +928,7 @@ def d15_konsensus_kalintilari(kok, yaz):
     hepsi = set(os.path.basename(f) for f in _glob.glob(os.path.join(d, '*.fa'))
                 + _glob.glob(os.path.join(d, '*.fasta')))
     kalinti = hepsi - gecerli
-    yaz(u'  [15] konsensus kalintilari: indekste %d, klasorde %d, kalinti %d'
+    yaz(u'  [15] consensus leftovers: %d in the index, %d in the directory, %d orphaned'
         % (len(gecerli), len(hepsi), len(kalinti)))
     if kalinti:
         bulgu(u'Kanonik konsensus klasorunde KALINTI dosya',
@@ -972,8 +970,8 @@ def d16_uyelik_kaynagi(kok, yaz):
         ATLANAN.append(u'16 uyelik kaynagi (iki betik de okunamadi)')
         return
     ayni = len(set(v for v in sec.values() if v)) == 1
-    yaz(u'  [16] uyelik kaynagi: P ve K ayni dosyayi mi okuyor -> %s'
-        % ('evet' if ayni else 'HAYIR'))
+    yaz(u'  [16] membership source: do P and K read the same file -> %s'
+        % ('evet' if ayni else u'NO'))
     if not ayni:
         bulgu(u'P ile K FARKLI uyelik dosyasi okuyor',
               u'\n      '.join(u'%s: %s' % (k, v or 'bulunamadi')
@@ -1033,7 +1031,7 @@ def d17_veritabani_alfabesi(kok, yaz):
             ix = y2 + e
             if os.path.exists(ix) and os.path.getmtime(ix) < os.path.getmtime(y2) - 60:
                 bayat_ix.append(u'%s%s indeksi FASTA\'dan ESKI' % (f, e))
-    yaz(u'  [17] veritabani alfabesi: %d indeksli FASTA, %d RNA, %d bayat indeks'
+    yaz(u'  [17] database alphabet: %d indexed FASTA, %d RNA, %d stale indexes'
         % (bakilan, len(rna), len(bayat_ix)))
     if bayat_ix:
         bulgu(u'Indeks FASTA\'dan ESKI',
@@ -1114,7 +1112,7 @@ def d18_evrensel_kapsam(kok, yaz):
         ATLANAN.append(u'18 evrensel kapsam (evrensel cift bulunamadi)')
         return
     dusuk = [(a, k, o) for a, k, o in satir if o is not None and o < 90.0]
-    yaz(u'  [18] evrensel kapsam: %d cift | %s'
+    yaz(u'  [18] universal coverage: %d pairs | %s'
         % (len(satir), ', '.join(u'%s %s' % (a.split('_')[0][:12], k) for a, k, _o in satir)))
     if dusuk:
         bulgu(u'Evrensel/kontrol primerinde kapsam %90 altinda',
@@ -1207,7 +1205,7 @@ def d19_uyelik_icerigi(kok, yaz):
                        % p.stderr.decode('utf-8', 'replace').strip()[-200:])
         return
     satirlar = [l for l in p.stdout.decode('utf-8', 'replace').splitlines() if l.strip()]
-    yaz(u'  [19] uyelik icerigi: iki kaynagin ayristigi hedef -> %d' % len(satirlar))
+    yaz(u'  [19] membership content: targets where the two sources diverge -> %d' % len(satirlar))
     for l in satirlar:
         pr = l.split('\t')
         ad, fark = pr[0], pr[1]
@@ -1242,8 +1240,8 @@ def main():
         print(s, flush=True)
 
     yaz(u'=' * 78)
-    yaz(u'  HER KOSUDA DENETIM   %s' % time.strftime('%Y-%m-%d %H:%M'))
-    yaz(u'  Olcum yapilmaz, dosya degistirilmez. Yalnizca bakilir.')
+    yaz(u'  AUDIT ON EVERY RUN   %s' % time.strftime('%Y-%m-%d %H:%M'))
+    yaz(u'  Nothing is measured and no file is changed. It only looks.')
     yaz(u'=' * 78)
 
     d1_harita_anahtarlari(kok, yaz)
@@ -1278,9 +1276,9 @@ def main():
             yaz(u'   [%s] %s' % (o, b))
             yaz(u'      %s' % ay)
     else:
-        yaz(u'  Butun denetimler temiz.')
+        yaz(u'  Every check is clean.')
     if ATLANAN:
-        yaz(u'  Atlanan denetim: %s' % '; '.join(ATLANAN))
+        yaz(u'  Checks skipped: %s' % '; '.join(ATLANAN))
     yaz(u'=' * 78)
 
     rapor = os.path.join(kok, 'TEK_TUS_SONUC')

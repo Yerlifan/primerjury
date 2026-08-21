@@ -186,40 +186,40 @@ def calistir(yaz, sure, cizgi, a):
     t0 = time.time()
 
     cizgi('=')
-    yaz('  HER SEYI SIRAYLA KOS')
+    yaz(u'  RUN EVERYTHING IN ORDER')
     cizgi('=')
-    yaz('  Asamalar ve tahmini sureler:')
-    yaz('    1. Kendini sinama                    ~1 dk')
-    yaz('    2. Kanonik konsensus (yon)           ~2-5 dk   <- YON KAPISI')
-    yaz('    3. Konsensus yeniden uretim          ~30-60 dk')
-    yaz('    4. Yeni konsensusleri kanonige alma  ~2-5 dk   <- YON KAPISI')
-    yaz('    5. Panel yeniden olcum (tam derinlik) ~1-2 sa')
-    yaz('    6. Uyelik denetimi                   ~20-40 dk')
-    yaz('    7. Kapsamli arama                    ~1-3 sa')
-    yaz('       + birlesik ozet rapor             ~1 dk')
-    yaz('  TOPLAM: yaklasik 3-7 saat. Gece birakilabilir.')
+    yaz(u'  Stages and estimated times:')
+    yaz(u'    1. Self-test                          ~1 min')
+    yaz(u'    2. Canonical consensus (orientation)  ~2-5 min   <- ORIENTATION GATE')
+    yaz(u'    3. Consensus regeneration             ~30-60 min')
+    yaz(u'    4. Move new consensus to canonical    ~2-5 min   <- ORIENTATION GATE')
+    yaz(u'    5. Panel re-measurement (full depth)  ~1-2 h')
+    yaz(u'    6. Membership audit                   ~20-40 min')
+    yaz(u'    7. Comprehensive search               ~1-3 h')
+    yaz(u'       + combined summary report          ~1 min')
+    yaz(u'  TOTAL: roughly 3-7 hours. Can be left running overnight.')
     yaz('')
     if d['bitmis']:
-        yaz('  DEVAM EDILIYOR - bitmis asamalar: %s' % ', '.join(d['bitmis']))
+        yaz(u'  RESUMING - finished stages: %s' % ', '.join(d['bitmis']))
         yaz('')
-    yaz('  Her asama bitince diske yazilir. Kesilirse yine (9) secin,')
-    yaz('  bitmis asamalar tekrar kosulmaz.')
+    yaz(u'  State is written to disk after every stage. If interrupted, choose (9) again;')
+    yaz(u'  finished stages are not re-run.')
     cizgi('=')
 
     from . import self_test
 
     # ---- 1 kendini sinama (kapi gorevinde)
-    yaz('\n[ASAMA 1/7] Kendini sinama')
+    yaz(u'\n[STAGE 1/7] Self-test')
     if not getattr(a, 'sinama_atla', False) and not kendini_sina.calistir(yaz):
-        yaz('\nKENDINI SINAMA BASARISIZ - hicbir asama kosulmadi.')
-        yaz('Once yukarida *** DUSTU *** yazan satiri duzeltin.')
+        yaz(u'\nSELF-TEST FAILED - no stage was run.')
+        yaz(u'Fix the line marked *** FAILED *** above first.')
         return 2
 
     # ---- 2 KANONIK KONSENSUS (referans onceligi) - her seyin girdisi
-    yaz('\n[ASAMA 2/7] Kanonik konsensus uretimi (yon normalizasyonu)')
-    yaz('  Bu adim olmadan hicbir olcum guvenilir degildir: ham konsensus klasoru')
-    yaz('  KARISIK yonludur ve ters yonlu bir konsensuste urunlerin TAMAMI kaybolur.')
-    yaz('  Kaynak: "consensus sequences" (panelin uzerine kuruldugu strict set).')
+    yaz(u'\n[STAGE 2/7] Canonical consensus generation (orientation normalisation)')
+    yaz(u'  No measurement is trustworthy without this step: the raw consensus directory')
+    yaz(u'  is MIXED orientation, and on a reverse-oriented consensus EVERY product is lost.')
+    yaz(u'  Source: "consensus sequences" (the strict set the panel was built on).')
     ok, msj = kanonik_kos(yaz, sure, oncelik='ozgun')
     if not ok:
         yaz('\n  KANONIK URETIM BASARISIZ: %s' % msj)
@@ -252,9 +252,9 @@ def calistir(yaz, sure, cizgi, a):
             yaz('  Yeni konsensus uretilemedi; kanonik referans seti kullanilmaya devam edecek.')
 
     # ---- 4 YENI konsensusleri kanonige al (tek kaynak korunur)
-    yaz('\n[ASAMA 4/7] Yeni konsensusleri kanonige alma (--oncelik yeni)')
-    yaz('  Yeni uretilen konsensusler dogrudan KULLANILMAZ; once kanonik')
-    yaz('  klasore yon normalizasyonundan gecirilerek yazilir. Tek kaynak korunur.')
+    yaz(u'\n[STAGE 4/7] Moving new consensus sequences to canonical (--priority new)')
+    yaz(u'  Newly generated consensus sequences are NOT used directly. They are first')
+    yaz(u'  written into the canonical directory through orientation normalisation, so there stays one source.')
     ok, msj = kanonik_kos(yaz, sure, oncelik='yeni')
     if not ok:
         yaz('  Kanonik guncelleme yapilamadi (%s) - referans seti gecerli kalir.' % msj)
@@ -324,19 +324,19 @@ def calistir(yaz, sure, cizgi, a):
             yaz('\n  ASAMA 7 HATASI: %s' % e)
 
     # ---- 6 birlesik ozet
-    yaz('\n[ASAMA 7/7 sonrasi] Birlesik ozet rapor')
+    yaz(u'\n[AFTER STAGE 7/7] Combined summary report')
     yol = ozet_yaz(d, sure, time.time() - t0)
     d['bitmis'] = list(dict.fromkeys(d['bitmis']))
     d['bitis'] = time.strftime('%Y-%m-%d %H:%M:%S')
     durum_yaz(d)
 
     cizgi('=')
-    yaz('  HEPSI BITTI (%s)' % sure(time.time() - t0))
+    yaz(u'  ALL DONE (%s)' % sure(time.time() - t0))
     yaz('')
-    yaz('  ONCE BUNU OKUYUN:')
+    yaz(u'  READ THIS FIRST:')
     yaz('    %s' % yol)
     yaz('')
-    yaz('  Ayrintili raporlar:')
+    yaz(u'  Detailed reports:')
     for ad, ys in d.get('ciktilar', {}).items():
         for y in (ys or []):
             if str(y).endswith('.md'):
@@ -776,10 +776,10 @@ def yalniz_ozet(yaz, sure, cizgi):
     import time as _t
     t0 = _t.time()
     cizgi('=')
-    yaz('  SADECE OZET RAPORU YENIDEN URET')
+    yaz(u'  REGENERATE THE SUMMARY REPORT ONLY')
     cizgi('=')
-    yaz('  Olcum yapilmaz; mevcut cikti dosyalari okunur.')
-    yaz('  Kaynak klasor: %s' % C.CIKTI)
+    yaz(u'  Nothing is measured; the existing output files are read.')
+    yaz(u'  Source directory: %s' % C.CIKTI)
     yaz('')
     var = []
     for ad in ('panel_yeniden_olcum.tsv', 'panel_kutu_duzeyi.tsv',
@@ -792,14 +792,14 @@ def yalniz_ozet(yaz, sure, cizgi):
     kont = len([f for f in os.listdir(C.KONTROL)
                 if f.startswith('hedef_') and f.endswith('.json')]) \
         if os.path.isdir(C.KONTROL) else 0
-    yaz('   %-34s %d dosya' % ('kontrol/hedef_*.json (arama)', kont))
+    yaz(u'   %-34s %d files' % (u'kontrol/hedef_*.json (search)', kont))
     yaz('')
     if not any(var) and not kont:
         yaz('  Hicbir cikti dosyasi yok - once (9) ya da tek tek asamalari kosun.')
         return 2
     d = durum_oku()
     yol = ozet_yaz(d, sure, _t.time() - t0)
-    yaz('  Ozet yazildi (%s):' % sure(_t.time() - t0))
+    yaz(u'  Summary written (%s):' % sure(_t.time() - t0))
     yaz('    %s' % yol)
     cizgi('=')
     return 0
