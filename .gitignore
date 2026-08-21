@@ -50,6 +50,11 @@ TUM_KIMLIK_SONUC/
 TUM_KOSU_SONUC/
 TEK_PROTOKOL_SONUC/
 KURTARMA_SONUC/
+# SONUCLAR/ holds the Kraken tool's own outputs: inspect dumps, the database
+# fingerprint table and the merged read pools. All of them are regenerated.
+SONUCLAR/
+# kraken_tool.sh and install.sh write their run logs here.
+kurulum_loglari/
 TAM_ZINCIR_SONUC/
 REFERANS_TASARIM_SONUC/
 FARKLI_LOKUS_SONUC/
