@@ -72,7 +72,7 @@ from collections import defaultdict
 try:
     import numpy as np
 except ImportError:
-    sys.exit("gerekli: pip install numpy")
+    sys.exit(u'required: pip install numpy')
 
 RC = {'A':'T','T':'A','G':'C','C':'G','N':'N'}
 def rc(s): return "".join(RC.get(b,'N') for b in reversed(s.upper()))
@@ -503,7 +503,7 @@ def birim_testleri(yazdir=True):
     def K(ad, bulunan, beklenen):
         ok = bulunan == beklenen
         if not ok: hata[0] += 1
-        if yazdir: print(f"  {'GECTI' if ok else 'KALDI'}  {ad:<50} {bulunan} / {beklenen}")
+        if yazdir: print(f"  {u'PASS' if ok else u'FAIL'}  {ad:<50} {bulunan} / {beklenen}")
 
     def tara(kalip, primer, ters=False):
         b, bas = kalip_kur([kalip], 30)
@@ -525,51 +525,51 @@ def birim_testleri(yazdir=True):
         return d
 
     if yazdir: print(u'  --- the 3\' end rule (the last two bases exact, at most one mismatch in the last five)')
-    K("son bazda uyumsuzluk baglanmaz",        tara(boz(kalip,319), F), [])
-    K("sondan ikincide uyumsuzluk baglanmaz",  tara(boz(kalip,318), F), [])
-    K("SONDAN UCUNCUDE uyumsuzluk BAGLANIR",   tara(boz(kalip,317), F), [300])
-    K("sondan dorduncude uyumsuzluk baglanir", tara(boz(kalip,316), F), [300])
-    K("son bes bazda iki uyumsuzluk baglanmaz",tara(boz(kalip,317,316), F), [])
-    if yazdir: print("  --- uyumsuzluk butcesi")
-    K("tam eslesme baglanir",                  tara(kalip, F), [300])
-    K("uc ic uyumsuzluk baglanir",             tara(boz(kalip,302,305,308), F), [300])
-    K("dort ic uyumsuzluk baglanmaz",          tara(boz(kalip,302,305,308,311), F), [])
-    K("5' ucta iki uyumsuzluk baglanir",       tara(boz(kalip,300,301), F), [300])
+    K("a mismatch at the last base does not bind",        tara(boz(kalip,319), F), [])
+    K("a mismatch at the second base from the end does not bind",  tara(boz(kalip,318), F), [])
+    K("a mismatch AT THE THIRD BASE FROM THE END DOES bind",   tara(boz(kalip,317), F), [300])
+    K("a mismatch at the fourth base from the end binds", tara(boz(kalip,316), F), [300])
+    K("two mismatches in the last five bases do not bind",tara(boz(kalip,317,316), F), [])
+    if yazdir: print(u'  --- the mismatch budget')
+    K("an exact match binds",                  tara(kalip, F), [300])
+    K("three inner mismatches bind",             tara(boz(kalip,302,305,308), F), [300])
+    K("four inner mismatches do not bind",          tara(boz(kalip,302,305,308,311), F), [])
+    K("two mismatches at the 5' end bind",       tara(boz(kalip,300,301), F), [300])
     if yazdir: print(u'  --- strand orientation')
-    K("ileri primer arti zincirde bulunur",    tara(kalip, F, False), [300])
-    K("ileri primer eksi zincirde bulunmaz",   tara(kalip, F, True), [])
-    K("geri primer eksi zincirde bulunur",     tara(kalip, R, True), [430])
-    K("geri primer arti zincirde bulunmaz",    tara(kalip, R, False), [])
+    K("the forward primer is found on the plus strand",    tara(kalip, F, False), [300])
+    K("the forward primer is not found on the minus strand",   tara(kalip, F, True), [])
+    K("the reverse primer is found on the minus strand",     tara(kalip, R, True), [430])
+    K("the reverse primer is not found on the plus strand",    tara(kalip, R, False), [])
     if yazdir: print(u'  --- product geometry')
-    K("dogru yon ve mesafede urun",            urun(kalip, F, R), 150)
-    K("ters cevrilmis kalipta da urun",        urun(rc(kalip), F, R), 150)
-    K("primer sirasi sonucu degistirmez",      urun(kalip, R, F), 150)
-    K("alakasiz kalipta urun yok",
+    K("a product at the right orientation and distance",            urun(kalip, F, R), 150)
+    K("a product on a flipped template as well",        urun(rc(kalip), F, R), 150)
+    K("the primer order does not change the result",      urun(kalip, R, F), 150)
+    K("no product on an unrelated template",
       urun("".join(rnd.choice("ACGT") for _ in range(1200)), F, R), None)
-    K("3' uc bozulunca urun yok",              urun(boz(kalip,319), F, R), None)
+    K("no product once the 3' end is spoiled",              urun(boz(kalip,319), F, R), None)
     uzak = kalip[:300] + F + "".join(rnd.choice("ACGT") for _ in range(900)) + rc(R) + kalip[900:]
-    K("cok uzak primerler urun vermez",        urun(uzak, F, R), None)
+    K("primers too far apart give no product",        urun(uzak, F, R), None)
     ters_yon = (kalip[:300] + rc(R) + kalip[320:400] + F + kalip[420:])
-    K("birbirine bakmayan primerler urun vermez", urun(ters_yon, F, R), None)
-    if yazdir: print("  --- kalip kurulumu (okumalar birbirine karismamali)")
+    K("primers not facing one another give no product", urun(ters_yon, F, R), None)
+    if yazdir: print(u'  --- template construction (the reads must not run into one another)')
     b, bas = kalip_kur([kalip[:400], kalip[400:800]], 30)
     W = np.lib.stride_tricks.sliding_window_view(b, 30)
     n, _ = cift_tara(W, bas, [400, 400], F, R, 60, 400)
-    K("iki ayri okumaya bolunmus bolge urun vermez", n, 0)
+    K("a region split across two reads gives no product", n, 0)
     n2, _ = cift_tara(W, bas, [400, 400], kalip[300:320], rc(kalip[360:380]), 40, 200)
-    K("tek okuma icindeki bolge urun verir",   n2, 1)
-    if yazdir: print("  --- istatistik")
-    K("wilson kucuk orneklemi cezalandirir",   round(wilson_alt(1, 17), 3), 0.01)
-    K("wilson buyuk orneklemde orana yaklasir",round(wilson_alt(150, 300), 2), 0.44)
-    K("sifir sayim sifir alt sinir",           wilson_alt(0, 300), 0.0)
+    K("a region inside a single read gives a product",   n2, 1)
+    if yazdir: print(u'  --- statistics')
+    K("wilson penalises a small sample",   round(wilson_alt(1, 17), 3), 0.01)
+    K("wilson approaches the ratio on a large sample",round(wilson_alt(150, 300), 2), 0.44)
+    K("a zero count gives a zero lower bound",           wilson_alt(0, 300), 0.0)
 
     if yazdir: print(u'  --- the number of covering reads (the denominator of the cross reaction ratio)')
     kl = kalip[:400]
     b3, bas3 = kalip_kur([kl, kl, "".join(rnd.choice("ACGT") for _ in range(400))], 30)
     W3 = np.lib.stride_tricks.sliding_window_view(b3, 30)
-    K("primerin bagladigi okumalar sayilir",
+    K("the reads the primer bound are counted",
       kapsayan_okuma(W3, bas3, kl[300:320], rc(kl[360:380])), 2)
-    K("hicbir primerin baglanmadigi durumda sifir",
+    K("zero when no primer binds at all",
       kapsayan_okuma(W3, bas3, "ACGTACGTACGTACGTACGT", "TTTTTTTTTTTTTTTTTTTT"), 0)
 
     if yazdir: print(u'  --- the decision (this function had never been tested before)')
@@ -577,8 +577,8 @@ def birim_testleri(yazdir=True):
     #    missing list, and once the list emptied the coverage was written as COMPLETE:
     #    a claim of full coverage for a target that was never measured.
     k1 = karar_ver(["83986", "118126", "394967", "2201"], {"2223": 1}, {"2223": 300}, {})
-    K("okumasi olmayan hedefte kapsama TAM yazilmaz", k1["kapsama"], "OLCULEMEDI")
-    K("olculemeyen hedefler listelenir", len(k1["olculemeyen"]), 4)
+    K("coverage is not written as FULL for a target with no reads", k1["kapsama"], "OLCULEMEDI")
+    K("the targets that cannot be measured are listed", len(k1["olculemeyen"]), 4)
 
     # 2. The competitor covers the locus very little but gives a product in every read
     #    it does cover. CLEAN under the raw denominator, VAR under the covering one.
@@ -586,21 +586,21 @@ def birim_testleri(yazdir=True):
     hed = {"818": 150}; top = {"818": 300, "28116": 300}
     say = dict(hed); say["28116"] = 5
     k2 = karar_ver(["818"], say, top, {}, {"28116": 6, "818": 300})
-    K("ham payda tek basina TEMIZ derdi", k2["capraz_ham"], "TEMIZ")
-    K("kapsayan payda ile capraz gorunur", k2["capraz_kapsamali"], "VAR")
-    K("kati olan karar alinir", k2["capraz"], "VAR")
-    K("ayrilik loga yazilmak uzere dondurulur", bool(k2["ayrilik"]), True)
+    K("the raw denominator alone would have said TEMIZ", k2["capraz_ham"], "TEMIZ")
+    K("the covering denominator makes the cross reaction visible", k2["capraz_kapsamali"], "VAR")
+    K("the stricter decision is the one taken", k2["capraz"], "VAR")
+    K("the disagreement is returned to be written to the log", bool(k2["ayrilik"]), True)
     # 29 JULY: THE NUMBER BEHIND A DECISION MUST COME FROM THAT DECISION'S DENOMINATOR.
     # In the earlier version rakip_alt came from the RAW denominator, and because the
     # design stage's elimination gate compared that number against a threshold of 0.04, a
     # candidate showing FULL amplification in a competitor WAS NOT ELIMINATED. This item
     # locks exactly that gate.
-    K("karar kapsayan paydadan geldi", k2["karar_paydasi"], "kapsayan")
-    K("rakip_alt kararla tutarli (ham degil)", k2["rakip_alt"] == k2["rakip_alt_kapsamali"], True)
-    K("rakip_alt eleme esigini asiyor", k2["rakip_alt"] >= 0.04, True)
-    K("ham deger ayri alanda korunuyor", k2["rakip_alt_ham"] < 0.04, True)
+    K("the decision came from the covering denominator", k2["karar_paydasi"], "kapsayan")
+    K("rakip_alt agrees with the decision (not the raw one)", k2["rakip_alt"] == k2["rakip_alt_kapsamali"], True)
+    K("rakip_alt is above the elimination threshold", k2["rakip_alt"] >= 0.04, True)
+    K("the raw value is kept in a separate field", k2["rakip_alt_ham"] < 0.04, True)
     # The name and the number must come from the same taxon
-    K("rakip adi ile sayisi ayni kaynaktan", k2["rakip_tx"], k2["rakip_tx_kapsamali"])
+    K("the competitor name and its count come from the same source", k2["rakip_tx"], k2["rakip_tx_kapsamali"])
 
     # 4. THE TARGET'S DENOMINATOR MUST ALSO BE COVERING READS (29 July).
     # A pair sitting in the intergenic region: only 90 of a target's 1000 reads cover
@@ -609,28 +609,28 @@ def birim_testleri(yazdir=True):
     # short 16S amplicons inflated the denominator, intergenic targets such as M. mazei
     # and M. barkeri were being eliminated structurally.
     k4 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {}, {"818": 90})
-    K("hedef orani kapsayan paydayla hesaplanir", k4["hedef_alt"] > 0.80, True)
-    K("ham payda ayri alanda korunuyor", k4["hedef_alt_ham"] < 0.12, True)
+    K("the target ratio is computed with the covering denominator", k4["hedef_alt"] > 0.80, True)
+    K("the raw denominator is kept in a separate field", k4["hedef_alt_ham"] < 0.12, True)
     # Kapsayan payda verilmezse eski davranis surer
     k5 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {})
-    K("kapsayan payda yoksa ham davranis surer", abs(k5["hedef_alt"] - k5["hedef_alt_ham"]) < 1e-9, True)
+    K("with no covering denominator the raw behaviour continues", abs(k5["hedef_alt"] - k5["hedef_alt_ham"]) < 1e-9, True)
     # An inconsistent measurement: if the covering count is smaller than the count
     # giving a product, the safe side is taken
     k6 = karar_ver(["818"], {"818": 88}, {"818": 1000}, {}, {"818": 10})
-    K("kapsayan sayisi urunden kucukse alt sinir 1'i asmaz", k6["hedef_alt"] <= 1.0, True)
+    K("when the covering count is smaller than the product the lower bound stays under 1", k6["hedef_alt"] <= 1.0, True)
 
     # 3. The same numbers, but the competitor covers the locus widely. Both are CLEAN,
     # there is no divergence.
     k3 = karar_ver(["818"], say, top, {}, {"28116": 250, "818": 300})
-    K("genis kapsamada iki payda da TEMIZ", (k3["capraz_ham"], k3["capraz_kapsamali"]),
+    K("on broad coverage both denominators say TEMIZ", (k3["capraz_ham"], k3["capraz_kapsamali"]),
       ("TEMIZ", "TEMIZ"))
-    K("ayrilik yoksa bos", k3["ayrilik"], "")
+    K("empty when there is no disagreement", k3["ayrilik"], "")
 
     # 4. If the covering count comes out smaller than the count giving a product the
     #    measurement is inconsistent; the denominator is pulled to the count giving a
     #    product, so the ratio does not exceed 1.
     k4 = karar_ver(["818"], say, top, {}, {"28116": 2, "818": 300})
-    K("tutarsiz kapsama oraninda alt sinir 1'i asmaz", k4["rakip_alt_kapsamali"] <= 1.0, True)
+    K("on an inconsistent coverage ratio the lower bound stays under 1", k4["rakip_alt_kapsamali"] <= 1.0, True)
     return hata[0]
 
 # ------------------------------------------------------------------ blastn ikinci gorus
@@ -643,7 +643,7 @@ def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
 
     """
     if not (arac_var("blastn") and arac_var("makeblastdb")):
-        log("blastn bulunamadi, ikinci gorus atlandi"); return {}
+        log(u'blastn was not found, the second opinion was skipped'); return {}
     fa = os.path.join(cikti, "numune_okumalari.fasta")
     with open(fa, "w") as fh:
         for tx, okumalar in veri.items():
@@ -651,7 +651,7 @@ def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
     db = os.path.join(cikti, "numune_db")
     r = subprocess.run(["makeblastdb","-in",fa,"-dbtype","nucl","-out",db],
                        capture_output=True, text=True)
-    if r.returncode != 0: log("makeblastdb basarisiz, ikinci gorus atlandi"); return {}
+    if r.returncode != 0: log(u'makeblastdb failed, the second opinion was skipped'); return {}
     pf = os.path.join(cikti, "primerler.fasta")
     with open(pf, "w") as fh:
         for taban, d in sorted(ciftler.items()):
@@ -661,7 +661,7 @@ def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
         "-word_size","7","-evalue","1000","-dust","no","-soft_masking","false",
         "-max_target_seqs","100000","-num_threads",str(threads)],
         capture_output=True, text=True)
-    if r.returncode != 0: log("blastn basarisiz, ikinci gorus atlandi"); return {}
+    if r.returncode != 0: log(u'blastn failed, the second opinion was skipped'); return {}
     hit = defaultdict(lambda: defaultdict(lambda: {"F": [], "R": []}))
     for satir in r.stdout.splitlines():
         p = satir.split("\t")
@@ -693,10 +693,10 @@ def blast_ikinci_gorus(veri, ciftler, cikti, threads, en_kisa, en_uzun):
 
 # ------------------------------------------------------------------ selftest
 def selftest():
-    print("=" * 72); print("KURALLARIN BILINEN CEVAPLI SINAVI"); print("=" * 72)
+    print("=" * 72); print(u'THE KNOWN ANSWER EXAM OF THE RULES'); print("=" * 72)
     h = birim_testleri()
     print("=" * 72)
-    print("SELFTEST GECTI" if h == 0 else f"SELFTEST KALDI, {h} test kaldi")
+    print(u'SELFTEST PASSED' if h == 0 else f"SELFTEST FAILED, {h} tests failed")
     print("=" * 72)
     return 0 if h == 0 else 1
 
@@ -719,12 +719,12 @@ def main():
     cikti = a.out or os.path.join(a.kok, "tools", "0_TESLIM_RAPOR", "ICPCR_" + zaman)
     os.makedirs(cikti, exist_ok=True)
     LOGF = open(os.path.join(cikti, "log.txt"), "w", encoding="utf-8")
-    log(f"cikti: {cikti}")
+    log(f"output: {cikti}")
 
-    log("kurallarin bilinen cevapli sinavi calistiriliyor")
+    log(u'running the known answer exam of the rules')
     if birim_testleri(yazdir=False) != 0:
-        log("SINAV BASARISIZ, durduruldu. Ayrinti icin: --selftest"); sys.exit(2)
-    log("sinav gecti")
+        log(u'THE EXAM FAILED, stopped. For the detail: --selftest'); sys.exit(2)
+    log(u'the exam passed')
 
     primer_yollari = [p if os.path.isabs(p) else os.path.join(a.kok, p) for p in a.primerler]
     if not primer_yollari:
@@ -732,24 +732,24 @@ def main():
                           ("OLIGO_SIPARIS_GUNCEL_10ASSAY.csv", "OLIGO_SIPARIS_OPSIYONEL.csv",
                            "GRUP_VE_UNIVERSAL_PRIMERLER.csv")]
     ciftler = primerleri_oku(primer_yollari)
-    log(f"{len(ciftler)} primer cifti okundu")
-    if not ciftler: sys.exit("primer bulunamadi")
+    log(f"{len(ciftler)} primer pairs were read")
+    if not ciftler: sys.exit(u'no primer was found')
 
-    log("okumalar yukleniyor")
+    log(u'loading the reads')
     veri = okumalari_yukle(a.kok, a.okuma)
     toplam_okuma = sum(len(v) for v in veri.values())
     toplam_baz = sum(len(s) for v in veri.values() for s in v)
-    log(f"{len(veri)} takson, {toplam_okuma} okuma, {toplam_baz/1e6:.1f} milyon baz")
+    log(f"{len(veri)} taxa, {toplam_okuma} reads, {toplam_baz/1e6:.1f} million bases")
 
     en_uzun_primer = max(max(len(d["F"]), len(d["R"])) for d in ciftler.values())
-    log(f"kaba kuvvet taramasi hazirlaniyor (pencere {en_uzun_primer} baz)")
+    log(f"preparing the brute force scan (window {en_uzun_primer} bases)")
     kalipler = {}
     for tx, okumalar in veri.items():
         b, bas = kalip_kur(okumalar, en_uzun_primer)
         W = np.lib.stride_tricks.sliding_window_view(b, en_uzun_primer)
         kalipler[tx] = (W, bas, [len(s) for s in okumalar])
 
-    log("tarama basliyor")
+    log(u'the scan is starting')
     t0 = time.time()
     sayimlar = {}; boy_bilgisi = {}; kapsayanlar = {}
     toplamlar = {tx: len(v) for tx, v in veri.items()}
@@ -760,8 +760,8 @@ def main():
     okumasiz = sorted(hedefte_gecen - set(toplamlar))
     if okumasiz:
         log("")
-        log(f"UYARI: {len(okumasiz)} hedef taksonun numunede HIC okumasi yok, "
-            f"bunlar icin olcum YAPILAMAZ:")
+        log(f"WARNING: {len(okumasiz)} target taxa have NO reads at all in the sample, "
+            f"NO measurement is possible for them:")
         for t in okumasiz: log(f"    {isim(t)} (taxid {t})")
     for i, taban in enumerate(sorted(ciftler), 1):
         F, R = ciftler[taban]["F"], ciftler[taban]["R"]
@@ -781,8 +781,8 @@ def main():
                 kap[tx] = kapsayan_okuma(W, bas, F, R)
         kapsayanlar[taban] = kap
         sayimlar[taban] = s; boy_bilgisi[taban] = b
-        log(f"  [{i}/{len(ciftler)}] {taban}  {sum(s.values())} urun veren okuma")
-    log(f"tarama bitti ({int(time.time()-t0)} sn)")
+        log(f"  [{i}/{len(ciftler)}] {taban}  {sum(s.values())} reads giving a product")
+    log(f"the scan finished ({int(time.time()-t0)} s)")
 
     # her taksonun ulasilabilirligi: herhangi bir ciftle elde edilen en yuksek oran
     erisilebilir = {}
@@ -791,7 +791,7 @@ def main():
 
     blast = {}
     if a.blast:
-        log("blastn ile ikinci gorus aliniyor")
+        log(u'taking a second opinion with blastn')
         blast = blast_ikinci_gorus(veri, ciftler, cikti, a.threads, a.en_kisa, a.en_uzun)
 
     satirlar = []; ozet = []
@@ -807,9 +807,9 @@ def main():
         log("")
         log(f"  {taban}   [{etiket}]")
         if K["ayrilik"]:
-            log(f"    AYRILIK: {K['ayrilik']}")
+            log(f"    DISAGREEMENT: {K['ayrilik']}")
         if K["olculemeyen"]:
-            log("    OLCULEMEYEN HEDEFLER (numunede okumasi yok, kapsama iddia edilemez): "
+            log(u'    TARGETS THAT CANNOT BE MEASURED (no reads in the sample, no coverage can be claimed): '
                 + ", ".join(isim(t) for t in K["olculemeyen"]))
         sebep = {}
         for t in eksik:
@@ -826,21 +826,21 @@ def main():
         for t in hedefler:
             n = toplamlar.get(t, 0); k = s.get(t, 0)
             im = f"  <<< {sebep[t]}" if t in eksik else ""
-            log(f"    HEDEF  {isim(t):<34} {k:>4}/{n:<4} oran {k/max(1,n):.3f}"
-                f"  urun {b.get(t,0)} bp{im}")
+            log(f"    TARGET  {isim(t):<34} {k:>4}/{n:<4} ratio {k/max(1,n):.3f}"
+                f"  product {b.get(t,0)} bp{im}")
         rakipler = sorted(((tx, k) for tx, k in s.items() if tx not in set(hedefler)),
                           key=lambda x: -x[1] / max(1, toplamlar.get(x[0], 1)))
         if not rakipler:
-            log("    rakip taksonlarin hicbirinde urun olusmadi")
+            log(u'    no product formed in any of the competitor taxa')
         kap = kapsayanlar.get(taban, {})
         for tx, k in rakipler[:6]:
             n = toplamlar.get(tx, 0); kn = max(kap.get(tx, 0), k)
             # The two ratios are written side by side. The gap between them shows how much of
             # the locus the competitor covers; a large gap is the difference between "a product
             # in few reads" and "a product in every covering read".
-            log(f"    rakip  {isim(tx):<34} {k:>4}/{n:<4} oran {k/max(1,n):.3f}"
-                f"  |  kapsayan {kn:>4} icinde oran {k/max(1,kn):.3f}"
-                f"  urun {b.get(tx,0)} bp")
+            log(f"    competitor  {isim(tx):<34} {k:>4}/{n:<4} ratio {k/max(1,n):.3f}"
+                f"  |  the ratio within {kn:>4} covering {k/max(1,kn):.3f}"
+                f"  product {b.get(tx,0)} bp")
         for tx in sorted(set(list(s) + hedefler)):
             n = toplamlar.get(tx, 0); k = s.get(tx, 0); kn = max(kap.get(tx, 0), k)
             satirlar.append(dict(cift=taban, taxid=tx, organizma=isim(tx),
@@ -880,7 +880,7 @@ def main():
 
     sira = {"TEMIZ": 0, "SINIRDA": 1, "VAR": 2}
     log("")
-    log("TOPLU KARAR")
+    log(u'THE COLLECTED VERDICT')
     log(f"  {'capraz':<9}{'kapsama':<9}{'cift':<46}{'hedef':>7}{'rakip':>8}")
     for satir in sorted(ozet, key=lambda x: (sira.get(x["capraz"], 3), x["kapsama"] == "EKSIK")):
         log(f"  {satir['capraz']:<9}{satir['kapsama']:<9}{satir['cift']:<46}"
@@ -889,16 +889,16 @@ def main():
     eksikli = [o for o in ozet if o["urun_vermeyen_hedefler"]]
     if eksikli:
         log("")
-        log("HEDEFLEDIGI HALDE URUN VERMEDIGI ORGANIZMALAR")
+        log(u'THE ORGANISMS IT TARGETS BUT GIVES NO PRODUCT IN')
         for o in eksikli:
             log(f"  {o['cift']}")
             log(f"     {o['sebep']}")
     log("")
-    log("Oranlar ham sayimdir; karar Wilson alt sinirina gore verilir, boylece on yedi")
-    log("okumali bir taksonda tek okuma yuzde alti gibi gorunup karari bozmaz.")
+    log(u'The ratios are raw counts; the decision is made on the Wilson lower bound, so')
+    log(u'that in a taxon with seventeen reads a single read cannot look like six percent and spoil the decision.')
     log("")
-    log(f"yazildi: {yol}")
-    log(f"yazildi: {yol2}")
+    log(f"written: {yol}")
+    log(f"written: {yol2}")
     LOGF.close()
 
 if __name__ == "__main__":

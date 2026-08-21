@@ -212,27 +212,27 @@ def main():
     with open(hedef, "w") as fh:
         for k in a.kume:
             if "=" not in k:
-                print(f"u'ERROR: --kume must have the form \'name=/path\', received: '{k}")
+                print(f"ERROR: --kume must have the form name=/path, received: {k}")
                 sys.exit(1)
             ad, yol = k.split("=", 1)
             if not os.path.exists(yol):
-                print(f"u'ERROR: no such file: '{yol}")
+                print(f"ERROR: no such file: {yol}")
                 sys.exit(1)
             print(f"  {ad}: {os.path.basename(yol)}")
             ok, yz, sz = kume_isle(yol, tak, fh)
-            print(f"     {ok} baslik, {yz} yazildi, {sz}u' skipped for having no lineage'")
+            print(f"     {ok} headers, {yz} written, {sz} skipped for having no lineage")
             if sz > ok * 0.5:
-                print(f"     UYARI: basliklarin yarisindan fazlasi soysuz. Baslik bicimi")
-                print(f"u'     may differ from what is expected, so the result is not trustworthy.'")
+                print(f"     WARNING: more than half the headers have no lineage. The header format")
+                print(f"     may differ from what is expected, so the result is not trustworthy.")
             toplam_ok += ok; toplam_yz += yz; toplam_sz += sz
     n = tak.yaz(os.path.join(a.cikti, "taxonomy"))
-    print(f"u'\n  total '{toplam_ok} baslik, {toplam_yz} dizi yazildi, {toplam_sz} soysuz")
-    print(f"  taksonomi: {n} dugum")
+    print(f"\n  total {toplam_ok} headers, {toplam_yz} sequences written, {toplam_sz} without a lineage")
+    print(f"  taxonomy: {n} nodes")
     if toplam_yz == 0:
         print(u'ERROR: not one sequence could be written, so the build is pointless. Stopping.')
         sys.exit(1)
-    print(f"  kutuphane: {hedef}")
-    print(f"u'  The next step is kraken2-build --build (kraken_tool.sh does it)'")
+    print(f"  library: {hedef}")
+    print(f"  The next step is kraken2-build --build (kraken_tool.sh does it)")
 
 if __name__ == "__main__":
     main()

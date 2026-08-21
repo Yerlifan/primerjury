@@ -152,26 +152,23 @@ def main():
             kayitlar = {k: v for k, v in ham.items()
                         if not k.startswith("_")} if isinstance(ham, dict) else {}
             if eski is None:
-                log("checkpoint parmak izi TASIMIYOR (eski surumden kalma), "
-                    "yok sayiliyor ve her hedef bastan tasarlanacak")
+                log(u'the checkpoint CARRIES NO fingerprint (left over from an old version), it is ignored and every target will be designed from scratch')
             elif eski != parmak:
-                log("checkpoint parmak izi UYUSMUYOR, yok sayiliyor")
-                log("   kayitli : %s" % eski)
-                log("   simdiki : %s" % parmak)
-                log("   Girdi degismis (konsensus kumesi, hedefler.tsv ya da "
-                    "motor betikleri). Eski sonuclar yeniden kullanilmayacak.")
+                log(u'the checkpoint fingerprint DOES NOT MATCH, it is ignored')
+                log(u'   recorded: %s' % eski)
+                log(u'   current : %s' % parmak)
+                log(u'   The input has changed (the consensus set, hedefler.tsv or the engine scripts). The old results will not be reused.')
             else:
                 ckpt = kayitlar
-                log("checkpoint bulundu ve girdi parmak izi uyusuyor: "
-                    "%d hedef-sinif zaten tamam, atlanacak" % len(ckpt))
+                log(u'the checkpoint was found and the input fingerprint matches: %d target and class combinations are already done, they will be skipped' % len(ckpt))
         except Exception as e:
-            log("checkpoint okunamadi (%s), sifirdan baslaniyor" % e)
+            log(u'the checkpoint could not be read (%s), starting from scratch' % e)
             ckpt = {}
     t0 = time.time()
-    log("baslangic. konsensus=%s  cikti=%s" % (a.kons, a.out))
+    log(u'start. consensus=%s  output=%s' % (a.kons, a.out))
     files = sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta")))
     if not files:
-        sys.exit("konsensus bulunamadi: %s" % a.kons)
+        sys.exit(u'no consensus found: %s' % a.kons)
     envanter = {}
     bozuk = []
     for f in files:
@@ -200,7 +197,7 @@ def main():
     for tag, d in envanter.items():
         siniflar[d["sinif"]].append(tag)
     if bozuk:
-        log("DISLANAN konsensus (kapsanan baz 200'den az): %d" % len(bozuk))
+        log(u'EXCLUDED consensus (fewer than 200 covered bases): %d' % len(bozuk))
         for t, L, k in bozuk:
             log("   %-26s uzunluk=%d kapsanan=%d" % (t, L, k))
         # 09 da ayni taksonlari dislamali; fastq envanterinden calistigi
@@ -211,15 +208,15 @@ def main():
             for t, L, k in bozuk:
                 df.write("%s\t%s\t%s\t%d\t%d\n"
                          % (t.rsplit("_", 1)[0], taxid_of(t) or "", t, L, k))
-        log("   dislanan_takson.tsv yazildi (09 ayni kumeyi dislayacak)")
-        log("   Bu dosyalar ne hedef ne rakip olarak kullanilacak. Sebebini")
-        log("   referans_konsensus/self/log/<etiket>_mm2.log dosyasindan")
-        log("   kontrol edin.")
-    log("konsensus: %d dosya, %d sinif (%s)"
+        log(u'   dislanan_takson.tsv was written (specificity.py will exclude the same set)')
+        log(u'   These files will be used neither as a target nor as a competitor.')
+        log(u'   The reason can be checked in referans_konsensus/self/log/<label>_mm2.log')
+        log(u'   for each excluded label.')
+    log(u'consensus: %d files, %d classes (%s)'
         % (len(envanter), len(siniflar), ", ".join(sorted(siniflar))))
     for s in sorted(siniflar):
         tids = sorted(set(envanter[t]["taxid"] for t in siniflar[s]), key=int)
-        log("   %-3s %2d dosya, %2d takson: %s"
+        log(u'   %-3s %2d files, %2d taxa: %s'
             % (s, len(siniflar[s]), len(tids), ",".join(tids)))
 
     # --- ayirt edilemez takson ciftleri ------------------------------
@@ -239,17 +236,14 @@ def main():
                               if not l.startswith(">")).upper()
                 temsil[key] = (tag, d["kapsanan"], seq)
         if not AYIRT.MAPPY:
-            log("UYARI: mappy kurulu degil. Ayirt edilemez kutu olcumu yalniz "
-                "k-mer kapsamasiyla yapilacak, hizalama olcumu yok. "
-                "Kurmak icin: pip install mappy")
+            log(u'WARNING: mappy is not installed. The indistinguishable bin measurement will be done with k-mer coverage only, with no alignment measurement. To install it: pip install mappy')
         ciftler = AYIRT.ayirt_edilemezler(temsil)
         for sn, t1, t2, u, o, k, g, kp, kt in ciftler:
             ayirt.setdefault((sn, t1), set()).add(t2)
             ayirt.setdefault((sn, t2), set()).add(t1)
-        log("ayirt edilemez takson cifti: %d" % len(ciftler))
+        log(u'indistinguishable taxon pairs: %d' % len(ciftler))
         for sn, t1, t2, u, o, k, g, kp, kt in sorted(ciftler, key=lambda r: (r[0], -r[4])):
-            log("   %-3s %-9s ~ %-9s hizalanan=%5d kesisimli=%%%.2f kati=%%%.2f "
-                "kapsam=%.2f kmer=%.3f  %s" % (sn, t1, t2, u, o, kt, kp, k, g))
+            log(u'   %-3s %-9s ~ %-9s aligned=%5d intersect=%%%.2f strict=%%%.2f coverage=%.2f kmer=%.3f  %s' % (sn, t1, t2, u, o, kt, kp, k, g))
         with open(os.path.join(a.out, "ayirt_edilemez.tsv"), "w",
                   newline="", encoding="utf-8") as fh:
             w = csv.writer(fh, delimiter="\t", lineterminator="\n")
@@ -258,8 +252,7 @@ def main():
                         "hizalama_kapsami", "kati_ozdeslik"])
             w.writerows(ciftler)
     elif a.ayirt_edilemez_cikar:
-        log("UYARI: indistinguishable_targets.py bulunamadi, ayirt edilemez kutu "
-            "temizligi YAPILMAYACAK")
+        log(u'WARNING: indistinguishable_targets.py was not found, the indistinguishable bin cleanup WILL NOT BE DONE')
 
     hedefler = []
     with open(a.hedefler, encoding="utf-8") as fh:
@@ -276,7 +269,7 @@ def main():
         hedefler = [h for h in hedefler if h["hedef"] == a.only]
     if a.karar:
         hedefler = [h for h in hedefler if h["karar"] == a.karar]
-    log("islenecek hedef: %d" % len(hedefler))
+    log(u'targets to process: %d' % len(hedefler))
 
     ozet = []
     for h in hedefler:
@@ -308,13 +301,12 @@ def main():
                 _dis = [s for s in hedef_siniflar if s[0] != _bas]
                 if _dis:
                     hedef_siniflar = [s for s in hedef_siniflar if s[0] == _bas]
-                    log("   %-34s alan karisimi (%s); baskin alan %s, "
-                        "atlanan sinif: %s"
+                    log(u'   %-34s a mixture of domains (%s); the dominant domain is %s, the class skipped: %s'
                         % (h["hedef"],
                            ", ".join("%s=%d" % kv for kv in sorted(_alan.items())),
                            _bas, ", ".join(_dis)))
         if not hedef_siniflar:
-            log("ATLANDI %-34s veride hicbir sinifta karsiligi yok" % h["hedef"])
+            log(u'SKIPPED %-34s it has no counterpart in any class in the data' % h["hedef"])
             ozet.append(dict(h, sinif="-", uye=0, rakip=0, cift=0, durum="veride yok",
                              en_iyi="", tsv=""))
             continue
@@ -346,10 +338,10 @@ def main():
                 outg = temiz
             if atilan:
                 gor = sorted(set(t[0] for t in atilan))
-                log("   %-34s %-3s rakipten cikarildi (hedefle ayirt edilemez): %s"
+                log(u'   %-34s %-3s taken out of the competitors (indistinguishable from the target): %s'
                     % (h["hedef"], sinif, ", ".join(gor)))
             if len(ing) < a.min_uye:
-                log("ATLANDI %-34s %-3s uye=%d (--min-uye %d altinda)"
+                log(u'SKIPPED %-34s %-3s members=%d (below --min-uye %d)'
                     % (h["hedef"], sinif, len(ing), a.min_uye))
                 ozet.append(dict(h, sinif=sinif, uye=len(ing), rakip=len(outg),
                                  cift=0, durum="uye yetersiz", kademe="",
@@ -360,7 +352,7 @@ def main():
             tsv = os.path.join(a.out, "%s.tsv" % etiket)
             if etiket in ckpt and not a.yeniden:
                 c = ckpt[etiket]
-                log("ATLANDI (checkpoint) %-40s %-3s cift=%s" % (h["hedef"], sinif, c.get("cift")))
+                log(u'SKIPPED (checkpoint) %-40s %-3s pairs=%s' % (h["hedef"], sinif, c.get("cift")))
                 ozet.append(dict(h, sinif=sinif, uye=c.get("uye", 0),
                                  rakip=c.get("rakip", 0),
                                  cift=c.get("cift", 0), durum=c.get("durum", ""),
@@ -394,11 +386,11 @@ def main():
                 if n > 0:
                     break
                 if kad_ad != MERDIVEN[-1][0]:
-                    log("      %-40s %-3s kademe '%s' sifir verdi, gevsetiliyor"
+                    log(u'      %-40s %-3s the \'%s\' step gave zero, relaxing'
                         % (h["hedef"], sinif, kad_ad))
             sure = time.time() - th
             if r.returncode != 0 and n == 0:
-                log("      HATA: 04 cikis kodu %d ile bitti. Son satirlar:"
+                log(u'      ERROR: design_group_primers.py finished with exit code %d. The last lines:'
                     % r.returncode)
                 for satir in txt.strip().splitlines()[-4:]:
                     log("         %s" % satir[:150])
@@ -408,10 +400,10 @@ def main():
             if n == 0 and os.path.exists(tsv):
                 try:
                     os.remove(tsv)
-                    log("      eski aday dosyasi silindi: %s"
+                    log(u'      the old candidate file was deleted: %s'
                         % os.path.basename(tsv))
                 except OSError as e:
-                    log("      UYARI: eski aday dosyasi silinemedi (%s)" % e)
+                    log(u'      WARNING: the old candidate file could not be deleted (%s)' % e)
             best = ""
             mb = re.search(r"En iyi bes aday:\n\s*(.+)", txt)
             if mb:
@@ -425,7 +417,7 @@ def main():
             me = re.search(r"en cok engelleyen uyeler:\s*(.+)", txt)
             if me:
                 eng = me.group(1).strip()[:70]
-            log("%-40s %-3s uye=%2d rakip=%2d cift=%-7d %-14s %5.1f sn"
+            log(u'%-40s %-3s members=%2d competitors=%2d pairs=%-7d %-14s %5.1f s'
                 % (h["hedef"], sinif, len(ing), len(outg), n, durum, sure))
             if eng and n == 0:
                 log("      engelleyen: %s" % eng)
@@ -445,14 +437,14 @@ def main():
 
     yaz_ozet(a.out, ozet, kismi=bool(a.only or a.karar))
     tamam = sum(1 for o in ozet if o["durum"].startswith("TAMAM"))
-    log("ozet yazildi: %s" % os.path.join(a.out, "ozet.tsv"))
-    log("hedef-sinif kombinasyonu: %d, cift bulunan: %d" % (len(ozet), tamam))
+    log(u'summary written: %s' % os.path.join(a.out, "ozet.tsv"))
+    log(u'target and class combinations: %d, with a pair found: %d' % (len(ozet), tamam))
     kalan = sorted(set(o["hedef"] for o in ozet if o["durum"] != "TAMAM")
                    - set(o["hedef"] for o in ozet if o["durum"].startswith("TAMAM")))
     if kalan:
-        log("hicbir sinifta cift bulunamayan hedef (%d): %s"
+        log(u'targets with no pair found in any class (%d): %s'
             % (len(kalan), ", ".join(kalan)))
-    log("toplam sure: %.1f dakika" % ((time.time() - t0) / 60))
+    log(u'total time: %.1f minutes' % ((time.time() - t0) / 60))
 
 
 def yaz_ozet(out, ozet, kismi=False):

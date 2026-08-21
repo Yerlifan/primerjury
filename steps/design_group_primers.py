@@ -49,7 +49,7 @@ def load_engine():
     """03 betigindeki kural fonksiyonlarini tek kaynak olarak kullanir."""
     p = os.path.join(HERE, "generate_primer_candidates.py")
     if not os.path.exists(p):
-        sys.exit("generate_primer_candidates.py ayni klasorde bulunamadi: %s" % HERE)
+        sys.exit(u'generate_primer_candidates.py was not found in the same directory: %s' % HERE)
     spec = importlib.util.spec_from_file_location("engine03", p)
     m = importlib.util.module_from_spec(spec)
     sys.argv_backup, sys.argv = sys.argv, [p]
@@ -288,7 +288,7 @@ def main():
     ing = load_set(a.in_group)
     outg = load_set(a.out_group) if a.out_group else []
     if not ing:
-        sys.exit("hedef kumesi bos, --in-group desenlerini kontrol edin")
+        sys.exit(u'the target set is empty, check the --in-group patterns')
     # Etiket cakismasi: seqs sozlugu tag ile anahtarlandigi icin ayni etikete
     # dusen iki uye sessizce tek diziye cokerdi ve cikti yine iki uyeyi
     # kapsadigini iddia ederdi.
@@ -298,9 +298,8 @@ def main():
     dup = {t: v for t, v in seen_tags.items() if len(v) > 1}
     if dup:
         for t, v in dup.items():
-            print("ETIKET CAKISMASI: %s -> %s" % (t, v), file=sys.stderr)
-        sys.exit("Ayni etikete dusen dosyalar var. Sessiz uye kaybini onlemek "
-                 "icin duruldu; glob desenlerini ayirin.")
+            print(u'LABEL COLLISION: %s -> %s' % (t, v), file=sys.stderr)
+        sys.exit(u'there are files falling on the same label. Stopped to prevent a silent loss of members; separate the glob patterns.')
     print(u'label             : %s' % a.label)
     print(u'target members    : %d' % len(ing))
     for t, s, p in ing:
@@ -317,7 +316,7 @@ def main():
     if a.anchor:
         anchor = [x for x in ing if a.anchor in x[0] or a.anchor in x[2]]
         if not anchor:
-            sys.exit("capa bulunamadi: %s" % a.anchor)
+            sys.exit(u'anchor not found: %s' % a.anchor)
         anchor = anchor[0]
     else:
         anchor = min(ing, key=lambda x: (x[1].count("N"), -len(x[1])))
@@ -334,7 +333,7 @@ def main():
     probes = [anchor[1][i:i + 20] for i in range(0, len(anchor[1]) - 20, 40)
               if "N" not in anchor[1][i:i + 20]][:40]
     if not probes:
-        sys.exit("capada prob uretilemedi, konsensus fazla N iceriyor")
+        sys.exit(u'no probe could be produced on the anchor, the consensus holds too many N')
 
     # Ikinci, bagimsiz yon olcutu: butun canlilarda korunmus SSU motifleri.
     # Capa problari uzak bir uyeye hic baglanmadiginda (arti=eksi=0) oylama
@@ -400,7 +399,7 @@ def main():
         print(u'   WARNING: %d sequences could not be oriented; both directions scored zero:'
               % len(undecided))
         for grp, t, np_, nm in undecided:
-            print("      %-6s %-30s arti=%d eksi=%d" % (grp, t, np_, nm))
+            print(u'      %-6s %-30s plus=%d minus=%d' % (grp, t, np_, nm))
         print(u'   That means those sequences are far from the anchor. If they are in the target')
         print(u'   set they will give no product; if they are in the competitor set the')
         print(u'   specificity check becomes unreliable. Review the sets.')
@@ -422,9 +421,7 @@ def main():
             hits.extend(glob.glob(pat))
         hits = sorted(set(hits))
         if not hits:
-            sys.exit("HATA: --mask-dir verildi ama capa '%s' (grup=%s taxid=%s) "
-                     "icin maske dosyasi bulunamadi. Sessiz maskesizligi "
-                     "onlemek icin duruldu." % (anchor[0], grp, tid))
+            sys.exit(u'ERROR: --mask-dir was given but no mask file was found for the anchor \'%s\' (group=%s taxid=%s). Stopped to prevent a silent absence of masking.' % (anchor[0], grp, tid))
         if len(hits) > 1:
             print(u'WARNING: more than one mask file matched the anchor: %s' % hits)
         for cand in hits:
@@ -464,7 +461,7 @@ def main():
     for k, v in sorted(reasons.items(), key=lambda x: -x[1])[:6]:
         print("   elenen %-16s %d" % (k, v))
     if not raw:
-        sys.exit("kompozisyon suzgecinden gecen oligo yok")
+        sys.exit(u'no oligo passed the composition filter')
 
     # --- 2. iki bagimsiz Tm ve termodinamik ---------------------------
     tm3 = [tm_primer3(o, a) for _, _, _, o, _ in raw]
@@ -491,7 +488,7 @@ def main():
                          iupac=kac))
     print(u'oligos after thermodynamics: %d' % len(kept))
     if not kept:
-        sys.exit("termodinamik suzgecten gecen oligo yok")
+        sys.exit(u'no oligo passed the thermodynamics filter')
 
     # --- 3. her uye ve rakip icin baglanma taramasi -------------------
     K = a.tail_len
@@ -522,8 +519,7 @@ def main():
                         for t in ing_tags)]
     print(u'oligos binding every target member: %d' % len(universal))
     if not universal:
-        sys.exit("butun uyelere baglanan oligo yok. Dejenere butcesini artirmayi "
-                 "(--degeneracy-budget) ya da hedef kumesini daraltmayi deneyin.")
+        sys.exit(u'no oligo binds every member. Try raising the degeneracy budget (--degeneracy-budget) or narrowing the target set.')
 
     # rakiplerde hic baglanmayan oligolar (yetim primer adaylari)
     orphan = set()
@@ -544,15 +540,14 @@ def main():
                 # taşıyorsa bağlanma tavlama sıcaklığı düştüğünde bile
                 # zayıf kalır. Bu kademe çıktıda ayrıca işaretlenir.
                 orphan.add(o)
-        print("rakiplerde hic baglanmayan oligo: %d" % n_tam)
+        print(u'oligos that bind nowhere in the competitors: %d' % n_tam)
         if a.yetim_min_uyumsuzluk:
-            print("rakiplerde en iyi yerlesimi >=%d uyumsuzluk olan oligo: %d "
-                  "(gevsetilmis kademe)" % (a.yetim_min_uyumsuzluk,
+            print(u'oligos whose best placement in the competitors carries >=%d mismatches: %d (the relaxed step)' % (a.yetim_min_uyumsuzluk,
                                             len(orphan) - n_tam))
         dag = {}
         for v in rakip_en_iyi.values():
             dag[v] = dag.get(v, 0) + 1
-        print("   rakiplerdeki en iyi uyumsuzluk dagilimi: %s"
+        print(u'   the best mismatch distribution in the competitors: %s'
               % ", ".join("%s=%d" % ("hic" if k is None else k, v)
                           for k, v in sorted(dag.items(),
                                              key=lambda x: (x[0] is not None, x[0]))))
@@ -727,7 +722,7 @@ def main():
     print(u'valid pairs                          : %d%s'
           % (len(pairs), u'  (stopped early via --stop-after)' if durdu else ""))
     if not pairs:
-        sys.exit("gecerli cift bulunamadi")
+        sys.exit(u'no valid pair was found')
     pairs.sort(key=lambda x: x["ceza"])
     # Ayni lokusun IUPAC kardes varyantlari tek satira indirilir. Aksi halde
     # ilk on aday tek bir bolgenin alel varyantlariyla dolar ve tablo
