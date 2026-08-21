@@ -324,8 +324,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
         _klad = _MK.klad_tablosu(kok)
     except Exception as e:
         TX, _klad = None, {}
-        yaz(u'  UYARI: taksonomik ayrim YAPILAMIYOR (%s). Yalniz boy olcutu '
-            u'kullanilacak - bu katman katman 3 ile AYNI soruyu sormayacak.' % e)
+        yaz(u'  WARNING: taxonomic separation is NOT POSSIBLE (%s). Only the size criterion will be used, so this layer will not ask the SAME question as layer 3.' % e)
 
     _klad_yok = [c['hedef'] for c in ciftler if c['hedef'] not in _klad]
     if _klad and _klad_yok:
@@ -355,7 +354,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
     for etiket, dosya, aciklama in kumeler:
         db = os.path.join(kok, 'REFERANS_DB', dosya)
         if not os.path.exists(db):
-            yaz(u'  [%s] ATLANDI - dosya yok: %s' % (etiket, dosya))
+            yaz(u'  [%s] SKIPPED, file missing: %s' % (etiket, dosya))
             for h in toplam:
                 toplam[h]['kume'][etiket] = 'dosya yok'
                 toplam[h]['atlanan'] += 1
@@ -374,7 +373,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
         yaz(u'  [%s] scanning (%s)...' % (etiket, aciklama))
 
         def ilerle(pi, kayit, gecen):
-            print('     ... parca %d, %d kayit (%s)          '
+            print(u'     ... chunk %d, %d records (%s)'
                   % (pi, kayit, sure_metni(gecen)), end='\r', flush=True)
         try:
             res = KT.tara(adaylar, db=db, durum_yolu=dy, ilerle=ilerle,
@@ -913,11 +912,11 @@ def katman2_elle_girdi(ciftler, cikti, yaz, organizma=''):
     g = os.path.join(cikti, 'NCBI_PRIMER_BLAST_GIRDI.tsv')
     with open(g, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# READY-MADE INPUT for NCBI Primer-BLAST, paste it straight in.\n')
-        fh.write(u'# Adres: https://www.ncbi.nlm.nih.gov/tools/primer-blast/\n')
+        fh.write(u'# Address: https://www.ncbi.nlm.nih.gov/tools/primer-blast/\n')
         fh.write(u'# One pair per row. Paste into these fields on the page:\n')
-        fh.write(u'#   "Primer Parameters > Forward primer"  <- F sutunu\n')
-        fh.write(u'#   "Primer Parameters > Reverse primer"  <- R sutunu\n')
-        fh.write(u'#   "Exon/intron selection > PCR product size"  Min/Max <- urun_min/urun_max\n')
+        fh.write(u'#   "Primer Parameters > Forward primer"  <- the F column\n')
+        fh.write(u'#   "Primer Parameters > Reverse primer"  <- the R column\n')
+        fh.write(u'#   "Exon/intron selection > PCR product size"  Min/Max <- urun_min / urun_max\n')
         fh.write(u'#   "Primer Pair Specificity Checking Parameters":\n')
         fh.write(u'#       Database = nt ; Organism = the organizma_kisiti column\n')
         fh.write(u'#       Total mismatches = 5 ; 3\' end mismatches = 2\n')
@@ -1299,38 +1298,16 @@ def raporla(cikti, satirlar, yaz):
         # A3 (2026-08-21): esik artik PT_VURUS_ESIGI ile degistirilebiliyor.
         # Degistirilebilen bir olcut, hangi degerle kosuldugu YAZILMADIKCA
         # olcumu okunamaz kilar; bu yuzden ciktinin basinda durur.
-        fh.write(u'# VURUS_ESIGI = %d%s  (bir katman bu sayidan COK hedef disi urun\n'
-                 u'#   gorurse RISKLI oy verir; tek basina hukum vermez, karar\n'
-                 u'#   katmanlarin UYUSMASINA baglidir)\n'
+        fh.write(u'# VURUS_ESIGI = %d%s  (a layer that sees MORE off-target products than\n#   this votes RISKLI. It does not decide on its own; the verdict\n#   depends on the layers AGREEING)\n'
                  % (VURUS_ESIGI,
                     u'  [CHANGED via PT_VURUS_ESIGI, default is 0]'
                     if VURUS_ESIGI != 0 else u'  [default]'))
         fh.write(u'# 1_NUMUNE DOES NOT VOTE: it always reads TEMIZ (clean). It is the admission criterion, not a measurement (D-2).\n')
         fh.write(u'# 2_hedef_disi_urun: hits whose length DIFFERS from the expected product by more than +-%d bp.\n' % BOY_TOL)
-        fh.write(u'# A2 (2026-08-21): 2_klad_* sutunlari TAKSONOMIK ayrimdir ve\n'
-                 u'#   2_hedef_disi_urun ile AYNI SEYI OLCMEZ. Boy olcutu yaniltici:\n'
-                 u'#   D-12\'de olculdu, "hedef disi" sayilan 1.605 amplikonun %95,7\'si\n'
-                 u'#   hedef kladin KENDI ICINDENdi (sinif a), yalniz boyu farkliydi.\n'
-                 u'#   HUKME HALA 2_hedef_disi_urun giriyor; taksonomik sayilar once\n'
-                 u'#   OLCULSUN diye yan yana yaziliyor. Fark buyukse hangi olcutun\n'
-                 u'#   hukum vermesi gerektigi AYRI bir karardir.\n'
-                 u'#   2_klad_disi_b_c = b + c  (gercek capraz adayi)\n'
-                 u'#   2_bilinmiyor: alan cozulemedi - KANIT SAYILMAZ, capraz sayilmaz.\n'
-                 u'#   2_klad_ayrimi_yapildi HAYIR ise sinif sayilari SIFIRDIR ama bu\n'
-                 u'#   "capraz yok" DEGIL, "olculmedi" demektir.\n')
-        fh.write(u'# 3_hedef_disi_amplikon: D-12 sonrasi bu sutun TAKSONOMIK olarak\n'
-                 u'#   suzulmustur = (b) ayni alan/klad disi + (c) farkli alan. Boya\n'
-                 u'#   dayali HAM sayi 3_HAM_boya_dayali sutununda durur. Ikisinin\n'
-                 u'#   farki hedef kladin kendi uzunluk varyantlaridir (3_a) ve bunlar\n'
-                 u'#   evrensel/grup primerlerinde TASARIM GEREGIDIR.\n'
-                 u'# 3_olusabilir_Tm_yakin: (b)+(c)+(ao) kayitlarindan min(FpTm,RpTm)\n'
-                 u'#   panelin Ta\'sinin (%.1f C) 5 C'
-                 u' altina DUSMEYENLER - standart\n'
-                 u'#   kosulda urun verebilecek olanlar.\n' % TA_PANEL)
-        fh.write(u'# 2_ayni_boyda_HEDEFIN_KENDISI: beklenen boydaki vuruslar - grup/evrensel\n'
-                 u'#   primerlerde bunlar TASARIM GEREGI olup hedef disi SAYILMAZ (D-1).\n')
-        fh.write(u'# 4_NCBI durumu "SONUC TAVANI" ya da "BOS SONUC" ise deger bir SAYIM DEGIL,\n'
-                 u'#   o hucre SINANMADI demektir (D-3).\n')
+        fh.write(u'# A2 (2026-08-21): the 2_klad_* columns are a TAXONOMIC separation and\n#   do NOT measure the same thing as 2_hedef_disi_urun. The size criterion\n#   is misleading: D-12 measured that 95.7% of the 1,605 amplicons called\n#   "off-target" were INSIDE the target clade (class a) and merely differed\n#   in length. 2_hedef_disi_urun STILL casts the vote; the taxonomic counts\n#   are printed beside it so the difference is MEASURED first. If the gap is\n#   large, which criterion should decide is a SEPARATE decision.\n#   2_klad_disi_b_c = b + c  (candidate real cross-reaction)\n#   2_bilinmiyor: the domain could not be resolved. NOT evidence, not a cross-reaction.\n#   If 2_klad_ayrimi_yapildi is HAYIR the class counts are ZERO, but that\n#   means "not measured", NOT "no cross-reaction".\n')
+        fh.write(u'# 3_hedef_disi_amplikon: since D-12 this column is TAXONOMICALLY filtered:\n#   (b) same domain, outside the clade + (c) different domain. The RAW\n#   size-based count stays in 3_HAM_boya_dayali. The difference between the\n#   two is the target clade\'s own length variants (3_a), which are BY DESIGN\n#   for universal and group primers.\n# 3_olusabilir_Tm_yakin: of the (b)+(c)+(ao) records, those whose\n#   min(FpTm,RpTm) does NOT fall more than 5 C below the panel\'s Ta (%.1f C),\n#   that is, the ones that could form a product under standard conditions.\n' % TA_PANEL)
+        fh.write(u'# 2_ayni_boyda_HEDEFIN_KENDISI: hits at the expected length. For group and\n#   universal primers these are BY DESIGN and are NOT counted as off-target (D-1).\n')
+        fh.write(u'# 4_NCBI: if the status is "SONUC TAVANI" (result cap) or "BOS SONUC" (empty\n#   result) the value is NOT a count; that cell was NOT TESTED (D-3).\n')
         fh.write('# ' + OLCUT_NOTU.strip().replace('\n', '\n# ') + '\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'cift_turu', 'F', 'R', 'urun_bp',
@@ -1427,35 +1404,29 @@ def raporla(cikti, satirlar, yaz):
                      u'`PT_VURUS_ESIGI=%d` ile yapildi (varsayilan 0). Siparis '
                      u'oncesi hukumde esik YUKSELTILMEMELIDIR; asagidaki sayilar '
                      u'gevsetilmis olcutle uretilmistir.\n\n' % VURUS_ESIGI)
-        fh.write(u'## Sonuc\n\n')
+        fh.write(u'## Result\n\n')
         for k in KATEGORILER:
             if k in say or k in ANA_KATEGORILER:
                 fh.write(u'- **%s**: %d\n' % (k, say.get(k, 0)))
         for k in sorted(x for x in say if x not in KATEGORILER):
             fh.write(u'- **%s**: %d\n' % (k, say[k]))
         fh.write(u'- _toplam_: %d\n' % sum(say.values()))
-        fh.write(u'\n### Ayrinti (kategori icindeki gerekceler)\n\n')
+        fh.write(u'\n### Detail (reasons within each category)\n\n')
         for k in list(KATEGORILER) + sorted(x for x in ayrinti if x not in KATEGORILER):
             if k not in ayrinti:
                 continue
             for gerekce, n in sorted(ayrinti[k].items(), key=lambda t: -t[1]):
                 fh.write(u'- %s (%d): %s\n' % (k, n, gerekce))
-        fh.write(u'\n> Celiskiler once okunur: `CELISKILER.md`\n\n')
-        fh.write(u'```' + OLCUT_NOTU + u'```\n\n## Uc katman yan yana\n\n')
-        fh.write(u'| hedef | 1 numune | 2 yerel DB | 3 MFEprimer | 4 NCBI | uyusan | karar |\n'
-                 u'|---|---|---|---|---|---|---|\n')
+        fh.write(u'\n> Read the contradictions first: `CELISKILER.md`\n\n')
+        fh.write(u'```' + OLCUT_NOTU + u'```\n\n## The layers side by side\n\n')
+        fh.write(u'| target | 1 in-sample | 2 local DB | 3 MFEprimer | 4 NCBI | agreeing | verdict |\n|---|---|---|---|---|---|---|\n')
         for s in satirlar:
             fh.write(u'| %s | %s | %s (%s) | %s (%s) | %s (%s) | %s/%s | **%s** |\n'
                      % (s['hedef'], s['numune'], s['yerel'], s['yerel_urun'],
                         s.get('mfeprimer', '-'), s.get('mfe_urun', '-'),
                         s['ncbi'], s['ncbi_urun'],
                         s.get('uyusan', '-'), s.get('kaynak_sayisi', '-'), s['karar']))
-        fh.write(u'\n## NCBI nasil tamamlanir\n\n'
-                 u'Otomatik yol kosulmadiysa ya da basarisiz olduysa:\n\n'
-                 u'1. `NCBI_PRIMER_BLAST_GIRDI.tsv` dosyasindaki satirlari '
-                 u'https://www.ncbi.nlm.nih.gov/tools/primer-blast/ sayfasina yapistirin.\n'
-                 u'2. Sonuclari `NCBI_SONUC_SABLONU.tsv` icine yazin.\n'
-                 u'3. `verification/full_chain.py` -> (D) -> "elle sonuclari yukle" secenegini kosun.\n')
+        fh.write(u'\n## How to complete the NCBI layer\n\nIf the automatic route did not run, or failed:\n\n1. Paste the rows from `NCBI_PRIMER_BLAST_GIRDI.tsv` into https://www.ncbi.nlm.nih.gov/tools/primer-blast/\n2. Write the results into `NCBI_SONUC_SABLONU.tsv`.\n3. Run `verification/full_chain.py` -> (D) -> "load manual results".\n')
     yaz(u'  written: %s' % r)
     yaz('')
     # OZET: dort ana kategori tek satirda, SAYIDAN arindirilmis anahtarlarla.
@@ -1642,10 +1613,10 @@ def main():
         yaz('')
         yaz('  ' + '!' * 70)
         yaz(u'  D ASAMASI CALISTIRILMADI - GIRDI BOS')
-        yaz(u'  Sebep: K (verification) asamasi hic satir uretmedi, dolayisiyla')
+        yaz(u'  Cause: stage K (recovery) produced no rows at all, so')
         yaz(u'  dogrulanacak cift YOK. Bu D\'nin hatasi DEGILDIR; K\'nin')
-        yaz(u'  duşmesinin ARDISIK sonucudur.')
-        yaz(u'  Yapilacak: once K asamasinin neden satir uretmedigine bakin.')
+        yaz(u'  falling is a KNOCK-ON effect of that.')
+        yaz(u'  What to do: first find out why stage K produced no rows.')
         yaz(u'  D kendi basina saglamdir - elle hazirlanmis girdiyle sinandi.')
         yaz('  ' + '!' * 70)
         g.close()
@@ -1662,8 +1633,7 @@ def main():
     yaz(u'  pairs to verify   : %d' % len(ciftler))
     if getattr(a, 'tumu', False):
         _sip = sum(1 for c in ciftler if c.get('sipariste'))
-        yaz(u'  KIP: --tumu  (paneldeki BUTUN ciftler; siparis listesinde %d, '
-            u'disinda %d)' % (_sip, len(ciftler) - _sip))
+        yaz(u'  MODE: --all  (EVERY pair in the panel; %d on the order list, %d outside it)' % (_sip, len(ciftler) - _sip))
     if _ATLANAN:
         yaz(u'  ATLANAN (primer dizisi bulunamadi - protocol ciktisinda yok): %s'
             % ', '.join(_ATLANAN))
@@ -1697,7 +1667,7 @@ def main():
         _dis = [c['hedef'] for c in ciftler if not c.get('sipariste')]
         yaz(u'  KATMAN 4 KISITLI (--ncbi-yalniz-siparis): %d cift NCBI GORMEYECEK.'
             % len(_dis))
-        yaz(u'     NCBI sutunu bu satirlarda BILINMIYOR kalir - "temiz" DEGIL.')
+        yaz(u'     The NCBI column stays BILINMIYOR (unknown) on those rows. That is NOT "clean".')
         for _d in _dis:
             yaz(u'       - %s' % _d)
     yaz(u'  Resumable: state is saved after every set.')
@@ -1709,7 +1679,7 @@ def main():
     # --- KATMAN 3: MFEprimer (BAGIMSIZ ARAC) ---
     mfe_sonuc = {}
     if not a.mfe_yok:
-        yaz(u'--- KATMAN 3: MFEprimer (BAGIMSIZ ARAC) ---')
+        yaz(u'--- LAYER 3: MFEprimer (INDEPENDENT TOOL) ---')
         yaz(u'  Ilk iki katman da BIZIM kodumuz ve ayni motoru kullaniyor; o motorda')
         yaz(u'  bir hata varsa ikisi de ayni yonde yanilir. Bu katman disaridan gelen')
         yaz(u'  bagimsiz bir araci ayni sorulara sokar.')
@@ -1741,9 +1711,9 @@ def main():
 
     ncbi = {}
     if a.ncbi_yukle:
-        yaz(u'--- KATMAN 4: NCBI (elle girilen sonuclar yukleniyor) ---')
+        yaz(u'--- LAYER 4: NCBI (loading manually entered results) ---')
         ncbi = ncbi_yukle(a.ncbi_yukle, yaz)
-        yaz(u'  %d satir yuklendi' % len(ncbi))
+        yaz(u'  %d rows loaded' % len(ncbi))
     elif a.yalniz_yerel or a.ncbi == 'yok':
         yaz(u'--- KATMAN 4: NCBI ATLANDI (istek uzerine) ---')
     elif a.ncbi == 'oto':
