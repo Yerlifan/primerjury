@@ -195,14 +195,14 @@ def tsv_oku(yol):
 # bekletmesin diye.
 def kos(yaz, ad, arg, tavan_sn):
     t0 = time.time()
-    yaz(u'  > %s basliyor...' % ad)
+    yaz(u'  > %s starting...' % ad)
     try:
         pr = subprocess.run(arg, timeout=tavan_sn, capture_output=True, text=True)
         rc, ciktisi = pr.returncode, (pr.stdout or '')[-2000:]
     except subprocess.TimeoutExpired:
-        yaz(u'    ZAMAN ASIMI (%s) - asama tavani asti' % sure_metni(tavan_sn))
+        yaz(u'    TIMEOUT (%s): the stage exceeded its time cap' % sure_metni(tavan_sn))
         return None, u'zaman asimi'
-    yaz(u'    bitti: cikis kodu %d, %s' % (rc, sure_metni(time.time() - t0)))
+    yaz(u'    done: exit code %d, %s' % (rc, sure_metni(time.time() - t0)))
     return rc, ciktisi
 
 
@@ -373,7 +373,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
     if len(K) < 1:
         sonuc['hata'].append(u'K asamasi HIC satir uretmedi (bos cikti gecmis sayilmaz).')
     else:
-        yaz(u'    K: %d satir, %d tanesi kurtarildi'
+        yaz(u'    K: %d rows, %d of them recovered'
             % (len(K), sum(1 for r in K if (r.get('esigi_gecti_mi') or '').startswith('EVET'))))
 
     rc, _ = kos(yaz, 'D (DOGRULAMA, yalniz yerel katman)',
@@ -387,7 +387,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         # K kostu ama HICBIR sey kurtarmadi -> D'nin dogrulayacagi cift yok.
         # Bu D'nin hatasi degil. Yine de D'nin CALISTIGINI kanitlamak gerekir:
         # sentetik tek satirlik bir girdiyle ayri bir kokte kosturulur.
-        yaz(u'    D: kurtarilan cift olmadigi icin bos - KENDI BASINA sinaniyor...')
+        yaz(u'    D: empty because no pair was recovered, testing it ON ITS OWN...')
         oz = os.path.join(hizli_kok, 'D_KENDI_SINAMASI')
         os.makedirs(os.path.join(oz, 'KURTARMA_SONUC'), exist_ok=True)
         for ad in ('screening', 'verification', 'protocol', 'REFERANS_DB',
@@ -403,7 +403,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                     pass
         with open(os.path.join(oz, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'),
                   'w', encoding='utf-8', newline='') as fh:
-            fh.write(u'# D KENDI SINAMASI - sentetik girdi\n')
+            fh.write(u'# D SELF-TEST - synthetic input\n')
             ww = csv.writer(fh, delimiter='\t')
             ww.writerow(['hedef', 'eski_deger', 'eski_kapsam', 'denenen_yol', 'olcu',
                          'yeni_deger', 'esigi_gecti_mi', 'UYELIK_GEREKCESI', 'sebep'])
@@ -440,8 +440,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         # BILEREK atlanir (--mfe-yok, --ncbi elle: ag yok) - eksik olmalari
         # zincir hatasi degildir, uyari olarak raporlanir.
         eksik_sutun, yok_sutun, takma_ad, istege_bagli = katman_denetimi(Dd, sonuc)
-        yaz(u'    D: %d satir | zorunlu iki kaynak dolu mu: %s | testte atlanan: %s'
-            % (len(Dd), 'HAYIR' if (eksik_sutun or yok_sutun) else 'evet',
+        yaz(u'    D: %d rows | are the two mandatory sources filled: %s | skipped in the test: %s'
+            % (len(Dd), u'NO' if (eksik_sutun or yok_sutun) else 'evet',
                ', '.join(istege_bagli) or 'yok'))
         for _ta in takma_ad:
             yaz(u'    D: (sema notu) %s' % _ta)
@@ -455,7 +455,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
     if len(I) < 1:
         sonuc['hata'].append(u'I asamasi HIC iddia sonucu uretmedi.')
     else:
-        yaz(u'    I: %d iddia sonuclandi' % len(I))
+        yaz(u'    I: %d claims resolved' % len(I))
     return sonuc
 
 
@@ -559,9 +559,9 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     guvenilir = not sonuc['hata']
     yol = os.path.join(hizli_kok, 'HIZLI_TEST_RAPORU.md')
     with open(yol, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Hizli tutarlilik testi (gerileme)\n\nUretim: %s · betik %s · sure: %s\n\n'
+        fh.write(u'# Quick consistency test (regression)\n\nGenerated: %s, script %s, time: %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON, sure_metni(gecen_sure)))
-        fh.write(u'## KARAR\n\n')
+        fh.write(u'## VERDICT\n\n')
         if guvenilir:
             fh.write(u'# ZINCIR TUTARLI (kendi referansina gore) — tam kosuya girilebilir\n\n')
             fh.write(u'> **Bu bir DOGRULUK testi degildir.** Beklenen degerler de ayni '
@@ -602,8 +602,7 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
             for h in sonuc['referans_bayat']:
                 fh.write(u'- %s\n' % h)
             fh.write(u'\n')
-        fh.write(u'## Satir satir\n\n| hedef | referans | testte olculen | oran | '
-                 u'karar | sinif korundu mu |\n|---|---|---|---|---|---|\n')
+        fh.write(u'## Row by row\n\n| target | reference | measured in the test | ratio | verdict | class preserved |\n|---|---|---|---|---|---|\n')
         for r in sonuc['satir']:
             oran = (r['olculen'] / r['ref']) if (r['ref'] and r['olculen'] is not None) else None
             fh.write(u'| %s | %sx | %sx | %s | %s | %s |\n'
@@ -611,10 +610,10 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
                         vir(oran) if oran else '-', r['karar'],
                         'evet' if r['sinif_ok'] else '**HAYIR**'))
         s = sonuc.get('siralama') or {}
-        fh.write(u'\n## Siralama\n\n- referans: %s\n- testte  : %s\n- **%s**\n'
+        fh.write(u'\n## Ranking\n\n- reference: %s\n- in the test: %s\n- **%s**\n'
                  % (' > '.join(s.get('referans', [])), ' > '.join(s.get('test', [])),
                     'korundu' if s.get('korundu') else 'BOZULDU'))
-        fh.write(u'\n## Asamalarin cikti denetimi\n\n| asama | cikis kodu | satir |\n|---|---|---|\n')
+        fh.write(u'\n## Output check per stage\n\n| stage | exit code | rows |\n|---|---|---|\n')
         for k in ('P', 'K', 'D', 'I'):
             a = sonuc['asama'].get(k, {})
             fh.write(u'| %s | %s | %s |\n' % (k, a.get('rc', 'kosulmadi'), a.get('satir', 0)))
@@ -626,26 +625,26 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     yaz('')
     yaz('=' * 74)
     if guvenilir:
-        yaz(u'  ZINCIR TUTARLI (kendi referansina gore) - tam kosuya girilebilir.')
-        yaz(u'  DIKKAT: bu "olcumler dogrulandi" DEMEK DEGILDIR; ayni motorun')
-        yaz(u'  kendini yeniden urettigini gosterir. Bagimsiz teyit icin MFEprimer.')
-        yaz(u'  Sinanan %d satirin hepsi sinifini korudu, siralama bozulmadi,'
+        yaz(u'  CHAIN CONSISTENT (against its own reference); the full run can be started.')
+        yaz(u'  CAUTION: this does NOT mean "the measurements were validated". It shows that')
+        yaz(u'  the same engine reproduces itself. For independent confirmation, use MFEprimer.')
+        yaz(u'  All %d rows tested kept their class, the ranking did not change,'
             % len(sonuc['satir']))
-        yaz(u'  dort asama da bos olmayan cikti uretti.')
+        yaz(u'  and all four stages produced non-empty output.')
     else:
-        yaz(u'  ZINCIR TUTARSIZ - TAM KOSUYA GIRMEYIN')
+        yaz(u'  CHAIN INCONSISTENT - DO NOT START THE FULL RUN')
         for h in sonuc['hata']:
             yaz(u'    - %s' % h)
-        yaz(u'  Sekiz saatlik kosuyu harcamadan once bunlar giderilmeli.')
+        yaz(u'  Fix these before spending eight hours on a full run.')
     for u_ in sonuc['uyari']:
-        yaz(u'  (uyari) %s' % u_)
+        yaz(u'  (warning) %s' % u_)
     for b in sonuc.get('referans_bayat', []):
-        yaz(u'  (referans bayat) %s' % b)
+        yaz(u'  (stale reference) %s' % b)
     if sonuc.get('referans_bayat'):
-        yaz(u'  Bu satirlar KARSILASTIRILMADI. Referansi yenilemek icin:')
-        yaz(u'    python verification/refresh_reference.py --kok .')
+        yaz(u'  These rows were NOT COMPARED. To refresh the reference:')
+        yaz(u'    python verification/refresh_reference.py --root .')
     yaz('=' * 74)
-    yaz(u'  ayrinti: %s' % yol)
+    yaz(u'  detail: %s' % yol)
     if not guvenilir:
         return CIKIS_TUTARSIZ
     return CIKIS_REFERANS_BAYAT if sonuc.get('referans_bayat') else 0
@@ -688,20 +687,20 @@ def main():
         print(s, flush=True); g.write(s + '\n'); g.flush()
 
     yaz('=' * 74)
-    yaz(u'  HIZLI TUTARLILIK TESTI (gerileme)   surum %s   %s'
+    yaz(u'  QUICK CONSISTENCY TEST (regression)   version %s   %s'
         % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 74)
-    yaz(u'  Hedef sure: ~30 dakika. Olcum derinligi %d okuma (tam kosu 3000).' % OKUMA)
-    yaz(u'  Sinanan satir: %d. Cikti klasoru: HIZLI_TEST/'
+    yaz(u'  Target time: about 30 minutes. Measurement depth %d reads (a full run uses 3000).' % OKUMA)
+    yaz(u'  Rows tested: %d. Output directory: HIZLI_TEST/'
         % (len(BEKLENEN_UST) + len(BEKLENEN_ALT) + len(BEKLENEN_YENI)))
-    yaz(u'  NOT: sayilar referansla BIREBIR tutmaz - derinlik kucultuldu.')
-    yaz(u'  Bakilan sey SINIFIN ve SIRALAMANIN korunmasi.')
+    yaz(u'  NOTE: the numbers will NOT match the reference exactly; the depth was reduced.')
+    yaz(u'  What is being checked is that the CLASS and the RANKING are preserved.')
     yaz('')
-    yaz(u'  NE OLDUGU  : kodun KENDINI YENIDEN URETTIGINI sinar.')
-    yaz(u'  NE OLMADIGI: olcumun DOGRU oldugunu SINAMAZ - beklenen degerler de AYNI')
-    yaz(u'               motorun tam derinlikli kosusundan geliyor. Motorun sistematik')
-    yaz(u'               bir hatasi varsa bu test onu YAKALAYAMAZ.')
-    yaz(u'  Bagimsiz teyit ayri bir istir: MFE_BAGIMSIZ_TEYIT raporuna bakin.')
+    yaz(u'  WHAT IT IS    : a check that the code REPRODUCES ITSELF.')
+    yaz(u'  WHAT IT IS NOT: it does NOT check that the measurement is CORRECT. The expected')
+    yaz(u'               values come from a full-depth run of the SAME engine. If the engine')
+    yaz(u'               has a systematic error, this test CANNOT catch it.')
+    yaz(u'  Independent confirmation is a separate job: see the MFE_BAGIMSIZ_TEYIT report.')
     yaz('')
     t0 = time.time()
     sonuc = calistir(kok, hizli, a.tavan_dk, yaz)

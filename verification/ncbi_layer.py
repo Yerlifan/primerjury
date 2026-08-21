@@ -74,16 +74,16 @@ def main():
         gun.flush()
 
     yaz(u'=' * 78)
-    yaz(u'  KATMAN 4 - NCBI Primer-BLAST (tek basina)   surum %s' % SURUM)
+    yaz(u'  LAYER 4 - NCBI Primer-BLAST (on its own)   version %s' % SURUM)
     yaz(u'  %s' % time.strftime('%Y-%m-%d %H:%M'))
     yaz(u'=' * 78)
 
     # --- girdi: panelin TAMAMI (kosullu ve onerilmezler dahil) ---
     ciftler, yol = D.siparistekiler(kok, hepsi=True)
-    yaz(u'  girdi: %s' % yol)
-    yaz(u'  cift sayisi: %d' % len(ciftler))
+    yaz(u'  input: %s' % yol)
+    yaz(u'  pairs: %d' % len(ciftler))
     if not ciftler:
-        yaz(u'  GIRDI BOS - kosu yapilmadi.')
+        yaz(u'  INPUT EMPTY - nothing was run.')
         return 2
 
     # --- dislama haritasi ONCEDEN denetlenir: eksik hedef varsa BASTAN soyle ---
@@ -98,10 +98,9 @@ def main():
             if len(pp) >= 2 and pp[1].strip():
                 harita[pp[0].strip()] = pp[1].strip()
     eksik = [c['hedef'] for c in ciftler if c['hedef'] not in harita]
-    yaz(u'  dislama haritasi: %d hedef yazili (%s)' % (len(harita), hy))
+    yaz(u'  exclusion map: %d targets listed (%s)' % (len(harita), hy))
     if eksik:
-        yaz(u'  UYARI: haritada OLMAYAN %d hedef var. Bunlar icin hedefin kendi'
-            u' uyeleri ayirt edilemez ve hucre SINANMADI yazilir:' % len(eksik))
+        yaz(u'  WARNING: %d targets are NOT in the map. For those, the target\'s own members cannot be excluded and the cell is written as NOT TESTED:' % len(eksik))
         for e in eksik:
             yaz(u'      - %s' % e)
 
@@ -115,17 +114,10 @@ def main():
     bas = ['hedef', 'durum', 'adli_hedef_disi', 'adsiz_klon', 'toplam_urun',
            'dislanan_taxid', 'ornek_adli_baslik', 'not']
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# KATMAN 4 - NCBI Primer-BLAST. Uretim %s, surum %s\n'
+        fh.write(u'# LAYER 4 - NCBI Primer-BLAST. Generated %s, version %s\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), SURUM))
-        fh.write(u'# adli_hedef_disi = hukme GIREN sayi. Hedefin kendi taksonu\n'
-                 u'#   ENTREZ_QUERY ile dislandiktan sonra geriye kalan ADLI\n'
-                 u'#   taksonlar. Bunlar hedef disi urun kanitidir.\n')
-        fh.write(u'# adsiz_klon = "uncultured/unidentified/clone/enrichment culture"\n'
-                 u'#   basligi tasiyan kayitlar. Hicbir taksona bagli olmadiklari\n'
-                 u'#   icin dislama suzgeci onlara islemez ve hedeflerimiz\n'
-                 u'#   adlandirilmamis soylar oldugundan HEDEFIN KENDISI olabilirler.\n'
-                 u'#   HUKME GIRMEZ. Kimliklerine katman 2-3 (dizi karsilastirmasi)\n'
-                 u'#   karar verir.\n')
+        fh.write(u'# adli_hedef_disi = the number that ENTERS the verdict. These are the NAMED\n#   taxa left after the target\'s own taxon is excluded via ENTREZ_QUERY.\n#   They are evidence of off-target product.\n')
+        fh.write(u'# adsiz_klon = records whose title carries "uncultured / unidentified /\n#   clone / enrichment culture". They are attached to no taxon, so the\n#   exclusion filter does not reach them, and because our targets are\n#   unnamed lineages they may BE THE TARGET ITSELF.\n#   THEY DO NOT ENTER THE VERDICT. Layers 2 and 3 (sequence comparison)\n#   decide what they are.\n')
         fh.write(u'\t'.join(bas) + u'\n')
         for c in ciftler:
             ad = c['hedef']
@@ -149,25 +141,18 @@ def main():
 
     ry = os.path.join(cikti, 'NCBI_KATMAN4_RAPORU.md')
     with io.open(ry, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Katman 4 - NCBI Primer-BLAST\n\n')
-        fh.write(u'Üretim: %s · sürüm %s · geçen süre %s\n\n'
+        fh.write(u'# Layer 4 - NCBI Primer-BLAST\n\n')
+        fh.write(u'Generated: %s, version %s, elapsed %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), SURUM, D.sure_metni(gecen)))
-        fh.write(u'## Hüküm kuralı\n\n')
-        fh.write(u'Primer-BLAST\'a şablon dizi bildirilmediği sürece bulduğu her ürünü '
-                 u'"target templates" hanesine koyuyor, "unintended" bölümü hiç açılmıyor. '
-                 u'Bu yüzden hüküm bölüm başlığına değil ürün başlığına bakıyor. Hedefin '
-                 u'kendi taksonu ENTREZ_QUERY ile dışlandıktan sonra geriye kalan **adlı** '
-                 u'taksonlar hedef dışı ürün kanıtıdır. **Adsız** çevre klonları '
-                 u'("uncultured ...") hiçbir taksona bağlı olmadığı için süzgeç onlara '
-                 u'işlemez ve hedeflerimiz adlandırılmamış soylar olduğundan hedefin '
-                 u'kendisi olabilirler; hükme girmezler, kimliklerine katman 2-3 karar verir.\n\n')
-        fh.write(u'## Sayılar\n\n')
-        fh.write(u'| sonuç | kaç çift |\n|---|---|\n')
-        fh.write(u'| adlı hedef dışı YOK | %d |\n' % len(temiz))
-        fh.write(u'| adlı hedef dışı VAR | %d |\n' % len(kirli))
-        fh.write(u'| sınanamadı | %d |\n\n' % len(dusen))
+        fh.write(u'## The verdict rule\n\n')
+        fh.write(u'Unless a template sequence is declared to Primer-BLAST, it puts every product it finds under "target templates" and the "unintended" section never opens. The verdict therefore reads the product headings, not the section heading. After the target\'s own taxon is excluded via ENTREZ_QUERY, the **named** taxa that remain are evidence of off-target product. **Unnamed** environmental clones ("uncultured ...") are attached to no taxon, so the filter does not reach them, and because our targets are unnamed lineages they may be the target itself. They do not enter the verdict; layers 2 and 3 decide what they are.\n\n')
+        fh.write(u'## The numbers\n\n')
+        fh.write(u'| result | how many pairs |\n|---|---|\n')
+        fh.write(u'| no named off-target | %d |\n' % len(temiz))
+        fh.write(u'| named off-target present | %d |\n' % len(kirli))
+        fh.write(u'| not testable | %d |\n\n' % len(dusen))
         if kirli:
-            fh.write(u'## Adlı hedef dışı ürün bulunan çiftler\n\n')
+            fh.write(u'## Pairs with a named off-target product\n\n')
             fh.write(u'| hedef | adlı | adsız | toplam | örnek başlık |\n|---|---|---|---|---|\n')
             for k in sorted(kirli, key=lambda x: -(sonuc[x].get('hedef_disi') or 0)):
                 v = sonuc[k]
@@ -180,34 +165,21 @@ def main():
             for k in sorted(dusen):
                 fh.write(u'- **%s** — %s\n' % (k, (sonuc[k].get('not_') or '')[:300]))
             fh.write(u'\n')
-        fh.write(u'## Bu sayılar ne DEĞİLDİR — önce bunu okuyun\n\n')
-        fh.write(u'Bu katman **GenBank\'in tamamına** karşı ölçer, yani dünyadaki '
-                 u'her kayda karşı. "Adlı hedef dışı 650" demek, çürütücü '
-                 u'numunesinde 650 organizma var demek DEĞİLDİR; o primerin '
-                 u'dünyada 650 adlandırılmış akrabayı da tutabileceği demektir.\n\n')
-        fh.write(u'Numunede ne olduğunu ölçen katman ayrıdır (katman 2, yerel '
-                 u'veritabanları ve numune okumaları) ve sipariş kararını veren '
-                 u'dCq oradan gelir. İki katman farklı soruları yanıtlar:\n\n')
-        fh.write(u'| katman | soru | kapsam |\n|---|---|---|\n')
-        fh.write(u'| 1-2 | bu primer BU NUMUNEDE hedefini ayırt ediyor mu | '
-                 u'numunedeki kutular |\n')
-        fh.write(u'| 4 (bu) | bu primer DÜNYADA başka neyi tutar | GenBank nt |\n\n')
-        fh.write(u'Geniş kapsamlı hedeflerde (Bacteroidales kümesi, evrensel '
-                 u'primerler, mantar ITS) dünya sayısının yüksek çıkması '
-                 u'BEKLENEN davranıştır: o primerler zaten geniş bir kladı '
-                 u'tutmak için tasarlandı ve dışlanan takson yalnızca hedefin '
-                 u'kendi kladıdır. Dar hedeflerde ise yüksek sayı gerçek bir '
-                 u'uyarıdır.\n\n')
-        fh.write(u'## Bu katmanın ölçemedikleri\n\n')
-        fh.write(u'- Adsız çevre klonlarının kimliği. Etiket taşımıyorlar; '
-                 u'bu katman onları sayar ama sınıflandırmaz.\n')
-        fh.write(u'- Sayfa tavana çarpan çiftlerde toplam ürün sayısı bir alt sınırdır, '
-                 u'sayım değildir.\n')
+        fh.write(u'## What these numbers are NOT: read this first\n\n')
+        fh.write(u'This layer measures against **the whole of GenBank**, that is, against every record in the world. "650 named off-target" does NOT mean there are 650 organisms in the digester sample; it means the primer could also bind 650 named relatives worldwide.\n\n')
+        fh.write(u'The layer that measures what is in the sample is a different one (layer 2, local databases and sample reads), and the dCq that decides the order comes from there. The two layers answer different questions:\n\n')
+        fh.write(u'| layer | question | scope |\n|---|---|---|\n')
+        fh.write(u'| 1-2 | does this primer discriminate its target IN THIS SAMPLE | the bins in the sample |\n')
+        fh.write(u'| 4 (this one) | what else would this primer bind IN THE WORLD | GenBank nt |\n\n')
+        fh.write(u'For broad targets (the Bacteroidales cluster, universal primers, fungal ITS) a high world count is EXPECTED behaviour: those primers were designed to bind a broad clade, and the only taxon excluded is the target\'s own clade. For narrow targets, a high count is a real warning.\n\n')
+        fh.write(u'## What this layer cannot measure\n\n')
+        fh.write(u'- The identity of unnamed environmental clones. They carry no label; this layer counts them but does not classify them.\n')
+        fh.write(u'- For pairs where the page hit its cap, the total product count is a lower bound, not a count.\n')
 
     yaz(u'')
     yaz(u'  written: %s' % ty)
     yaz(u'  written: %s' % ry)
-    yaz(u'  adli hedef disi YOK: %d | VAR: %d | sinanamadi: %d | sure: %s'
+    yaz(u'  named off-target NONE: %d | PRESENT: %d | not testable: %d | time: %s'
         % (len(temiz), len(kirli), len(dusen), D.sure_metni(gecen)))
     gun.close()
     return 0 if tamam else 1
