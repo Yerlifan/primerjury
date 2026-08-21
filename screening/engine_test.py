@@ -138,7 +138,7 @@ def t2_t3_gercek(desen, n=300, max_mm=1):
         yollar.extend(g if g else [d])
     yollar = [p for p in yollar if os.path.exists(p)]
     if not yollar:
-        print('T2/T3 atlandi (fastq bulunamadi)')
+        print(u'T2/T3 skipped (no fastq found)')
         return True
     fark_yer = 0; toplam_yer = 0; fark_urun = 0; eski_kacan = 0
     for p in yollar:
@@ -166,7 +166,7 @@ def t2_t3_gercek(desen, n=300, max_mm=1):
           % (toplam_yer, fark_yer))
     print('   ayni testte ESKI motorun kacirdigi yer = %d (%.1f%%)'
           % (eski_kacan, 100.0 * eski_kacan / max(toplam_yer, 1)))
-    print('T3 urun sayisi  : uyusmayan (dosya x cift) = %d' % fark_urun)
+    print(u'T3 product count : mismatching (file x pair) = %d' % fark_urun)
     return fark_yer == 0 and fark_urun == 0
 
 
@@ -176,12 +176,12 @@ if __name__ == '__main__':
     ap.add_argument('--n', type=int, default=300)
     ap.add_argument('--mm', type=int, default=1)
     a = ap.parse_args()
-    print('okuma_motoru surum:', om.__version__, ' olcut mm<=%d' % a.mm)
+    print(u'read engine version:', om.__version__, ' olcut mm<=%d' % a.mm)
     ok1 = t1_sentetik(a.mm)
     ok2 = t2_t3_gercek(a.fastq, a.n, a.mm) if a.fastq else True
     print()
     if ok1 and ok2:
         print('SONUC: GECTI - duzeltilmis motor kaba kuvvetle BIREBIR ayni.')
         sys.exit(0)
-    print('SONUC: KALDI - fark var, panele YAZMAYIN.')
+    print(u'RESULT: FAILED - there is a difference, so do NOT write to the panel.')
     sys.exit(1)

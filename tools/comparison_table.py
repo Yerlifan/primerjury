@@ -495,8 +495,8 @@ def main():
     satirlar, bilgi = tablo_kur(a.ali, a.is_a, a.ad_a,
                                 a.is_b if a.ad_b else "", a.ad_b, a.esik)
     if not satirlar:
-        print("HATA: karsilastirilacak veri yok.")
-        print("  Once tarama kosulmali:  bash kraken_tool.sh esik")
+        print(u'ERROR: there is no data to compare.')
+        print(u'  The scan has to be run first:  bash kraken_tool.sh esik')
         sys.exit(1)
 
     eksikler = []
@@ -510,7 +510,7 @@ def main():
         print("UYARI, tablo eksik uretiliyor:")
         for e in eksikler:
             print("  " + e)
-        print("  Eksik sutun, olculup bos cikmis sutun gibi okunmamalidir.\n")
+        print(u'  A missing column must not be read as a column that was measured and came out empty.\n')
 
     md = markdown(satirlar, bilgi, a.esik) + "\n" + yorum(satirlar, bilgi)
     print(md)

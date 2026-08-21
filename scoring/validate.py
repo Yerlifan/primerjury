@@ -43,12 +43,12 @@ def main():
     P = Puanlayici(KOK, otorite=True, derinlik=3000,
                    onbellek_yolu='/tmp/mrb/onbellek/dogrulama_olcum.json')
     P.havuz_hazirla([h for h, _, _ in isler])
-    print('havuz hazir (%d kutu, otorite=True, derinlik=3000) [%.1f sn]'
+    print(u'pool ready (%d bins, authority=True, depth=3000) [%.1f s]'
           % (len(P._yuklu), time.time() - t0), flush=True)
 
     for hedef, kpy, N in isler:
         if not os.path.exists(kpy):
-            print('%s: %s YOK - atlandi' % (hedef, kpy)); continue
+            print(u'%s: %s ABSENT - skipped' % (hedef, kpy)); continue
         v = list(json.load(open(kpy, encoding='utf-8'))['olcum'].values())
         evrensel = all(s.get('kat') is None for s in v)
         v.sort(key=(lambda s: -kapsam_orani(s)) if evrensel
@@ -74,7 +74,7 @@ def main():
         for d in sorted(son[hedef].values(),
                         key=(lambda s: -kapsam_orani(s)) if evrensel
                         else (lambda s: -(s['kat'] if s.get('kat') is not None else -1)))[:5]:
-            print('   DOGRU kat=%-8s dCq=%-6s %-11s kapsam=%-6s (tarama %s) %s %s/%s'
+            print(u'   CORRECT fold=%-8s dCq=%-6s %-11s coverage=%-6s (scan %s) %s %s/%s'
                   % (d['kat'], d['dcq'], d['durum'], d['kapsam'], d['tarama_kat'],
                      d['arms'] or '-', d['F'], d['R']), flush=True)
     return 0

@@ -83,7 +83,7 @@ def main():
     ap.add_argument('--seed', type=int, default=3)
     a = ap.parse_args()
 
-    print('olcut: uyumsuzluk <= %d, 3\' son 2 baz TAM eslesme, urun 40-600 bp' % a.mm)
+    print(u'criterion: mismatches <= %d, the last 2 bases at the 3\' end an EXACT match, product 40-600 bp' % a.mm)
     print('%-26s %-30s %6s | %-16s %-16s %-16s | %s'
           % ('cift', 'kutu', 'n', 'A ispcr(numpy)', 'B kaba(python)', 'C duzeltilmis', 'UYUM'))
     tumu = True

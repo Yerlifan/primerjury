@@ -199,8 +199,8 @@ def elle_liste_yaz(cikti, satirlar):
     """Aga cikilamayan ya da otorite gerektiren adlar icin hazir kontrol listesi."""
     yol = os.path.join(cikti, 'LITERATUR_ELLE_KONTROL.tsv')
     with open(yol, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# ELLE LITERATUR KONTROLU - her ad icin otoritede dogrulanmali.\n')
-        fh.write(u'# NCBI Taxonomy pratik bir siniflandirmadir, NOMENKLATUR OTORITESI DEGILDIR.\n')
+        fh.write(u'# MANUAL LITERATURE CHECK - every name must be verified against an authority.\n')
+        fh.write(u'# NCBI Taxonomy is a practical classification, NOT A NOMENCLATURAL AUTHORITY.\n')
         fh.write(u'# Mantar: MycoBank / Index Fungorum  |  Bakteri-Arke: LPSN\n')
         import csv as _c
         w = _c.writer(fh, delimiter='\t')

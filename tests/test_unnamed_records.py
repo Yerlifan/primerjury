@@ -83,7 +83,7 @@ def main():
     kd = kd_yukle(a.kok)
 
     gecti = True
-    print('=== 1) ad_coz: adsiz kayit ad URETMEMELI, gercek ad BOZULMAMALI ===')
+    print(u'=== 1) ad_coz: an unnamed record MUST NOT PRODUCE a name, and a real name MUST NOT BE BROKEN ===')
     print('%-56s | %-24s | %s' % ('baslik', 'cozulen tur', 'sonuc'))
     print('-' * 104)
     for baslik, ad_olmali, bek in ORNEKLER:
@@ -95,7 +95,7 @@ def main():
                  'DOGRU' if ok else 'YANLIS (beklenen: %s)' % bek))
 
     print()
-    print('=== 2) savunulabilir_duzey: %99 kimlik AD URETMEMELI (kayit adsizsa) ===')
+    print(u'=== 2) savunulabilir_duzey: 99%% identity MUST NOT PRODUCE a name (when the record is unnamed) ===')
     print('%-30s | %-38s | %s' % ('durum', 'duzey', 'sonuc'))
     print('-' * 104)
     senaryo = [
