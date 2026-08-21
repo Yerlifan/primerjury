@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 regression_test.py
-Boru hattının kurallarını, kodun kendi yardımcı fonksiyonlarına
-güvenmeden sınar. Her testin beklenen sonucu toplantı kararlarından
-ya da bilinen matematikten türetilir.
+Tests the pipeline's rules without trusting the code's own helper functions.
+Every test's expected result is derived from the panel decisions or from known
+mathematics.
 
-Kullanım:
-  python3 regression_test.py                 # hızlı testler
-  python3 regression_test.py --gercek-veri   # gerçek konsensüs ve okumalarla
+Usage:
+  python3 regression_test.py                 # the quick tests
+  python3 regression_test.py --gercek-veri   # with real consensuses and reads
+
 """
 import argparse, importlib.util, itertools, math, os, random, shutil, subprocess, sys, glob, tempfile
 
@@ -177,9 +178,9 @@ def testler(a):
          ref_baglanir("ACGTACGTACGTACGTAAGC", "ACGTACGTACGTACGTACGC") == 1)
 
     print("\n5. URUN GEOMETRISI")
-    # Sentetik pozisyon sozlugu yerine GERCEK bir kalip kurulur, primerler
-    # o kaliptan kesilir, urun elle olusturulur. Beklenen deger boylece
-    # kodun kendi olcusunden degil, dizinin kendisinden gelir.
+    # Instead of a synthetic position dictionary, a REAL template is built, the primers
+    # are cut from that template and the product is formed by hand. The expected value
+    # then comes from the sequence itself rather than from the code's own measure.
     ap2 = _ap.Namespace(prod_min=70, prod_hard_max=300)
     random.seed(31)
     L = 500
@@ -207,16 +208,16 @@ def testler(a):
          pl == beklenen, "cikan: %s" % pl)
     sina("ters konfigurasyon da denenir (primerler yer degistirince ayni)",
          G.product_len(br, bf, len(R), len(F), ap2) == beklenen)
-    # 3' uclari birbirinden UZAKLASAN cift: primerleri takas edip her birinin
-    # kendi zincirinde ARKAYA bakmasini saglar
+    # A pair whose 3' ends point AWAY from one another: swapping the primers makes each
+    # of them look BACKWARDS on its own strand
     Fk = G.rc(kalip[100:120])          # arti zincirin 100..119'unun rc'si
     Rk = kalip[260:280]
     bfk, brk = bagla(Fk), bagla(Rk)
     sina("3' uclari birbirinden UZAKLASAN cift urun vermez",
          G.product_len(bfk, brk, len(Fk), len(Rk), ap2) is None)
-    # Urun alt sinirin altinda kalirsa kati tasarimda elenir, rakip taramasinda
-    # pmin=1 ile yine de gorulur
-    Ry = G.rc(kalip[140:160])          # urun 100..159, yani 60 bp
+    # If the product falls below the lower bound it is discarded in strict design, but
+    # it is still seen in the competitor scan with pmin=1
+    Ry = G.rc(kalip[140:160])          # the product is 100..159, that is 60 bp
     bry = bagla(Ry)
     sina("kisa urun (60 bp) kati alt sinirda elenir",
          G.product_len(bf, bry, len(F), len(Ry), ap2) is None)
@@ -314,11 +315,11 @@ def testler(a):
                               "ACGTACGTACGTACGTACGC")[0])
 
     print(u'\n12. THE FILE FORMAT CONTRACT BETWEEN STAGES 08 AND 09')
-    # 08'in yazdigi dislanan_takson.tsv'yi 09 okur. Sutunlar konuma gore
-    # okunursa, dosya bicimi degistiginde dislama SESSIZCE devre disi kalir
-    # ve 09 hicbir sey soylemez. Bu, "hicbir karar tek koda birakilmasin"
-    # kuralinin ihlalidir; asagidaki testler basliga gore okundugunu ve
-    # taninmayan baslikta durdugunu dogrular.
+    # steps/specificity.py reads the dislanan_takson.tsv written by
+    # steps/batch_design.py. If the columns are read by position, then when the file
+    # format changes the exclusion is SILENTLY DISABLED and specificity.py says nothing.
+    # That violates the rule "no decision is left to a single piece of code"; the tests
+    # below confirm that it is read by header and that it stops on an unrecognised one.
     import subprocess as _sp, tempfile as _tf, textwrap as _tw
     k09 = open(os.path.join(HERE, "specificity.py"), encoding="utf-8").read()
     k08 = open(os.path.join(HERE, "batch_design.py"), encoding="utf-8").read()
@@ -360,12 +361,12 @@ def testler(a):
         sina("09'da dislama blogu bulundu", False, "blok isaretleri degismis")
 
     print(u'\n13. EXTERNAL DATABASE SET MAPPING AND COVERAGE AUDIT')
-    # 2026-08-01'de bulunan hata: ROD_v1.2_operon_variants.fasta okaryot
-    # yalnizdir (60320/60320 Eukaryota) ama A1/A2/B siniflarina atanmisti.
-    # 71 arke/bakteri cifti icin "hedef disi urun yok" yazildi; oysa o
-    # veritabaninda o alandan tek dizi bile yoktu. Asagidaki testler hem
-    # eslemenin duzeltilmis halini hem de ayni hatanin bir daha sessiz
-    # kalmamasini saglayan kapsam denetimini sinar.
+    # The bug found on 2026-08-01: ROD_v1.2_operon_variants.fasta is eukaryote only
+    # (60320/60320 Eukaryota) but had been assigned to classes A1/A2/B. "No off-target
+    # product" was written for 71 archaeal and bacterial pairs, when that database held
+    # not one sequence from that domain. The tests below check both the corrected
+    # mapping and the coverage audit that keeps the same mistake from staying silent
+    # again.
     DV = yukle("DV", "external_databases.py")
     MF = yukle("MF", "mfeprimer_layer.py")
     sina("14 ve 19 DAR kumeyi ayni goruyor", DV.SINIF_DB == MF.SINIF_DB)
@@ -434,10 +435,10 @@ def testler(a):
         sina("blastn/makeblastdb kurulu", False, "kapsam testleri atlandi")
 
     print(u'\n14. SEPARATING THE OWN TAXON FROM A FOREIGN TAXON')
-    # 2026-08-01: geniş taramada en yuksek "hedef disi urun" sayilarinin bir
-    # kismi hedefin KENDISIYDI (Methanothrix hedefi SILVA'daki Methanothrix
-    # kayitlarini cogaltiyor). Ham sayiya gore siralamak yanlis primerleri
-    # one cikariyordu. Asagidaki testler ayrimin dogru yapildigini sinar.
+    # 2026-08-01: in the wide scan, some of the highest "off-target product" counts were
+    # THE TARGET ITSELF (the Methanothrix target amplifies the Methanothrix records in
+    # SILVA). Ranking by the raw count pushed the wrong primers to the front. The tests
+    # below check that the distinction is made correctly.
     sina("'Ca. Nitrosocosmicus hydrocola' cinsi dogru cikariliyor",
          DV._ad_cinsi("Ca. Nitrosocosmicus hydrocola") == "nitrosocosmicus",
          DV._ad_cinsi("Ca. Nitrosocosmicus hydrocola"))
@@ -490,7 +491,7 @@ def testler(a):
                     l[i] = random.choice("ACGT")
             return "".join(l)
 
-        # ayni cift icin 3 KENDI taksonu, 3 YABANCI takson kaydi
+        # for the same pair, 3 records of ITS OWN taxon and 3 of a FOREIGN taxon
         dbyol = os.path.join(gec2, "REFERANS_DB", "archaea.16S.fna")
         with open(dbyol, "w") as fh:
             for i in range(3):
@@ -555,14 +556,14 @@ def testler(a):
         sina("blastn/makeblastdb kurulu", False, "takson testleri atlandi")
 
     print("\n15. YABANCI VURUSUN UZAKLIGI (SOYAGACI DERINLIGI)")
-    # Yabanci takson tek basina yeterli olcu degil: bazi hedefler islevsel
-    # gruptur. Olculdu (2026-08-01): Hidrojenotrofik_metanojenler'in yabanci
-    # vuruslari Methanobacterium ve Methanosphaera, ki ikisi de
-    # hidrojenotrofik metanojendir; Nitrosocosmicus_AOA'nin yabanci vuruslari
-    # Nitrosotalea ve Nitrosopumilus, ki ikisi de AOA'dir. Buna karsilik
-    # Petrimonas -> Flavobacterium ve Trichoderma -> Calonectria gercekten
-    # uzaktir. Uzaklik elle yazilmis bir tabloyla degil, veritabani
-    # basliklarindaki soyagaciyla olculur.
+    # A foreign taxon is not a sufficient measure on its own: some targets are
+    # functional groups. Measured (2026-08-01): the foreign hits of
+    # Hidrojenotrofik_metanojenler are Methanobacterium and Methanosphaera, both of
+    # which are hydrogenotrophic methanogens; the foreign hits of Nitrosocosmicus_AOA
+    # are Nitrosotalea and Nitrosopumilus, both of which are AOA. Against that,
+    # Petrimonas -> Flavobacterium and Trichoderma -> Calonectria really are distant.
+    # The distance is measured from the lineage in the database headers, not from a hand
+    # written table.
     SOY = {
         "SILVA": ("FJ347531.1.916 Archaea;Halobacteriota;Methanosarcinia;"
                   "Methanosarcinales;Methanosaetaceae;Methanothrix;"
@@ -614,9 +615,9 @@ def testler(a):
          _karar([KENDI1], AYNI_TAKIM) == "UZAK")
     sina("farkli siniftaki vurus UZAK sayiliyor",
          _karar([KENDI1], FARKLI_SINIF) == "UZAK")
-    # ESIK KARARLILIGI: ortak on ek kullanilsaydi kendi vurus sayisi
-    # arttikca referans soyagaci kisalir ve ayni yabanci vurus YAKIN'a
-    # kayardi. Baskin soyagaci bunu engeller.
+    # THRESHOLD STABILITY: had the common prefix been used, the reference lineage would
+    # shorten as the number of own hits grew and the same foreign hit would drift to
+    # NEAR. The dominant lineage prevents that.
     sina("karar kendi vurus sayisindan bagimsiz",
          len({_karar(k, AYNI_TAKIM) for k in ([KENDI1], [KENDI1, KENDI2],
                                               [KENDI1, KENDI2, KENDI1])}) == 1)
@@ -627,10 +628,11 @@ def testler(a):
          DV._baskin_soy([]) == [])
 
     print(u'\n16. DECISION LEVEL AUDIT (27): SPECIES AND GENUS SPECIFICITY')
-    # Toplanti karari alti hedefte TUR, dort hedefte CINS ozgulluk istiyor.
-    # 09 numunedeki rakiplere, 14 dis veritabanlarina bakar; ikisi de
-    # "kendi cinsinin oteki TURLERINDEN ayiriyor mu" sorusunu sormaz.
-    # 27 bunu kardes turlerden kurulu bir panele karsi olcer.
+    # The panel decision asks for SPECIES specificity on six targets and GENUS on four.
+    # steps/specificity.py looks at the competitors in the sample and
+    # steps/external_databases.py at the external databases; neither asks "does it
+    # separate the target from the other SPECIES of its own genus".
+    # steps/check_taxonomic_level.py measures that against a panel of sibling species.
     DZ = yukle("DZ", "check_taxonomic_level.py")
     sina("RefSeq basligindan tur adi cikariliyor",
          DZ.tur_adi("NR_104707.1 Methanothrix soehngenii GP6 16S ribosomal "
@@ -652,14 +654,14 @@ def testler(a):
                     "Methanothrix;uncultured archaeon") == "")
     sina("'Methanothrix sp.' tur adi sayilmiyor",
          DZ.tur_adi("NR_999.1 Methanothrix sp. uncultured archaeon 16S") == "")
-    # RefSeq ITS/28S kayitlari '; from TYPE material' ile biter. Onceki
-    # surumde baslikta noktali virgul varsa RefSeq dali hic calismiyor ve
-    # TIP SUSU kayitlari panele alinmiyordu; oysa tur ayriminin altin
-    # standardi tam olarak o kayitlardir (yalniz Petriella icin 35 kayit).
-    # hedef_tur sutunu EKLEMEZ, DEGISTIRIR. Petriella_musispora satirinda
-    # in_taxid kutularin Kraken2 etiketleridir (numune destegi icin);
-    # eklense hedef tur kumesine Trichoderma da girer ve Trichoderma
-    # cogaltan cift "hedef turde urun var" sayilirdi.
+    # RefSeq ITS and 28S records end with '; from TYPE material'. In the earlier
+    # version, if the header held a semicolon the RefSeq branch never ran and the TYPE
+    # STRAIN records were not taken into the panel; yet those records are exactly the
+    # gold standard of species separation (35 records for Petriella alone).
+    # The hedef_tur column does not ADD, it REPLACES. On the Petriella_musispora row
+    # in_taxid holds the bins' Kraken2 labels (for the in-sample support); had it added,
+    # Trichoderma would have entered the target species set and a pair amplifying
+    # Trichoderma would have counted as "there is a product in the target species".
     _g6 = tempfile.mkdtemp(prefix="hedeftur_")
     _h = os.path.join(_g6, "h.tsv")
     _ad = os.path.join(_g6, "a.tsv")
@@ -694,8 +696,8 @@ def testler(a):
     sina("'Ca. Nitrosocosmicus hydrocola' cins ve tur olarak ayriliyor",
          DZ.ad_parcala("Ca. Nitrosocosmicus hydrocola")
          == ("Nitrosocosmicus", "hydrocola"))
-    # UNITE'te 's__Trichoderma_sp' tur adi sayiliyordu; yalniz Trichoderma
-    # icin 16910 kayit panele sahte bir "tur" olarak giriyordu.
+    # In UNITE, 's__Trichoderma_sp' was being counted as a species name; for Trichoderma
+    # alone, 16910 records were entering the panel as a spurious "species".
     for kotu in ("s__Trichoderma_sp", "s__Marasmius_spp", "s__Podospora_cf"):
         sina("UNITE'te '%s' tur adi SAYILMIYOR" % kotu,
              DZ.tur_adi("UDB1|k__Fungi;g__X;%s|SH1" % kotu) == "",
@@ -703,10 +705,9 @@ def testler(a):
     sina("gercek ikili ad hala taniniyor",
          DZ.tur_adi("UDB1|k__Fungi;g__Petriella;s__Petriella_setifera|SH1")
          == "Petriella setifera")
-    # 'Methanosarcina_barkeri_referans' -> '_referans' soyulunca
-    # 'Methanosarcina_barkeri' cikiyor, hedefler.tsv'de ad
-    # 'Methanosarcina_barkeri_turu'. Eslesme tutmayinca hedefin TEK primer
-    # takimi sessizce dusuyor ve hedef CIFT_YOK gorunuyordu.
+    # 'Methanosarcina_barkeri_referans' strips to 'Methanosarcina_barkeri' while the
+    # name in hedefler.tsv is 'Methanosarcina_barkeri_turu'. When the match failed, the
+    # target's ONLY primer set dropped silently and the target appeared as CIFT_YOK.
     _ADL = ["Methanosarcina_barkeri_turu", "Proteiniphilum_cinsi",
             "Podospora_pseudopauciseta", "Proteolitik_sintrofik_bakteriler"]
     sina("referans hedefi '_turu' ekli hedefe baglaniyor",
@@ -751,8 +752,8 @@ def testler(a):
                 fh.write(">NR_10%d.1 Methanothrix soehngenii GP%d 16S "
                          "ribosomal RNA, complete sequence\n%s\n"
                          % (i, i, _m2(hedef, 0.001)))
-            # UC kardes tur: varsayilan esik 2 oldugu icin ucu birden
-            # cogaltan cift esigin USTUNDE kalmali (TUR_AYRIMI_YOK)
+            # THREE sibling species: since the default threshold is 2, a pair amplifying all
+            # three must stay ABOVE the threshold (TUR_AYRIMI_YOK)
             for i, t in enumerate(("harundinacea", "thermoacetophila",
                                    "hungatei")):
                 fh.write(">NR_20%d.1 Methanothrix %s DSM%d 16S ribosomal "
@@ -803,8 +804,8 @@ def testler(a):
              kararlar.get("1", {}).get("capraz_tur_sayisi") == "3",
              "capraz_tur_sayisi=%s"
              % kararlar.get("1", {}).get("capraz_tur_sayisi"))
-        # Toplanti karari 1-2 caprazi hos goruyor. Esik yukseltilince ayni
-        # cift esik ici sayilmali; esik dusukken sayilmamali.
+        # The panel decision tolerates 1-2 cross reactions. When the threshold is raised the
+        # same pair must count as within threshold, and must not when it is low.
         cik5 = os.path.join(g3, "cikti_esik3.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
@@ -827,7 +828,7 @@ def testler(a):
              sat5.get("0", {}).get("karar") == "TUR_OZGUL")
         sina("27 sifir cikis koduyla bitti", r3.returncode == 0,
              r3.stderr.strip()[-120:])
-        # hedef tur panelde yoksa TUR_OZGUL DEMEZ
+        # if the target species is absent from the panel, it must NOT say TUR_OZGUL
         open(os.path.join(g3, "hedefler.tsv"), "w").write(
             "karar\thedef\tduzey\tin_taxid\tharic\tnot\n"
             "1\tMethanothrix_soehngenii_turu\ttur\t9999\t\tyok\n")
@@ -846,10 +847,10 @@ def testler(a):
             import csv as _csv4
             sat4 = list(_csv4.DictReader(open(cik4, encoding="utf-8"),
                                          delimiter="\t"))
-        # CINS DUZEYI: beyan edilen cinsin disinda urun olusursa cins
-        # ozgul degildir. Olculdu: Proteiniphilum ciftlerinden ikisi
-        # Fermentimonas caenicola'yi da cogaltiyordu, eski sayim ikisini
-        # de en genis kapsamli cift gibi gosteriyordu.
+        # GENUS LEVEL: if a product forms outside the declared genus, it is
+        # not genus specific. Measured: two of the Proteiniphilum pairs also
+        # amplified Fermentimonas caenicola, and the old count showed both as
+        # the widest covering pair.
         g4 = tempfile.mkdtemp(prefix="cins_")
         random.seed(9)
         os.makedirs(os.path.join(g4, "REFERANS_DB"))
@@ -889,7 +890,7 @@ def testler(a):
         open(os.path.join(g4, "adlar.tsv"), "w").write(
             "2829812\tProteiniphilum propionicum\n"
             "1642647\tProteiniphilum saccharofermentans\n")
-        # olculen kimlik BASKA CINS: cins duzeyinde hedef sayilmamali
+        # the measured identity is ANOTHER GENUS: it must not count as the target at genus level
         open(os.path.join(g4, "kimlik.tsv"), "w").write(
             "hedef\tkraken_etiketi\tolculen_kimlik\n"
             "Proteiniphilum_cinsi\tX\tFermentimonas caenicola\n")
@@ -932,11 +933,12 @@ def testler(a):
         sina("blastn/makeblastdb kurulu", False, "duzey testleri atlandi")
 
     print("\n17. REFERANS TASARIMINDA RAKIP KUMESI (15)")
-    # 2026-08-01: Podospora referans tasarimi 29 rakip diziyle yapilmisti
-    # (tek veritabani, ad basina 6 kayit). 27'nin dogrulama paneli 242
-    # kayit / 50 turdu ve tasarlanan ciftlerin P. anserina ile P. comata'yi
-    # cogalttigini gosterdi. Yani tasarim, gormedigi rakiplere karsi
-    # ozgullugu dogrulanmis gibi rapor ediliyordu.
+    # 2026-08-01: the Podospora reference design had been made with 29 competitor
+    # sequences (one database, 6 records per name). The verification panel of
+    # check_taxonomic_level.py held 242 records across 50 species and showed that the
+    # designed pairs amplify both P. anserina and P. comata. In other words the design
+    # was being reported as if its specificity had been verified against competitors it
+    # had never seen.
     RT = yukle("RT", "design_from_reference.py")
     sina("15, tur adi tanimini 27'den aliyor (tek kaynak)",
          RT.DZ.tur_adi("NR_1.1 Podospora comata CBS1 ITS")
@@ -984,10 +986,9 @@ def testler(a):
         [dar, genis], {"Podospora"}, {"Podospora pseudopauciseta"}, 3, 2)
     sina("kardes tur siniri asilinca SESSIZ dusmez, sayilir",
          len(kardes2) == 3 and kirp2 > 0, "kirpilan=%d" % kirp2)
-    # ic='Bacteroides' yazildiginda 'Parabacteroides' ve
-    # 'Acetobacteroides' kayitlari hedef UYESI sayiliyordu; primer o zaman
-    # baska cinslerde de urun vermek zorunda kalir, cins ozgullugu daha
-    # tasarim aninda kaybedilirdi.
+    # When ic='Bacteroides' was written, 'Parabacteroides' and 'Acetobacteroides'
+    # records counted as MEMBERS of the target; the primer then had to give a product in
+    # other genera too, and genus specificity was lost at design time.
     bd = os.path.join(g5, "bd.fna")
     with open(bd, "w") as fh:
         for i, ad in enumerate(("Bacteroides ovatus ATCC 8483",
