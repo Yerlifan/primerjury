@@ -426,8 +426,8 @@ def main():
 
     s1, k1 = tarama_oku(a.is1)
     if not s1:
-        print(f"HATA: {a.is1} icinde esik_<C>.report dosyasi yok.")
-        print("  Once tarama kosulmali:  bash kraken_tool.sh esik-eski")
+        print(f"HATA: {a.is1}u' holds no esik_<C>.report file.'")
+        print(u'  The scan has to be run first:  bash kraken_tool.sh esik-eski')
         sys.exit(1)
 
     metin = egri_metni(s1, f"GUVEN ESIGI EGRISI, {a.ad}")
@@ -440,8 +440,8 @@ def main():
         return
     s2, k2 = tarama_oku(a.is2)
     if not s2:
-        print(f"\nUYARI: {a.is2} icinde tarama yok, iki veritabani karsilastirilmadi.")
-        print("  Kosmak icin:  bash kraken_tool.sh esik-yeni")
+        print(f"\nUYARI: {a.is2}u' holds no scan, so the two databases were not compared.'")
+        print(u'  To run it:  bash kraken_tool.sh esik-yeni')
         return
     m2 = egri_metni(s2, f"GUVEN ESIGI EGRISI, {a.ad2}")
     print("\n" + m2)

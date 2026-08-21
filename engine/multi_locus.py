@@ -147,7 +147,7 @@ def main():
             ger[k['kutu']] = k
     tt = time.time()
     nm = N.Numune(list(ger.values()), n=a.sig, otorite=True)
-    print('sig havuz %d kutu, %.1f sn' % (len(ger), time.time() - tt), flush=True)
+    print(u'shallow pool %d bins, %.1f s' % (len(ger), time.time() - tt), flush=True)
 
     for ad, omk, i, bas, son in kalan:
         if time.time() - t0 > a.sure:
@@ -225,7 +225,7 @@ def main():
         D['bitmis'].append(anah)
         print('  %-26s %-13s %5d-%5d gecen %2d  %s' % (
             ad[:26], omk, bas, son, len(aday),
-            ('%.2fx kapsam %s %s urun %d' % (en_iyi['_skor'], en_iyi['kapsam'],
+            (u'%.2fx coverage %s %s product %d' % (en_iyi['_skor'], en_iyi['kapsam'],
                                              en_iyi['taban'], en_iyi['urun']))
             if en_iyi else '-'), flush=True)
         json.dump(D, open(a.durum, 'w', encoding='utf-8'), ensure_ascii=False)

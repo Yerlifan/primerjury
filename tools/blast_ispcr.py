@@ -493,7 +493,7 @@ def birim_testleri(yazdir=True):
         for p in pozlar: d = yaz(d, p, D[d[p]])
         return d
 
-    if yazdir: print("  --- 3' uc kurali (son iki baz birebir, son beste en fazla bir hata)")
+    if yazdir: print(u'  --- the 3\' end rule (the last two bases exact, at most one mismatch in the last five)')
     K("son bazda uyumsuzluk baglanmaz",        tara(boz(kalip,319), F), [])
     K("sondan ikincide uyumsuzluk baglanmaz",  tara(boz(kalip,318), F), [])
     K("SONDAN UCUNCUDE uyumsuzluk BAGLANIR",   tara(boz(kalip,317), F), [300])
@@ -504,12 +504,12 @@ def birim_testleri(yazdir=True):
     K("uc ic uyumsuzluk baglanir",             tara(boz(kalip,302,305,308), F), [300])
     K("dort ic uyumsuzluk baglanmaz",          tara(boz(kalip,302,305,308,311), F), [])
     K("5' ucta iki uyumsuzluk baglanir",       tara(boz(kalip,300,301), F), [300])
-    if yazdir: print("  --- zincir yonu")
+    if yazdir: print(u'  --- strand orientation')
     K("ileri primer arti zincirde bulunur",    tara(kalip, F, False), [300])
     K("ileri primer eksi zincirde bulunmaz",   tara(kalip, F, True), [])
     K("geri primer eksi zincirde bulunur",     tara(kalip, R, True), [430])
     K("geri primer arti zincirde bulunmaz",    tara(kalip, R, False), [])
-    if yazdir: print("  --- urun geometrisi")
+    if yazdir: print(u'  --- product geometry')
     K("dogru yon ve mesafede urun",            urun(kalip, F, R), 150)
     K("ters cevrilmis kalipta da urun",        urun(rc(kalip), F, R), 150)
     K("primer sirasi sonucu degistirmez",      urun(kalip, R, F), 150)
@@ -541,7 +541,7 @@ def birim_testleri(yazdir=True):
     K("hicbir primerin baglanmadigi durumda sifir",
       kapsayan_okuma(W3, bas3, "ACGTACGTACGTACGTACGT", "TTTTTTTTTTTTTTTTTTTT"), 0)
 
-    if yazdir: print("  --- karar (bu fonksiyonun onceden hic sinavi yoktu)")
+    if yazdir: print(u'  --- the decision (this function had never been tested before)')
     # 1. Okumasi HIC olmayan hedef. Onceki surum bunu eksik listesine sokmuyordu,
     #    liste bosalinca kapsama TAM yaziliyordu: hic olculmemis hedef icin tam
     #    kapsama iddiasi.
