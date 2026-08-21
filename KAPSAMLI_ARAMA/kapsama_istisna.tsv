@@ -1,0 +1,15 @@
+# KAPSAMA DENETIMI - KABUL EDILMIS ISTISNALAR  (2026-08-10)
+#
+# dislama_kapsama_denetimi.py bir hedefin uyesini dislanan taksonun DISINDA
+# bulursa alarm verir. Asagidaki satirlar BILEREK disarida birakilmistir:
+# o uye gercekten hedef disidir ve NCBI katmaninin onu ISARETLEMESI istenir.
+# Istisna yazmak alarmi susturur ama SEBEBI kayda gecirir - susturma sessizce
+# olmaz.
+#
+# hedef	uye_taxid	sebep
+Mantar_universal (F1)	299205	Leucocryptos - mantar degil, kriptofit benzeri protist. Mantar evrensel primerinin bunu tutmasi GERCEK hedef disi urundur; gizlenmemeli.
+Mantar_universal (F2)	1938500	Ventricleftida - Cercozoa, mantar degil. Isaretlenmesi istenir.
+Mantar_universal (F2)	1920164	Leptophryidae - Cercozoa, mantar degil. Isaretlenmesi istenir.
+Mantar_universal (F2)	99923	Cyrtohymena - siliyat, mantar degil. Isaretlenmesi istenir.
+Metanojen_universal	183968	Thermococci - metanojen degil. Metanojen evrensel primerinin bunu tutmasi gercek hedef disi urundur.
+Bacteroidales_kumesi	77133	"uncultured bacterium" - hicbir taksona bagli degil, taxid ile dislanamaz. Bu uyenin kimligine yalniz dizi karsilastirmasi (katman 2-3) karar verebilir.

@@ -1,0 +1,11 @@
+# OLCULEN KIMLIK -> NCBI TAXID ESDEGERI  (2026-08-10)
+#
+# Olculen kimlik metni her zaman NCBI'da aranabilir bir bilimsel ad degildir:
+# yazim NCBI'ninkinden ayrilabilir, ya da kimlik adlandirilmamis bir soydur ve
+# yerini yalniz veritabani soy zinciri gosterir. Bu tablo o bosluğu KAYITLA
+# kapatir - denetim betiginin icine gomulu tahmin YOKTUR.
+#
+# anahtar: ya kutu adi (B-2_1197717) ya da olculen kimlik metni.
+# anahtar	taxid	dayanak
+Nitrocosmicus cf. oleophi	1826864	NCBI'daki ad "Candidatus Nitrosocosmicus" (1826864); olculen metinde "Nitrosocosmicus" yerine "Nitrocosmicus" yaziyor ve tur epiteti "oleophi" kisaltilmis. Ayni cins.
+B-2_1197717	649777	Olculen kimlik "Bacterium enrichment" - adlandirilmamis soy. Yeri veritabani soy zincirinden okunur: SILVA SSU NR99 AM933660 Bacteria;Synergistota;Synergistia;Synergistales;Synergistaceae (%98,74) ve PR2 SSU AF280863 Synergistales (%96,12). Aile: Synergistaceae 649777.
