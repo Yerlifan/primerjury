@@ -2,21 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 external_databases.py
-Doğrulamadan geçen primer çiftlerini DIŞ referans veritabanlarına karşı
-sınar. Numunede olmayan ama ortamda bulunabilecek akrabalarda ürün oluşup
-oluşmadığını gösterir.
+Tests the primer pairs that passed verification against EXTERNAL reference
+databases. It shows whether a product forms in relatives that are absent from the
+sample but could be present in the environment.
 
-Yöntem: her primer blastn ile (task blastn-short) veritabanına aranır.
-Aynı referans dizide, ters zincirlerde ve 3' uçları birbirine bakan iki
-vuruş ürün uzunluğu aralığında buluşuyorsa hedef dışı ürün sayılır.
-BLAST tek başına "primer bağlanır mı" sorusunu yanıtlamaz; bu yüzden her
-vuruş ayrıca toplantı kararındaki BAĞLANMA KURALIYLA da denetlenir:
-son iki baz birebir, son beş bazda en fazla bir uyumsuzluk, toplamda en
-fazla üç uyumsuzluk.
+The method: every primer is searched against the database with blastn (task
+blastn-short). If two hits on the same reference sequence, on opposite strands and
+with their 3' ends facing one another, meet within the product length range, that
+counts as an off-target product. BLAST alone does not answer "will the primer
+bind"; so every hit is additionally checked against the panel's own criteria.
 
-Kullanım:
-  python3 external_databases.py --final primer_final --db REFERANS_DB \
-      --out primer_final/dis_veritabani.tsv
 """
 import argparse, csv, os, re, shutil, subprocess, sys, tempfile, collections
 
@@ -25,13 +20,13 @@ IUPAC = {"A": "A", "C": "C", "G": "G", "T": "T",
          "R": "AG", "Y": "CT", "S": "CG", "W": "AT", "K": "GT", "M": "AC",
          "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG", "N": "ACGT"}
 
-# Hangi sinif hangi veritabanina karsi sinanir.
+# Which class is tested against which database.
 #
-# DAR KUME (varsayilan): NCBI RefSeq'in kuratorlu 16S ve ITS setleri.
-# Bunlar tip susu ve temsilci dizilerden olusur; kulturlenmemis cevresel
-# soylar buyuk olcude YOKTUR. Anaerobik curutucu topluluğunun onemli bir
-# kismi tam olarak o gruptadir, dolayisiyla dar kume tek basina "hedef
-# disi urun yok" demek icin yeterli degildir.
+# THE NARROW SET (the default): NCBI RefSeq's curated 16S and ITS sets.
+# These are made of type strains and representative sequences; uncultured
+# environmental lineages are largely ABSENT. A significant part of an anaerobic
+# digester community is exactly that group, so the narrow set on its own is not
+# enough to say "there is no off-target product".
 SINIF_DB = {
     "A1": ["archaea.16S.fna"],
     "A2": ["archaea.16S.fna"],
@@ -40,31 +35,31 @@ SINIF_DB = {
     "F2": ["fungi.ITS.fna", "fungi.28SrRNA.fna"],
 }
 
-# GENIS KUME (--genis ile): cevresel dizileri de iceren buyuk veritabanlari.
-# SILVA SSU/LSU NR99 ve UNITE, RefSeq'te bulunmayan kulturlenmemis soylari
-# tasir; ROD tam rRNA operon varyantlarini, PR2 okaryot SSU'sunu kapsar.
-# Calisma suresi ciddi olcude uzar, bu yuzden varsayilan degildir.
+# THE WIDE SET (with --genis): the large databases that also hold environmental
+# sequences. SILVA SSU/LSU NR99 and UNITE carry uncultured lineages that are not in
+# RefSeq; ROD covers full rRNA operon variants and PR2 the eukaryotic SSU. The
+# running time grows considerably, which is why it is not the default.
 #
-# SINIF BASINA ELLE SECIM YAPILMAZ. Onceki surumde genis kume elle
-# sinifa gore yazilmisti ve bu SESSIZ BIR OLCUM KAYBINA yol acti:
-#   OLCULDU (2026-08-01): ROD_v1.2_operon_variants.fasta'nin 60320
-#   kaydinin 60320'si de Eukaryota'dir; icinde 0 Bacteria, 0 Archaea
-#   vardir (basliklardaki soyagacindan sayildi). ROD A1/A2/B siniflarina
-#   atanmisti. Sonuc: 71 arke/bakteri cifti icin "ROD'da hedef disi urun
-#   yok" yazildi. Bu bir ozgulluk kaniti degildir; veritabaninda o alandan
-#   hicbir dizi yoktur. Ayni hatanin tersi de vardi: ROD'un 9753 mantar
-#   tam operonu, mantar siniflarinda hic taranmamisti.
+# NO PER-CLASS MANUAL SELECTION IS MADE. In the earlier version the wide set was
+# written out by class by hand, and that led to A SILENT LOSS OF MEASUREMENT:
+#   MEASURED (2026-08-01): all 60320 of the 60320 records in
+#   ROD_v1.2_operon_variants.fasta are Eukaryota; it holds 0 Bacteria and 0
+#   Archaea (counted from the lineage in the headers). ROD had been assigned to
+#   classes A1/A2/B. The result: "no off-target product in ROD" was written for 71
+#   archaeal and bacterial pairs. That is not evidence of specificity; the database
+#   holds no sequence from that domain at all. The same mistake had a mirror image:
+#   ROD's 9753 full fungal operons had never been scanned in the fungal classes.
 #
-# Yeni kural: TUM SINIFLAR TUM rDNA VERITABANLARINI GORUR. Gercek PCR'da
-# primer yalnizca kendi alanindaki rDNA ile degil, ortamdaki tum DNA ile
-# karsilasir; bir arke primerinin bakteri 23S'inde yanlis baglanmasi tam
-# olarak aranan hata turudur. Alanla sinirlamak icin bilimsel gerekce yok,
-# yalnizca hiz gerekcesi vardi; hiz gerekcesi dar kumede zaten karsilaniyor.
+# The new rule: EVERY CLASS SEES EVERY rDNA DATABASE. In a real PCR a primer meets
+# not only the rDNA of its own domain but all the DNA in the environment, and an
+# archaeal primer mis-binding in a bacterial 23S is exactly the kind of error we are
+# looking for. There is no scientific reason to limit by domain, only a speed
+# reason, and the speed reason is already met by the narrow set.
 #
-# SILVA_138.2_LSUParc.fasta bilerek DISARIDA: Parc kumesi kismi ve dusuk
-# kaliteli kayitlari da icerir, LSURef_NR99 ise ayni kapsamin %99
-# tekrarsiz kuratorlu temsilcisidir. SSU tarafinda da Parc degil NR99
-# kullaniliyor; ikisini ayni bicimde ele almak icin LSU'da da NR99 alinir.
+# SILVA_138.2_LSUParc.fasta is DELIBERATELY OUT: the Parc set also holds partial and
+# low quality records, while LSURef_NR99 is the 99% dereplicated curated
+# representative of the same coverage. NR99 rather than Parc is used on the SSU side
+# too; to treat the two the same way, NR99 is taken for the LSU as well.
 GENIS_ORTAK = [
     "SILVA_138.2_SSURef_NR99.fasta",
     "SILVA_138.2_LSURef_NR99.fasta",
@@ -78,15 +73,15 @@ GENIS_ORTAK = [
     "fungi.28SrRNA.fna",
 ]
 
-# ref_all.fna ve ref_all2.fna BILEREK YOK.
-#   OLCULDU (2026-08-01, .fai kimlik kumeleri karsilastirilarak):
+# ref_all.fna and ref_all2.fna ARE DELIBERATELY ABSENT.
+#   MEASURED (2026-08-01, by comparing the identity sets in the .fai files):
 #   ref_all2.fna = archaea.16S + bacteria.16S + fungi.ITS + fungi.18SrRNA
-#                + fungi.28SrRNA, tam olarak 65358 kayit, iki yonde de
-#                fark sifir.
-#   ref_all.fna  = archaea.16S + bacteria.16S + fungi.ITS, 48431 kayit.
-# Yani ikisi de yukaridaki listenin alt kumesidir; taramaya eklemek tek
-# bir yeni dizi getirmez, yalnizca ayni kayitlari ikinci kez tarar.
-# (Bu yuzden bu iki dosya icin BLAST indeksi kurmaya da gerek yoktur.)
+#                + fungi.28SrRNA, exactly 65358 records, zero difference in either
+#                direction.
+#   ref_all.fna  = archaea.16S + bacteria.16S + fungi.ITS, 48431 records.
+# So both are subsets of the list above; adding them to the scan brings not one new
+# sequence, it only scans the same records a second time.
+# (Which is also why there is no need to build a BLAST index for those two files.)
 
 SINIF_DB_GENIS = {
     s: [d for d in GENIS_ORTAK if d not in SINIF_DB[s]] for s in SINIF_DB
@@ -102,7 +97,7 @@ def uyar(p, t):
 
 
 def baglanma_uygun(oligo, hedef, son_tam=2, son_pencere=5, son_mm=1, toplam_mm=3):
-    """Toplanti karari: uzama 3' ucten basladigi icin son bazlar kritik."""
+    """A panel decision: because extension starts from the 3' end, the last bases are critical."""
     if len(oligo) != len(hedef):
         return False, None
     mm = [i for i, (p, t) in enumerate(zip(oligo, hedef)) if not uyar(p, t)]
@@ -117,7 +112,7 @@ def baglanma_uygun(oligo, hedef, son_tam=2, son_pencere=5, son_mm=1, toplam_mm=3
 
 
 def db_hazirla(fna, calisma):
-    """Var olan BLAST indeksini kullanir, yoksa calisma klasorunde kurar."""
+    """Uses an existing BLAST index, or builds one in the working directory if there is none."""
     if os.path.exists(fna + ".nin") or os.path.exists(fna + ".00.nin"):
         return fna
     hedef = os.path.join(calisma, os.path.basename(fna))
@@ -160,21 +155,18 @@ def sinif_konsensuslari(kons_klasoru, sinif):
 
 
 def kapsam_olc(db, diziler, calisma, etiket, threads, zaman_asimi):
-    """Bu veritabani bu sinifin organizmalarini HIC iceriyor mu?
+    """Does this database hold this class's organisms AT ALL?
 
-    ROD hatasindan sonra eklendi. Bir veritabaninda ilgili alandan tek
-    dizi bile yoksa, 'hedef disi urun bulunamadi' sonucu ozgulluk kaniti
-    DEGILDIR; olculebilecek bir sey olmadigi icin bos cikmistir. Bu iki
-    durum ciktida ayirt edilebilmelidir.
+        Added after the ROD mistake. If a database holds not one sequence from the
+        relevant domain, a result of 'no off-target product found' IS NOT evidence of
+        specificity; it came out empty because there was nothing to measure. Those two
+        situations have to be distinguishable in the output.
 
-    Olcu: sinifin kendi konsensus dizileri veritabanina megablast ile
-    aranir ve EN UZUN hizalama alinir. Esik uydurulmaz, veriden gelir:
-    aranan urun en fazla prod_max baz uzunlugunda oldugu icin, veritabanindaki
-    en uzun benzer bolge prod_max'tan kisaysa o urunun orada olusmasi
-    zaten mekanik olarak imkansizdir; boyle bir veritabani o sinif icin
-    KAPSAM_YOK sayilir.
+        The measure: the class's own consensus sequences are searched against the
+        database with megablast and the LONGEST alignment is taken. The threshold is not
+        invented, it comes from the data: the product looked for is at most prod_max
+        bases long.
 
-    Doner: (durum, en_uzun_hizalama, en_iyi_kimlik)
     """
     if not diziler:
         return ("KAPSAM_OLCULMEDI", 0, 0.0)
@@ -206,31 +198,31 @@ def kapsam_olc(db, diziler, calisma, etiket, threads, zaman_asimi):
     return ("", en_uzun, en_kimlik)
 
 
-# --- hedefin kendi taksonu ile yabanci takson ayrimi -------------------
+# --- telling the target's own taxon from a foreign taxon ----------------
 #
-# 2026-08-01'de olculdu: genis tarama "hedef disi urun" sutununda EN YUKSEK
-# sayilari veren kayitlarin bir kismi aslinda HEDEFIN KENDISIDIR.
-#   Asetoklastik_metanojenler x archaea.16S = 306 urun; ornek vuruslar
+# Measured on 2026-08-01: some of the records giving the HIGHEST numbers in the wide
+# scan's "off-target product" column are in fact THE TARGET ITSELF.
+#   Asetoklastik_metanojenler x archaea.16S = 306 products; example hits
 #     NR_104707.1 Methanothrix soehngenii GP6
 #     NR_028242.1 Methanothrix soehngenii Opfikon
-#   Methanothrix_soehngenii_turu x SILVA = 308 urun; vuruslarin hepsi
+#   Methanothrix_soehngenii_turu x SILVA = 308 products; every hit is
 #     Methanosaetaceae;Methanothrix
-# Bunlar ozgulluk hatasi degil, primerin isini yapmasidir: veritabani hedef
-# taksonun dizilerini de icerir. Buna karsilik daha DUSUK sayili bazi
-# kayitlar gercek hatadir:
-#   Nitrosocosmicus_AOA x SILVA = 1119; vuruslar Halobacteria,
+# Those are not a specificity error, they are the primer doing its job: the database
+# holds the sequences of the target taxon too. Against that, some records with LOWER
+# counts are real errors:
+#   Nitrosocosmicus_AOA x SILVA = 1119; the hits are Halobacteria,
 #     Methanoperedenaceae, Thermoplasmata, Cenarchaeum
-#   Petrimonas_cinsi x SILVA = 707; vuruslar Clostridium, Bacteroides
-# Ham sayiya gore siralamak, kullaniciyi yanlis primerleri duzeltmeye
-# gonderiyordu. Bu yuzden her urun, olustugu referansin taksonuna gore
-# KENDI TAKSONU ve YABANCI TAKSON diye ikiye ayrilir.
+#   Petrimonas_cinsi x SILVA = 707; the hits are Clostridium, Bacteroides
+# Ranking by the raw count was sending the user to fix the wrong primers. So every
+# product is split, by the taxon of the reference it formed in, into ITS OWN TAXON
+# and A FOREIGN TAXON.
 #
-# Takson adlari elle yazilmaz; iki veri kaynagindan gelir:
-#   1) hedefler.tsv taxid listesi + taxid_adlari.tsv  (BEYAN EDILEN ad)
-#   2) hedef_kimlik.tsv olculen_kimlik sutunu         (OLCULEN ad)
-# Ikisi ayrisabilir ve ayrisiyor: Trichoderma_cinsi hedefinin olculen
-# kimligi Petriella musispora'dir. Her ikisi de "kendi taksonu" sayilir;
-# hangisinin tuttugu ciktida gorulur.
+# The taxon names are not written by hand; they come from two data sources:
+#   1) the taxid list in hedefler.tsv plus taxid_adlari.tsv  (THE DECLARED name)
+#   2) the olculen_kimlik column of hedef_kimlik.tsv         (THE MEASURED name)
+# The two can diverge, and they do: the measured identity of the Trichoderma_cinsi
+# target is Petriella musispora. Both count as "its own taxon"; which of them
+# matched is visible in the output.
 
 KUCUK_TOKEN = 4
 ATLA_TOKEN = {"uncultured", "candidatus", "bacterium", "archaeon", "sp",
@@ -241,9 +233,11 @@ ATLA_TOKEN = {"uncultured", "candidatus", "bacterium", "archaeon", "sp",
 
 
 def _tokenlar(metin):
-    """Herhangi bir baslik bicimini ortak bir kelime kumesine indirger.
-    SILVA (;), ROD (|;_), UNITE (k__/p__ ve _), PR2 (|_) ve RefSeq (bosluk)
-    bicimlerinin hepsi ayni islemden gecer."""
+    """Reduces a header of any format to a common set of words.
+        The SILVA (;), ROD (|;_), UNITE (k__/p__ and _), PR2 (|_) and RefSeq (space)
+        formats all go through the same process.
+
+    """
     return {t for t in re.split(r"[^A-Za-z]+", metin.lower())
             if len(t) >= KUCUK_TOKEN and t not in ATLA_TOKEN}
 
@@ -259,7 +253,7 @@ def _ad_cinsi(ad):
 
 
 def hedef_taksonlari(hedefler_tsv, adlar_tsv, kimlik_tsv):
-    """{hedef: {'beyan': set, 'olculen': set, 'evrensel': bool}}"""
+    """{target: {'beyan': set, 'olculen': set, 'evrensel': bool}}"""
     adlar = {}
     if adlar_tsv and os.path.exists(adlar_tsv):
         for line in open(adlar_tsv, encoding="utf-8"):
@@ -301,35 +295,37 @@ def hedef_taksonlari(hedefler_tsv, adlar_tsv, kimlik_tsv):
     return out
 
 
-# --- yabanci vurusun UZAKLIGI ------------------------------------------
+# --- the DISTANCE of a foreign hit --------------------------------------
 #
-# 2026-08-01, ikinci turdan sonra olculdu: "yabanci takson" tek basina da
-# yeterli bir olcu degil, cunku hedeflerin bir kismi TEK BIR TAKSON degil
-# ISLEVSEL GRUPTUR. Ornekler, gercek ciktidan:
-#   Hidrojenotrofik_metanojenler -> yabanci vuruslar Methanobacterium
-#     alcaliphilum, Methanosphaera stadtmanae. Bunlar beyan edilen taxid
-#     listesinde yok, ama ikisi de hidrojenotrofik metanojendir; hedefin
-#     amaci zaten bu guruhu yakalamaktir.
-#   Nitrosocosmicus_AOA -> yabanci vuruslar Nitrosotalea, Nitrosopumilus.
-#     Ikisi de amonyak oksitleyen arkedir, yani AOA'dir.
-#   Zoopagomycota_mantari -> yabanci vurus Piptocephalis moniliformis,
-#     ki kendisi Zoopagomycota'dir.
-# Buna karsilik:
-#   Petrimonas_cinsi -> Flavobacterium, Pdegerlendiricieicola vulgatus
+# Measured after the second round, 2026-08-01: "a foreign taxon" is not a sufficient
+# measure on its own either, because some of the targets are not A SINGLE TAXON but
+# A FUNCTIONAL GROUP. Examples, from the real output:
+#   Hidrojenotrofik_metanojenler -> the foreign hits are Methanobacterium
+#     alcaliphilum and Methanosphaera stadtmanae. Neither is in the declared taxid
+#     list, but both are hydrogenotrophic methanogens, and catching that group is
+#     exactly what the target is for.
+#   Nitrosocosmicus_AOA -> the foreign hits are Nitrosotalea and Nitrosopumilus.
+#     Both are ammonia oxidising archaea, that is, AOA.
+#   Zoopagomycota_mantari -> the foreign hit is Piptocephalis moniliformis, which is
+#     itself a Zoopagomycota.
+# Against that:
+#   Petrimonas_cinsi -> Flavobacterium, Phocaeicola vulgatus
 #   Trichoderma_cinsi -> Calonectria, Acremonium, Trichothecium, Aniptodera
-# Bunlar gercekten uzak taksonlardir.
+# Those really are distant taxa.
 #
-# Ayrimi elle yazilmis bir "islevsel grup" tablosu ile yapmak, tam da
-# kacinilmasi gereken sey olurdu. Bunun yerine uzaklik VERIDEN olculur:
-# veritabani basliklari soyagacini tasir (SILVA, ROD, PR2, UNITE). Hedefin
-# kendi soyagaci, KENDI TAKSONUNDA urun veren referanslarin ortak on ekinden
-# cikarilir; her yabanci vurusun bu soyagaci ile paylastigi derinlik olculur.
-# Son iki basamak disinda her seyi paylasan vurus YAKIN, otekiler UZAK
-# sayilir. Oncelik siralamasi UZAK sayisina gore yapilir.
+# Making the distinction with a hand written "functional group" table would be
+# exactly the thing to avoid. Instead the distance is MEASURED FROM THE DATA: the
+# database headers carry the lineage (SILVA, ROD, PR2, UNITE). The target's own
+# lineage is derived from the common prefix of the references that gave a product IN
+# ITS OWN TAXON, and the depth each foreign hit shares with that lineage is measured.
+# A hit sharing everything except the last two ranks counts as NEAR, the rest as FAR.
+# The priority ordering is by the FAR count.
 
 def _soyagaci(baslik):
-    """Baslktan siralanmis soyagaci alanlarini cikarir. Soyagaci tasimayan
-    bicimlerde (RefSeq gibi) bos liste doner."""
+    """Extracts the ordered lineage fields from a header. On formats that carry no
+        lineage (RefSeq, for instance) it returns an empty list.
+
+    """
     if not baslik:
         return []
     govde = baslik.split(None, 1)
@@ -364,15 +360,15 @@ def _ortak_derinlik(a, b):
 
 
 def _baskin_soy(soylar):
-    """Kendi taksonundaki vuruslarin BASKIN (en sik) soyagaci.
+    """The DOMINANT (most frequent) lineage of the hits in the target's own taxon.
 
-    Ortak on ek ALINMAZ. Alinsaydi esik, kendi vuruslarinin sayisina ve
-    cesitligine gore kayardi: tek vurusta on ek tam soyagaci (derinlik 7),
-    iki cesitli vurusta yalnizca takim duzeyi (derinlik 4) cikiyor ve ayni
-    yabanci vurus bir kayitta UZAK, otekinde YAKIN sayilabiliyordu.
-    Baskin soyagaci ise derinligi sabit tutar. Kendi vuruslarinin hepsi
-    tanim geregi ayni cinsten oldugu icin bu soyagaclari zaten neredeyse
-    ozdestir; en sik olani secmek guvenlidir.
+        THE COMMON PREFIX IS NOT TAKEN. Had it been, the threshold would shift with the
+        number and the diversity of the own hits: with one hit the prefix is the full
+        lineage (depth 7), with two diverse hits only the order level (depth 4), and the
+        same foreign hit could count as FAR on one record and NEAR on another. The
+        dominant lineage keeps the depth fixed. Since the own hits are by definition all
+        of the same genus, those lineages are already nearly identical.
+
     """
     soylar = [tuple(s) for s in soylar if s]
     if not soylar:
@@ -477,7 +473,7 @@ def main():
             if not db:
                 atlanan.append((sinif, dbad, "indeks kurulamadi"))
                 continue
-            # KAPSAM DENETIMI, taramadan once. Bkz. kapsam_olc().
+            # THE COVERAGE AUDIT, before the scan. See kapsam_olc().
             kap_durum, kap_uz, kap_kim = kapsam_olc(
                 db, kons_onbellek.setdefault(
                     sinif, sinif_konsensuslari(a.kons, sinif)),
@@ -506,7 +502,7 @@ def main():
                 r = subprocess.run(cmd, capture_output=True, text=True,
                                    timeout=a.zaman_asimi)
             except subprocess.TimeoutExpired:
-                # Sessizce atlamak, o veritabanini "temiz" gostermek olur.
+                # Skipping silently would show that database as "clean".
                 print("      ZAMAN ASIMI (%d sn): %s OLCULEMEDI"
                       % (a.zaman_asimi, dbad))
                 atlanan.append((sinif, dbad, "zaman asimi"))
@@ -528,11 +524,11 @@ def main():
                     # yalniz 3' ucu kapsayan vurus uzama yapabilir
                     if qe != ql:
                         continue
-                    # BLAST kisa hizalama dondurdugunde primerin 5' tarafi
-                    # hizalamanin disinda kalir ve oradaki uyumsuzluklar
-                    # sayilmaz. Gorulemeyen kisim bilinmedigi icin en kotu
-                    # durum varsayilir: hizalanmayan her 5' bazi olasi bir
-                    # uyumsuzluk sayilir ve toplam siniri buna gore denetlenir.
+                    # When BLAST returns a short alignment, the 5' side of the primer
+                    # falls outside the alignment and the mismatches there are not
+                    # counted. Since the unseen part is unknown, the worst case is
+                    # assumed: every unaligned 5' base counts as a possible mismatch and
+                    # the total limit is checked against that.
                     gorulmeyen = qs - 1
                     ok, mm = baglanma_uygun(qseq, sseq)
                     if not ok:
@@ -541,14 +537,14 @@ def main():
                         continue
                     mm += gorulmeyen
                     uc = sen        # 3' ucun referanstaki konumu
-                    # Primer uzunlugu da tasinir; urun boyu iki 3' ucu
-                    # arasindaki mesafe DEGIL, ileri primerin 5' ucundan geri
-                    # primerin 5' ucuna kadar olan mesafedir. Eski surumde
-                    # aradaki fark (lenF + lenR - 2, tipik 44 baz) yuzunden
-                    # gercek 70-94 bp'lik hedef disi urunler alt sinirin
-                    # altinda kalip hic sayilmiyordu.
+                    # The primer length travels too; the product length is NOT the
+                    # distance between the two 3' ends but the distance from the 5' end
+                    # of the forward primer to the 5' end of the reverse primer. In the
+                    # old version the difference (lenF + lenR - 2, typically 44 bases)
+                    # meant that real 70-94 bp off-target products fell below the lower
+                    # bound and were never counted at all.
                     vurus[s].append((q, uc, strand, mm, ql))
-            # ayni referansta ters zincirlerde ve 3' uclari birbirine bakan cift
+            # on the same reference, on opposite strands, and with their 3' ends facing each other
             ekstra = collections.Counter()
             detay = {}
             urunler = collections.defaultdict(list)   # cift -> [(ref, boy)]
@@ -559,8 +555,8 @@ def main():
                     for qr, ur, _, mr, lr in eksi:
                         if ur <= uf:
                             continue
-                        # 04'un product_len'i ile ayni olcu: ileri primerin
-                        # 5' ucu uf - lf + 1, geri primerin 5' ucu ur + lr - 1
+                        # The same measure as stage 04's product_len: the 5' end of the
+                        # forward primer is uf - lf + 1, of the reverse primer ur + lr - 1
                         boy = (ur + lr - 1) - (uf - lf + 1) + 1
                         if a.prod_min <= boy <= a.prod_max:
                             i1 = re.sub(r"_[FR]\d+$", "", qf)
@@ -568,12 +564,12 @@ def main():
                             n1 = qf.rsplit("_", 1)[1][1:]
                             n2 = qr.rsplit("_", 1)[1][1:]
                             if n1 != n2:
-                                continue          # farkli ciftlerin primerleri
+                                continue          # the primers of different pairs
                             ekstra[n1] += 1
                             urunler[n1].append((s, boy))
                             detay.setdefault(n1, []).append("%s:%d bp" % (s, boy))
 
-            # urun olusturan referanslarin taksonunu coz ve kendi/yabanci ayir
+            # resolve the taxon of the references that formed a product and split own from foreign
             tum_ref = {s for lst in urunler.values() for s, _ in lst}
             bas = basliklari_coz(fna, tum_ref, baslik_onbellek) if tum_ref else {}
             ref_token = {s: _tokenlar(bas.get(s, "")) for s in tum_ref}
@@ -662,9 +658,9 @@ def main():
     print(u'records: %d, giving no product at all: %d (of those, with verified coverage: %d)'
           % (len(sonuc), temiz, temiz_gecerli))
 
-    # SIRALAMA HAM SAYIYA GORE YAPILMAZ. Gerekcesi hedef_taksonlari()'nin
-    # ustundeki nottadir: en yuksek ham sayilarin bir kismi hedefin kendi
-    # taksonudur ve hata degildir.
+    # THE RANKING IS NOT BY THE RAW COUNT. The reasoning is in the note above
+    # hedef_taksonlari(): some of the highest raw counts are the target's own taxon and
+    # are not an error.
     ozgul = [x for x in sonuc
              if x.get("hedef_turu") == "ozgul"
              and x.get("kapsam_durumu") == "KAPSANIYOR"
@@ -680,7 +676,7 @@ def main():
         if x["yabanci_ornekler"]:
             print("        %s" % x["yabanci_ornekler"].split(";")[0][:100])
 
-    # cift duzeyinde ozet
+    # a summary at pair level
     cift = {}
     for x in sonuc:
         if x.get("kapsam_durumu") != "KAPSANIYOR":
@@ -692,12 +688,11 @@ def main():
         d["yakin"] += x.get("yabanci_yakin", 0)
         d["kendi"] += x.get("urun_kendi_taksonda", 0)
     oz = [v for v in cift.values() if v["turu"] == "ozgul"]
-    # KENDI TAKSONUNDA HIC URUN VERMEYEN cift, "temiz" sayilamaz. Bu, ROD
-    # hatasinin cift duzeyindeki karsiligidir: olculebilecek bir sey
-    # olmadigi icin bos cikmistir. Olculdu (2026-08-01): Sakarolitik F2'nin
-    # uc cifti sekiz kapsanan veritabaninda hicbir urun vermiyor, kendi
-    # taksonunda bile; bunlar zaten 18'in alan_karisimi diye isaretledigi
-    # ciftlerdir.
+    # A pair giving NO PRODUCT AT ALL IN ITS OWN TAXON cannot count as "clean". That is
+    # the pair level counterpart of the ROD mistake: it came out empty because there was
+    # nothing to measure. Measured (2026-08-01): three pairs of Sakarolitik F2 give no
+    # product in any of the eight covered databases, not even in their own taxon; those
+    # are the pairs stage 18 already marks as alan_karisimi.
     olculebilir = [v for v in oz if v["kendi"] > 0]
     print(u'\nSPECIFIC pairs measured against a covered database: %d' % len(oz))
     print(u'   of those, MEASURABLE because they give a product in their own taxon: %d'
