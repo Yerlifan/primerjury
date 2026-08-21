@@ -80,7 +80,7 @@ SIRA = ['guncel', 'siparis', 'toplanti', 'esik', 'geometri', 'plaka',
 def kos(ad, ek):
     yol = os.path.join(KOK, *KOMUT[ad][0].split('/'))
     if not os.path.exists(yol):
-        print('  ATLANDI: %s yok (%s)' % (ad, yol))
+        print(u'  SKIPPED: %s is missing (%s)' % (ad, yol))
         return 127
     # target_full.py --kok almaz; kokU _FL_KOK ortam degiskeninden okur.
     if ad == 'lokus':
@@ -102,7 +102,7 @@ def yardim():
     print('  alt komutlar:')
     for k in sorted(KOMUT):
         print('    %-10s %s%s' % (k, KOMUT[k][1],
-                                  '' if KOMUT[k][2] else u'   [hepsi\'ye dahil degil]'))
+                                  '' if KOMUT[k][2] else u'   [not included in \'all\']'))
 
 
 def main(argv):

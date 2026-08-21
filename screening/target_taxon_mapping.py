@@ -229,7 +229,7 @@ def xlsx_yaz(xlsx, satirlar):
         h.alignment = SAR
         return h
 
-    yaz(n, 1, 'HEDEF - TAKSON ESLEMESI', bold=True); n += 1
+    yaz(n, 1, u'TARGET TO TAXON MAPPING', bold=True); n += 1
     yaz(n, 1, u'The 21 targets in the panel are NOT the same thing as the 44 taxa in the sample. The targets are derived from the meeting decisions and from measurement.'); n += 2
 
     yaz(n, 1, u'TABLE A - the 21 targets in the panel, by where each came from', bold=True, fill=GRI); n += 1
@@ -257,7 +257,7 @@ def xlsx_yaz(xlsx, satirlar):
         n += 1
     n += 1
 
-    yaz(n, 1, 'TOPLANTI KARARLARINDA ISTENIP PANELE HEDEF OLARAK GIREMEYENLER', bold=True, fill=KIRMIZI); n += 1
+    yaz(n, 1, u'REQUESTED IN THE DECISIONS BUT COULD NOT ENTER THE PANEL AS A TARGET', bold=True, fill=KIRMIZI); n += 1
     for j, h in enumerate(['Karar', 'Istenen', 'Ne oldu'], 1):
         yaz(n, j + 1, h, bold=True, fill=GRI)
     n += 1

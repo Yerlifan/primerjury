@@ -793,9 +793,9 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                      % (i, e, '{:,}'.format(BEKLENEN_KAYIT.get(e, 0)).replace(',', ' '),
                         '{:,}'.format(tar).replace(',', ' ') if tar else
                         u'from cache (not scanned in this run)',
-                        kap or u'onceki kosuda dogrulandi'))
+                        kap or u'verified in a previous run'))
         for e, d, _t in yok:
-            fh.write(u'| - | %s | - | - | **DOSYA YOK** (`REFERANS_DB/%s`) |\n' % (e, d))
+            fh.write(u'| - | %s | - | - | **NO SUCH FILE** (`REFERANS_DB/%s`) |\n' % (e, d))
         fh.write(u'| - | NCBI nt | - | - | %s |\n'
                  % {'yok': u'**NOT ASKED** (--nt none; a separate BLAST queue per bin)',
                     'oto': u'automatic (URL API)', 'elle': u'elle'}[nt_kip])

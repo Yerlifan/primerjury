@@ -93,7 +93,7 @@ def main():
     try:
         import minimap2_aligner as mm
     except ImportError:
-        sys.stderr.write(u'HATA: verification/minimap2_aligner.py bulunamadi.\n')
+        sys.stderr.write(u'ERROR: verification/minimap2_aligner.py was not found.\n')
         return 1
 
     if not mm.var_mi():
@@ -172,7 +172,7 @@ def main():
                      (t_py / t_mm) if t_mm > 0.001 else 0))
 
     if not satirlar:
-        sys.stderr.write(u'HATA: hicbir karsilastirma yapilamadi.\n')
+        sys.stderr.write(u'ERROR: not one comparison could be made.\n')
         return 1
 
     ayni = sum(1 for s in satirlar if s['ayni_isabet'] == 'EVET')

@@ -113,7 +113,7 @@ def main():
                             kritik.append((rel, i + 1, (yeni[0][j] if j < len(yeni[0]) else '?'),
                                            ve, vy))
             toplam_fark += n
-            print('%-26s %-58s farkli hucre: %d' % (sayfa, os.path.basename(rel), n))
+            print(u'%-26s %-58s differing cells: %d' % (sayfa, os.path.basename(rel), n))
         if a.yaz:
             os.makedirs(os.path.dirname(yol) or '.', exist_ok=True)
             with open(yol, 'w', encoding='utf-8', newline='') as fh:
@@ -121,7 +121,7 @@ def main():
                 for r in yeni:
                     w.writerow(r)
 
-    print('\nTOPLAM farkli hucre:', toplam_fark)
+    print(u'\nTOTAL differing cells:', toplam_fark)
     print('\n=== KRITIK: PRIMER DIZISI FARKLARI ===')
     if not kritik:
         print(u'  none')

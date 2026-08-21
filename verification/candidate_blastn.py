@@ -129,7 +129,7 @@ def adaylar(q, fasta_yolu, e_deger=1e-5, en_fazla=5000, iplik=3):
         p = subprocess.Popen(komut, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cikti, hata = p.communicate()
         if p.returncode != 0:
-            sys.stderr.write(u'blastn HATA (%s): %s\n'
+            sys.stderr.write(u'blastn ERROR (%s): %s\n'
                              % (p.returncode, hata.decode('utf-8', 'replace')[:300]))
             return None
         idler = []
@@ -194,7 +194,7 @@ if __name__ == '__main__':
     if not var_mi():
         print(u'sebep               : %s' % _SEBEP)
         sys.exit(1)
-    print(u'surum               : %s' % surum())
+    print(u'version             : %s' % surum())
     kok = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     rd = os.path.join(kok, 'REFERANS_DB')
     if os.path.isdir(rd):

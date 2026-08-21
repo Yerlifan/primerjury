@@ -163,7 +163,7 @@ def main():
             eski[r.get('hedef', '')] = r
 
     print('=' * 78)
-    print('  NCBI SONUCLARI YENIDEN SINIFLANDIRILIYOR (aga cikilmiyor)  %s'
+    print(u'  RECLASSIFYING THE NCBI RESULTS (no network access)  %s'
           % time.strftime('%Y-%m-%d %H:%M'))
     print('=' * 78)
     print('  %-44s %8s %8s %8s' % ('hedef', 'eski adli', 'yeni adli', 'toplam'))
