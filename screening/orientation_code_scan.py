@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 orientation_code_scan.py - konsensus okuyan HER betigi bulur ve yonu nasil ele aldigini
 siniflandirir. Amac: "hangi kod yolu hala yamalanmamis" sorusunu tahminle degil
 taramayla cevaplamak.

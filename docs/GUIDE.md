@@ -70,16 +70,20 @@ You need **WSL2 (Windows) or Linux**, and Python 3.8+.
 
 ### One command
 
+Everything runs through a single file. Run it with no arguments for a built-in
+guide:
+
 ```bash
-bash install.sh durum          # measure what you already have; changes nothing
-bash install.sh araclar        # install the tools
-bash install.sh veritabani     # download reference databases (~28 GB)
-bash install.sh qiime          # QIIME2 + PICRUSt2 (optional)
-bash install.sh hepsi          # everything
+./primerjury                   # the guide
+./primerjury check             # measure what you already have; changes nothing
+./primerjury install tools     # install the tools
+./primerjury install databases # download reference databases (~28 GB)
+./primerjury install qiime     # QIIME2 + PICRUSt2 (optional)
+./primerjury install all       # everything
 ```
 
-> Subcommands are still Turkish words; they are being translated. `durum` =
-> status, `araclar` = tools, `veritabani` = databases, `hepsi` = all.
+The entry point is the contract. It translates the Turkish flags some stage
+scripts still take (`--kok`, `--onayla`), so nothing you type is Turkish.
 
 ### Downloads are verified, not trusted
 

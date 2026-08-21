@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  primerjury — single entry point.
+#
+#  Everything you can do with this project runs through this file. Run it with
+#  no arguments for the built-in guide.
+#
+#  Linux / WSL2 only. There is no Windows batch file and none is needed: run it
+#  from a WSL shell.
+#
+#  WHY A SINGLE ENTRY POINT
+#  The underlying stages are separate scripts on purpose — each is independently
+#  runnable and independently testable. But a user should not have to know which
+#  of ninety files to call, in what order, with which flags. This file is the
+#  contract; the layout behind it can change without breaking anyone's habits.
+#
+#  It also keeps the interface in one language. Several stage scripts still take
+#  Turkish flags (--kok, --onayla); they are translated here, so nothing you
+#  type is Turkish.
+# =============================================================================
+set -o pipefail
+
+KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$KOK" || exit 1
+
+# Interpreter is DETECTED, not assumed. `python3` is absent on some shells
+# (Git Bash ships `python` only) and assuming it made every test report FAIL
+# when the tests were in fact fine — measured.
+if [ -n "${PYTHON:-}" ]; then
+    PY="$PYTHON"
+elif command -v python3 >/dev/null 2>&1; then
+    PY=python3
+elif command -v python >/dev/null 2>&1; then
+    PY=python
+else
+    printf '\033[31m  No Python interpreter found. Install Python 3.8+ or set PYTHON=.\033[0m\n'
+    exit 2
+fi
+
+b()  { printf '\033[1m%s\033[0m\n' "$*"; }
+ok() { printf '  \033[32m%s\033[0m\n' "$*"; }
+no() { printf '  \033[31m%s\033[0m\n' "$*"; }
+i()  { printf '  %s\n' "$*"; }
+
+# --- platform ---------------------------------------------------------------
+# The pipeline shells out to Linux bioinformatics tools throughout. Running it
+# from Git Bash or MSYS on Windows "works" far enough to be misleading: the
+# filesystem is visible, so databases are counted correctly, but the WSL $HOME
+# and the conda/micromamba environment are not — installed tools report as
+# missing. Refusing early is kinder than a wrong report.
+platform_check() {
+    case "$(uname -s 2>/dev/null)" in
+        Linux) return 0 ;;
+    esac
+    no "This tool runs on Linux or WSL2. Detected: $(uname -s 2>/dev/null)"
+    i ""
+    i "From Windows, run it inside WSL:"
+    i "    wsl bash -lc \"cd '$KOK' && ./primerjury $*\""
+    i ""
+    i "Git Bash / MSYS is not enough: it cannot see the WSL home directory or"
+    i "the conda environment, so installed tools would be reported missing."
+    exit 2
+}
+
+# ============================================================================
+guide() {
+cat <<'EOF'
+
+  PrimerJury — qPCR primer design with independent verification
+
+  No single method decides anything here. Identity claims must be supported by
+  at least two independent reference databases, and primer specificity is
+  checked by four layers built on deliberately different mechanisms, so that a
+  bug in one cannot confirm itself in another. When the layers disagree, the
+  pair is blocked rather than averaged.
+
+  ---------------------------------------------------------------- GETTING SET UP
+
+    ./primerjury check                 What is installed? Changes nothing.
+    ./primerjury install all           Tools + reference databases + QIIME2
+    ./primerjury install tools         Just the tools
+    ./primerjury install databases     Just the reference databases (~28 GB)
+    ./primerjury install kraken        Kraken2 database (see note below)
+    ./primerjury index <file.fasta>    Build the MFEprimer index for a database
+
+  Reference databases are verified after download — record count and alphabet
+  are measured, and a file that fails is quarantined rather than used.
+
+  Do not skip `index` for SILVA: SILVA stores RNA (U instead of T), and
+  MFEprimer will build a silently crippled index over a 3-letter alphabet while
+  reporting success.
+
+  ------------------------------------------------------------------ YOUR DATA
+
+    1. Put .fasta / .fastq files in    sequences/
+    2. Describe your targets in        steps/hedefler.tsv
+       and their clade membership in   screening/hedef_klad.tsv
+       Working examples are in         examples/
+
+  ------------------------------------------------------------------- RUNNING
+
+    ./primerjury run                   The full chain, ten stages, in order
+    ./primerjury identity              Identity verification only
+    ./primerjury specificity           Four-layer specificity only
+    ./primerjury panel                 Single-protocol panel measurement
+    ./primerjury audit                 Independent read-only audit of a run
+
+  The full chain inspects the output of every stage. A zero exit code is not
+  accepted as success — the expected file must exist, be non-empty, and in
+  several stages its contents are read. A failed check stops the chain.
+
+  Every stage is resumable. Re-running skips completed work.
+
+  ------------------------------------------------------------------- CHECKING
+
+    ./primerjury test                  Run the test suite
+    ./primerjury doctor                Check the repository itself
+    ./primerjury status                Current panel state
+
+  ---------------------------------------------------------------------- NOTES
+
+  Kraken2 is optional. The pipeline runs without it and marks those stages
+  skipped, with the reason recorded. That is deliberate: on the dataset this
+  was built for, Kraken2 labels and alignment-based identity disagreed at genus
+  and phylum level on a large share of read bins. Kraken2 is treated as one
+  opinion to be checked, not as ground truth.
+
+  Prebuilt Kraken2 databases are fixed at k=35. To choose your own k:
+      ./primerjury install kraken --kmer 31
+
+  Full documentation:  docs/GUIDE.md
+  Licence:             PolyForm Noncommercial 1.0.0 — free for any
+                       noncommercial use; you may not sell it or build a
+                       commercial product on it.
+
+EOF
+}
+
+# ============================================================================
+kos() {                       # echo the command, then run it
+    i "\$ $*"
+    "$@"
+}
+
+cmd_check()      { bash install.sh durum; }
+cmd_index()      { bash build_index.sh "$@"; }
+
+cmd_install() {
+    local ne="${1:-all}"; shift 2>/dev/null || true
+    case "$ne" in
+        tools|araclar)          bash install.sh araclar ;;
+        databases|db|veritabani) bash install.sh veritabani "$@" ;;
+        kraken)
+            # --kmer given -> build our own; otherwise show the download path
+            if [ "$1" = "--kmer" ] || [ "$1" = "--minimizer" ]; then
+                bash install.sh kraken-kur "$@"
+            else
+                bash install.sh kraken-indir
+            fi ;;
+        qiime)                  bash install.sh qiime ;;
+        all|hepsi)              bash install.sh hepsi ;;
+        *) no "unknown install target: $ne"
+           i "expected one of: tools databases kraken qiime all"; return 2 ;;
+    esac
+}
+
+cmd_run()         { kos "$PY" verification/full_chain.py --kok . --onayla "$@"; }
+cmd_identity()    { kos "$PY" verification/identity_verification.py --kok . "$@"; }
+cmd_specificity() { kos "$PY" verification/specificity_round.py --kok . "$@"; }
+cmd_panel()       { kos "$PY" protocol/single_protocol_measure.py --kok . "$@"; }
+cmd_audit()       { kos "$PY" cross_check.py --kok . "$@"; }
+
+cmd_status() {
+    if [ -f GUNCEL_DURUM.md ]; then
+        cat GUNCEL_DURUM.md
+    else
+        i "No panel state yet — nothing has been run in this directory."
+        i "Start with:  ./primerjury check"
+    fi
+}
+
+cmd_test() {
+    local basarisiz=0
+    b "Test suite"
+    for t in tests/test_*.py; do
+        printf '  %-34s ' "$(basename "$t")"
+        if "$PY" "$t" >/dev/null 2>&1; then
+            printf '\033[32mPASS\033[0m\n'
+        else
+            printf '\033[31mFAIL\033[0m\n'
+            basarisiz=$((basarisiz + 1))
+        fi
+    done
+    [ "$basarisiz" -eq 0 ] || { no "$basarisiz test(s) failed"; return 1; }
+    ok "all tests passed"
+}
+
+cmd_doctor() { "$PY" tests/test_repo_health.py "$@"; }
+
+# ============================================================================
+KOMUT="${1:-}"; shift 2>/dev/null || true
+
+case "$KOMUT" in
+    ''|help|-h|--help)  guide ;;
+    check)              platform_check "$KOMUT"; cmd_check "$@" ;;
+    install)            platform_check "$KOMUT"; cmd_install "$@" ;;
+    index)              platform_check "$KOMUT"; cmd_index "$@" ;;
+    run)                platform_check "$KOMUT"; cmd_run "$@" ;;
+    identity)           platform_check "$KOMUT"; cmd_identity "$@" ;;
+    specificity)        platform_check "$KOMUT"; cmd_specificity "$@" ;;
+    panel)              platform_check "$KOMUT"; cmd_panel "$@" ;;
+    audit)              platform_check "$KOMUT"; cmd_audit "$@" ;;
+    status)             cmd_status "$@" ;;
+    test)               cmd_test "$@" ;;
+    doctor)             cmd_doctor "$@" ;;
+    *)
+        no "unknown command: $KOMUT"
+        i "run  ./primerjury  with no arguments for the guide"
+        exit 2 ;;
+esac

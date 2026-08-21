@@ -2,43 +2,47 @@
 # =============================================================================
 #  install.sh  --  TEK KURULUM KAPISI
 #
-#  Araclari, referans veritabanlarini, Kraken2 veritabanini ve QIIME2/PICRUSt2
-#  ortamini kurar. Daginik kurulum betiklerinin yerini alir:
-#     install.sh araclar          (araclar)
-#     tools/install_mfeprimer.sh    (MFEprimer)
-#     install.sh veritabani  (RefSeq)
-#     QIIME2_PICRUST_KOSU.bat        (QIIME2 + PICRUSt2 ortami)
-#     build_index.sh                  (MFEprimer indeksi - HALA AYRI, buradan cagrilir)
+#  Installs the tools, the reference databases, the Kraken2 database and the
+#  QIIME2/PICRUSt2 environment. Replaces four separate installers that used to
+#  live in different directories of the source project.
 #
-#  KULLANIM
-#  --------
-#     bash install.sh durum                 # neyin kurulu oldugunu OLCER, hicbir sey degistirmez
-#     bash install.sh araclar               # kraken2, bracken, minimap2, samtools, blast, seqkit, mfeprimer
-#     bash install.sh veritabani            # SILVA + UNITE + PR2 + ROD + RefSeq (kimlik icin 12 kaynak)
-#     bash install.sh veritabani --yalniz refseq,pr2
-#     bash install.sh kraken-indir          # hazir Kraken2 veritabani (k-mer sabit: k=35)
-#     bash install.sh kraken-kur --kmer 31  # KENDI Kraken2 veritabanini KENDI k-mer'inle kur
-#     bash install.sh qiime                 # QIIME2 + PICRUSt2 + SILVA siniflandirici
-#     bash install.sh hepsi                 # araclar + veritabani + qiime  (kraken AYRI, secim ister)
+#  Two things remain deliberately separate and are called from here:
+#     tools/install_mfeprimer.sh   MFEprimer binary (its download URL changes
+#                                  with every release, so it is kept apart)
+#     build_index.sh               MFEprimer index for one FASTA file
 #
-#  UC TASARIM KARARI
-#  -----------------
-#  1) INDIRILEN DOSYA DOGRULANIR, ADRESE GUVENILMEZ.
-#     Bu projenin kurali: "koda gomulen adres sessizce eskir ve yanlis
-#     veritabaniyla calisirsiniz" (install.sh araclar). Bu yuzden her indirme
-#     sonrasi dosya OLCULUR: gercekten FASTA mi, kac kayit, RNA mi DNA mi, boyu
-#     beklenen buyukluk mertebesinde mi. Olcum tutmazsa dosya .SUPHELI olarak
-#     isaretlenir ve KULLANIMA ALINMAZ. Sessizce bozuk veritabaniyla kosmak,
-#     hic kosmamaktan kotudur.
+#  USAGE
+#  -----
+#  Prefer the top-level entry point, which wraps this file in English:
+#     ./primerjury install all
 #
-#  2) HER ADIM YENIDEN CALISTIRILABILIR.
-#     Tamamlanmis indirme atlanir (boyut + kayit sayisi kontrol noktasindan).
-#     Yarim kalan indirme wget -c ile devam eder. Betik kesilirse ayni komut
-#     kaldigi yerden devam eder.
+#  Direct use (subcommands are still Turkish; being translated):
+#     bash install.sh durum                 # status: MEASURES what is installed, changes nothing
+#     bash install.sh araclar               # tools:  kraken2, bracken, minimap2, samtools, blast, seqkit
+#     bash install.sh veritabani            # databases: SILVA + UNITE + PR2 + ROD + RefSeq (12 identity sources)
+#     bash install.sh veritabani --yalniz refseq,pr2     # only these
+#     bash install.sh kraken-indir          # prebuilt Kraken2 database (k fixed at 35)
+#     bash install.sh kraken-kur --kmer 31  # build your OWN Kraken2 database with your OWN k
+#     bash install.sh qiime                 # QIIME2 + PICRUSt2 + SILVA classifier
+#     bash install.sh hepsi                 # all of the above (Kraken2 asked separately)
 #
-#  3) HICBIR SEY SESSIZCE ATLANMAZ.
-#     Kurulamayan her sey sonda ACIKCA listelenir ve cikis kodu sifir olmaz.
-#     "Kurulum bitti" yazisi, gercekten bittigi anlamina gelir.
+#  THREE DESIGN DECISIONS
+#  ----------------------
+#  1) DOWNLOADS ARE VERIFIED; THE URL IS NOT TRUSTED.
+#     A hard-coded URL goes stale silently, and you end up running against the
+#     wrong database without any error. So every downloaded file is MEASURED:
+#     is it really FASTA, how many records, RNA or DNA alphabet, is the size in
+#     the expected order of magnitude. A file that fails is renamed .SUPHELI
+#     (suspect) and IS NOT USED. Running silently against a truncated database
+#     is worse than not running at all.
+#
+#  2) EVERY STEP IS RESUMABLE.
+#     A verified download is skipped; a partial one continues with wget -c. If
+#     the script is interrupted, the same command picks up where it stopped.
+#
+#  3) NOTHING IS SKIPPED SILENTLY.
+#     Everything that could not be installed is listed at the end and the exit
+#     code is non-zero. "Installation complete" means it actually completed.
 # =============================================================================
 set -o pipefail
 
@@ -256,7 +260,13 @@ komut_durum() {
   done
   # mfeprimer proje icinde de olabilir
   if ! command -v mfeprimer >/dev/null 2>&1; then
-    local m; m=$(find "$KOK" -maxdepth 3 -name 'mfeprimer*' -type f 2>/dev/null | head -1)
+    # EXECUTABLE only, and never a source file. The loose pattern used to match
+    # steps/mfeprimer_layer.py and report a Python module as the MFEprimer
+    # binary -- measured after the module rename. A wrong "found it" is worse
+    # than "not found": the caller would go on to execute a Python file as a
+    # binary and get an error that names neither cause.
+    local m; m=$(find "$KOK" -maxdepth 3 -name 'mfeprimer*' -type f -perm -u+x \
+                     ! -name '*.py' ! -name '*.pyc' ! -name '*.sh' ! -name '*.md' ! -path '*__pycache__*' 2>/dev/null | head -1)
     [ -n "$m" ] && bilgi "mfeprimer proje icinde bulundu: ${m#$KOK/}"
   fi
 

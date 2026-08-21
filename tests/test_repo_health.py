@@ -187,7 +187,34 @@ def kontrol_yapilandirma(bulgu):
                           'required engine module not found: %s' % g))
 
 
-# ------------------------------------------------------------- 6 PACKAGING
+# ------------------------------------------------------------ 6 LINE ENDINGS
+def kontrol_satir_sonu(bulgu):
+    """Shell scripts and Python files must use LF, not CRLF.
+
+    This project runs on Linux and WSL2. A CRLF shell script fails there in a
+    way that names characters instead of causes: bash reports a carriage
+    return as an unknown command, or a syntax error near an unexpected token.
+
+    Measured once on this repository, after a Windows checkout with git's
+    default autocrlf: every shell script broke in WSL, while the same files
+    read fine on Windows. .gitattributes now forces LF; this check makes sure
+    it stays that way.
+    """
+    CRLF = bytes((13, 10))
+    for y in metin_dosyalari():
+        try:
+            ham = open(y, 'rb').read()
+        except Exception:
+            continue
+        if CRLF in ham:
+            bulgu.append(('EOL', rel(y), 'CRLF line endings; must be LF'))
+    # the executable entry point is not caught by metin_dosyalari()
+    g = os.path.join(KOK, 'primerjury')
+    if os.path.exists(g) and CRLF in open(g, 'rb').read():
+        bulgu.append(('EOL', 'primerjury', 'CRLF line endings; must be LF'))
+
+
+# ------------------------------------------------------------- 7 PACKAGING
 def kontrol_paketleme(bulgu):
     """What git ships must be enough to import the packages."""
     try:
@@ -228,6 +255,7 @@ KONTROLLER = [
     ('ENTRY',     'referenced scripts exist',            kontrol_giris_noktalari),
     ('NAME',      'no stale or personal names',          kontrol_yasak_adlar),
     ('CONFIG',    'config paths resolve',                kontrol_yapilandirma),
+    ('EOL',       'text files use LF, not CRLF',         kontrol_satir_sonu),
     ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),
 ]
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 update_panel.py - okuma motoru duzeltmesini panele isler.
 
   * yeni sayfa: "16 Okuma Motoru Duzeltmesi"
