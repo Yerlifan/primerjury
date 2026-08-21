@@ -209,7 +209,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         yaz('  ' + _x)
     if not _ok:
         yaz('')
-        yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
+        yaz(u'  *** INPUT VERIFICATION FAILED - THIS STAGE WAS NOT STARTED ***')
         yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
         yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
         yaz(u'  so the whole run would silently produce a wrong result.')
@@ -224,7 +224,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     if yalniz:
         kut = [k for k in kut if yalniz.lower() in k['kutu'].lower()]
     yaz('=' * 78)
-    yaz('  KONSENSUSLERIN HAM OKUMALARDAN YENIDEN URETIMI')
+    yaz(u'  REGENERATING THE CONSENSUSES FROM THE RAW READS')
     yaz('=' * 78)
     yaz(u'  number of bins: %d' % len(kut))
     yaz(u'  read filter   : %d-%d bp  (A2 at ~4.5 kb and F2 at ~3.7 kb are NOT discarded)'
@@ -248,14 +248,14 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
                 if not kontrol.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 satirlar.append(json.load(open(kp, encoding='utf-8')))
-                yaz('[%d/%d] %-18s (onceki kosudan)' % (i, len(kut), k['kutu']))
+                yaz(u'[%d/%d] %-18s (from the previous run)' % (i, len(kut), k['kutu']))
                 continue
             except Exception:
                 pass   # bayat/bozuk: silmeye calisma, uzerine yazilacak
         reads = fastq_oku(k['yol'])
         sablon, kaynak = _sablon_sec(k['kutu'], kons, reads)
         if sablon is None or len(sablon) < 200:
-            yaz('[%d/%d] %-18s ATLANDI (%s)' % (i, len(kut), k['kutu'], kaynak))
+            yaz(u'[%d/%d] %-18s SKIPPED (%s)' % (i, len(kut), k['kutu'], kaynak))
             continue
         r = kutu_konsensusu(reads, sablon)
         eski = kons.get(k['kutu'], {}).get('dizi', '')
@@ -291,7 +291,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         with open(kp, 'w', encoding='utf-8') as fh:
             json.dump(satir, fh, ensure_ascii=False, default=str)
         satirlar.append(satir)
-        yaz('[%d/%d] %-18s %5d bp  derinlik %5s  N %%%-5s  eskiyle farkli baz: %d'
+        yaz(u'[%d/%d] %-18s %5d bp  depth %5s  N %%%-5s  bases differing from the old one: %d'
             % (i, len(kut), k['kutu'], len(sablon), r['derinlik_ort'],
                satir['N_yuzde'], farkli))
         gecen = time.time() - t0
@@ -309,7 +309,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     yollar = rapor_yaz(hepsi or satirlar, cikti)
     yaz('')
     yaz('=' * 78)
-    yaz('  KONSENSUS URETIMI BITTI (%s)' % sure(time.time() - t0))
+    yaz(u'  CONSENSUS GENERATION FINISHED (%s)' % sure(time.time() - t0))
     for p in yollar:
         yaz('    %s' % p)
     yaz('=' * 78)

@@ -230,7 +230,7 @@ def calistir(yaz, sure, cizgi, a):
     for x in msj:
         yaz('  ' + x)
     if not ok:
-        yaz('\n  YON KAPISI GECILEMEDI - sonraki asamalar BASLATILMADI.')
+        yaz(u'\n  THE ORIENTATION GATE DID NOT PASS - the later stages WERE NOT STARTED.')
         return 2
 
     # ---- 3 konsensus yeniden uretim
@@ -245,7 +245,7 @@ def calistir(yaz, sure, cizgi, a):
             d['ciktilar']['konsensus'] = y
             durum_yaz(d)
         except KeyboardInterrupt:
-            yaz('\nDURDURULDU - (9) ile devam edin.')
+            yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
             yaz('\n  ASAMA 3 HATASI: %s' % e)
@@ -264,7 +264,7 @@ def calistir(yaz, sure, cizgi, a):
     for x in msj:
         yaz('  ' + x)
     if not ok:
-        yaz('\n  YON KAPISI GECILEMEDI - sonraki asamalar BASLATILMADI.')
+        yaz(u'\n  THE ORIENTATION GATE DID NOT PASS - the later stages WERE NOT STARTED.')
         return 2
 
     # ---- 5 panel yeniden olcum
@@ -282,14 +282,14 @@ def calistir(yaz, sure, cizgi, a):
             d['ciktilar']['panel'] = y
             durum_yaz(d)
         except KeyboardInterrupt:
-            yaz('\nDURDURULDU - (9) ile devam edin.')
+            yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
             yaz('\n  ASAMA 5 HATASI: %s' % e)
 
     # ---- 6 uyelik denetimi
     if 'uyelik' in d['bitmis']:
-        yaz('\n[ASAMA 6/7] Uyelik denetimi - ATLANDI (bitmis)')
+        yaz(u'\n[STAGE 6/7] Membership audit - SKIPPED (already finished)')
     else:
         yaz(u'\n[STAGE 6/7] Membership audit and sensitivity analysis')
         from . import membership_check
@@ -301,14 +301,14 @@ def calistir(yaz, sure, cizgi, a):
             d['ciktilar']['uyelik'] = y
             durum_yaz(d)
         except KeyboardInterrupt:
-            yaz('\nDURDURULDU - (9) ile devam edin.')
+            yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
             yaz('\n  ASAMA 6 HATASI: %s' % e)
 
     # ---- 7 kapsamli arama
     if 'arama' in d['bitmis']:
-        yaz('\n[ASAMA 7/7] Kapsamli arama - ATLANDI (bitmis)')
+        yaz(u'\n[STAGE 7/7] Full search - SKIPPED (already finished)')
     else:
         yaz('\n[ASAMA 7/7] Kapsamli arama (sorunlu hedefler)')
         from . import __main__ as M
@@ -318,7 +318,7 @@ def calistir(yaz, sure, cizgi, a):
                 d['bitmis'].append('arama')
                 durum_yaz(d)
         except KeyboardInterrupt:
-            yaz('\nDURDURULDU - (9) ile devam edin.')
+            yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
             yaz('\n  ASAMA 7 HATASI: %s' % e)

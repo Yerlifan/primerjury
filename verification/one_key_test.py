@@ -216,7 +216,7 @@ def durum_oku(taban):
 
 # ===========================================================================
 def s1_sifirdan(ana):
-    print(u'\n--- S1: SIFIRDAN KOSU (butun asamalar basarili) ---')
+    print(u'\n--- S1: A RUN FROM SCRATCH (every stage succeeds) ---')
     t = golge_kur(os.path.join(ana, 's1'))
     ayar_yaz(t, basarili_ayar())
     rc, out = kos(t)
@@ -256,7 +256,7 @@ def s1_sifirdan(ana):
 
 
 def s2_devam(ana, s1_taban):
-    print(u'\n--- S2: IKINCI KOSU - bitmis asamalar atlanmali (0 sn) ---')
+    print(u'\n--- S2: A SECOND RUN - finished stages must be skipped (0 s) ---')
     t = s1_taban
     t0 = time.time()
     rc, out = kos(t)
@@ -273,7 +273,7 @@ def s2_devam(ana, s1_taban):
 
 
 def s3_bayat(ana, taban):
-    print(u'\n--- S3: BAYAT KONTROL NOKTASI - girdi ciktidan yeni olunca ---')
+    print(u'\n--- S3: A STALE CHECKPOINT - when the input is newer than the output ---')
     # D'nin bir girdisine dokunuyoruz: hedef_klad.tsv. Bu, 2026-08-07'de
     # yasanan D-9 hatasinin ta kendisi: indeks yenilendi, kontrol noktasi
     # eski sifirlari geri okudu.
@@ -442,7 +442,7 @@ def main():
     A = p.parse_args()
     ana = A.taban
     if not os.path.exists(TEK_TUS):
-        print(u'HATA: one_key.py bulunamadi: %s' % TEK_TUS)
+        print(u'ERROR: one_key.py was not found: %s' % TEK_TUS)
         return 1
     os.makedirs(ana, exist_ok=True)
     print(u'=' * 78)
@@ -479,7 +479,7 @@ def main():
     gecti = [x for x in SONUC if x[1]]
     dustu = [x for x in SONUC if not x[1]]
     print(u'\n' + u'=' * 78)
-    print(u'  SONUC: %d sinamanin %d tanesi GECTI, %d tanesi DUSTU  (%.0f sn)'
+    print(u'  RESULT: %d of %d tests PASSED, %d FAILED  (%.0f s)'
           % (len(SONUC), len(gecti), len(dustu), time.time() - t0))
     if dustu:
         print(u'  DUSENLER:')
