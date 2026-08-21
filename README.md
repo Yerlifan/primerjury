@@ -1,5 +1,7 @@
 # PrimerJury
 
+<https://github.com/Yerlifan/primerjury>
+
 **qPCR primer design for anaerobic digester microbiomes — with independent identity verification that does not trust a single database.**
 
 This pipeline was built for one stubborn problem: a Kraken2 label is not an

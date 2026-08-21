@@ -7,7 +7,7 @@ authors:
   - given-names: Burak Aslancan
     family-names: Pak
     orcid: "https://orcid.org/0000-0002-7793-2215"
-repository-code: ""        # TODO: fill in after the first push
+repository-code: "https://github.com/Yerlifan/primerjury"
 license: PolyForm-Noncommercial-1.0.0
 abstract: >-
   qPCR primer design from amplicon sequencing data, built around independent
