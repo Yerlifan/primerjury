@@ -440,9 +440,18 @@ Being honest about what is not yet general:
 - **`screening/yapilandirma.py` holds every path and constant.** It is meant to
   be edited and is genuinely the only place paths are defined — moving it to
   YAML/TOML is planned and should be straightforward.
-- **Layer 2 taxonomic discrimination is new.** It is measured and reported
-  alongside the size-based criterion, but the size-based one still casts the
-  vote. Switching it changes verdicts and needs a before/after study.
+- **Layer 2 taxonomic discrimination is reported but does not vote.** The
+  before/after study has now been run across all five taxonomy-carrying
+  databases (`docs/layer2_taxonomy_measurement.txt`) and the answer was *do not
+  switch yet*. Taxonomy is clearly right for universal primers — the bacterial
+  universal pair went from 171,080 size-flagged "off-target" hits to 122 real
+  ones, with 419,750 correctly recognised as inside the target clade. But for
+  the other 21 targets the taxonomic count explodes (Microascaceae: 11 -> 69,786),
+  because layer 2's scan is deliberately *looser* than real PCR: no 3'-terminal
+  clamp, up to 5 mismatches. The size window was accidentally acting as a
+  stringency filter. The fix is taxonomy **plus** stringency — a 3' clamp or Tm
+  proximity, which the MFEprimer layer already applies. Until that lands, the
+  size criterion keeps the vote.
 - **Code comments and identifiers are Turkish.** Interface, docs and file names
   are English. Translating 57k lines of identifiers is planned but has to be
   staged carefully: several identifiers are also TSV column names and checkpoint
