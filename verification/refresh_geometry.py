@@ -159,11 +159,11 @@ def yalniz_urun_boyu(kok, yaz_mi):
     """primer3 yokken bile kosabilen bolum: urun boyu olcumu."""
     kons = konsensus_yukle(kok)
     if not kons:
-        print(u'  konsensus_kanonik bos ya da yok - urun boyu da olculemedi.')
+        print(u'  konsensus_kanonik is empty or missing, so product length could not be measured either.')
         return 2
     ciftler, bas, sat, panel_yolu = panel_oku(kok)
     sapan = []
-    print(u'  --- urun boyu (mm<=1, 3\' son iki baz tam) ---')
+    print(u'  --- product length (mm<=1, exact match at the last two 3\' bases) ---')
     for c in ciftler:
         bl = urun_boylari(c['F'], c['R'], kons)
         try:
@@ -174,7 +174,7 @@ def yalniz_urun_boyu(kok, yaz_mi):
             sapan.append((c, yazili, bl))
             print(u'      %-44s tabloda %d bp, olculen %s'
                   % (c['hedef'][:44], yazili, bl[:5]))
-    print(u'    %d cift olculdu, %d sapma' % (len(ciftler), len(sapan)))
+    print(u'    %d pairs measured, %d deviations' % (len(ciftler), len(sapan)))
     if yaz_mi and sapan:
         yed = panel_yolu + '.yedek_%s_urun' % time.strftime('%H%M')
         io.open(yed, 'w', encoding='utf-8', newline='').write(
@@ -184,7 +184,7 @@ def yalniz_urun_boyu(kok, yaz_mi):
             if len(bl) == 1 and c.get('iU') is not None:
                 r = c['satir']
                 if len(r) > c['iU']:
-                    print(u'  urun boyu duzeltildi: %s %s -> %d'
+                    print(u'  product length corrected: %s %s -> %d'
                           % (c['hedef'], r[c['iU']], bl[0]))
                     r[c['iU']] = str(bl[0])
                     n += 1
@@ -192,7 +192,7 @@ def yalniz_urun_boyu(kok, yaz_mi):
             with io.open(panel_yolu, 'w', encoding='utf-8', newline='') as fh:
                 for r in sat:
                     fh.write(u'\t'.join(r) + u'\n')
-            print(u'  %d satir guncellendi (yedek: %s)' % (n, os.path.basename(yed)))
+            print(u'  %d rows updated (backup: %s)' % (n, os.path.basename(yed)))
     return 1 if sapan else 0
 
 
@@ -213,9 +213,9 @@ def main():
     if geo is None:
         print('=' * 78)
         print(u'  Tm OLCULEMEDI - %s' % geo_yol)
-        print(u'  Panelin KENDI motoru olmadan Tm hesaplanmaz; baska bir formul')
-        print(u'  UYDURULMAZ. Ama urun boyu olcumu primer3 gerektirmiyor,')
-        print(u'  o yuzden asagida yalniz o kosuluyor.')
+        print(u'  Without the panel\'s OWN engine no Tm is computed, and no other formula')
+        print(u'  is INVENTED. Product length does not need primer3, so only that')
+        print(u'  is measured below.')
         print('=' * 78)
         return yalniz_urun_boyu(kok, a.yaz)
     print('=' * 78)
@@ -224,7 +224,7 @@ def main():
     print('=' * 78)
 
     ciftler, bas, sat, panel_yolu = panel_oku(kok)
-    print('  panelde olculecek cift: %d' % len(ciftler))
+    print(u'  pairs to measure in the panel: %d' % len(ciftler))
 
     sonuc = []
     ihlal = []
@@ -295,13 +295,13 @@ def main():
             else:
                 c['yeni_urun'] = None
         print()
-        print('  --- urun boyu (mm<=1, 3\' son iki baz tam) ---')
-        print('    %d cift olculdu, %d sapma' % (len(sonuc), len(urun_sapan)))
+        print(u'  --- product length (mm<=1, exact match at the last two 3\' bases) ---')
+        print(u'    %d pairs measured, %d deviations' % (len(sonuc), len(urun_sapan)))
         for x in urun_sapan:
             print('      %s' % x)
     else:
         print()
-        print('  urun boyu OLCULEMEDI: konsensus_kanonik klasoru bos ya da yok.')
+        print(u'  product length NOT MEASURED: the konsensus_kanonik directory is empty or missing.')
 
     cy = os.path.join(kok, 'primer_final',
                       'geometri_denetimi_%s.tsv' % time.strftime('%Y%m%d'))
@@ -332,7 +332,7 @@ def main():
         for x in ihlal:
             print('    * %s' % x)
     else:
-        print('  Panel geometri kurallarinda ihlal yok.')
+        print(u'  No violation of the panel geometry rules.')
     if ta_sorun:
         print('  Ta KURALI TUTMUYOR:')
         for x in ta_sorun:
@@ -352,7 +352,7 @@ def main():
             # Birden cok boy cikiyorsa (evrensel primerler) hangisinin
             # yazilacagi bir KARARDIR ve betik karar vermez.
             if c.get('yeni_urun') and c.get('iU') is not None and len(r) > c['iU']:
-                print('  urun boyu duzeltildi: %s %s -> %d'
+                print(u'  product length corrected: %s %s -> %d'
                       % (c['hedef'], r[c['iU']], c['yeni_urun']))
                 r[c['iU']] = str(c['yeni_urun'])
         with io.open(panel_yolu, 'w', encoding='utf-8', newline='') as fh:

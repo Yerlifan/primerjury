@@ -100,13 +100,11 @@ def main():
     n = 1
 
     yaz(ws, n, 1, 'YON NORMALIZASYONU - 2026-08-02', bold=True); n += 1
-    yaz(ws, n, 1, 'CEVAP: yon ARTIK KANONIK. Once degildi - dort ayri konsensus kumesi vardi '
-                  've ikisi karisik yonluydu. Tek kanonik kaynak kuruldu: konsensus_kanonik/ '
-                  '(hepsi SENSE), tanim screening/orientation.py.', fill=YESIL)
+    yaz(ws, n, 1, u'ANSWER: the orientation IS NOW CANONICAL. It was not before: there were four separate consensus sets and two of them were mixed orientation. A single', fill=YESIL)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 32; n += 2
 
-    yaz(ws, n, 1, '1. NEDEN SORULDU - uc ayri yama, tek kanonik cozum yok', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'1. WHY IT WAS ASKED - three separate patches, no single canonical fix', bold=True, fill=GRI); n += 1
     for s in ['Yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri yamandi: '
               '(a) ALI tarafinda 85\'in iplik secimi, (b) tasarim tarafinda "konsensusler SILVA\'ya '
               'gore ters tumleyen", (c) B/F yeniden olcumunde "58 konsensusten 39\'u ters yonde". '
@@ -116,11 +114,8 @@ def main():
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '2. OLCUM - butun konsensus dosyalarinin DUZELTME ONCESI yonu', bold=True, fill=GRI); n += 1
-    yaz(ws, n, 1, 'Yontem: iki BAGIMSIZ olcut. (1) panelin kendi evrensel ciftleri - sense yonde '
-                  'F ve rc(R) dogrudan bulunur. (2) literatur evrensel motifleri (SSU: 515F, '
-                  '806R-sense, 1100-sense / ITS: ITS1, rc(ITS4)). Ikisi ayrilirsa dosya BELIRSIZ. '
-                  'Tam liste: yon_denetimi_20260802.tsv (%d dosya).' % len(yr))
+    yaz(ws, n, 1, u'2. MEASUREMENT - the orientation of every consensus file BEFORE the fix', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'Method: two INDEPENDENT criteria. (1) the panel\'s own universal pairs: in the sense orientation F and rc(R) are found directly' % len(yr))
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 46; n += 1
     for j, h in enumerate(['Klasor', 'SENSE', 'ANTISENSE', 'BELIRSIZ/bos', 'Toplam', 'Karisik mi?', 'Not'], 1):
@@ -167,11 +162,7 @@ def main():
 
     yaz(ws, n, 1, '4. BILINEN CEVAPLI TEST - yon yanlissa hangi sayi ne kadar bozulur',
         bold=True, fill=GRI); n += 1
-    yaz(ws, n, 1, 'Kurulum: ayni primer cifti, ayni konsensus, TEK FARK YON. Kaynak: '
-                  'referans_konsensus/konsensus (99 dosya), olcut mm<=3 + 3\' son 2 baz tam. '
-                  'Motorlar (ispcr.amplify ve okuma_motoru) verilen diziyi YALNIZ ARTI IPLIKTE '
-                  'tarar; ters saklanmis konsensuste ne ileri primer ne rc(ters primer) bulunur. '
-                  'Hata atilmaz - "urun yok" denir.')
+    yaz(ws, n, 1, u'Setup: the same primer pair, the same consensus, THE ONLY DIFFERENCE BEING ORIENTATION. Source: referans_konsensus/konsensus (99 files')
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 46; n += 1
     for j, h in enumerate(['Cift', 'Sinif', 'Dogru yon', 'TERS yon', 'Kayip', 'Sonuc', ''], 1):
@@ -190,11 +181,9 @@ def main():
         yaz(ws, n, 5, d - t, fill=KIRMIZI)
         yaz(ws, n, 6, 'ters yon urunu SIFIRLIYOR', fill=KIRMIZI)
         n += 1
-    yaz(ws, n, 1, 'TOPLAM: dogru yonde 117 urun, ters yonde 0 urun. KAYIP %100.', bold=True, fill=KIRMIZI)
+    yaz(ws, n, 1, u'TOTAL: 117 products in the correct orientation, 0 in the reverse orientation. LOSS 100%.', bold=True, fill=KIRMIZI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7); n += 1
-    yaz(ws, n, 1, 'CAPRAZ KONTROL: ayni test panelin KENDI motoruyla (ispcr.amplify) tekrarlandi - '
-                  'Arke_universal dogru 38/39, ters 0/39. Ayni sonuc. Kosmak icin: '
-                  'python screening/orientation_impact_test.py --kok .')
+    yaz(ws, n, 1, u'CROSS-CHECK: the same test was repeated with the panel\'s OWN engine (ispcr.amplify). Arke_universal gave 38 correct')
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 30; n += 2
 
@@ -219,10 +208,9 @@ def main():
         ws.row_dimensions[n].height = 52; n += 1
     n += 1
 
-    yaz(ws, n, 1, '6. KOD YOLLARI - konsensus okuyan her betik ve yonu nasil ele aldigi',
+    yaz(ws, n, 1, u'6. CODE PATHS - every script that reads a consensus, and how it handles orientation',
         bold=True, fill=GRI); n += 1
-    yaz(ws, n, 1, 'Otomatik tarama (orientation_code_scan.py, yorum/docstring atilarak) + elle not. '
-                  'Tam liste: yon_kod_taramasi_20260802.tsv (%d betik).' % len(kr))
+    yaz(ws, n, 1, u'Automatic scan (orientation_code_scan.py, with comments and docstrings stripped) plus a manual note. Full list: yon_kod_tara' % len(kr))
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 26; n += 1
     for j, h in enumerate(['Betik', 'Sinif', 'Karisik kaynak', 'Normalize kaynak',
@@ -246,7 +234,7 @@ def main():
         n += 1
     n += 1
 
-    yaz(ws, n, 1, '7. BU GECE KOSULACAK URETIM - ozellikle kontrol edildi', bold=True, fill=YESIL); n += 1
+    yaz(ws, n, 1, u'7. THE PRODUCTION RUN TONIGHT - checked specifically', bold=True, fill=YESIL); n += 1
     for s in ['build_consensus.py UC yerde duzeltildi: (a) sablon kanonige cevriliyor, '
               '(b) oksuz kutu sablonu (ham okuma) da cevriliyor, (c) CIKTI yazilmadan once bir kez '
               'daha olculup cevriliyor (son emniyet kemeri). Cikti fasta basligina kanonik=... '
