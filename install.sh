@@ -73,10 +73,10 @@ ortam_denetimi() {
   case "$(uname -s 2>/dev/null)" in
     Linux) return 0 ;;
   esac
-  uyar "Bu betik WSL/Linux icinde kosmalidir; su an '$(uname -s 2>/dev/null)' altindasiniz."
-  bilgi "Dosya sistemi dogru okunur ama ARAC ve KRAKEN2 satirlari YANILTIR:"
-  bilgi "WSL'in \$HOME'u ve conda/micromamba ortami buradan gorunmez."
-  bilgi "Dogrusu:"
+  uyar "This script must run inside WSL or Linux. Detected: '$(uname -s 2>/dev/null)'."
+  bilgi "The filesystem is read correctly, but the TOOL and KRAKEN2 lines will MISLEAD you:"
+  bilgi "the WSL \$HOME and the conda/micromamba environment are invisible from here."
+  bilgi "Run it this way instead:"
   bilgi "   wsl bash -lc \"cd '$KOK' && bash install.sh $*\""
   printf '\n'
 }
@@ -135,9 +135,9 @@ ROD_DEPO="https://github.com/krabberod/ROD"
 mamba_hazirla() {
   export PATH="$HOME/bin:$PATH"
   if ! command -v micromamba >/dev/null 2>&1; then
-    bilgi "micromamba kuruluyor..."
+    bilgi "installing micromamba..."
     ( cd "$HOME" && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
-        | tar -xj bin/micromamba ) || { hata "micromamba kurulamadi"; return 1; }
+        | tar -xj bin/micromamba ) || { hata "could not install micromamba"; return 1; }
     grep -q 'HOME/bin' "$HOME/.bashrc" 2>/dev/null \
       || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bashrc"
   fi
@@ -152,12 +152,12 @@ mamba_hazirla() {
 # ---------------------------------------------------------------------------
 fasta_dogrula() {
   local f="$1" asgari="${2:-1}"
-  [ -s "$f" ] || { hata "dosya yok ya da bos: $(basename "$f")"; return 1; }
+  [ -s "$f" ] || { hata "file missing or empty: $(basename "$f")"; return 1; }
   local ilk; ilk=$(head -c 1 "$f" 2>/dev/null)
-  [ "$ilk" = ">" ] || { hata "FASTA degil (ilk karakter '>' degil): $(basename "$f")"; return 1; }
+  [ "$ilk" = ">" ] || { hata "not FASTA (first character is not '>'): $(basename "$f")"; return 1; }
   local n; n=$(grep -c '^>' "$f" 2>/dev/null || echo 0)
   if [ "$n" -lt "$asgari" ]; then
-    hata "$(basename "$f"): $n kayit, beklenen en az $asgari - dosya EKSIK indirilmis olabilir"
+    hata "$(basename "$f"): $n records, expected at least $asgari. The download may be INCOMPLETE"
     return 1
   fi
   # RNA/DNA olcumu: SILVA dizileri U ile saklar. MFEprimer indeksi {A,C,G,T}
@@ -168,9 +168,9 @@ fasta_dogrula() {
   u=$(printf '%s' "$ornek" | tr -cd 'Uu' | wc -c)
   t=$(printf '%s' "$ornek" | tr -cd 'Tt' | wc -c)
   if [ "$u" -gt "$t" ]; then
-    bilgi "$(basename "$f"): $n kayit, RNA alfabesi (U>T) - build_index.sh U->T donusumu yapacak"
+    bilgi "$(basename "$f"): $n records, RNA alphabet (U>T). build_index.sh will convert U to T"
   else
-    bilgi "$(basename "$f"): $n kayit, DNA alfabesi"
+    bilgi "$(basename "$f"): $n records, DNA alphabet"
   fi
   return 0
 }
@@ -182,20 +182,20 @@ indir_ve_dogrula() {
   local asgari="${ASGARI_KAYIT[$anahtar]:-1}"
 
   if [ -s "$hedef" ] && fasta_dogrula "$hedef" "$asgari" >/dev/null 2>&1; then
-    bilgi "$anahtar: zaten var ve dogrulandi -> $(basename "$hedef")"
+    bilgi "$anahtar: already present and verified -> $(basename "$hedef")"
     return 0
   fi
-  bilgi "$anahtar indiriliyor: $url"
+  bilgi "downloading $anahtar: $url"
   local gz="$hedef.gz.indiriliyor"
   if ! wget -c -q --show-progress -O "$gz" "$url"; then
-    hata "$anahtar INDIRILEMEDI: $url"
-    bilgi "  adres eskimis olabilir. Guncelini bulup su sekilde verin:"
+    hata "$anahtar COULD NOT BE DOWNLOADED: $url"
+    bilgi "  the URL may be stale. Find the current one and pass it like this:"
     bilgi "    bash install.sh databases --only $anahtar --url <YENI_ADRES>"
-    EKSIK+=("$anahtar (indirilemedi)")
+    EKSIK+=("$anahtar (download failed)")
     rm -f "$gz"
     return 1
   fi
-  bilgi "  aciliyor..."
+  bilgi "  extracting..."
   if ! gunzip -c "$gz" > "$hedef.tmp" 2>/dev/null; then
     # gz olmayabilir (bazi kaynaklar duz fasta verir)
     mv "$gz" "$hedef.tmp"
@@ -204,11 +204,11 @@ indir_ve_dogrula() {
   fi
   if fasta_dogrula "$hedef.tmp" "$asgari"; then
     mv "$hedef.tmp" "$hedef"
-    bilgi "  TAMAM -> $(basename "$hedef")"
+    bilgi "  OK -> $(basename "$hedef")"
     return 0
   fi
   mv "$hedef.tmp" "$hedef.SUPHELI"
-  hata "$anahtar dogrulamayi GECEMEDI, .SUPHELI olarak isaretlendi - KULLANILMAYACAK"
+  hata "$anahtar FAILED verification, marked .SUPHELI (suspect) and WILL NOT BE USED"
   SUPHELI+=("$anahtar")
   return 1
 }
@@ -226,10 +226,10 @@ surum_oku() {
     bracken)                       c=$("$t" -v 2>&1 | grep -m1 -oE 'v?[0-9]+\.[0-9]+(\.[0-9]+)?') ;;
     *)                             c=$("$t" --version 2>&1 | head -1) ;;
   esac
-  # Surum okunamadiysa UYDURULMAZ. "kurulu (surum okunamadi)" bir olcumdur;
+  # Surum okunamadiysa UYDURULMAZ. "installed (version not readable)" bir olcumdur;
   # kullanim metnini ya da hata satirini surum diye basmak yanlis bilgidir.
   case "$c" in
-    ''|*USAGE*|*Usage*|*usage*|*unknown\ flag*|*Error*|/*) c='kurulu (surum okunamadi)' ;;
+    ''|*USAGE*|*Usage*|*usage*|*unknown\ flag*|*Error*|/*) c='installed (version not readable)' ;;
   esac
   printf '%s' "${c:0:50}"
 }
@@ -247,15 +247,15 @@ arac_yolu() {
 }
 
 komut_durum() {
-  renk "tools"
+  renk "TOOLS"
   local t y
   for t in kraken2 bracken minimap2 samtools blastn makeblastdb seqkit mfeprimer qiime picrust2; do
     if y=$(arac_yolu "$t"); then
       local nerede=''
-      command -v "$t" >/dev/null 2>&1 || nerede="  [ortam: ${PT_ORTAM:-mikro}, etkin degil]"
-      printf '   %-14s VAR    %s%s\n' "$t" "$(PATH="$(dirname "$y"):$PATH" surum_oku "$t")" "$nerede"
+      command -v "$t" >/dev/null 2>&1 || nerede="  [in env ${PT_ORTAM:-mikro}, not activated]"
+      printf '   %-14s OK     %s%s\n' "$t" "$(PATH="$(dirname "$y"):$PATH" surum_oku "$t")" "$nerede"
     else
-      printf '   %-14s \033[31mYOK\033[0m\n' "$t"
+      printf '   %-14s \033[31mMISSING\033[0m\n' "$t"
     fi
   done
   # mfeprimer proje icinde de olabilir
@@ -267,30 +267,30 @@ komut_durum() {
     # binary and get an error that names neither cause.
     local m; m=$(find "$KOK" -maxdepth 3 -name 'mfeprimer*' -type f -perm -u+x \
                      ! -name '*.py' ! -name '*.pyc' ! -name '*.sh' ! -name '*.md' ! -path '*__pycache__*' 2>/dev/null | head -1)
-    [ -n "$m" ] && bilgi "mfeprimer proje icinde bulundu: ${m#$KOK/}"
+    [ -n "$m" ] && bilgi "mfeprimer found inside the project: ${m#$KOK/}"
   fi
 
-  renk "REFERANS VERITABANLARI  ($REFDB)"
+  renk "REFERENCE DATABASES  ($REFDB)"
   local k n
   for k in "${SIRA[@]}"; do
     local f="$REFDB/${HEDEF[$k]}"
     if [ -s "$f" ]; then
       n=$(grep -c '^>' "$f" 2>/dev/null || echo '?')
-      printf '   %-16s VAR    %8s kayit  %s\n' "$k" "$n" "$(du -h "$f" 2>/dev/null | cut -f1)"
+      printf '   %-16s OK     %8s records  %s\n' "$k" "$n" "$(du -h "$f" 2>/dev/null | cut -f1)"
     elif [ -s "$f.SUPHELI" ]; then
       printf '   %-16s \033[33mSUPHELI\033[0m  dogrulamayi gecemedi\n' "$k"
     else
-      printf '   %-16s \033[31mYOK\033[0m\n' "$k"
+      printf '   %-16s \033[31mMISSING\033[0m\n' "$k"
     fi
   done
   [ -s "$REFDB/UNITE_ITS.fasta" ] \
-    && printf '   %-16s VAR    %8s kayit\n' unite "$(grep -c '^>' "$REFDB/UNITE_ITS.fasta")" \
-    || printf '   %-16s \033[31mYOK\033[0m  (elle: %s)\n' unite "$UNITE_SAYFA"
+    && printf '   %-16s OK     %8s records\n' unite "$(grep -c '^>' "$REFDB/UNITE_ITS.fasta")" \
+    || printf '   %-16s \033[31mMISSING\033[0m  (manual: %s)\n' unite "$UNITE_SAYFA"
   [ -s "$REFDB/ROD_v1.2_operon_variants.fasta" ] \
-    && printf '   %-16s VAR    %8s kayit\n' rod "$(grep -c '^>' "$REFDB/ROD_v1.2_operon_variants.fasta")" \
-    || printf '   %-16s \033[31mYOK\033[0m  (%s)\n' rod "$ROD_DEPO"
+    && printf '   %-16s OK     %8s records\n' rod "$(grep -c '^>' "$REFDB/ROD_v1.2_operon_variants.fasta")" \
+    || printf '   %-16s \033[31mMISSING\033[0m  (%s)\n' rod "$ROD_DEPO"
 
-  renk "KRAKEN2 VERITABANI"
+  renk "KRAKEN2 DATABASE"
   if [ -n "${KRAKEN2_DB_PATH:-}" ] && [ -f "$KRAKEN2_DB_PATH/hash.k2d" ]; then
     bilgi "KRAKEN2_DB_PATH = $KRAKEN2_DB_PATH"
   fi
@@ -299,54 +299,54 @@ komut_durum() {
     while read -r h; do
       local d; d=$(dirname "$h")
       printf '   %s  (%s)\n' "$d" "$(du -sh "$d" 2>/dev/null | cut -f1)"
-      [ -f "$d/opts.k2d" ] && bilgi "    k-mer bilgisi icin: bash tools/kraken_tool.sh vt-kimlik"
+      [ -f "$d/opts.k2d" ] && bilgi "    for k-mer details: bash tools/kraken_tool.sh vt-kimlik"
     done <<< "$bulunan"
   else
-    printf '   \033[31mYOK\033[0m  -> bash install.sh kraken-download   ya da   bash install.sh kraken-build\n'
+    printf '   \033[31mMISSING\033[0m  -> bash install.sh kraken-download  or  bash install.sh kraken-build\n'
   fi
 
-  renk "KIMLIK DOGRULAMA KAPSAMI"
+  renk "IDENTITY VERIFICATION COVERAGE"
   local var=0 top=0
   for k in "${SIRA[@]}"; do top=$((top+1)); [ -s "$REFDB/${HEDEF[$k]}" ] && var=$((var+1)); done
   for f in UNITE_ITS.fasta ROD_v1.2_operon_variants.fasta ref_all2.fna; do
     top=$((top+1)); [ -s "$REFDB/$f" ] && var=$((var+1))
   done
-  bilgi "$var / $top bagimsiz kaynak hazir"
-  bilgi "verification/identity_verification.py bir iddiayi DOGRULANDI saymak icin EN AZ IKI"
-  bilgi "bagimsiz kaynagin uyusmasini sart kosar. Kaynak sayisi dustukce hukum"
-  bilgi "'DOGRULANAMADI (tek kaynak)'a kayar - yani eksik veritabani sessizce"
-  bilgi "yanlis cevap degil, ACIKCA zayif cevap uretir."
+  bilgi "$var of $top independent sources ready"
+  bilgi "verification/identity_verification.py requires AT LEAST TWO independent"
+  bilgi "sources to agree before it calls a claim VERIFIED. As sources drop away the"
+  bilgi "verdict slides to 'UNVERIFIED (single source)'. A missing database therefore"
+  bilgi "produces an OPENLY weak answer, never a quietly wrong one."
 }
 
 # ===========================================================================
 komut_araclar() {
-  renk "tools"
+  renk "TOOLS"
   mamba_hazirla || { EKSIK+=("micromamba"); return 1; }
   local ORT="${PT_ORTAM:-mikro}"
   if micromamba env list 2>/dev/null | grep -qE "^ *$ORT "; then
-    bilgi "ortam '$ORT' var, guncelleniyor"
+    bilgi "environment '$ORT' exists, updating"
     micromamba install -y -n "$ORT" -c conda-forge -c bioconda \
-      kraken2 bracken minimap2 seqkit blast samtools barrnap || EKSIK+=("araclar")
+      kraken2 bracken minimap2 seqkit blast samtools barrnap || EKSIK+=("tools")
   else
-    bilgi "ortam '$ORT' kuruluyor"
+    bilgi "creating environment '$ORT'"
     micromamba create -y -n "$ORT" -c conda-forge -c bioconda \
-      kraken2 bracken minimap2 seqkit blast samtools barrnap python=3.11 || EKSIK+=("araclar")
+      kraken2 bracken minimap2 seqkit blast samtools barrnap python=3.11 || EKSIK+=("tools")
   fi
   micromamba activate "$ORT" 2>/dev/null
 
-  bilgi "python paketleri"
+  bilgi "python packages"
   python -m pip install --quiet --upgrade primer3-py biopython numpy openpyxl pysam matplotlib \
-    || EKSIK+=("python paketleri")
+    || EKSIK+=("python packages")
 
   # MFEprimer: conda'da yok, ikili olarak indirilir
   if ! command -v mfeprimer >/dev/null 2>&1 \
      && [ ! -x "$KOK/tools/mfeprimer" ]; then
-    bilgi "MFEprimer icin: bash tools/install_mfeprimer.sh"
-    bilgi "  (surum adresi surekli degistigi icin ayri betikte tutuluyor)"
-    EKSIK+=("mfeprimer (tools/install_mfeprimer.sh ile kurun)")
+    bilgi "For MFEprimer: bash tools/install_mfeprimer.sh"
+    bilgi "  (kept in a separate script because its download URL keeps changing)"
+    EKSIK+=("mfeprimer (install with tools/install_mfeprimer.sh)")
   fi
 
-  renk "SURUM DOGRULAMASI"
+  renk "VERSION CHECK"
   local t
   for t in kraken2 bracken minimap2 seqkit blastn samtools; do
     if command -v "$t" >/dev/null 2>&1; then
@@ -368,8 +368,8 @@ komut_veritabani() {
     esac
   done
   renk "REFERANS VERITABANLARI"
-  bilgi "Hedef klasor: $REFDB"
-  bilgi "Toplam ~28 GB. Kesilirse ayni komut kaldigi yerden devam eder."
+  bilgi "Target directory: $REFDB"
+  bilgi "About 28 GB in total. If interrupted, the same command resumes where it stopped."
   local k
   for k in "${SIRA[@]}"; do
     if [ -n "$yalniz" ] && [[ ",$yalniz," != *",$k,"* ]]; then continue; fi
@@ -379,13 +379,13 @@ komut_veritabani() {
   # ROD: git deposu
   if [ -z "$yalniz" ] || [[ ",$yalniz," == *",rod,"* ]]; then
     if [ ! -s "$REFDB/ROD_v1.2_operon_variants.fasta" ]; then
-      renk "ROD (rRNA operon veritabani)"
+      renk "ROD (rRNA operon database)"
       if command -v git >/dev/null 2>&1; then
         git clone --depth 1 "$ROD_DEPO" "$REFDB/ROD_depo" 2>/dev/null \
-          && bilgi "indirildi -> REFERANS_DB/ROD_depo (operon fasta'sini oradan kopyalayin)" \
-          || { hata "ROD indirilemedi"; EKSIK+=("rod"); }
+          && bilgi "downloaded -> REFERANS_DB/ROD_depo (copy the operon FASTA from there)" \
+          || { hata "could not download ROD"; EKSIK+=("rod"); }
       else
-        EKSIK+=("rod (git yok)")
+        EKSIK+=("rod (git not installed)")
       fi
     fi
   fi
@@ -393,40 +393,40 @@ komut_veritabani() {
   # UNITE: adres surum basina DOI ile degisir, gomulemez
   if [ -z "$yalniz" ] || [[ ",$yalniz," == *",unite,"* ]]; then
     if [ ! -s "$REFDB/UNITE_ITS.fasta" ]; then
-      renk "UNITE (mantar ITS)"
-      uyar "UNITE indirme adresi her surumde DOI ile degisir; koda gomulemez."
-      bilgi "1) $UNITE_SAYFA adresinden guncel 'General FASTA release' baglantisini kopyalayin"
-      bilgi "2) bash install.sh databases --only unite --url <KOPYALADIGINIZ_ADRES>"
-      bilgi "   Betik indirdikten sonra kayit sayisini ve alfabesini DOGRULAR."
-      EKSIK+=("unite (adres elle verilmeli)")
+      renk "UNITE (fungal ITS)"
+      uyar "The UNITE download URL changes with every release DOI, so it cannot be hard-coded."
+      bilgi "1) copy the current 'General FASTA release' link from $UNITE_SAYFA"
+      bilgi "2) bash install.sh databases --only unite --url <THE_LINK_YOU_COPIED>"
+      bilgi "   The script VERIFIES the record count and alphabet after downloading."
+      EKSIK+=("unite (URL must be given manually)")
     fi
   fi
 
-  renk "MFEPRIMER INDEKSLERI"
-  bilgi "Indirilen her FASTA icin indeks kurulmali:"
+  renk "MFEPRIMER INDEXES"
+  bilgi "Every downloaded FASTA needs an index:"
   bilgi "   bash build_index.sh --liste          # aday dosyalari gorun"
-  bilgi "   bash build_index.sh <dosya_adi>      # tek tek kurun"
-  bilgi "SILVA dosyalarinda U->T donusumu SART - indeks aksi halde SESSIZCE bozuk kurulur."
+  bilgi "   bash build_index.sh <file>          # build them one at a time"
+  bilgi "U to T conversion is MANDATORY for SILVA. Without it the index is built SILENTLY broken."
 }
 
 # ===========================================================================
 komut_kraken_indir() {
-  renk "KRAKEN2 HAZIR VERITABANI"
-  bilgi "Guncel liste: https://benlangmead.github.io/aws-indexes/k2"
+  renk "PREBUILT KRAKEN2 DATABASE"
+  bilgi "Current list: https://benlangmead.github.io/aws-indexes/k2"
   bilgi
-  bilgi "Adres BILEREK koda gomulu degildir: dosya adlari her surumde degisir ve"
-  bilgi "gomulu bir adres sessizce eskiyerek YANLIS veritabaniyla saatler harcatir."
+  bilgi "The URL is DELIBERATELY not hard-coded: file names change with every release and"
+  bilgi "a stale URL silently wastes hours on the WRONG database."
   bilgi
-  bilgi "Onerilen: PlusPF (Standard + protozoa + fungi). Disk yetmezse PlusPF-16."
+  bilgi "Recommended: PlusPF (Standard + protozoa + fungi). PlusPF-16 if disk is tight."
   bilgi
   bilgi "   mkdir -p ~/k2db && cd ~/k2db"
   bilgi "   wget <secilen .tar.gz adresi>"
   bilgi "   tar -xzf *.tar.gz"
   bilgi
-  uyar "HAZIR veritabanlari k=35, l=31 ile kurulmustur. K-MER UZUNLUGUNU"
-  uyar "SECEMEZSINIZ. Kendi k-mer'inizi istiyorsaniz: bash install.sh kraken-build"
+  uyar "PREBUILT databases are fixed at k=35, l=31. YOU CANNOT CHOOSE THE"
+  uyar "K-MER LENGTH. To choose your own: bash install.sh kraken-build"
   bilgi
-  bilgi "Kurduktan sonra kimligini DOGRULAYIN (hangi surum, hangi k-mer):"
+  bilgi "After installing, VERIFY its identity (which release, which k-mer):"
   bilgi "   bash tools/kraken_tool.sh vt-kimlik"
 }
 
@@ -446,7 +446,7 @@ komut_kraken_kur() {
   done
   IS="${IS:-$(( $(nproc 2>/dev/null || echo 4) - 2 ))}"; [ "$IS" -lt 1 ] && IS=1
 
-  renk "KRAKEN2 VERITABANI KURULUMU  (k-mer secilebilir)"
+  renk "KRAKEN2 DATABASE KURULUMU  (k-mer secilebilir)"
   cat <<EOF
    k-mer uzunlugu (--kmer)      : $KMER
    minimizer uzunlugu (--minimizer): $MINI
@@ -483,27 +483,27 @@ komut_kraken_kur() {
        bash tools/kraken_tool.sh tablo     # dort sutunlu karsilastirma
 EOF
   if ! command -v kraken2-build >/dev/null 2>&1; then
-    hata "kraken2-build bulunamadi. Once: bash install.sh tools"
+    hata "kraken2-build not found. Run first: bash install.sh tools"
     EKSIK+=("kraken2-build"); return 1
   fi
 
   bilgi
-  bilgi "Taksonomi indiriliyor (bir kez, ~1-2 saat, kesilirse devam eder)..."
+  bilgi "Downloading taxonomy (once, about 1-2 hours, resumes if interrupted)..."
   kraken2-build --download-taxonomy --db "$DB" --threads "$IS" \
-    || { hata "taksonomi indirilemedi"; EKSIK+=("kraken taksonomi"); return 1; }
+    || { hata "could not download taxonomy"; EKSIK+=("kraken taxonomy"); return 1; }
 
   local kutuphaneler="${KUTUP:-bacteria archaea fungi protozoa}"
   local L
   for L in $kutuphaneler; do
-    bilgi "kutuphane indiriliyor: $L"
+    bilgi "downloading library: $L"
     kraken2-build --download-library "$L" --db "$DB" --threads "$IS" \
-      || { hata "kutuphane indirilemedi: $L"; EKSIK+=("kraken kutuphane $L"); }
+      || { hata "could not download library: $L"; EKSIK+=("kraken library $L"); }
   done
 
-  bilgi "veritabani kuruluyor (k=$KMER, l=$MINI, s=$BOSLUK) - SAATLER surer"
+  bilgi "building the database (k=$KMER, l=$MINI, s=$BOSLUK). This takes HOURS"
   kraken2-build --build --db "$DB" --threads "$IS" \
       --kmer-len "$KMER" --minimizer-len "$MINI" --minimizer-spaces "$BOSLUK" \
-    || { hata "veritabani kurulamadi"; EKSIK+=("kraken build"); return 1; }
+    || { hata "could not build the database"; EKSIK+=("kraken build"); return 1; }
 
   if [ -f "$DB/hash.k2d" ]; then
     bilgi "TAMAM: $DB  ($(du -sh "$DB" 2>/dev/null | cut -f1))"
@@ -512,10 +512,10 @@ EOF
     printf 'kurulum: %s\nkmer: %s\nminimizer: %s\nbosluk: %s\nkutuphane: %s\n' \
       "$(date '+%Y-%m-%d %H:%M')" "$KMER" "$MINI" "$BOSLUK" "$kutuphaneler" \
       > "$DB/KURULUM_BILGISI.txt"
-    bilgi "kurulum bilgisi yazildi: $DB/KURULUM_BILGISI.txt"
-    bilgi "Bracken icin: bracken-build -d $DB -t $IS -k $KMER -l <okuma_uzunlugu>"
+    bilgi "build parameters written to: $DB/KURULUM_BILGISI.txt"
+    bilgi "For Bracken: bracken-build -d $DB -t $IS -k $KMER -l <read_length>"
   else
-    hata "hash.k2d olusmadi - kurulum tamamlanmamis"; EKSIK+=("kraken build")
+    hata "hash.k2d was not created, so the build did not finish"; EKSIK+=("kraken build")
   fi
 }
 
@@ -528,54 +528,54 @@ komut_qiime() {
     done
   fi
   if ! command -v conda >/dev/null 2>&1; then
-    hata "conda bulunamadi. QIIME2 conda ister (micromamba ile sorun cikarabilir)."
-    EKSIK+=("qiime2 (conda yok)"); return 1
+    hata "conda not found. QIIME2 needs conda (micromamba can be problematic)."
+    EKSIK+=("qiime2 (conda not found)"); return 1
   fi
   local SURUM="${PT_QIIME_SURUM:-2024.10}"
   local ORT="qiime2-amplicon-$SURUM"
   if conda env list | grep -q "$ORT"; then
-    bilgi "ortam zaten var: $ORT"
+    bilgi "environment already exists: $ORT"
   else
-    bilgi "QIIME2 $SURUM kuruluyor..."
+    bilgi "installing QIIME2 $SURUM..."
     conda env create -n "$ORT" \
       --file "https://data.qiime2.org/distro/amplicon/qiime2-amplicon-$SURUM-py310-linux-conda.yml" \
-      || { hata "QIIME2 kurulamadi"; EKSIK+=("qiime2"); }
+      || { hata "could not install QIIME2"; EKSIK+=("qiime2"); }
   fi
   if conda env list | grep -q "picrust2"; then
-    bilgi "picrust2 ortami zaten var"
+    bilgi "picrust2 environment already exists"
   else
     conda create -y -n picrust2 -c conda-forge -c bioconda picrust2 \
-      || { hata "PICRUSt2 kurulamadi"; EKSIK+=("picrust2"); }
+      || { hata "could not install PICRUSt2"; EKSIK+=("picrust2"); }
   fi
   local SINIF="$REFDB/silva_classifier.qza"
   if [ -s "$SINIF" ]; then
-    bilgi "SILVA siniflandirici zaten var"
+    bilgi "SILVA classifier already present"
   else
-    bilgi "SILVA siniflandirici indiriliyor..."
+    bilgi "downloading the SILVA classifier..."
     wget -c -q --show-progress -O "$SINIF" \
       "https://data.qiime2.org/classifiers/sklearn-1.4.2/silva/silva-138-99-nb-classifier.qza" \
-      || { hata "siniflandirici indirilemedi"; EKSIK+=("silva_classifier"); rm -f "$SINIF"; }
+      || { hata "could not download the classifier"; EKSIK+=("silva_classifier"); rm -f "$SINIF"; }
   fi
 }
 
 # ===========================================================================
 ozet() {
-  renk "OZET"
+  renk "SUMMARY"
   if [ ${#SUPHELI[@]} -gt 0 ]; then
-    hata "DOGRULAMAYI GECEMEYEN dosyalar (.SUPHELI olarak duruyor, KULLANILMIYOR):"
+    hata "Files that FAILED verification (kept as .SUPHELI, NOT used):"
     printf '     - %s\n' "${SUPHELI[@]}"
   fi
   if [ ${#EKSIK[@]} -gt 0 ]; then
-    hata "KURULAMAYANLAR:"
+    hata "COULD NOT BE INSTALLED:"
     printf '     - %s\n' "${EKSIK[@]}"
     bilgi
-    bilgi "Bunlar SESSIZCE atlanmadi. Duzeltip ayni komutu tekrar calistirin;"
-    bilgi "tamamlanmis adimlar atlanacaktir."
+    bilgi "None of these were skipped silently. Fix them and run the same command again;"
+    bilgi "completed steps will be skipped."
     bilgi "log: $LOG"
     return 1
   fi
-  printf '   \033[32mKurulum tamam.\033[0m Hicbir adim atlanmadi.\n'
-  bilgi "durumu gormek icin: bash install.sh status"
+  printf '   \033[32mInstallation complete.\033[0m No step was skipped.\n'
+  bilgi "to see the current state: bash install.sh status"
   bilgi "log: $LOG"
   return 0
 }
@@ -594,8 +594,8 @@ case "$KOMUT" in
   qiime)                      komut_qiime; ozet ;;
   all|hepsi)                  komut_araclar; komut_veritabani; komut_qiime
                  renk "KRAKEN2"
-                 bilgi "Kraken2 veritabani AYRI secim ister (hazir indir mi, k-mer secip kur mu):"
-                 bilgi "   bash install.sh kraken-download     # hazir, k=35 sabit"
+                 bilgi "The Kraken2 database is a SEPARATE choice (download prebuilt, or build with your own k):"
+                 bilgi "   bash install.sh kraken-download     # prebuilt, k fixed at 35"
                  bilgi "   bash install.sh kraken-build --kmer 31"
                  ozet ;;
   *)

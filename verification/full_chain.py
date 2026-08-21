@@ -264,12 +264,12 @@ def d_kraken_ortam(kok, ayar):
 
 
 ASAMALAR = [
-    ('8', u'KENDINI SINA - kod kendini dogrular, olcum yapmaz', u'Grup 4',
+    ('8', u'SELF-TEST - the code verifies itself; no measurement', u'Group 4',
      (1, 2), False,
      lambda kok, a: [_py(kok, '-m', 'screening', '--sina')],
      d_sina),
 
-    ('H', u'HIZLI TUTARLILIK TESTI - kucuk alt kumede zincir butun mu', u'Grup 4',
+    ('H', u'QUICK CONSISTENCY TEST - is the chain intact on a small subset?', u'Group 4',
      (25, 40), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'quick_consistency_test.py'),
                          '--kok', '.')],
@@ -279,7 +279,7 @@ ASAMALAR = [
     # yoksa ATLANMAMALI, tam tersine KOSMALIDIR - cunku ekranda neyin eksik
     # oldugunu ve nasil kurulacagini yazan yer burasidir. Atlansaydi kullanici
     # hicbir zaman kurulum yonergesini gormezdi.
-    ('W', u'KRAKEN2 ORTAM DENETIMI - kurulu mu, hangi veritabani', u'Grup 3',
+    ('W', u'KRAKEN2 ENVIRONMENT CHECK - installed? which database?', u'Group 3',
      (1, 5), False,
      lambda kok, a: [['bash', a['karac'], 'durum'],
                      ['bash', a['karac'], 'vt-ara'],
@@ -290,21 +290,21 @@ ASAMALAR = [
     # OLCULDU 2026-08-05 temiz kosu: 3 sa 20 dk (KISA_LISTE 500 + idf/BM25
     # siralama). Tahmin olculen degere cekildi; eski 6-8 saat KISA_LISTE=1000
     # varsayimina aitti ve gercegin iki kati genisti.
-    ('I', u'KIMLIK DOGRULAMA - rapora giren iddialar sinanir', u'Grup 2',
+    ('I', u'IDENTITY VERIFICATION - every reported claim is tested', u'Group 2',
      (180, 260), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'identity_verification.py'),
                          '--kok', '.')],
      d_dosya_dolu([os.path.join('KIMLIK_SONUC', 'kimlik_iddialari.tsv')])),
 
     # OLCULDU 2026-08-05 temiz kosu: 4 sa 43 dk. Tahmin olculen degere cekildi.
-    ('G', u'TUM KUTU KIMLIKLERI - panele giren her kutu dogrulanir', u'Grup 2',
+    ('G', u'ALL BIN IDENTITIES - every bin entering the panel is verified', u'Group 2',
      (260, 350), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'all_bin_identities.py'),
                          '--kok', '.')],
      d_dosya_dolu([os.path.join('TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')])),
 
     # Olculen: P 36 sn, K 5 dk, D 6 dk. Onceki tahmin (6-16 saat) fazla genisti.
-    ('T', u'TAM OLCUM - P, K, D ve I bagimlilik sirasiyla', u'Grup 1',
+    ('T', u'FULL MEASUREMENT - P, K, D and I in dependency order', u'Group 1',
      (30, 90), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'run_all_stages.py'), '--kok', '.')],
      d_dosya_dolu([os.path.join('TUM_KOSU_SONUC', '00_BIRLESIK_OZET.md')])),
@@ -313,26 +313,26 @@ ASAMALAR = [
     # 10-40 dk idi ve UC KAT sapiyordu: ornekleme 100 000 okumaya ayarli ama
     # kaynak 86 780 okuma oldugu icin ornekleme HIC DEVREYE GIRMEDI, tarama tam
     # veriyle kostu. Tahmin gerceklesen degere cekildi.
-    ('X', u'KRAKEN GUVEN ESIGI TARAMASI (ornek uzerinde)', u'Grup 3',
+    ('X', u'KRAKEN CONFIDENCE THRESHOLD SWEEP (on a sample)', u'Group 3',
      (100, 140), True,
      lambda kok, a: [['bash', a['karac'], 'esik']],
      d_esik),
 
     # Y AYRI TUTULUR: tam veritabaniyla yeniden siniflandirma tek seferlik ve
     # agirdir. Gece birakilir. O da mmap ve dusuk is parcacigi ile kosar.
-    ('Y', u'PlusPFP ILE YENIDEN KOSU (agir, gece birakilir)', u'Grup 3',
+    ('Y', u'RE-RUN WITH PlusPFP (heavy; leave it overnight)', u'Group 3',
      (120, 480), True,
      lambda kok, a: [['bash', a['karac'], 'vt-kimlik'],
                      ['bash', a['karac'], 'esik'],
                      ['bash', a['karac'], 'tablo']],
      d_esik),
 
-    ('Z', u'DORT SUTUNLU KARSILASTIRMA TABLOSU', u'Grup 3',
+    ('Z', u'FOUR-COLUMN COMPARISON TABLE', u'Group 3',
      (1, 2), True,
      lambda kok, a: [['bash', a['karac'], 'tablo']],
      d_tablo),
 
-    ('S', u'BIRLESIK OZETI YENILE - olcum yapmaz', u'Grup 4',
+    ('S', u'REFRESH THE COMBINED SUMMARY - no measurement', u'Group 4',
      (1, 1), False,
      lambda kok, a: [_py(kok, '-m', 'screening', '--mod', 'ozet')],
      d_ozet),
@@ -342,18 +342,18 @@ ASAMALAR = [
 # ---------------------------------------------------------------------------
 def sure_metni(dk):
     if dk < 60:
-        return u'%d dk' % dk
+        return u'%d min' % dk
     s, k = divmod(int(dk), 60)
-    return u'%d sa %d dk' % (s, k) if k else u'%d saat' % s
+    return u'%d h %d min' % (s, k) if k else u'%d h' % s
 
 
 def sn_metni(sn):
     sn = int(sn)
     if sn < 60:
-        return u'%d sn' % sn
+        return u'%d s' % sn
     if sn < 3600:
-        return u'%d dk %d sn' % (sn // 60, sn % 60)
-    return u'%d sa %d dk' % (sn // 3600, (sn % 3600) // 60)
+        return u'%d min %d s' % (sn // 60, sn % 60)
+    return u'%d h %d min' % (sn // 3600, (sn % 3600) // 60)
 
 
 def kraken2_bul(karac, ortam):
@@ -457,11 +457,11 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
 def plan_yaz(yaz, secili, ayar, durum):
     yaz(u'')
     yaz(u'=' * 78)
-    yaz(u'  TAM ZINCIR - PLAN')
+    yaz(u'  FULL CHAIN - PLAN')
     yaz(u'=' * 78)
     alt = ust = 0
     yaz(u'')
-    yaz(u'  %-3s %-52s %-12s %s' % (u'#', u'ASAMA', u'SURE', u'DURUM'))
+    yaz(u'  %-3s %-52s %-12s %s' % (u'#', u'STAGE', u'TIME', u'STATUS'))
     yaz(u'  ' + u'-' * 74)
     for kod, ad, grup, (a, u_), kraken, _k, _d in secili:
         d = durum.get(kod, {})
@@ -470,42 +470,41 @@ def plan_yaz(yaz, secili, ayar, durum):
         elif d.get('durum') == 'eksik':
             nd = u'EKSIK - yeniden denenecek'
         elif kraken and not ayar['kraken_var']:
-            nd = u'ATLANACAK (kraken2 yok)'
+            nd = u'WILL SKIP (no kraken2)'
         elif kod == 'Y' and not ayar['pluspfp']:
-            nd = u'ATLANACAK (PlusPFP yolu verilmedi)'
+            nd = u'WILL SKIP (no PlusPFP path)'
         else:
-            nd = u'kosulacak'
+            nd = u'will run'
             alt += a
             ust += u_
         yaz(u'  %-3s %-52s %-12s %s' % (kod, ad[:52], sure_metni(a) + u'-' + sure_metni(u_), nd))
     yaz(u'')
-    yaz(u'  TAHMINI TOPLAM SURE: %s ile %s arasi' % (sure_metni(alt), sure_metni(ust)))
+    yaz(u'  ESTIMATED TOTAL TIME: between %s and %s' % (sure_metni(alt), sure_metni(ust)))
     if ayar.get('kraken2_bin'):
         parca = (ayar.get('kraken_mesaj') or '').split(' | ')
         yaz(u'')
         yaz(u'  kraken2      : %s' % ayar['kraken2_bin'])
         if len(parca) >= 3:
-            yaz(u'  bulunma yolu : %s' % parca[1])
-            yaz(u'  surum        : %s' % parca[2])
-        yaz(u'  veritabani   : %s' % ayar.get('vt_a'))
-        yaz(u'  (surum tespiti - PlusPF mi PlusPFP mi - W adiminda yapilir)')
+            yaz(u'  found at     : %s' % parca[1])
+            yaz(u'  version      : %s' % parca[2])
+        yaz(u'  database     : %s' % ayar.get('vt_a'))
+        yaz(u'  (which release, PlusPF or PlusPFP, is determined at stage W)')
     if not ayar['kraken_var']:
         yaz(u'')
-        yaz(u'  KRAKEN ADIMLARI ATLANACAK. Sebep:')
+        yaz(u'  KRAKEN STAGES WILL BE SKIPPED. Reason:')
         for s in ayar['kraken_sebep'].split('; '):
             yaz(u'    * %s' % s)
-        yaz(u'  Zincir bu yuzden DURMAZ; kalan adimlar normal kosar.')
+        yaz(u'  The chain does NOT stop for this; the remaining stages run normally.')
         yaz(u'')
-        yaz(u'  KRAKEN KISMINI SONRADAN TAMAMLAYABILIRSINIZ. Zinciri bastan kosmaniz')
-        yaz(u'  gerekmez; atlanan adimlar "bitti" damgasi ALMADIGI icin bir sonraki')
-        yaz(u'  koşuda kendiliginden yeniden denenir. Yalniz Kraken kismi icin:')
-        yaz(u'      menuden W, sonra X, sonra Z')
-        yaz(u'  ya da tek komutla:')
-        yaz(u'      python3 verification/full_chain.py --kok . --yalniz W,X,Z,S --onayla')
-        yaz(u'  Ortam adi farkliysa:  --ortam <ad>   |  ikilinin yolu belliyse: '
-            u'KRAKEN2_BIN=/tam/yol/kraken2')
+        yaz(u'  YOU CAN COMPLETE THE KRAKEN PART LATER. You do not have to re-run the')
+        yaz(u'  whole chain: a skipped stage is NOT stamped "done", so the next run')
+        yaz(u'  retries it by itself. For the Kraken part only:')
+        yaz(u'      W, then X, then Z')
+        yaz(u'  or in a single command:')
+        yaz(u'      python3 verification/full_chain.py --root . --only W,X,Z,S --confirm')
+        yaz(u'  Different environment name: --env <name>   |   known binary path: KRAKEN2_BIN=/full/path/kraken2')
     yaz(u'')
-    yaz(u'  Kesilirse ayni secenege yeniden basin: biten asamalar atlanir.')
+    yaz(u'  If interrupted, run the same command again: finished stages are skipped.')
     yaz(u'=' * 78)
     return alt, ust
 
@@ -515,27 +514,26 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
     for kod, ad, grup, dk, kraken, komut_f, denet in secili:
         d = durum.setdefault(kod, {})
         if d.get('durum') == 'bitti':
-            yaz(u'\n>> %s  %s\n   ATLANDI - onceki kosuda bitmisti (%s)'
+            yaz(u'\n>> %s  %s\n   SKIPPED - already finished in a previous run (%s)'
                 % (kod, ad, sn_metni(d.get('sure', 0))))
             continue
 
         if kraken and not ayar['kraken_var']:
             d.update(durum='atlandi', sebep=ayar['kraken_sebep'], sure=0)
-            yaz(u'\n>> %s  %s\n   ATLANDI - %s' % (kod, ad, ayar['kraken_sebep']))
+            yaz(u'\n>> %s  %s\n   SKIPPED - %s' % (kod, ad, ayar['kraken_sebep']))
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
             continue
 
         if kod == 'Y' and not ayar['pluspfp']:
             d.update(durum='atlandi', sebep=u'PlusPFP veritabani yolu verilmedi', sure=0)
-            yaz(u'\n>> %s  %s\n   ATLANDI - PlusPFP yolu verilmedi '
-                u'(--pluspfp ile verilebilir)' % (kod, ad))
+            yaz(u'\n>> %s  %s\n   SKIPPED - no PlusPFP path given (pass it with --pluspfp)' % (kod, ad))
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
             continue
 
         yaz(u'\n>> %s  %s' % (kod, ad))
-        yaz(u'   basladi: %s' % time.strftime('%H:%M:%S'))
+        yaz(u'   started: %s' % time.strftime('%H:%M:%S'))
         t0 = time.time()
         cevre = dict(os.environ)
         # kraken2'nin TAM YOLU her kraken adimina acikca gecirilir. PATH'e
@@ -558,7 +556,7 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
 
         rc, son_cikti = 0, ''
         if kuru:
-            yaz(u'   [KURU KOSU] komut calistirilmadi')
+            yaz(u'   [DRY RUN] the command was not executed')
         else:
             for argv in komut_f(kok, ayar):
                 yaz(u'   $ %s' % ' '.join(os.path.basename(x) for x in argv))
@@ -592,9 +590,8 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
             d.update(durum='eksik', sure=sure, cikis=rc, sebep=mesaj)
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
-            yaz(u'   EKSIK (%s) - %s' % (sn_metni(sure), mesaj))
-            yaz(u'   Zincir devam ediyor. Bu asama bir sonraki koşuda '
-                u'yeniden denenecek.')
+            yaz(u'   INCOMPLETE (%s) - %s' % (sn_metni(sure), mesaj))
+            yaz(u'   The chain continues. This stage will be retried on the next run.')
             continue
         # Cikis kodu ve cikti denetimi AYRI iki suzgectir. Ikisi de gecmeli.
         #
@@ -617,20 +614,20 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
             d.update(durum='DUSTU', sure=sure, cikis=rc, sebep=mesaj)
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
-            yaz(u'   CIKTI DENETIMI DUSTU: %s' % mesaj)
-            yaz(u'   cikis kodu: %s | sure: %s' % (rc, sn_metni(sure)))
+            yaz(u'   OUTPUT CHECK FAILED: %s' % mesaj)
+            yaz(u'   exit code: %s | time: %s' % (rc, sn_metni(sure)))
             yaz(u'\n' + u'=' * 78)
-            yaz(u'  ZINCIR DURDU - %s asamasinda' % kod)
-            yaz(u'  Sonraki asamalar KOSULMADI. Sebep yukarida.')
-            yaz(u'  Duzeltip ayni secenege yeniden basin; biten asamalar atlanir.')
+            yaz(u'  CHAIN STOPPED at stage %s' % kod)
+            yaz(u'  The remaining stages were NOT run. The reason is above.')
+            yaz(u'  Fix it and run the same command again; finished stages are skipped.')
             yaz(u'=' * 78)
             return False
         if rc != 0:
-            yaz(u'   uyari: cikis kodu %s, ama cikti denetimi gecti' % rc)
+            yaz(u'   warning: exit code %s, but the output check passed' % rc)
         d.update(durum='bitti', sure=sure, cikis=rc, sebep=mesaj)
         json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
-        yaz(u'   BITTI (%s) - %s' % (sn_metni(sure), mesaj))
+        yaz(u'   DONE (%s) - %s' % (sn_metni(sure), mesaj))
     return True
 
 
@@ -759,8 +756,7 @@ def main():
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.stderr.write(
-            u'HATA: %s icinde screening yok. Bu betik proje kokunden '
-            u'calisir; kok, verification/full_chain.py ile ayni klasordur.\n' % kok)
+            u'ERROR: no screening package in %s. This script runs from the project root, the directory that contains verification/full_chain.py.\n' % kok)
         return 1
 
     CIKTI = os.path.join(kok, CIKTI_ADI)
@@ -803,8 +799,7 @@ def main():
                     os.rename(y, yeni_ad)
                     tasinan.append(h)
                 except OSError as e:
-                    print(u'  UYARI: %s tasinamadi (%s). Bu asama kendi kontrol '
-                          u'noktasindan devam edebilir.' % (h, e))
+                    print(u'  WARNING: could not move %s (%s). This stage may resume from its own checkpoint.' % (h, e))
         ali_is = os.path.join(kok, '..', 'tools', 'SONUCLAR', 'kraken_esik_A')
         if os.path.isdir(ali_is):
             try:
@@ -812,10 +807,10 @@ def main():
                 tasinan.append('tools/SONUCLAR/kraken_esik_A')
             except OSError:
                 pass
-        print(u'\nTEMIZ KOSU: %d sonuc klasoru kenara alindi (silinmedi).' % len(tasinan))
+        print(u'\nCLEAN RUN: %d result directories were moved aside. Nothing was deleted.' % len(tasinan))
         for h in tasinan:
-            print(u'    %s -> %s_ONCEKI_%s' % (h, h, damga))
-        print(u'  Eski sonuclara bakmak isterseniz o klasorler duruyor.\n')
+            print(u'    %s -> %s_PREVIOUS_%s' % (h, h, damga))
+        print(u'  The old results are still there if you want to look at them.\n')
         durum = {}
         os.makedirs(CIKTI, exist_ok=True)
 
@@ -826,7 +821,7 @@ def main():
     secili = [s for s in ASAMALAR
               if (not yalniz or s[0] in yalniz) and s[0] not in atla]
     if not secili:
-        sys.stderr.write(u'HATA: secili asama kalmadi (--yalniz / --atla).\n')
+        sys.stderr.write(u'ERROR: no stages left after --only / --skip.\n')
         return 1
 
     gunluk = io.open(os.path.join(CIKTI, 'kosu_gunlugu.txt'), 'a', encoding='utf-8')
@@ -835,7 +830,7 @@ def main():
         print(s, flush=True)
         gunluk.write(s + u'\n')
 
-    yaz(u'\nTAM ZINCIR  surum %s  %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'\nFULL CHAIN  version %s  %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     plan_yaz(yaz, secili, ayar, durum)
 
     if a.plan:
@@ -848,7 +843,7 @@ def main():
         except EOFError:
             c = 'e'
         if c not in ('', 'e', 'evet', 'y', 'yes'):
-            yaz(u'  Vazgecildi. Hicbir sey kosulmadi.')
+            yaz(u'  Cancelled. Nothing was run.')
             return 0
 
     t0 = time.time()
@@ -856,8 +851,8 @@ def main():
     yol = ozet_yaz(kok, CIKTI, ayar, secili, durum, not tamamlandi)
 
     yaz(u'\n' + u'=' * 78)
-    yaz(u'  TOPLAM SURE: %s' % sn_metni(time.time() - t0))
-    yaz(u'  BIRLESIK OZET: %s' % yol)
+    yaz(u'  TOTAL TIME: %s' % sn_metni(time.time() - t0))
+    yaz(u'  COMBINED SUMMARY: %s' % yol)
     yaz(u'=' * 78)
     gunluk.close()
     return 0 if tamamlandi else 3
