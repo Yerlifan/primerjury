@@ -774,7 +774,7 @@ def asama_kos(kok, a, ayar, yaz):
         def canlilik():
             # Uzun asamalarda "asildi mi?" sorusunu ekranda cevaplar.
             while not dur.wait(CANLILIK_SN):
-                yaz(u'   ... [canlilik] %s | asamada %s | son ciktidan bu yana %s'
+                yaz(u'   ... [alive] %s | in stage %s | since the last output %s'
                     % (a['kod'], sn_metni(time.time() - t0),
                        sn_metni(time.time() - son['t'])))
 
@@ -996,9 +996,9 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
             for a in dusen:
                 d = durum[a['kod']]
                 w(u'### %s — %s\n\n' % (a['kod'], a['ad']))
-                w(u'- çıkış kodu: `%s`\n- sebep: %s\n' % (d.get('cikis'), d.get('sebep')))
+                w(u'- exit code: `%s`\n- reason: %s\n' % (d.get('cikis'), d.get('sebep')))
                 if d.get('son_satirlar'):
-                    w(u'- aşamanın son çıktısı:\n\n```\n%s\n```\n' % d['son_satirlar'])
+                    w(u'- the stage\'s last output:\n\n```\n%s\n```' % d['son_satirlar'])
                 w(u'\n')
         else:
             w(u'## 2. NO STAGE FAILED\n\nNo stage returned a non-zero code and no output check failed.\n\n')
@@ -1040,7 +1040,7 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
         if not olcumsuz:
             w(u'- Every stage that ran had been timed before.\n')
         if not ayar.get('karac'):
-            w(u'- Kraken karşılaştırması (W, X, Z) KOŞULMADI: %s\n'
+            w(u'- Kraken comparison (W, X, Z) WAS NOT RUN: %s\n'
               % ayar.get('kraken_sebep', ''))
     return yol
 
@@ -1154,7 +1154,7 @@ def main():
         try:
             durum = json.load(io.open(dyol, encoding='utf-8'))
         except Exception as e:
-            yaz(u'  UYARI: durum.json okunamadi (%s) - kontrol noktalari yok sayildi.' % e)
+            yaz(u'  WARNING: durum.json could not be read (%s); checkpoints were ignored.' % e)
             durum = {}
     if A.yeniden:
         yaz(u'  --rerun was given: every checkpoint is being ignored.')
@@ -1191,8 +1191,7 @@ def main():
         if not a.get('_kraken_atla'):
             yeni_atla, yeni_sebep = kontrol_noktasi_gecerli(kok, a, durum)
             if yeni_atla != a['_atla']:
-                yaz(u'\n   NOT: %s icin karar PLANDAN FARKLI cikti (%s -> %s). '
-                    u'Sebep: %s' % (kod, u'SKIPPED' if a['_atla'] else u'KOSACAK',
+                yaz(u'\n   NOTE: the decision for %s differed from the PLAN (%s -> %s). Reason: %s' % (kod, u'SKIPPED' if a['_atla'] else u'KOSACAK',
                                     u'SKIPPED' if yeni_atla else u'KOSACAK', yeni_sebep))
             a['_atla'], a['_sebep'] = yeni_atla, yeni_sebep
 
@@ -1278,7 +1277,7 @@ def main():
             if bagimlilar:
                 yaz(u'   Buna bagimli asamalar KOSULMAYACAK: %s' % u', '.join(bagimlilar))
             else:
-                yaz(u'   Buna bagimli baska asama yok; zincir devam ediyor.')
+                yaz(u'   Nothing else depends on it; the chain continues.')
         else:
             durum[kod] = dict(durum='bitti', sure=sure, cikis=rc, sebep=mesaj,
                               uyarili=uyarili, imza=girdi_imzasi(kok, a),
@@ -1294,9 +1293,9 @@ def main():
     if kesildi:
         yaz(u'  RUN INTERRUPTED. Finished stages are saved; run the same command again.')
     elif dusen:
-        yaz(u'  KOSU BITTI ama %d ASAMA DUSTU: %s' % (len(dusen), u', '.join(dusen)))
+        yaz(u'  RUN FINISHED but %d STAGES FAILED: %s' % (len(dusen), u', '.join(dusen)))
         if atlanan_b:
-            yaz(u'  Bagimli oldugu icin kosulmayanlar: %s' % u', '.join(atlanan_b))
+            yaz(u'   Not run because they depend on it: %s' % u', '.join(atlanan_b))
     else:
         yaz(u'  BUTUN ASAMALAR BASARILI.')
     yaz(u'  Total elapsed time: %s' % sn_metni(time.time() - baslangic))
