@@ -295,7 +295,7 @@ def ozet(kok, CIKTI, durum, yaz):
         # --- 2) KURTARILANLAR ---
         fh.write(u'\n---\n\n## 2. Kurtarma turu\n\n')
         if not K:
-            fh.write(u'Kurtarma turu kosulmadi ya da cikti uretmedi.\n')
+            fh.write(u'The recovery round was not run, or produced no output.\n')
         else:
             kg = [r for r in K if (r.get('esigi_gecti_mi') or '').startswith('EVET')]
             kt = [r for r in K if r.get('esigi_gecti_mi') == 'DUSENLERE TASINDI']
@@ -317,7 +317,7 @@ def ozet(kok, CIKTI, durum, yaz):
         fh.write(u'\n---\n\n## 3. Contradictions (specificity round)\n\n')
         cel = [r for r in D if r.get('KARAR') == 'CELISKILI']
         if not D:
-            fh.write(u'Dogrulama turu kosulmadi ya da cikti uretmedi.\n')
+            fh.write(u'The verification round was not run, or produced no output.\n')
         elif not cel:
             fh.write(u'The three layers disagreed on no row. **That does NOT mean everything is clean**: a row whose NCBI or local layer was never run counts as "MISSING" and cannot produce a disagreement.\n')
         else:
@@ -333,7 +333,7 @@ def ozet(kok, CIKTI, durum, yaz):
         # --- 4) KIMLIK ---
         fh.write(u'\n---\n\n## 4. Identity claims\n\n')
         if not I:
-            fh.write(u'Kimlik dogrulama turu kosulmadi ya da cikti uretmedi.\n')
+            fh.write(u'The identity verification round was not run, or produced no output.\n')
         else:
             say = {}
             for r in I:

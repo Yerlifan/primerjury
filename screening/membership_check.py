@@ -276,7 +276,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
         yaz('  ' + _x)
     if not _ok:
         yaz('')
-        yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
+        yaz(u'  *** INPUT VERIFICATION FAILED - THIS STAGE WAS NOT STARTED ***')
         yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
         yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
         yaz(u'  so the whole run would silently produce a wrong result.')
@@ -329,7 +329,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                 if not kontrol.ayar_uyuyor(_v):
                     raise ValueError('ayar degisti')
                 sonuclar.append(json.load(open(kp, encoding='utf-8')))
-                yaz('[%d/%d] %-38s (onceki kosudan)' % (i, len(panel), d['hedef'][:38]))
+                yaz(u'[%d/%d] %-38s (from the previous run)' % (i, len(panel), d['hedef'][:38]))
                 continue
             except Exception:
                 pass   # bayat/bozuk: silmeye calisma, uzerine yazilacak
@@ -426,7 +426,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
     yollar = rapor_yaz(hepsi or sonuclar, panel_yolu, turetildi)
     yaz('')
     yaz('=' * 78)
-    yaz('  UYELIK DENETIMI BITTI (%s)' % sure(time.time() - t0))
+    yaz(u'  MEMBERSHIP AUDIT FINISHED (%s)' % sure(time.time() - t0))
     for p in yollar:
         yaz('    %s' % p)
     yaz('=' * 78)

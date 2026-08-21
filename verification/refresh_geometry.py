@@ -219,7 +219,7 @@ def main():
         print('=' * 78)
         return yalniz_urun_boyu(kok, a.yaz)
     print('=' * 78)
-    print('  GEOMETRI YENIDEN OLCUMU   %s' % time.strftime('%Y-%m-%d %H:%M'))
+    print(u'  GEOMETRY RE-MEASUREMENT   %s' % time.strftime('%Y-%m-%d %H:%M'))
     print('  motor: %s   ayarlar: %s' % (geo_yol, geo.KW))
     print('=' * 78)
 
@@ -322,7 +322,7 @@ def main():
 
     print()
     if uyusmaz:
-        print('  TABLODAKI Tm ILE MOTOR UYUSMUYOR (%d):' % len(uyusmaz))
+        print(u'  THE Tm IN THE TABLE AND THE ENGINE DISAGREE (%d):' % len(uyusmaz))
         for x in uyusmaz:
             print('    * %s' % x)
     else:
