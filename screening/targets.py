@@ -21,34 +21,36 @@ Sorunlu sayilma gerekceleri (hepsi panel dosyasindan turetilir):
   C  panelden cikarilmis      -> SIPARIS EDILEBILIR MI = HAYIR
   P  plaka ici jel cakismasi  -> "PLAKA ICI JEL AYRIMI" sutununda AYRILMAZ
 """
-# ---------------------------------------------------------------------------
-# targets.py, paketin veri okuma katmani: panel, uyelik, kutu ve konsensus
-#               listelerini dosyalardan cikarir ve her hedef icin uye/rakip
-#               kumesini cozer.
+# -------------------------------------------------------------------------
+# targets.py, the package's data reading layer: it extracts the panel, membership,
+#               bin and consensus lists from the files and resolves the member and
+#               competitor set for every target.
 #
-# GIRDI  : primer_final/devir_ciftleri_*.tsv (panel; yoksa yedegi),
-#          steps/hedefler.tsv (karar tablosu, grup uyeligi),
-#          steps/taxid_adlari.tsv, screening/hedef_uyelik.tsv
-#          (elle duzenlenebilen acik uyelik), "fastq files/*/reads_*.fastq"
-#          (kutular) ve konsensus_kanonik/INDEKS.tsv (kanonik konsensusler).
-# CIKTI  : dosyaya yazmaz. panel_oku() (satirlar, yol); sorunlu_hedefler()
-#          (sorunlular, panel, yol); kutular() ve konsensusler() sozluk
-#          listeleri; hedef_baglami() omurga + uye/rakip kutu + uye/rakip
-#          konsensus sozlugu dondurur.
-# CAGRAN : __main__.py, panel_measurement.py, membership_check.py, build_consensus.py,
-#          self_test.py ve hepsi.yon_kapisi icinden - yani 1, 2, 3, 4, 5, 6,
-#          7, 8, 9 tuslarinin hepsinde. Disaridan da cagrilir:
-#          protocol/single_protocol_measure.py (tus P), verification/recovery_round.py
-#          (tus K), verification/identity_verification.py (tus I),
-#          verification/all_bin_identities.py (tus G).
-# ---------------------------------------------------------------------------
+# INPUT  : primer_final/devir_ciftleri_*.tsv (the panel, or its backup),
+#          steps/hedefler.tsv (the decision table, group membership),
+#          steps/taxid_adlari.tsv, screening/hedef_uyelik.tsv (the explicit,
+#          hand editable membership), "fastq files/*/reads_*.fastq" (the bins) and
+#          konsensus_kanonik/INDEKS.tsv (the canonical consensuses).
+# OUTPUT : it writes no file. panel_oku() returns (rows, path); sorunlu_hedefler()
+#          returns (problem targets, panel, path); kutular() and konsensusler()
+#          return dictionary lists; hedef_baglami() returns a dictionary of the
+#          backbone plus the member and competitor bins and consensuses.
+# CALLED BY: __main__.py, panel_measurement.py, membership_check.py,
+#          build_consensus.py, self_test.py and hepsi.yon_kapisi - that is, on all of
+#          keys 1 to 9. It is also called from outside:
+#          protocol/single_protocol_measure.py (key P),
+#          verification/recovery_round.py (key K),
+#          verification/identity_verification.py (key I),
+#          verification/all_bin_identities.py (key G).
+# -------------------------------------------------------------------------
 import os, csv, re, glob
 from . import config as C
 from . import engine_gateway
 
-# ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
-# Kat karsiligi 2 ** ESIK_DCQ = 8,00. Sabit sayi GOMULMEZ; dCq degisirse
-# tek yerden degisir. Gerekce ve verim uyarisi o dosyada yazili.
+# THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
+# Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
+# changes it changes in one place. The reasoning and the efficiency warning are
+# written in that file.
 AYRIM_ESIK = C.AYRIM_ESIK
 
 
@@ -114,13 +116,14 @@ def panel_oku():
 
 def sorun_gerekceleri(d):
     g = []
-    # Ayrim esigi kontrolu, panelin "Ayrim" sutununda KAPSAM metni (ornegin
-    # "13/13 kutu") gordugunde sayisal esikle karsilastirma YAPMAZ; onun yerine
-    # kapsanan kutu / toplam kutu oranina bakar. Sebep evrensel ve genis
-    # hedeflerdedir: oralarda rakip kumesi bosa yaklasir, ayrim katinin paydasi
-    # sifira gider ve oran tanimsizlasir. Tanimsiz bir orani 10x esigiyle
-    # karsilastirmak bir olcum degil, gurultu uretir. Bu yuzden o satirlarda
-    # olcu kapsamadir. Esik degismemistir, olculen buyukluk degismistir.
+    # When the discrimination threshold check sees COVERAGE text in the panel's "Ayrim"
+    # column ("13/13 kutu", for instance), it DOES NOT compare against a numeric
+    # threshold; it looks at the covered bins over the total bins instead. The reason is
+    # the universal and broad targets: there the competitor set approaches empty, the
+    # denominator of the discrimination ratio goes to zero and the ratio becomes
+    # undefined. Comparing an undefined ratio against a 10x threshold is not a
+    # measurement, it is noise. So on those rows the measure is coverage. The threshold
+    # has not changed; the quantity being measured has.
     if 'IHLAL' in (d['geo'] or '').upper():
         g.append(('G', 'geometri ihlali: ' + d['geo'][:110]))
     dur = (d['durum'] or '').upper()
@@ -146,7 +149,7 @@ def sorun_gerekceleri(d):
         g.append(('U', 'urun %d bp ideal 60-150 disinda (30 sn ann/ext gerekir)' % bp))
     if 'AYRILMAZ' in (d['jel'] or '').upper():
         g.append(('P', 'plaka ici jel cakismasi: ' + d['jel'][:80]))
-    # panel kapsam metninde eksik kutu
+    # a bin missing from the panel's coverage text
     m = re.match(r'\s*(\d+)\s*/\s*(\d+)\s*kutu', d.get('uye', '') or '')
     if m and int(m.group(1)) < int(m.group(2)):
         g.append(('A', 'uye kapsami %s' % d['uye'][:40]))
@@ -171,7 +174,7 @@ UYELIK_TSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hedef_uye
 
 
 def acik_uyelik():
-    """screening/hedef_uyelik.tsv - hedef adi -> uyelik. Elle duzenlenebilir."""
+    """screening/hedef_uyelik.tsv - target name -> membership. Hand editable."""
     m = {}
     if not os.path.exists(UYELIK_TSV):
         return m
@@ -194,7 +197,7 @@ def acik_uyelik():
 
 
 def uyelik_oku():
-    """hedefler.tsv -> hedef adi -> uye taxid listesi. '*A'/'*B'/'*F' = sinif tamami."""
+    """hedefler.tsv -> target name -> the member taxid list. '*A'/'*B'/'*F' = the whole class."""
     m = {}
     if not os.path.exists(C.HEDEFLER_TSV):
         return m
@@ -263,12 +266,15 @@ def kutular():
 
 
 def konsensusler():
-    """KANONIK konsensusler. Kaynak: konsensus_kanonik/INDEKS.tsv (hepsi SENSE).
-    2026-08-02 yon normalizasyonu: eskiden 'consensus sequences' klasoru dogrudan
-    okunuyordu; o klasor KARISIK yonludur (71 antisense / 27 sense) ve ters yonlu
-    bir konsensuste in-silico PCR SESSIZCE 0 urun verir. Artik tek kanonik kaynak
-    okunur; glob DEGIL INDEKS kullanilir (bagli klasorde silinemeyen kalinti
-    dosyalar var). Indeks yoksa hata verilir - sessizce eski klasore DUSULMEZ."""
+    """The CANONICAL consensuses. The source: konsensus_kanonik/INDEKS.tsv (all SENSE).
+        The orientation normalisation of 2026-08-02: the 'consensus sequences' directory
+        used to be read directly; that directory is MIXED orientation (71 antisense / 27
+        sense) and on a reversed consensus in-silico PCR SILENTLY gives 0 products. A
+        single canonical source is read now, and the INDEX is used rather than a glob
+        (there are leftover files on the mounted drive that cannot be deleted). If the
+        index is missing an error is raised; there is no silent fallback.
+
+    """
     import csv as _csv
     ix = getattr(C, 'KONSENSUS_INDEKS', None)
     if not ix or not os.path.exists(ix):
@@ -294,19 +300,21 @@ def konsensusler():
 
 
 def hedef_baglami(panel_satiri, uyelik=None, kons=None, kut=None):
-    """Bir panel hedefi icin: omurga konsensus, uye kutular, rakip kutular."""
-    # UYELIK KAYNAK ONCELIGI: once screening/hedef_uyelik.tsv (elle
-    # duzenlenen acik tanim), yoksa steps/hedefler.tsv (projenin karar
-    # tablosu). Hangi kaynagin kullanildigi 'uyelik_kaynagi' alaninda tasinir ve
-    # her rapora yazilir - sessiz kaynak degisikligi olmaz. Tanim hic yoksa
-    # 'YOK' yazilir ve hedef atlanir; varsayilan bir uyelik UYDURULMAZ, cunku
-    # yanlis bir uyelik tanimi ayrim katini oldugundan kucuk ya da buyuk
-    # gosterir (olculen ornek: ayni cift 0,0x ile 23,5x arasinda oynuyor).
+    """For one panel target: the backbone consensus, the member bins, the competitor bins."""
+    # THE MEMBERSHIP SOURCE PRECEDENCE: screening/hedef_uyelik.tsv first (the hand
+    # edited explicit definition), and failing that steps/hedefler.tsv (the project's
+    # decision table). Which source was used is carried in the 'uyelik_kaynagi' field and
+    # written into every report; there is no silent change of source. If there is no
+    # definition at all it says 'YOK' and the target is skipped; NO default membership IS
+    # INVENTED, because a wrong membership definition makes the discrimination ratio look
+    # smaller or larger than it is (a measured example: the same pair moves between 0.0x
+    # and 23.5x).
     #
-    # Omurga, uye konsensuslerin EN UZUNU secilir: aday primer pencereleri
-    # omurga uzerinde uretildigi icin kisa bir omurga arama uzayini kirpar.
-    # Konsensusler kanonik klasorden geldigi icin hepsi SENSE yondedir; ters
-    # yonlu bir omurgada uretilen adaylar okumalarda hicbir urun vermezdi.
+    # The backbone is chosen as the LONGEST of the member consensuses: since the
+    # candidate primer windows are produced on the backbone, a short backbone clips the
+    # search space. Because the consensuses come from the canonical directory they are
+    # all SENSE; candidates produced on a reversed backbone would give no product at all
+    # in the reads.
     uyelik = uyelik if uyelik is not None else uyelik_oku()
     kons = kons if kons is not None else konsensusler()
     kut = kut if kut is not None else kutular()
@@ -328,16 +336,17 @@ def hedef_baglami(panel_satiri, uyelik=None, kons=None, kut=None):
     else:
         uye_tax, haric = list(u['uye']), list(u['haric'])
 
-    # KUTU: oneki - uyelik KUTU duzeyinde yazilabilir.
+    # THE KUTU: PREFIX - membership can be written at BIN level.
     #
-    # NEDEN (2026-08-11): taxid, uyeligi ANLATMAYA YETMIYOR. Ornek: F2-1_500148,
-    # F2-2_500148 ve F2-4_500148 ayni Kraken taxid'ini tasir; olculen kimlikleri
-    # ise Petriella setifera, Petriella setifera ve "adlandirilamayan soy - en
-    # yakin kayit Lomentospora". Taxid ile yazilan bir uyelik ucunu de ayni
-    # torbaya atar; oysa ucuncusu hedefin uyesi DEGIL, rakibidir - ve olcumde
-    # cifti dusuren tam da o kutudur (1655/3000 okuma). Bu yuzden uyelik artik
-    # "KUTU:F2-1_500148" biciminde, OLCULEN kimlige gore, kutu kutu yazilabilir.
-    # Ayni kural haric sutununda da gecerlidir.
+    # WHY (2026-08-11): a taxid IS NOT ENOUGH to express membership. An example:
+    # F2-1_500148, F2-2_500148 and F2-4_500148 carry the same Kraken taxid, while their
+    # measured identities are Petriella setifera, Petriella setifera and "an unnameable
+    # lineage, nearest record Lomentospora". A membership written by taxid throws all
+    # three into the same bag; but the third is NOT a member of the target, it is a
+    # competitor - and it is exactly that bin which fails the pair in the measurement
+    # (1655/3000 reads). So membership can now be written bin by bin in the form
+    # "KUTU:F2-1_500148", according to the MEASURED identity.
+    # The same rule holds in the haric column.
     kutu_uye = set(t[5:] for t in uye_tax if t.startswith('KUTU:'))
     kutu_haric = set(t[5:] for t in haric if t.startswith('KUTU:'))
     uye_tax = [t for t in uye_tax if not t.startswith('KUTU:')]
