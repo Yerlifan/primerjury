@@ -556,10 +556,10 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     uye_diz = [kons[k['kutu']] for k in uye if k['kutu'] in kons]
     rak_diz = [kons[k['kutu']] for k in rakip if k['kutu'] in kons]
 
-    yaz(u'      omurga: %s (%d bp), uye konsensus %d, rakip konsensus %d'
+    yaz(u'      backbone: %s (%d bp), member consensus %d, competitor consensus %d'
         % (capa, len(omurga), len(uye_diz), len(rak_diz)))
     ad = U.aday_primerler(omurga)
-    yaz(u'      geometriyi gecen aday: %d ileri / %d geri' % (len(ad['F']), len(ad['R'])))
+    yaz(u'      candidates passing geometry: %d forward / %d reverse' % (len(ad['F']), len(ad['R'])))
 
     # HIZ SINIRI: ayirt_edici_mi her aday icin butun konsensuslari tarar. Aday
     # sayisi on binlerce oldugunda bu saatler surer. Omurga BOYUNCA esit araliklarla
@@ -575,8 +575,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     if not yalniz_ileri:
         ad['R'] = sey(ad['R'], tarama_ust)
     if (len(ad['F']), len(ad['R'])) != once:
-        yaz(u'      tarama tavani: %d ileri / %d geri aday olculecek (omurga boyunca '
-            u'esit aralikli ornekleme)' % (len(ad['F']), len(ad['R'])))
+        yaz(u'      scan cap: %d forward / %d reverse candidates will be measured (evenly spaced along the backbone)' % (len(ad['F']), len(ad['R'])))
 
     if yalniz_ileri:
         # mevcut geri primeri KORU, yalniz ileriyi degistir (NL1 sorunu).
@@ -594,7 +593,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                               u'bulunamadi - "yalniz ileri primeri degistir" '
                               u'kipi uygulanamadi')
         ad['R'] = [(iR, len(mevcut_R), mevcut_R, G.olc(mevcut_R))]
-        yaz(u'      mevcut geri primer korunuyor, omurgadaki yeri: %d' % iR)
+        yaz(u'      keeping the existing reverse primer, its position on the backbone: %d' % iR)
 
     secilen = []
     bakilan = 0
@@ -617,7 +616,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
         secilen.append(c)
         if len(secilen) >= aday_ust:
             break
-    yaz(u'      %d cift tarandi -> %d ayirt edici aday (%s, %d ayri primer sorgulandi)'
+    yaz(u'      %d pairs scanned -> %d discriminating candidates (%s, %d distinct primers queried)'
         % (bakilan, len(secilen), sure_metni(time.time() - t0), len(bellek)))
 
     # ARMS varyantlari: en iyi birkac adayin ileri primerine + MEVCUT cifte.
@@ -632,7 +631,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
     # IKI ASAMA: once hepsi ASIL olcutle (mm<=1) elenir; YAN olcut (mm<=3)
     # yalniz basa gureseneler icin olculur - is yarisina iner.
     hepsi = secilen + arms
-    yaz(u'      olculecek aday: %d (%d cift + %d ARMS varyanti)'
+    yaz(u'      candidates to measure: %d (%d pairs + %d ARMS variants)'
         % (len(hepsi), len(secilen), len(arms)))
     ilk = []
     for j, c in enumerate(hepsi, 1):
@@ -830,7 +829,7 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
                               kapsam=o.get('uye_kapsam_pay', ''))
         rapor.append(dict(bolge=ad, bas=bas, son=son, kaynak=kaynak,
                           uzunluk=son - bas, aday=len(secilen), en_iyi=en_iyi))
-        yaz(u'      %-32s %4d-%4d  aday %3d  en iyi %s'
+        yaz(u'      %-32s %4d-%4d  candidates %3d  best %s'
             % (ad, bas, son, len(secilen),
                ('%s x' % vir(en_iyi['kat1'])) if en_iyi else '-'))
     return dict(durum='TARANDI', bolge=rapor, omurga=capa_kutu,
@@ -873,11 +872,11 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
         print(s, flush=True); gunluk.write(s + '\n'); gunluk.flush()
 
     yaz('=' * 78)
-    yaz('  verification TURU - esik altinda kalan satirlar')
+    yaz(u'  RECOVERY ROUND - rows that fell below the threshold')
     yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
-    yaz('  ESIK %0.0fx DEGISTIRILMEZ. Yol 1 esigi dusurmez, OLCUYU degistirir;' % ESIK)
-    yaz('  gerekcesi raporun basinda yazilidir.')
+    yaz(u'  THE %0.0fx THRESHOLD IS NOT CHANGED. Route 1 does not lower it, it changes the' % ESIK)
+    yaz(u'  MEASURE; the reasoning is at the top of the report.')
     yaz('')
 
     rc = girdi_denetle(yaz, 'K (verification)', [
@@ -906,9 +905,9 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
         hedefler = [r for r in hedefler
                     if any(y.strip().lower() in r['hedef'].lower()
                            for y in yalniz.split(','))]
-    yaz('  TEK PROTOKOL kaynagi : %s' % os.path.basename(tp_yolu))
-    yaz('  uyelik kaynagi       : %s' % os.path.basename(uy_yol))
-    yaz('  esik alti satir      : %d' % len(hedefler))
+    yaz(u'  single-protocol source : %s' % os.path.basename(tp_yolu))
+    yaz(u'  membership source      : %s' % os.path.basename(uy_yol))
+    yaz(u'  rows below threshold   : %d' % len(hedefler))
     yaz('')
 
     alias = takma_adlar(kok)
@@ -936,23 +935,23 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
         for k in kut.values():
             if k['sinif'] == t['sinif']:
                 gerekli[k['kutu']] = k
-    yaz('  okunacak kutu        : %d' % len(gerekli))
+    yaz(u'  bins to read           : %d' % len(gerekli))
 
     def ilerK(i, n, ad):
-        print('   ... okuma havuzu %d/%d  %s          ' % (i, n, ad), end='\r', flush=True)
+        print(u'   ... read pool %d/%d  %s          ' % (i, n, ad), end='\r', flush=True)
 
     t0 = time.time()
     yaz('')
-    yaz('Okuma havuzlari kuruluyor. Bu adimda ekranda yalniz kutu adlari akar,')
-    yaz('takilmis DEGILDIR; asil is bundan sonra baslar ve her hedef ayri kaydedilir.')
+    yaz(u'Building read pools. Only bin names scroll past on screen during this step;')
+    yaz(u'it is NOT stuck. The real work starts after this and each target is saved separately.')
     nm = N.Numune(list(gerekli.values()), n=okuma, ilerle=ilerK, otorite=True)
     top = sum(h.n_okuma for h in nm.havuz.values())
-    yaz('\nHavuzlar hazir: %d kutu, %d okuma (%s)' % (len(gerekli), top, sure_metni(time.time() - t0)))
+    yaz(u'\nPools ready: %d bins, %d reads (%s)' % (len(gerekli), top, sure_metni(time.time() - t0)))
     tasarim_n = sum(1 for r in hedefler
                     if (_f(r.get('ASIL_ayrim_mm1')) or 0) >= KIL_PAYI_ALT
                     and r['hedef'] not in BILINEN)
     tahmin = len(hedefler) * 20 + tasarim_n * max(300, top / 60.0)
-    yaz('TAHMINI SURE: ~%s  (yol 3 tasarim taramasi %d satirda kosacak)'
+    yaz(u'ESTIMATED TIME: ~%s  (the route 3 design scan will run on %d rows)'
         % (sure_metni(tahmin), tasarim_n))
     yaz('')
     return _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut,
@@ -1020,7 +1019,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                  eski_kapsam=r.get('ASIL_kapsam_mm1', ''), yollar=[], yeni=None,
                  gecti='HAYIR', olcu=u'ayrim kati (%s)' % _C.esik_metni(),
                  sebep='', ayrinti={})
-        yaz('[%2d/%2d] %s  (eski %s x, kapsam %s)'
+        yaz(u'[%2d/%2d] %s  (was %s x, coverage %s)'
             % (i, len(hedefler), hedef, vir(eski), s['eski_kapsam']))
 
         pz = r.get('_panelsiz')
@@ -1285,7 +1284,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
         json.dump(s, open(yol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
         sonuc.append(s)
         g = time.time() - tb
-        print('        gecen %s | tahmini kalan %s'
+        print(u'        elapsed %s | estimated remaining %s'
               % (sure_metni(g), sure_metni(g / i * (len(hedefler) - i))), flush=True)
 
     raporla(CIKTI, sonuc, yaz)
@@ -1304,13 +1303,13 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
 def raporla(CIKTI, sonuc, yaz):
     yol = os.path.join(CIKTI, 'kurtarma_satirlari.tsv')
     with open(yol, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# verification TURU - her hedef icin TEK satir.\n')
-        fh.write(u'# UYELIK KURALI: uye kumesi YALNIZ olculen dizi kimligine gore\n')
-        fh.write(u'# belirlenir ve KOSULSUZ benimsenir. Primerin sonucu (esigi gecip\n')
-        fh.write(u'# gecmedigi) uyelik kararini ETKILEMEZ. "Esigi gecirdigi icin\n')
-        fh.write(u'# benimsendi" gibi bir gerekce bu dosyada YOKTUR.\n')
-        fh.write(u'# ESIK %0.0fx DEGISTIRILMEDI. "olcu" sutunu hangi olcunun uygulandigini soyler;\n' % ESIK)
-        fh.write(u'# evrensel satirlarda ayrim kati TANIMSIZ oldugu icin KAPSAMA + ALAN DISI kullanilir.\n')
+        fh.write(u'# RECOVERY ROUND - ONE row per target.\n')
+        fh.write(u'# MEMBERSHIP RULE: the member set is determined ONLY by measured sequence\n')
+        fh.write(u'# identity, and is adopted UNCONDITIONALLY. Whether the primer passed the\n')
+        fh.write(u'# threshold does NOT affect the membership decision. A reason such as\n')
+        fh.write(u'# "adopted because it passed the threshold" does NOT exist in this file.\n')
+        fh.write(u'# THE %0.0fx THRESHOLD WAS NOT CHANGED. The "olcu" column says which measure was applied;\n' % ESIK)
+        fh.write(u'# on universal rows the discrimination ratio is UNDEFINED, so COVERAGE + OUT-OF-DOMAIN is used instead.\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'eski_deger', 'eski_kapsam', 'denenen_yol', 'olcu',
                     'yeni_deger', 'esigi_gecti_mi', 'UYELIK_GEREKCESI',
@@ -1324,9 +1323,9 @@ def raporla(CIKTI, sonuc, yaz):
 
     ay = os.path.join(CIKTI, 'yeni_adaylar.tsv')
     with open(ay, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Yol 3 taramasinin urettigi adaylar (her hedefin en iyi 25 tanesi).\n')
-        fh.write(u'# ARMS = 3\' sondan 2. ve 3. baza KASITLI uyumsuzluk. Dejenere baz DEGILDIR,\n')
-        fh.write(u'# oligo sayisini artirmaz, toplanti kararini ihlal etmez - ama ayri bir maddedir.\n')
+        fh.write(u'# Candidates produced by the route 3 scan (the best 25 for each target).\n')
+        fh.write(u'# ARMS = a DELIBERATE mismatch at the 2nd and 3rd base from the 3\' end. It is NOT a\n')
+        fh.write(u'# degenerate base, does not increase the oligo count and does not break the agreed rules, but it is a separate item.\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'bolge', 'F', 'R', 'urun_bp', 'arms',
                     'ayrim_mm1', 'ayrim_mm3', 'kapsam'])
@@ -1352,14 +1351,10 @@ def raporla(CIKTI, sonuc, yaz):
     kalan = [s for s in sonuc if s not in gecen and s not in tasi]
     rp = os.path.join(CIKTI, 'KURTARMA_RAPORU.md')
     with open(rp, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Kurtarma turu\n\nUretim: %s · betik %s\n\n'
+        fh.write(u'# Recovery round\n\nGenerated: %s, script %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
-        fh.write(u'## Sonuc\n\n- Kurtarilan: **%d**\n- Dusenlere tasinan (eslenigi var): **%d**\n'
-                 u'- Kurtarilamayan: **%d**\n\n' % (len(gecen), len(tasi), len(kalan)))
-        fh.write(u'> **Esik indirilmedi.** Yol 1 evrensel satirlarda ayrim katinin '
-                 u'yerine kapsama + alan disi olcusunu koyar; bu, esigin gevsetilmesi '
-                 u'degildir - o satirlarda oranin paydasi tanimsizdir. Diger butun '
-                 u'satirlarda 10x aynen uygulandi.\n\n')
+        fh.write(u'## Result\n\n- Recovered: **%d**\n- Moved to failed (an equivalent exists): **%d**\n- Not recoverable: **%d**\n\n' % (len(gecen), len(tasi), len(kalan)))
+        fh.write(u'> **The threshold was not lowered.** On universal rows route 1 replaces the discrimination ratio with a coverage plus out-of-domain measure. That is not a relaxation of the threshold: on those rows the denominator of the ratio is undefined. On every other row 10x was applied exactly as before.\n\n')
         fh.write(u'```' + GEREKCE_EVRENSEL + u'```\n\n')
         fh.write(u'## Satir satir\n\n')
         fh.write(u'| hedef | eski | yol | yeni | gecti mi |\n|---|---|---|---|---|\n')
@@ -1374,7 +1369,7 @@ def raporla(CIKTI, sonuc, yaz):
                  u'(her hedef tek satir). 3. `yeni_adaylar.tsv` (yol 3 ciktisi).\n')
     yaz(u'  written: %s' % rp)
     yaz('')
-    yaz('  KURTARILAN: %d   DUSENLERE TASINAN: %d   KURTARILAMAYAN: %d'
+    yaz(u'  RECOVERED: %d   MOVED TO FAILED: %d   NOT RECOVERABLE: %d'
         % (len(gecen), len(tasi), len(kalan)))
 
 
