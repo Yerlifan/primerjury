@@ -54,10 +54,10 @@ def sayfa16(wb, rows):
                     'ABCDEFGHI'):
         ws.column_dimensions[c].width = w
     n = 1
-    yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI - 2026-08-02', bold=True); n += 1
+    yaz(ws, n, 1, u'READ ENGINE FIX - 2026-08-02', bold=True); n += 1
     yaz(ws, n, 1, u'A SILENT bug was found and fixed in the panel\'s sample measurement engine. This page records the bug, the fix, which values changed and which pairs fell below the 10x threshold.'); n += 2
 
-    yaz(ws, n, 1, '1. HATA NEYDI', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'1. WHAT THE BUG WAS', bold=True, fill=GRI); n += 1
     for s in [
         'engine/reads.py -> sinif `Sonda` (ve engine/scb.py -> sinif `S`) '
         'primeri okumada ararken 13 BAZLIK TAM ESLESEN TEK BIR TOHUM kullaniyordu:  '
@@ -89,7 +89,7 @@ def sayfa16(wb, rows):
     yaz(ws, n, 1, u'CORRECTION: the "188/400" figure in the earlier note file came from running ispcr.amplify with its DEFAULT max_mm=3, so that comparison changed the seed AND the criterion at the same time. The 2 vs 174 above changes only the seed, and that is the number that gives the size of the bug.', fill=SARI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9); ws.row_dimensions[n].height = 30; n += 2
 
-    yaz(ws, n, 1, '3. NASIL DUZELTILDI', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'3. HOW IT WAS FIXED', bold=True, fill=GRI); n += 1
     for s in [
         'GUVERCIN YUVASI (pigeonhole) TOHUMLAMASI: primer max_mm+1 tane ORTUSMEYEN bloga bolunur. '
         'En fazla max_mm uyumsuzluk varsa bu bloklardan EN AZ BIRI tam tutmak zorundadir; dolayisiyla '
@@ -109,7 +109,7 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '4. IKINCI BULGU - OLCUT TUTARSIZLIGI (en az tohum hatasi kadar onemli)',
+    yaz(ws, n, 1, u'4. THE SECOND FINDING - CRITERION INCONSISTENCY (at least as important as the seed bug)',
         bold=True, fill=GRI); n += 1
     for s in [
         '"2 Panel" sayfasindaki olcut notu numune olcutunu "uyumsuzluk <=1, 3\' son 2 baz TAM eslesme" '
@@ -192,7 +192,7 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '8. BAGIMSIZ DOGRULAMA (duzeltilmis motoru KULLANMAYAN yol)', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'8. INDEPENDENT VERIFICATION (a route that does NOT USE the corrected engine)', bold=True, fill=GRI); n += 1
     for s in [
         'Baslik sayilari UC ayri yolla olculdu: (A) ispcr.find_sites - numpy vektor tarama, tohumsuz, '
         'panelin KENDI kodu, bu oturumda degistirilmedi; (B) brute_force.py - saf python, her pozisyon '
@@ -207,7 +207,7 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '9. ACIK KALAN - SONRAKI KISININ BILMESI GEREKENLER', bold=True, fill=SARI); n += 1
+    yaz(ws, n, 1, u'9. STILL OPEN - WHAT THE NEXT PERSON NEEDS TO KNOW', bold=True, fill=SARI); n += 1
     for s in [
         'TAM DERINLIK: bu sayfadaki sayilar kutu basina <=3000 okuma alt kumesiyle uretildi. '
         'python3 -m screening --mod panel-olc --full-depth runs with no sampling. '
@@ -252,9 +252,9 @@ def panel_sutunlari(wb, rows):
         yaz(ws, satir, c0 + 0, r['panel_olcut_tespiti'], fill=f)
         yaz(ws, satir, c0 + 1, '%s / %s' % (r['YENI1_kat_enkotu'] or '-', r['YENI1_kat_havuz'] or '-'), fill=f)
         yaz(ws, satir, c0 + 2, '%s / %s' % (r['YENI3_kat_enkotu'] or '-', r['YENI3_kat_havuz'] or '-'), fill=f)
-        yaz(ws, satir, c0 + 3, r['DEGISTI'] or 'hayir', fill=f)
+        yaz(ws, satir, c0 + 3, r['DEGISTI'] or u'no', fill=f)
         yaz(ws, satir, c0 + 4, ('EVET (mm<=1)' if alt else '') +
-            (' EVET (mm<=3)' if r['ESIK_ALTI_mm3'] == 'EVET' else '') or 'hayir', fill=f)
+            (' EVET (mm<=3)' if r['ESIK_ALTI_mm3'] == 'EVET' else '') or u'no', fill=f)
     for j, w in enumerate((30, 26, 26, 60, 22)):
         ws.column_dimensions[openpyxl.utils.get_column_letter(c0 + j)].width = w
     # NOT satiri
@@ -269,12 +269,12 @@ def panel_sutunlari(wb, rows):
 def ozet_ve_karar(wb):
     ws = wb['1 Rapora Ozet']
     n = ws.max_row + 2
-    yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI (2026-08-02 - EN ONEMLI ACIK MADDE)', bold=True, fill=KIRMIZI)
+    yaz(ws, n, 1, u'READ ENGINE FIX (2026-08-02 - THE MOST IMPORTANT OPEN ITEM)', bold=True, fill=KIRMIZI)
     yaz(ws, n, 7, u'A silent bug was found in the engine that produced the discrimination ratios in this table: the 13 base exact matching seed never saw a binding site when the mismatch fell inside the seed (174/400 instead of 2/400 under the same criterion, a 98.9% miss rate). The engine was fixed and all 21 pairs were re-measured. THE ONE REAL REGRESSION: the Methanosarcina mazei / M. soligelidi group. Pool discrimination went 49.96x -> 11.41x, and the WORST SINGLE BIN 4.23x -> 0.82x. The cause: bin A1-4_3078083 of M. hadiensis amplifies at 47.22% instead of 0.72%. In other words this pair amplifies M. hadiensis as well as it amplifies the target. THE 187.9x VALUE ON THIS ROW IS NO LONGER VALID. On the other rows the fix is either neutral or pulls the value UP (their coverage had been under measured). Detail: "16 Okuma Motoru Duzeltmesi".')
     ws.cell(n, 7).fill = KIRMIZI; ws.cell(n, 7).alignment = SAR
     ws.row_dimensions[n].height = 120
     n += 1
-    yaz(ws, n, 1, 'IKINCI BULGU - OLCUT TUTARSIZLIGI', bold=True, fill=SARI)
+    yaz(ws, n, 1, u'THE SECOND FINDING - CRITERION INCONSISTENCY', bold=True, fill=SARI)
     yaz(ws, n, 7, u'The panel\'s "Ayrim (x)" column was not produced under a SINGLE CRITERION: some rows were measured with mismatches <=1 and some with <=3 (for example Proteiniphilum reads 29.0% in the panel, which is the mm<=3 value; under mm<=1 it is 1.6%). Values inside the column therefore CANNOT be compared across rows. On the "16 Okuma Motoru Duzeltmesi" sheet every row was re-measured with one engine under both criteria, and every value carries its criterion label. The panel needs to settle on a single sample criterion, and that decision is yours.')
     ws.cell(n, 7).fill = SARI; ws.cell(n, 7).alignment = SAR
     ws.row_dimensions[n].height = 90
@@ -292,23 +292,23 @@ def ozet_ve_karar(wb):
 
     ws = wb['6 Karar Durumu']
     n = ws.max_row + 2
-    yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=KIRMIZI)
-    yaz(ws, n, 2, 'Methanosarcina mazei / M. soligelidi grubu')
-    yaz(ws, n, 3, 'ESIK ALTI - YENIDEN KARAR GEREKIYOR', fill=KIRMIZI)
+    yaz(ws, n, 1, u'READ ENGINE FIX', bold=True, fill=KIRMIZI)
+    yaz(ws, n, 2, u'the Methanosarcina mazei / M. soligelidi group')
+    yaz(ws, n, 3, u'BELOW THRESHOLD - A NEW DECISION IS NEEDED', fill=KIRMIZI)
     yaz(ws, n, 4, u'The seed bug in the sample engine was fixed. Within genus pool discrimination went 49.96x -> 11.41x, and the worst single bin 4.23x -> 0.82x. The cause: bin A1-4_3078083 of M. hadiensis measured 0.72% under the old engine, and its correct value is 47.22%. The pair amplifies M. hadiensis as well as it amplifies the target. OPTIONS: (a) widen the amplified set so that it covers M. hadiensis as well, (b) drop the pair, (c) keep it conditional on amplicon sequencing. It was not left in the panel silently; it is marked "ESIK ALTI". Detail: "16 Okuma Motoru Duzeltmesi".')
     ws.cell(n, 4).fill = KIRMIZI; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 90
     n += 1
-    yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=YESIL)
-    yaz(ws, n, 2, 'Methanosarcina cinsi / Asetoklastik metanojenler')
+    yaz(ws, n, 1, u'READ ENGINE FIX', bold=True, fill=YESIL)
+    yaz(ws, n, 2, u'the Methanosarcina genus / acetoclastic methanogens')
     yaz(ws, n, 3, u'IMPROVED (the coverage had been under measured)', fill=YESIL)
     yaz(ws, n, 4, u'Methanosarcina_cinsi: seven M. mazei member bins measured 0.5-26.5% under the old engine, and their correct value is 79.4-82.9%. Pool discrimination 2.51x -> 81.59x; the worst single bin 0.04x -> 4.66x (still below 10x). Asetoklastik_metanojenler: the member floor went 0.0% -> 58.6%, and the pool ~0 -> 50.84x. The coverage measures also rose: Arke_universal 11/39 -> 32/39 (mm<=1), Bakteri_universal 4/20 -> 13/20.')
     ws.cell(n, 4).fill = YESIL; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 76
     n += 1
-    yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=SARI)
-    yaz(ws, n, 2, 'Methanothrix cinsi')
-    yaz(ws, n, 3, 'OLCUTE ASIRI DUYARLI - OLCUT KARARI BEKLIYOR', fill=SARI)
+    yaz(ws, n, 1, u'READ ENGINE FIX', bold=True, fill=SARI)
+    yaz(ws, n, 2, u'the Methanothrix genus')
+    yaz(ws, n, 3, u'OVERLY SENSITIVE TO THE CRITERION - AWAITING THE CRITERION DECISION', fill=SARI)
     yaz(ws, n, 4, u'Under the mm<=1 criterion the discrimination is 13.74x (above the threshold); under mm<=3 it is 0.86x (one competitor bin amplifies at 76.92%). The 75.2x published in the panel could not be reproduced under either criterion. This should not go to order before the criterion is settled.')
     ws.cell(n, 4).fill = SARI; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 60
@@ -330,7 +330,7 @@ def main():
     panel_sutunlari(wb, rows)
     ozet_ve_karar(wb)
     wb.save(a.xlsx)
-    print('guncellendi:', a.xlsx, '| sayfalar:', len(wb.sheetnames))
+    print(u'updated:', a.xlsx, '| sayfalar:', len(wb.sheetnames))
 
 
 if __name__ == '__main__':
