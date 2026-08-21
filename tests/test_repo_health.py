@@ -74,7 +74,13 @@ YASAK = [
     (r'\bcapraz_kontrol\.py\b', 'old entry point (now cross_check.py)'),
     # Personal names, split so a bulk rename cannot rewrite them (see warning).
     (r'\bBur' + r'ak\b', 'personal name'),
-    (r'\bAl' + r"i'nin\b", 'personal name'),
+    # OLCULDU: bu desen once yalniz "Al" + "i'nin" idi. Kaynakta kesme
+    # isareti KACISLI durdugu icin (the colleague's) hicbir zaman eslesmedi. Ustelik
+    # ciplak SRC ve a colleague gecisleri, bir CLI bayragi (--src) ve bir ortam
+    # degiskeni olarak depoda duruyordu. Desen artik ada bakiyor.
+    (r'\bAl' + r'i\b', 'personal name'),
+    (r'\bAL' + r'I\b', 'personal name'),
+    (r'--al' + r'i\b', 'personal name as a CLI flag'),
     (r'\bhoc' + r'aya\b', 'study-specific role'),
     (r'\bhoc' + r'anin\b', 'study-specific role'),
     (r'\bSON_ETAP_betikleri\b', 'directory that is not in this repository'),

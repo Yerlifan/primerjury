@@ -17,11 +17,11 @@
 # KAYNAK CALISMANIN BETIKLERINDEN NE ALINDI
 #   troubleshooting tools/kraken2_driver.sh  cagri bicimi, --memory-mapping fikri
 #   troubleshooting tools/bracken_species.sh kmer_distrib ve -l S kullanimi
-#   ozgun Kraken/Bracken betigi                 VT butunluk denetimi (hash/opts/taxo),
+#   the source study's Kraken/Bracken script  VT butunluk denetimi (hash/opts/taxo),
 #                                            bellek denetimi, log bicimi
 #   WSL/rerun_kraken.sh                 VT otomatik bulma, micromamba ortami,
 #                                            tek kosu birlestirme, kayipsizlik denetimi
-#   WSL/ozgun Kraken ozet betigi                    rapor ayristirma, tur duzeyi toplama
+#   tools/kraken_summary.py                  rapor ayristirma, tur duzeyi toplama
 # Bu arac onlari yeniden yazmaz, cagirir ve uzerine ekler.
 #
 # TUSLAR
@@ -101,7 +101,7 @@ log_ac() {
 # ortam_ac - kraken2'yi BULUNABILIR hale getirir.
 #
 # NEDEN GENISLETILDI (2026-08-04)
-# Bu fonksiyon kaynak calismanin ozgun Kraken betiklerinden
+# Bu fonksiyon kaynak calismanin Kraken betiklerinden
 # devralinmisti: kraken2 PATH'te degildir, micromamba'nin "mikro" ortamindadir.
 # Ancak yalnizca "ortami etkinlestir" yolu deneniyordu. Kullanicinin kosusunda
 # micromamba kabuk kancasi calismadi ve kraken2 bulunamadi diye butun Kraken
@@ -199,7 +199,7 @@ ortam_ac() {
   done
 
   # --- 3) KAYNAK CALISMANIN YOLU: ortami etkinlestir -------------------------------
-  # ozgun Kraken betiklerinden aynen devralindi.
+  # Kaynak calismanin Kraken betiklerinden aynen devralindi.
   _kayit "micromamba/conda kabuk kancasi + '$ORTAM' ortaminin etkinlestirilmesi"
   export PATH="$HOME/bin:$PATH"
   if command -v micromamba >/dev/null 2>&1; then
@@ -745,7 +745,7 @@ tus_ali_vt() {
   set -e
 }
 
-# --- bellek. ozgun Kraken/Bracken betigi ve rerun_kraken.sh'teki karar ---------
+# --- bellek. Kaynak Kraken/Bracken betigi ve rerun_kraken.sh'teki karar --------
 bellek_bayragi() {
   local d="$1"
   local hb rb
@@ -1023,7 +1023,7 @@ tus_vt_kimlik() {
 tus_sinav() {
   echo "SELFTESTLER. Sinav gecmeden ana is baslamaz (proje kurali 2)."
   local hata=0
-  for p in threshold_summary.py comparison_table.py custom_taxonomy.py ozgun Kraken ozet betigi; do
+  for p in threshold_summary.py comparison_table.py custom_taxonomy.py kraken_summary.py; do
     echo; echo "--- $p"
     if [ -f "$_BETIK_DIZIN/$p" ]; then
       python3 "$_BETIK_DIZIN/$p" --selftest || hata=1
@@ -1250,7 +1250,7 @@ tus_ozelvt_kos() {
           "$OZEL_IS/tum.fastq" 2>"$OZEL_IS/hata.txt" >/dev/null || {
     echo "kraken2 HATA:"; tail -5 "$OZEL_IS/hata.txt" | sed 's/^/  /'; exit 1; }
   rm -f "$OZEL_IS/hata.txt"
-  python3 "$_BETIK_DIZIN/ozgun Kraken ozet betigi" --is "$OZEL_IS" --kok "$PROJE" || true
+  python3 "$_BETIK_DIZIN/kraken_summary.py" --job "$OZEL_IS" --toolkit "$_BETIK_DIZIN" || true
 }
 
 
