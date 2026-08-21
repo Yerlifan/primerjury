@@ -1,0 +1,68 @@
+22 cift, 5 veritabani
+  taraniyor: SILVA_138.2_SSURef_NR99.fasta      (824 MB)  1187 sn
+     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+  taraniyor: SILVA_138.2_LSURef_NR99.fasta      (297 MB)  369 sn
+     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+  taraniyor: UNITE_ITS.fasta                    (1526 MB)  1686 sn
+     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+  taraniyor: PR2_SSU_taxo_long.fasta            (369 MB)  438 sn
+     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+  taraniyor: ROD_v1.2_operon_variants.fasta     (357 MB)  460 sn
+     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+
+======================================================================================================================
+hedef                                          tum |   BOY: disi | a klad-ici ao organel b ayni-alan c fark-alan | TAKSON: b+c
+----------------------------------------------------------------------------------------------------------------------
+Methanothrix_cinsi                            2027 |           1 |       529         0      1498         0 |        1498
+Petrimonas_cinsi                               685 |           0 |        34         0       651         0 |         651
+Metanomikrobiyales_hidrojenotrof              3175 |           0 |       568         0      2606         1 |        2607
+Methanosarcina_cinsi                           497 |           0 |       495         0         2         0 |           2
+Metilotrofik_metanojen                          67 |           0 |        44         0        23         0 |          23
+Nitrosocosmicus_AOA                            589 |           0 |       548         0        41         0 |          41
+Proteolitik_Synergistaceae (eski ad: Pro     16990 |          15 |       207         0     16782         0 |       16782  (bilinmiyor 1)
+Bacteroidales_kumesi                         64653 |          20 |     21016         0     43546         0 |       43546  (bilinmiyor 91)
+Microascaceae_askomikot                      70026 |          11 |       240         0     69786         0 |       69786
+Sakarolitik_Sphaerochaeta                      284 |           0 |       127         0       157         0 |         157
+Asetoklastik_metanojenler                     6832 |          22 |      1435         0      5396         1 |        5397
+Petriella_musispora                             49 |           0 |         3         0        46         0 |          46
+Proteolitik_Cloacimonas                        156 |           0 |       153         0         3         0 |           3
+Methanothrix_soehngenii_turu                  7856 |          25 |       511         0      7345         0 |        7345
+Petriella_cinsi                               6916 |           3 |       140         0      6776         0 |        6776
+Proteiniphilum_cinsi                           229 |           0 |       108         0       121         0 |         121
+Methanosarcina mazei / M. soligelidi gru       463 |           0 |       451         0        12         0 |          12
+Metanojen_universal                           2545 |           2 |      2009         0       536         0 |         536
+Mantar_universal (F1)                       138136 |        6626 |     94850         0     42734       552 |       43286
+Mantar_universal (F2)                        54722 |         846 |     41884         0     12808        23 |       12831  (bilinmiyor 7)
+Bakteri_universal                           430534 |      171080 |    419750      4726         0       122 |         122  (bilinmiyor 5936)
+Arke_universal                               13924 |          89 |     12022         0         0      1862 |        1862  (bilinmiyor 40)
+----------------------------------------------------------------------------------------------------------------------
+
+=== FARK ===
+hedef                                        BOY olcutu  TAKSON olcutu etki
+----------------------------------------------------------------------------------------------------
+Methanothrix_cinsi                                    1           1498  capraz sayisi 1 -> 1498 (artti)
+Petrimonas_cinsi                                      0            651  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Metanomikrobiyales_hidrojenotrof                      0           2607  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Methanosarcina_cinsi                                  0              2  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Metilotrofik_metanojen                                0             23  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Nitrosocosmicus_AOA                                   0             41  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Proteolitik_Synergistaceae (eski ad: Pro             15          16782  capraz sayisi 15 -> 16782 (artti)
+Bacteroidales_kumesi                                 20          43546  capraz sayisi 20 -> 43546 (artti)
+Microascaceae_askomikot                              11          69786  capraz sayisi 11 -> 69786 (artti)
+Sakarolitik_Sphaerochaeta                             0            157  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Asetoklastik_metanojenler                            22           5397  capraz sayisi 22 -> 5397 (artti)
+Petriella_musispora                                   0             46  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Proteolitik_Cloacimonas                               0              3  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Methanothrix_soehngenii_turu                         25           7345  capraz sayisi 25 -> 7345 (artti)
+Petriella_cinsi                                       3           6776  capraz sayisi 3 -> 6776 (artti)
+Proteiniphilum_cinsi                                  0            121  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Methanosarcina mazei / M. soligelidi gru              0             12  TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)
+Metanojen_universal                                   2            536  capraz sayisi 2 -> 536 (artti)
+Mantar_universal (F1)                              6626          43286  capraz sayisi 6626 -> 43286 (artti)
+Mantar_universal (F2)                               846          12831  capraz sayisi 846 -> 12831 (artti)
+Bakteri_universal                                171080            122  capraz sayisi 171080 -> 122 (azaldi)
+Arke_universal                                       89           1862  capraz sayisi 89 -> 1862 (artti)
+
+NOT: bu olcum yalniz su veritabanlarinda yapildi: SILVA_138.2_SSURef_NR99.fasta, SILVA_138.2_LSURef_NR99.fasta, UNITE_ITS.fasta, PR2_SSU_taxo_long.fasta, ROD_v1.2_operon_variants.fasta
+     Tam kapsam SILVA/UNITE/PR2/ROD gerektirir ve SAATLER surer.
+     Buradaki sayilar KAPSAM DEGIL, yontemin calistiginin kanitidir.
