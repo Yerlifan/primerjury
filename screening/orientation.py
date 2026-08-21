@@ -1,64 +1,49 @@
 # -*- coding: utf-8 -*-
 """
-orientation.py - KANONIK YON TANIMI VE NORMALIZASYONU. Tek kaynak.
+orientation.py - THE DEFINITION AND NORMALISATION OF THE CANONICAL ORIENTATION.
+A single source.
 
-PROJENIN KANONIK YONU: SENSE (referans / artı iplik).
-  SSU rRNA ve ITS konsensusleri, referans veritabanlarindaki (SILVA/RefSeq) yonde
-  saklanir. Sebep: projenin butun in-silico PCR motorlari (ispcr.amplify,
-  okuma_motoru.Sonda) verilen diziyi YALNIZ ARTI IPLIKTE tarar. Ters saklanmis bir
-  konsensuste ileri primer de, ters primerin tumleyeni de bulunamaz; motor hata
-  atmaz, "urun yok" der.
-  OLCULEN ETKI: orientation_impact_test.py -> dogru yonde 117 urun, ters yonde 0. Kayip %100.
+THE PROJECT'S CANONICAL ORIENTATION: SENSE (the reference, or plus, strand).
+  SSU rRNA and ITS consensuses are stored in the direction the reference databases
+  (SILVA/RefSeq) use. The reason: every in-silico PCR engine in this project
+  (ispcr.amplify, okuma_motoru.Sonda) scans the given sequence ON THE PLUS STRAND
+  ONLY. On a consensus stored in reverse, neither the forward primer nor the
+  complement of the reverse primer is found, and the engine reports no product
+  without raising anything.
 
-NEDEN BU MODUL VAR: yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup
-ayri ayri yamandi. Uc ayri yama = tek kanonik cozum yok = bir sonraki degisiklikte
-yine kacar. Bundan sonra yon TEK BIR YERDE, burada tanimlanir; her betik
-`konsensus_kanonik/` klasorunu okur ve yon sorgusu icin bu modulu cagirir.
-
-IKI BAGIMSIZ OLCUT (proje kurali: hicbir karar tek kod yoluna birakilmaz).
-Ikisi ayrilirsa dosya BELIRSIZ sayilir ve normalize EDILMEZ, isaretlenir.
-
-  Olcut 1  panelin kendi evrensel ciftleri: sense yonde F ve rc(R) dogrudan bulunur
-  Olcut 2  literatur evrensel motifleri (panelden bagimsiz):
-             SSU  515F, 806R-sense, 1100-sense
-             ITS  ITS1, rc(ITS4)
-
-API:
-    yon.tespit(dizi, sinif)        -> ('SENSE'|'ANTISENSE'|'BELIRSIZ', ayrinti_dict)
-    yon.kanonik(dizi, sinif)       -> (kanonik_dizi, karar, cevrildi_mi)
-    yon.sinifi(yol_veya_ad)        -> 'A'|'B'|'F1'|'F2'|'?'
 """
-# ---------------------------------------------------------------------------
-# orientation.py — kanonik yonun (SENSE) TEK tanim yeri: bir dizinin hangi yonde
-#          saklandigini olcer ve gerekirse ters tumleyenini alarak kanonige
-#          cevirir.
+# -------------------------------------------------------------------------
+# orientation.py - the ONE place the canonical orientation (SENSE) is defined: it
+#          measures which direction a sequence is stored in and, where needed,
+#          converts it to canonical by taking its reverse complement.
 #
-# GIRDI  : dogrudan dizi ve amplikon sinifi alir; dosya_kanonik() ise bir fasta
-#          dosyasi okur. Baglanma yeri aramasi icin okuma_motoru.Sonda
-#          kullanilir (kayipsiz, <=2 uyumsuzluk toleransli).
-# CIKTI  : dosyaya yazmaz. tespit() (karar, ayrinti) ikilisi; kanonik()
-#          (kanonik_dizi, karar, cevrildi_mi) uclusu; dosya_kanonik() kayit
-#          listesi; kendini_sina() bos liste (gecti) ya da hata metinleri
-#          dondurur. Dogrudan calistirilirsa sinav sonucunu ekrana basar.
-# CAGRAN : build_canonical.py (konsensus_kanonik uretimi), hepsi.yon_kapisi (her
-#          asamanin basindaki kapi), kendini_sina.yon_sinamasi ve
-#          build_consensus.py. Yani full_chain.py asamalari 1, 2, 3, 4, 5, 6,
-#          7, 8 ve 9'un tamaminda dolayli olarak calisir.
+# INPUT  : it takes a sequence and an amplicon class directly; dosya_kanonik()
+#          reads a fasta file. okuma_motoru.Sonda is used for the binding site
+#          search (lossless, tolerating <=2 mismatches).
+# OUTPUT : it writes no file. tespit() returns the pair (verdict, detail);
+#          kanonik() the triple (canonical_sequence, verdict, was_flipped);
+#          dosya_kanonik() a record list; kendini_sina() an empty list (passed) or
+#          error texts. Run directly, it prints the test result to the screen.
+# CALLED BY: build_canonical.py (producing konsensus_kanonik), hepsi.yon_kapisi (the
+#          gate at the head of every stage), kendini_sina.yon_sinamasi and
+#          build_consensus.py. So it runs indirectly on all of full_chain.py's
+#          stages 1 to 9.
 #
-# NEDEN AYRI VE TEK BIR MODUL: yon hatasi ayni gece uc ayri yerde ayri ayri
-# bulunup ayri ayri yamandi. Uc yama demek, tek bir kanonik cozum olmamasi ve
-# bir sonraki degisiklikte hatanin yeniden kacmasi demektir. Karar iki BAGIMSIZ
-# olcute baglanmistir (panelin kendi evrensel ciftleri ve literatur motifleri);
-# ikisi ayrilirsa dizi BELIRSIZ sayilir ve normalize EDILMEZ, isaretlenir -
-# cunku yanlis yone cevrilmis bir dizi, hic cevrilmemis kadar sessiz zarar verir.
-# ---------------------------------------------------------------------------
+# WHY A SEPARATE AND SINGLE MODULE: the orientation bug was found and patched in
+# three separate places on the same night. Three patches means there is no single
+# canonical fix, and the bug escapes again on the next change. The decision is tied
+# to two INDEPENDENT criteria (the panel's own universal pairs and the literature
+# motifs); if the two disagree the sequence counts as UNCERTAIN and IS NOT
+# normalised, it is flagged - because a sequence flipped the wrong way does as much
+# silent damage as one never flipped at all.
+# -------------------------------------------------------------------------
 import os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import read_engine as om
 
 KANONIK_YON = 'SENSE'
-TOLERANS_MM = 2          # nanopore konsensusunde tek tuk hata olur
+TOLERANS_MM = 2          # a nanopore consensus carries the occasional error
 
 PANEL_CIFT = {
     'A':  ('Arke_universal',        'CTGCGGTTTAATTGGATTCAACGC', 'GAACTGACGACGGCCATGC'),
@@ -103,17 +88,18 @@ def _olcut2(dizi, sinif):
 
 
 def tespit(dizi, sinif):
-    """Donus: (karar, ayrinti). karar in {'SENSE','ANTISENSE','BELIRSIZ'}"""
-    # Iki olcut BIRBIRINDEN BAGIMSIZ secilmistir: olcut 1 panelin kendi
-    # evrensel primerlerini kullanir, olcut 2 panelden hic haberi olmayan
-    # literatur motiflerini (515F, 806R-sense, ITS1, rc(ITS4)) kullanir. Ayni
-    # kaynaktan turemis iki olcut ayni yonde yanilabilirdi.
-    # Karar kurali muhafazakardir: ikisi uyusursa karar kesin, biri sessiz
-    # kalirsa konusan gecerli, IKISI CELISIRSE karar BELIRSIZ olur ve dizi
-    # cevrilmez. Yanlis yone cevirmek, cevirmemekten daha zararlidir cunku
-    # sonraki asamalar dosyanin kanonik oldugunu varsayar.
-    # 200 bp'den kisa diziler dogrudan BELIRSIZ sayilir: motiflerin hepsinin
-    # sigmadigi bir parcada sayimlar rastlantisal olur.
+    """Returns: (verdict, detail). verdict in {'SENSE','ANTISENSE','BELIRSIZ'}"""
+    # The two criteria are chosen INDEPENDENTLY OF ONE ANOTHER: criterion 1 uses
+    # the panel's own universal primers, and criterion 2 uses literature motifs that
+    # know nothing of the panel (515F, 806R-sense, ITS1, rc(ITS4)). Two criteria
+    # derived from the same source could go wrong in the same direction.
+    # The decision rule is conservative: if the two agree the verdict is definite,
+    # if one stays silent the speaking one holds, and IF THE TWO CONTRADICT the
+    # verdict is UNCERTAIN and the sequence is not flipped. Flipping the wrong way
+    # is more harmful than not flipping, because the later stages assume the file
+    # is canonical.
+    # Sequences shorter than 200 bp count as UNCERTAIN outright: in a fragment that
+    # cannot hold all the motifs, the counts become accidental.
     dizi = temizle(dizi)
     if len(dizi) < 200:
         return 'BELIRSIZ', dict(sebep='dizi 200 bp\'den kisa', uzunluk=len(dizi))
@@ -138,8 +124,10 @@ def tespit(dizi, sinif):
 
 
 def kanonik(dizi, sinif):
-    """Donus: (kanonik_dizi, karar, cevrildi_mi).
-    BELIRSIZ ise dizi DEGISTIRILMEZ - cagiran taraf isaretlemelidir."""
+    """Returns: (canonical_sequence, verdict, was_flipped).
+        On BELIRSIZ the sequence IS NOT CHANGED - the caller must flag it.
+
+    """
     dizi = temizle(dizi)
     karar, ay = tespit(dizi, sinif)
     if karar == 'ANTISENSE':
@@ -148,8 +136,10 @@ def kanonik(dizi, sinif):
 
 
 def dosya_kanonik(yol):
-    """Bir fasta dosyasindaki her kaydi kanonige cevirir.
-    Donus: [(baslik, kanonik_dizi, karar, cevrildi)]"""
+    """Converts every record in a fasta file to canonical.
+        Returns: [(header, canonical_sequence, verdict, flipped)]
+
+    """
     sn = sinifi(os.path.basename(yol)) or sinifi(yol)
     if sn == '?':
         sn = sinifi(yol)
@@ -172,14 +162,14 @@ def dosya_kanonik(yol):
 
 
 def kendini_sina():
-    """Modulun kendi sinavi. Ana is baslamadan once kosar (proje kurali 2)."""
+    """The module's own test. It runs before the main work starts (project rule 2)."""
     hata = []
     # 1) bilinen sense bir SSU parcasi: 515F + 806R-sense icerir
     s = ('GG' * 60 + 'GTGCCAGCAGCCGCGGTAA' + 'AC' * 120 + 'GGATTAGATACCC' + 'TT' * 60)
     k, karar, cev = kanonik(s, 'A')
     if karar != 'SENSE' or cev:
         hata.append('sentetik sense SSU yanlis: %s' % karar)
-    # 2) ayni dizinin tersi ANTISENSE bulunmali ve geri cevrilmeli
+    # 2) the reverse of the same sequence must come out ANTISENSE and be flipped back
     k2, karar2, cev2 = kanonik(rc(s), 'A')
     if karar2 != 'ANTISENSE' or not cev2:
         hata.append('sentetik antisense SSU yanlis: %s' % karar2)
