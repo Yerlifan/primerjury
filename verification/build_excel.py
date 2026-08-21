@@ -505,7 +505,7 @@ def main():
     wb.save(cy)
     print('yazildi: %s' % cy)
     print('  sayfalar: %s' % ', '.join(wb.sheetnames))
-    print('  siparis oligo: %d | panel cifti: %d | kutu: %d | cins-tur satiri: %d'
+    print(u'  order oligos: %d | panel pairs: %d | bins: %d | genus-species rows: %d'
           % (len(oligo), len(pr), len(kim), len(ct)))
     return 0
 

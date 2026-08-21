@@ -326,7 +326,7 @@ def main():
     if a.mask and not masked:
         print(u'WARNING: the mask file was read but no position was forbidden. Contig names in the file: %s' % (list(mseen) or "yok"))
     print(u'target           : %s' % label)
-    print("konsensus        : %s (%d bp, basliği %s)" % (a.consensus, L, name))
+    print(u'consensus        : %s (%d bp, header %s)' % (a.consensus, L, name))
     print("maske            : %s" % (a.mask or "yok"))
     if mclasses:
         print("maske siniflari  : %s" % ", ".join("%s=%d" % kv for kv in sorted(mclasses.items())))

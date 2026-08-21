@@ -106,7 +106,7 @@ def main():
                           baskin_referans=kaz[:80],
                           baskin_oran=round(100.0 * kac / n, 1),
                           dagilim=";".join("%s=%d" % (k[:40], v) for k, v in sirali[:4])))
-        print("%-10s %-34s okuma=%5d  %-52s %%%.1f"
+        print(u'%-10s %-34s reads=%5d  %-52s %%%.1f'
               % (grp, base[:34], n, kaz[:52], 100.0 * kac / n))
     if a.out and satir:
         d = os.path.dirname(os.path.abspath(a.out))

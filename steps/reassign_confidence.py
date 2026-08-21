@@ -253,8 +253,7 @@ def main():
                                   key=lambda x: -x[1]):
             karsilastirma.append(dict(dosya=taban, eski_rutbe=er,
                                       yeni_rutbe=yr, okuma=c))
-        print("   %-34s okuma=%8d tasinan=%7d (%5.2f%%) sinifsiz=%7d "
-              "agac_disi_vurus=%.3f%%"
+        print(u'   %-34s reads=%8d moved=%7d (%5.2f%%) unclassified=%7d off_tree_hits=%.3f%%'
               % (taban, toplam, tasinan,
                  100.0 * tasinan / toplam if toplam else 0, sinifsiz_olan,
                  100.0 * vurus_eksik / vurus_top if vurus_top else 0))

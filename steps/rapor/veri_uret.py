@@ -86,7 +86,7 @@ def main():
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump(veri, fh, ensure_ascii=False, indent=1)
     print("yazildi: %s" % a.out)
-    print("  sinanan aday=%d  gecen=%d  kapsanan hedef=%d  onerilen=%d"
+    print(u'  candidates tested=%d  passing=%d  targets covered=%d  recommended=%d'
           % (toplam, len(gecen), veri["hedef"], len(onerilen)))
     if cikarilan:
         print("  alan karisimi nedeniyle cikarilan: %d (%s)"

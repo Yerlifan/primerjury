@@ -398,7 +398,7 @@ def main():
           % (len(hedefler),
              sum(1 for h in hedefler if h["duzey"] == "tur"),
              sum(1 for h in hedefler if h["duzey"] == "cins")))
-    print("tur ozgullugunde hosgorulen capraz TUR sayisi: %d"
+    print(u'cross reacting SPECIES tolerated under species specificity: %d'
           % a.capraz_tur_esik)
 
     # ciftleri topla

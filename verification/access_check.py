@@ -205,7 +205,7 @@ def main():
     with open(yol, 'a', encoding='utf-8', newline='') as fh:
         if yeni:
             fh.write(u'# ACCESS VERIFICATION - does the search really use every database?\n')
-            fh.write(u'# GECTI: kendi kaydini hem tam hem hatali dizide geri getiriyor.\n')
+            fh.write(u'# PASSED: it retrieves its own record from both the exact and the flawed sequence.\n')
             fh.write(u'# PARTIAL: it only retrieves on a flawless sequence, and our consensuses are imperfect!\n')
             fh.write(u'# FAILED: it cannot even retrieve its own record, so the database is effectively unused.\n')
         w = csv.DictWriter(fh, delimiter='\t',

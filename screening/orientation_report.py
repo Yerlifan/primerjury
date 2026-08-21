@@ -151,7 +151,7 @@ def main():
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '4. BILINEN CEVAPLI TEST - yon yanlissa hangi sayi ne kadar bozulur',
+    yaz(ws, n, 1, u'4. A TEST WITH A KNOWN ANSWER - how far each number moves when the orientation is wrong',
         bold=True, fill=GRI); n += 1
     yaz(ws, n, 1, u'Setup: the same primer pair, the same consensus, THE ONLY DIFFERENCE BEING ORIENTATION. Source: referans_konsensus/konsensus (99 files')
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)

@@ -117,7 +117,7 @@ def main():
                              bp_a=len(s1), bp_b=len(s2)))
         d['uye_benzerlik'] = cift
         cikti[ad] = d
-        print('%-46s uye %2d kutu, kons %s' % (
+        print(u'%-46s member %2d bins, cons %s' % (
             ad[:46], len(uye),
             '/'.join(str(x['kons_bp']) for x in d['uye_kutu'])), flush=True)
 

@@ -589,7 +589,7 @@ def main():
                         ws.cell(row=r, column=j).fill = SARI
                 r += 1
     elif a.rutbe:
-        print("UYARI: --rutbe verildi ama ozet.tsv yok: %s" % ro)
+        print(u'WARNING: --rutbe was given but there is no ozet.tsv: %s' % ro)
 
     # ---------------- Guvenilirlik kaniti ----------------
     ws = wb.create_sheet("Tür Düzeyi Güvenilirlik")
