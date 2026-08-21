@@ -47,7 +47,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$DB" ] && [ -n "$IN" ] && [ -n "$OUT" ] || {
-  echo "kullanim: bash $0 --db <kraken2_db> --in <ham_fastq_klasoru> --out <cikti_klasoru>" >&2; exit 2; }
+  echo "usage: bash $0 --db <kraken2_db> --in <raw_fastq_directory> --out <output_directory>" >&2; exit 2; }
 
 log() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die() { printf 'HATA: %s\n' "$*" >&2; exit 1; }

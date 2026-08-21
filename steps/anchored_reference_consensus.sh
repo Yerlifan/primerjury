@@ -50,7 +50,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$PT" ] && [ -n "$OUT" ] || {
-  echo "kullanim: bash $0 --pt <PrimerTasarlama> --out <cikti>" >&2; exit 2; }
+  echo "usage: bash $0 --pt <project directory> --out <output>" >&2; exit 2; }
 [ -d "$PT/fastq files" ] || { echo "ERROR: no such directory: '$PT/fastq files'" >&2; exit 1; }
 [ -d "$PT/REFERANS_DB" ] || { echo "ERROR: no such directory: '$PT/REFERANS_DB'" >&2; exit 1; }
 
@@ -214,7 +214,7 @@ if [ "$DONE" -eq 0 ]; then
   echo >&2
   echo "ERROR: not one file was processed." >&2
   if [ "$SKIPPED" -eq "$TOTAL" ] && [ -n "$GRUP_SEC" ]; then
-    echo "Sebep: --groups '$GRUP_SEC' hicbir klasore uymadi." >&2
+    echo "Cause: --groups '$GRUP_SEC' matched no directory." >&2
     echo "Mevcut grup onekleri:" >&2
     for d in "$PT/fastq files"/*/; do basename "$d"; done | sed 's/-[0-9]*$//' \
       | sort -u | sed 's/^/   /' >&2
@@ -286,7 +286,7 @@ PY
 
 log "bitti"
 echo
-echo "Cikti:"
+echo "Output:"
 echo "  $OUT/referans_secimi.tsv        which taxon settled on which reference"
 echo "  $OUT/konsensus/*_ref_konsensus.fasta  referans koordinatinda konsensus"
 echo "  $OUT/pileup/*_pileup.txt        depth and IUPAC call per position"

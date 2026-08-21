@@ -12,8 +12,8 @@ OUT="yardim_ciktilari"; mkdir -p "$OUT"
 bar() { printf '\n%s\n%s\n' "=== $* ===" "-----------------------------------------------"; }
 
 bar "1. Makine"
-echo "tarih          : $(date -Iseconds)"
-echo "cekirdek       : $(nproc)"
+echo "date           : $(date -Iseconds)"
+echo "cores          : $(nproc)"
 if [ -r /proc/meminfo ]; then
   awk '/MemTotal|MemAvailable|SwapTotal/ {printf "%-15s: %.1f GB\n", $1, $2/1048576}' /proc/meminfo
 fi
@@ -26,9 +26,9 @@ for t in kraken2 kraken2-build bracken bracken-build est_abundance.py samtools m
   if [ -n "$p" ]; then
     v=$("$t" --version 2>&1 | head -2 | tr '\n' ' ' | cut -c1-70)
     [ -z "${v// }" ] && v=$("$t" -version 2>&1 | head -1 | cut -c1-70)
-    printf "%-18s VAR   %-46s %s\n" "$t" "$v" "$p"
+    printf "%-18s PRESENT   %-46s %s\n" "$t" "$v" "$p"
   else
-    printf "%-18s YOK\n" "$t"
+    printf "%-18s ABSENT\n" "$t"
   fi
 done
 echo
@@ -74,7 +74,7 @@ else
       if [ -e "$db/$f" ]; then
         printf "  %-16s %10.2f GB\n" "$f" "$(stat -c%s "$db/$f" | awk '{print $1/1073741824}')"
       else
-        printf "  %-16s YOK\n" "$f"
+        printf "  %-16s ABSENT\n" "$f"
       fi
     done
     echo "  Bracken kmer_distrib dosyalari:"
@@ -158,4 +158,4 @@ df -h "$HOME" /mnt/c 2>/dev/null | sed 's/^/  /'
 
 bar "BITTI"
 echo "Share this file and the yardim_ciktilari/ directory; the scripts are adjusted"
-echo "kesinlestirecegim. Hicbir bayragi hafizadan varsaymayacagim."
+echo "to it. I will assume no flag from memory."

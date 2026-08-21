@@ -53,7 +53,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$PT" ] && [ -n "$OUT" ] || {
-  echo "kullanim: bash $0 --pt <PrimerTasarlama> --out <06 cikti klasoru> [--mode pin|self]" >&2
+  echo "usage: bash $0 --pt <project directory> --out <freeze output directory> [--mode pin|self]" >&2
   exit 2; }
 case "$MODE" in pin|self) ;; *) echo "HATA: --mode pin ya da self olmali" >&2; exit 2;; esac
 case "$PT$OUT" in *'...'*) echo "ERROR: the path contains '...'. Give a full path, not a placeholder." >&2; exit 2;; esac

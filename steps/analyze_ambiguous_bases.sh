@@ -272,7 +272,7 @@ PY
 
 log "bitti"
 echo
-echo "Cikti:"
+echo "Output:"
 echo "  $OUT/N_pozisyonlari.tsv   every N position, its depth, the IUPAC call and the class"
 echo "  $OUT/hedef_ozeti.tsv      a summary per target"
 echo "  $OUT/maske/*.bed          regions where a primer may not be placed"
