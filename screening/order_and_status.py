@@ -216,14 +216,14 @@ def main():
         h = x[1]
         p = next((r for r in sip if r['hedef'] == h), None)
         if p is None:
-            fark += 1; print('  !! panelde yok:', h); continue
+            fark += 1; print(u'  !! not in the panel:', h); continue
         for sut, deg in ((5, p['F']), (8, p['R'])):
             kar += 1
             if x[sut] != deg:
                 fark += 1
-                print('  !! DIZI FARKI %s sutun %d: dosya=%s panel=%s' % (h, sut, x[sut], deg))
+                print(u'  !! SEQUENCE DIFFERENCE %s column %d: file=%s panel=%s' % (h, sut, x[sut], deg))
     print('\nSIPARIS DOSYASI: %s' % syol)
-    print('  siparis edilecek cift : %d   (siparis EDILMEYECEK: %d)' % (len(sip), len(hayir)))
+    print(u'  pairs to be ordered : %d   (NOT to be ordered: %d)' % (len(sip), len(hayir)))
     print('  karsilastirilan dizi  : %d' % kar)
     print('  bulunan fark          : %d' % fark)
 
@@ -337,15 +337,15 @@ def main():
     kyol = os.path.join(a.kok, KANONIK_SIPARIS)
     yeni_olan = daha_yeni_liste_var_mi(a.kok, syol, xy)
     if yeni_olan:
-        print('\n  UYARI: bu betigin uretmedigi DAHA YENI bir siparis listesi var:')
+        print(u'\n  WARNING: there is a NEWER order list that this script did not produce:')
         print('           %s   (%s)' % yeni_olan)
         print('         Uretilen liste : %s' % os.path.basename(syol))
-        print('         %s USTUNE YAZILMADI. Hangisinin gecerli oldugunu siz karar verin;'
+        print(u'         %s WAS NOT OVERWRITTEN. Decide for yourself which one holds;'
               % KANONIK_SIPARIS)
         print('         kanonigi degistirmek isterseniz o dosyayi elle kopyalayin.')
     else:
         shutil.copyfile(syol, kyol)
-        print('\nKANONIK LISTE  : %s   (siparis BU dosyadan verilir)' % kyol)
+        print(u'\nCANONICAL LIST : %s   (the order is placed from THIS file)' % kyol)
 
     print('\nDURUM DOSYASI  : %s' % myol)
     print('  YAPILDI %d | KISMEN %d | YAPILAMIYOR %d' % (len(yapildi), len(kismen), len(YAPILAMIYOR)))

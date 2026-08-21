@@ -229,8 +229,7 @@ def main():
     a = get_args()
     print(hizalama.durum())
     if not MAPPY:
-        print("UYARI: hizalama arka ucu yok. Yalniz k-mer kapsamasi "
-              "kullanilacak, olcum kabalasir.")
+        print(u'WARNING: there is no alignment backend. Only k-mer containment will be used, which makes the measurement coarser.')
     ad = {}
     if a.adlar and os.path.exists(a.adlar):
         for line in open(a.adlar, encoding="utf-8"):
@@ -238,11 +237,10 @@ def main():
             if len(p) > 1:
                 ad[p[0]] = p[1]
     temsil = envanter(a.kons)
-    print("temsilci konsensus: %d (sinif, takson) kutusu" % len(temsil))
+    print(u'representative consensus: %d (class, taxon) bins' % len(temsil))
     rows = ayirt_edilemezler(temsil, a.ozdeslik_esik, a.uzunluk_esik,
                              a.kapsama_esik)
-    print("\nAYIRT EDILEMEZ TAKSON CIFTLERI "
-          "(ozdeslik >= %%%.1f ve hizalanan >= %d bp, ya da k-mer kapsamasi >= %.2f)"
+    print(u'\nINDISTINGUISHABLE TAXON PAIRS (identity >= %%%.1f and aligned >= %d bp, or k-mer containment >= %.2f)'
           % (a.ozdeslik_esik, a.uzunluk_esik, a.kapsama_esik))
     print("%-3s %-28s %-28s %8s %8s %8s %6s %8s  %s"
           % ("sn", "takson 1", "takson 2", "hizalanan", "kesisimli", "kati",
@@ -250,7 +248,7 @@ def main():
     for sn, t1, t2, u, o, k, g, kp, kt in sorted(rows, key=lambda r: (r[0], -r[4])):
         print("%-3s %-28s %-28s %8d  %%%.2f  %%%.2f %6.2f %8.4f  %s"
               % (sn, ad.get(t1, t1)[:27], ad.get(t2, t2)[:27], u, o, kt, kp, k, g))
-    print("\ntoplam: %d cift" % len(rows))
+    print(u'\ntotal: %d pairs' % len(rows))
     if a.out:
         os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
         with open(a.out, "w", newline="", encoding="utf-8") as fh:

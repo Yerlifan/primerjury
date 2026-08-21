@@ -197,13 +197,9 @@ def main():
 
     cy = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_katman4_siki.tsv')
     with io.open(cy, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# NCBI 4. katman - SIKI ad kurali. Uretim %s\n'
+        fh.write(u'# NCBI layer 4, the STRICT name rule. Generated %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'# Bir kayit ancak basligi gercek bir "Cins tur" adiyla\n'
-                 u'# basliyorsa ADLI sayilir. "Bacterium LC2012", "Archaeon\n'
-                 u'# 2022-TM-MRBT1", "anaerobic methanogenic archaeon E15-5",\n'
-                 u'# "Environmental 16s rDNA sequence ..." gibi basliklarda cins\n'
-                 u'# adi YOKTUR; eski gevsek kural bunlari adli sayiyordu.\n')
+        fh.write(u'# A record counts as NAMED only if its header starts with a real\n# "Genus species" name. Headers such as "Bacterium LC2012", "Archaeon\n# 2022-TM-MRBT1", "anaerobic methanogenic archaeon E15-5" and\n# "Environmental 16s rDNA sequence ..." carry NO genus name; the old\n# loose rule counted all of them as named.\n')
         fh.write(u'hedef\tgevsek_kural_adli\tsiki_kural_adli\tsiki_adsiz\ttoplam\t'
                  u'ornek_adli_basliklar\n')
         for h, e, y, ad, t, orn in satir:
@@ -213,7 +209,7 @@ def main():
     print()
     print(u'  written: %s' % cy)
     dus = [(h, e, y) for h, e, y, _a, _t, _o in satir if e >= 0 and y < e]
-    print('  siki kuralla sayisi DUSEN hedef: %d' % len(dus))
+    print(u'  targets whose count DROPS under the strict rule: %d' % len(dus))
     for h, e, y in sorted(dus, key=lambda x: -(x[1] - x[2]))[:8]:
         print('    %-44s %d -> %d' % (h[:44], e, y))
     return 0

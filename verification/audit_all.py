@@ -335,11 +335,10 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
                     cik = _diziler(cp2)
                     ortak = set(kay) & set(cik)
                     if ortak and all(kay[k2] == cik[k2] for k2 in ortak):
-                        yaz(u'      (%s zaman damgasi eski ama DIZILER ayni - '
-                            u'olcum gecerli, bayat sayilmadi)' % c)
+                        yaz(u'      (%s has an old timestamp but the SEQUENCES are identical, so the measurement holds and it is not counted as stale)' % c)
                         continue
         if c in uretilecek:
-            yaz(u'      (%s bu kosuda yeniden uretilecek - tazelik aranmadi)' % c)
+            yaz(u'      (%s will be regenerated in this run, so freshness was not required)' % c)
             continue
         gp, cp = os.path.join(kok, g), os.path.join(kok, c)
         if not os.path.exists(gp) or not os.path.exists(cp):
@@ -1285,7 +1284,7 @@ def main():
     if os.path.isdir(rapor):
         with io.open(os.path.join(rapor, 'DENETIM_RAPORU.md'), 'w',
                      encoding='utf-8', newline='') as fh:
-            fh.write(u'# Her koşuda denetim\n\nÜretim: %s\n\n'
+            fh.write(u'# Audit on every run\n\nGenerated: %s\n\n'
                      % time.strftime('%Y-%m-%d %H:%M'))
             if BULGU:
                 say = {}
@@ -1301,7 +1300,7 @@ def main():
                         fh.write(u'- **%s** — %s\n' % (b, ay.replace('\n', ' ')))
                     fh.write(u'\n')
             else:
-                fh.write(u'## Bütün denetimler temiz\n\n')
+                fh.write(u'## Every audit is clean\n\n')
             if ATLANAN:
                 fh.write(u'\n## Atlananlar\n\n')
                 for x in ATLANAN:
