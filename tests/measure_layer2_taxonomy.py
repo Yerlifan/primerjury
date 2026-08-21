@@ -40,9 +40,9 @@ import time
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 
-from screening import kuresel_tarama as KT          # noqa: E402
-from screening import taksonomi as TX               # noqa: E402
-import verification.mfe_katmani as MK                        # noqa: E402
+from screening import global_scan as KT          # noqa: E402
+from screening import taxonomy as TX               # noqa: E402
+import verification.mfeprimer_layer as MK                        # noqa: E402
 
 KUCUK = ['archaea.16S.fna', 'fungi.18SrRNA.fna', 'fungi.28SrRNA.fna',
          'fungi.ITS.fna', 'bacteria.16S.fna']

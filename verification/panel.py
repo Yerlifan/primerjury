@@ -38,36 +38,36 @@ KOK = os.path.dirname(BURA)
 
 # alt komut -> (betik yolu, aciklama, "hepsi"ye dahil mi)
 KOMUT = {
-    'denetle':  ('verification/hepsini_denetle.py',
+    'denetle':  ('verification/audit_all.py',
                  u'18 maddelik denetim kapisi (tablolar, referans, muhur, '
                  u'geometri, plaka, belge sayilari)', True),
-    'guncel':   ('verification/guncel_durum.py',
+    'guncel':   ('verification/current_status.py',
                  u'GUNCEL_DURUM.md - panelin bugunku sayilari', True),
-    'toplanti': ('verification/toplanti_durumu.py',
+    'toplanti': ('verification/decision_status.py',
                  u'toplantida ne istendi, hangisi oldu', True),
-    'esik':     ('verification/esik_yeniden.py',
+    'esik':     ('verification/recompute_thresholds.py',
                  u'duz esik ile bolluga agirlikli esik yan yana', True),
-    'geometri': ('verification/geometri_yenile.py',
+    'geometri': ('verification/refresh_geometry.py',
                  u'primer3 ile Tm/GC/uzunluk/toka/dimer + urun boyu olcumu', True),
-    'plaka':    ('verification/plaka_ata.py',
+    'plaka':    ('verification/assign_plate.py',
                  u'plaka ici jel cakismasini azaltan dagilim onerisi', True),
-    'referans': ('verification/referans_yenile.py',
+    'referans': ('verification/refresh_reference.py',
                  u'hizli test referanslarini tam kosudan yenile', False),
-    'ncbi4':    ('verification/ncbi_katman4.py',
+    'ncbi4':    ('verification/ncbi_layer.py',
                  u'NCBI Primer-BLAST 4. katman (~30 dk, aga cikar)', False),
-    'kutu':     ('verification/kutu_uret.py',
+    'kutu':     ('verification/build_bins.py',
                  u'olculmeyen taksonlari kutuya cevir (kalibrasyon kapili)', False),
-    'siparis':  ('verification/siparis_formu.py',
+    'siparis':  ('verification/order_form.py',
                  u'tedarikciye gidecek TEK dogru oligo listesi (uretilir)', True),
-    'excel':    ('verification/excel_uret.py',
+    'excel':    ('verification/build_excel.py',
                  u'butun guncel veriyi TEK Excel e yaz (uretilir)', True),
-    'lokus':    ('engine/hedef_tam.py',
+    'lokus':    ('engine/target_full.py',
                  u'bir hedef icin BUTUN lokuslarda cift ara (primer3 gerekir)', False),
-    'arsiv':    ('verification/arsivle.py',
+    'arsiv':    ('verification/archive.py',
                  u'eski dosyalari _SILINECEKLER e tasi (once PLAN basar)', False),
-    'sinif':    ('verification/ncbi_yeniden_siniflandir.py',
+    'sinif':    ('verification/ncbi_reclassify.py',
                  u'NCBI sonuclarini siki ad kuraliyla yeniden say (aga cikmaz)', True),
-    'kapsama':  ('screening/dislama_kapsama_denetimi.py',
+    'kapsama':  ('screening/exclusion_coverage_check.py',
                  u'dislama taksonu uyeleri kapsiyor mu (NCBI Taxonomy)', False),
 }
 
@@ -82,7 +82,7 @@ def kos(ad, ek):
     if not os.path.exists(yol):
         print('  ATLANDI: %s yok (%s)' % (ad, yol))
         return 127
-    # hedef_tam.py --kok almaz; kokU _FL_KOK ortam degiskeninden okur.
+    # target_full.py --kok almaz; kokU _FL_KOK ortam degiskeninden okur.
     if ad == 'lokus':
         os.environ['_FL_KOK'] = KOK
         komut = [sys.executable, yol] + list(ek)

@@ -34,7 +34,7 @@ NE YAPMAZ  --  BU ONEMLI
     betiklere, veritabanlarina, konsensuslere DOKUNMAZ.
 
     Kosarken degistirilmemesi gereken dosyalar (baska oturumlar kullaniyor):
-    screening.bat, SABAH_TEK_TUS.bat, verification/tek_tus.py, KONSENSUS_YENIDEN/.
+    verification/full_chain.py, verification/one_key.py, KONSENSUS_YENIDEN/.
     Bu betik onlarin hicbirine yazmaz; KONSENSUS_YENIDEN/ klasorunu okumaz bile.
 
 SESSIZ ATLAMA YOKTUR
@@ -57,7 +57,7 @@ KULLANIM
     python cross_check.py --kok . --moduller 2,3,5      (yalniz secilenler)
     python cross_check.py --kok . --m1-kip tam          (agir kimlik taramasi)
     python cross_check.py --kok . --kendini-sina        (bozuk girdi sinamasi)
-    KONTROL.bat                                            (cift tikla)
+    python3 cross_check.py --kok .
 
 Yazan: bu oturum, 2026-08-09.
 """
@@ -467,7 +467,7 @@ def _kod_govdesi(metin):
     # SATIR NUMARASI KORUNUR: docstring satiri ATILMAZ, BOSALTILIR. Atmak
     # numaralari kaydirir; kaydirinca AST'ten gelen satir kumeleriyle (mesaj
     # dizeleri gibi) hizalama bozulur ve suzgec sessizce islemez - olculdu
-    # (screening/hepsi.py ozgun 222, kirpilmis govdede 183).
+    # (screening/run_all.py ozgun 222, kirpilmis govdede 183).
     out = []
     for i, l in enumerate(metin.splitlines(), 1):
         out.append(u'' if i in ds else l.split(u'#', 1)[0])
@@ -478,15 +478,15 @@ def _kod_govdesi(metin):
 # yanlistir: yon denetimi ve kanonik uretimi o klasoru okumadan is goremez.
 # Liste KISA tutulmali; her giris bir gerekce tasir.
 D9_MESRU_OKUYUCULAR = {
-    u'yon_denetimi.py':    u'yon denetleyicisi - karisik klasoru olcmek gorevidir',
-    u'kanonik_uret.py':    u'kanonik klasoru o klasorden URETIR',
-    u'yon.py':             u'yon tanimlarinin kaynagi',
-    u'yon_kod_taramasi.py': u'ayni riski tarayan kardes arac',
-    u'yon_sayfasi.py':     u'yon kararlarini belgeleyen rapor ureteci',
+    u'orientation_audit.py':    u'yon denetleyicisi - karisik klasoru olcmek gorevidir',
+    u'build_canonical.py':    u'kanonik klasoru o klasorden URETIR',
+    u'orientation.py':             u'yon tanimlarinin kaynagi',
+    u'orientation_code_scan.py': u'ayni riski tarayan kardes arac',
+    u'orientation_report.py':     u'yon kararlarini belgeleyen rapor ureteci',
 }
 
 # Ekrana/loga metin basan cagrilar. Bunlarin ICINDEKI dize bir KOD YOLU degil,
-# kullaniciya gosterilen bir mesajdir (olculdu: screening/hepsi.py:183
+# kullaniciya gosterilen bir mesajdir (olculdu: screening/run_all.py:183
 # yalnizca "Kaynak: ..." satirini basiyor ve bu yuzden RISKLI sayiliyordu).
 D9_CIKTI_CAGRILARI = frozenset(
     [u'yaz', u'print', u'write', u'log', u'uyar', u'bilgi', u'hata', u'yazdir'])
@@ -567,7 +567,7 @@ def xlsx_sayfalari(yol):
 def modul_yukle(yol, ad):
     u"""Bir .py dosyasini MODUL olarak yukle (paket degil, betik).
 
-    verification/kimlik_dogrulama.py ve tum_kutu_kimlikleri.py'nin mantigi burada
+    verification/identity_verification.py ve all_bin_identities.py'nin mantigi burada
     YENIDEN YAZILMAZ; oradan ice aktarilir. Yeniden yazmak iki ayri karar
     mantigi yaratirdi ve hangisinin gecerli oldugu belirsizlesirdi.
     """
@@ -595,8 +595,8 @@ class Kaynaklar(object):
     """
 
     # BU YOLLARA ASLA YAZILMAZ. Baska oturumlar kosuyor olabilir.
-    DOKUNULMAZ = (u'screening.bat', u'SABAH_TEK_TUS.bat',
-                  os.path.join(u'verification', u'tek_tus.py'), u'KONSENSUS_YENIDEN')
+    DOKUNULMAZ = (u'install.sh', u'build_index.sh',
+                  os.path.join(u'verification', u'one_key.py'), u'KONSENSUS_YENIDEN')
 
     def __init__(self, kok):
         self.kok = os.path.abspath(kok)
@@ -622,7 +622,7 @@ class Kaynaklar(object):
         self.hedef_uyelik = y('screening', 'hedef_uyelik.tsv')
         self.hedef_klad = y('screening', 'hedef_klad.tsv')
         self.hedefler_wsl = y('steps', 'hedefler.tsv')
-        self.takson_esleme = y('screening', 'hedef_takson_esleme.py')
+        self.takson_esleme = y('screening', 'target_taxon_mapping.py')
         # --- excel
         # 2026-08-11: teslim xlsx'i arsive tasindi (icindeki alti ciftin dizisi
         # eskiydi). Yerine her kosuda URETILEN tek dosya kondu; adinda tarih
@@ -651,8 +651,8 @@ class Kaynaklar(object):
         # --- kod (desen taramasi icin). KONSENSUS_YENIDEN BILEREK YOK.
         self.kod_klasorleri = [y('screening'), y('verification'), y('steps')]
         # --- ice aktarilacak mantik
-        self.kimlik_dogrulama = y('verification', 'kimlik_dogrulama.py')
-        self.tum_kutu = y('verification', 'tum_kutu_kimlikleri.py')
+        self.kimlik_dogrulama = y('verification', 'identity_verification.py')
+        self.tum_kutu = y('verification', 'all_bin_identities.py')
 
 
 # ===========================================================================
@@ -676,7 +676,7 @@ class Kaynaklar(object):
 #   6 Kraken karsilastirmasi    (etiket, guven, ad degisti mi)
 # ---------------------------------------------------------------------------
 
-# --- kimlik esikleri: kimlik_dogrulama.py'den ALINIR, burada YENIDEN yazilmaz.
+# --- kimlik esikleri: identity_verification.py'den ALINIR, burada YENIDEN yazilmaz.
 #     (K.TUR_ESIGI, K.CINS_ESIGI, K.AYRIM_PAYI)
 
 # N orani bu esigi asarsa konsensus KULLANILMAZ, ham okumalara donulur.
@@ -1126,12 +1126,12 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     # --- karar mantigini verification'dan ice aktar (yeniden YAZILMAZ)
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama')
     if K is None:
-        rap.atla(M, u'M1-MOTOR', u'kimlik_dogrulama.py hizalama motoru yuklenebilmeli',
+        rap.atla(M, u'M1-MOTOR', u'identity_verification.py hizalama motoru yuklenebilmeli',
                  hata, kay.kimlik_dogrulama)
         return
     T, hata2 = modul_yukle(kay.tum_kutu, 'tum_kutu_kimlikleri')
     if T is None:
-        rap.atla(M, u'M1-MOTOR2', u'tum_kutu_kimlikleri.py toplu tarama yuklenebilmeli',
+        rap.atla(M, u'M1-MOTOR2', u'all_bin_identities.py toplu tarama yuklenebilmeli',
                  hata2, kay.tum_kutu)
         return
     try:
@@ -1142,7 +1142,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         return
 
     # Bellek icin aday havuzunu kucult. Bu yalniz BU SUREC ICINDEKI kopyayi
-    # etkiler; verification/kimlik_dogrulama.py dosyasi DEGISMEZ.
+    # etkiler; verification/identity_verification.py dosyasi DEGISMEZ.
     # Gerekce: dosyanin kendi notuna gore olculen en kotu on-eleme sirasi 45'tir;
     # 800'luk havuz bu sinirin 17 katidir, kesme baglayici degildir.
     K.ADAY_HAVUZU = ADAY_HAVUZU_KONTROL
@@ -1157,7 +1157,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         rap.ekle(M, u'M1-ENVANTER-BOS', KRITIK,
                  u'kanonik konsensus indeksi kutu icermeli',
                  u'indeks BOS - hicbir kutu okunamadi', kay.konsensus_indeks,
-                 u'kanonik_uret.py ile indeksi yeniden uretin')
+                 u'build_canonical.py ile indeksi yeniden uretin')
         return
 
     kutular = []
@@ -1590,7 +1590,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                         ikinci.get('hiz_uz'), ikinci['kayit']), kb['yol'],
                      u'Tur atamasi bu iki kayit arasinda karara baglanmamalidir.')
 
-        # --- savunulabilir duzey: kimlik_dogrulama.py'nin kurali (YENIDEN YAZILMAZ)
+        # --- savunulabilir duzey: identity_verification.py'nin kurali (YENIDEN YAZILMAZ)
         sav = K.savunulabilir_duzey(isabetler, en_iyi.get('lokus') or 'SSU')
         duzey = sav['duzey']
         ad = sav['onerilen_ad']
@@ -2522,7 +2522,7 @@ def modul_5_desenler(kay, rap):
     # DEGILDIR: cekirdegin ortak hatasi iki kez oy verir.
     #
     # BAGIMLILIK TAHMIN EDILMEZ, KODDAN OKUNUR. Bir katmanin proje ici olup
-    # olmadigi, o katmanin betiginin motor.py'yi ice aktarip aktarmadigina
+    # olmadigi, o katmanin betiginin engine_gateway.py'yi ice aktarip aktarmadigina
     # bakilarak belirlenir. Disaridan gelen ucuncu araclar (MFEprimer ikilisi,
     # NCBI web hizmeti) proje motorunu kullanmaz ve BAGIMSIZDIR - bunlari
     # "ayni motor" saymak, saglam bir capraz dogrulamayi hata diye gostermek
@@ -2545,10 +2545,10 @@ def modul_5_desenler(kay, rap):
                  kay.nihai_siparis)
     elif not ici_motor:
         rap.atla(M, u'M5-D7', u'katman bagimsizligi taramasi',
-                 u'motor.py\'yi ice aktaran betik bulunamadi - bagimlilik '
+                 u'engine_gateway.py\'yi ice aktaran betik bulunamadi - bagimlilik '
                  u'haritasi cikarilamadi', u'; '.join(kay.kod_klasorleri))
     else:
-        rap.olcum[u'M5 D7 motor.py kullanan betik'] = u'%d' % len(ici_motor)
+        rap.olcum[u'M5 D7 engine_gateway.py kullanan betik'] = u'%d' % len(ici_motor)
         for r in siparis:
             katman = (r.get(u'hukmu_veren_katman') or u'').strip()
             if not katman:
@@ -2680,7 +2680,7 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
 
     K, hata = modul_yukle(kay.kimlik_dogrulama, 'kimlik_dogrulama_m6')
     if K is None:
-        rap.atla(M, u'M6-VTB-LISTESI', u'VTB listesi kimlik_dogrulama.py\'den okunmali',
+        rap.atla(M, u'M6-VTB-LISTESI', u'VTB listesi identity_verification.py\'den okunmali',
                  hata, kay.kimlik_dogrulama)
         return
     T, _h = modul_yukle(kay.tum_kutu, 'tum_kutu_m6')
@@ -2941,14 +2941,14 @@ def modul_7_kapsam(kay, rap):
         rap.atla(M, u'M7-PANEL-YOK', u'panel cift listesi okunabilmeli',
                  u'ciftler.tsv yok', kay.ciftler)
 
-    # Panel hedeflerinin toplanti kararlarina baglanmasi hedef_takson_esleme.py
+    # Panel hedeflerinin toplanti kararlarina baglanmasi target_taxon_mapping.py
     # icindeki KARAR sozlugunde tutuluyor. Dosya CALISTIRILMAZ, ast ile
     # ayristirilir - salt okunur denetci bir betigi kosturmaz.
     esleme_karar = {}
     kaynak = metin_oku(kay.takson_esleme)
     if kaynak is None:
         rap.atla(M, u'M7-ESLEME-YOK',
-                 u'hedef_takson_esleme.py icindeki KARAR sozlugu okunabilmeli',
+                 u'target_taxon_mapping.py icindeki KARAR sozlugu okunabilmeli',
                  u'dosya yok', kay.takson_esleme)
     else:
         try:
@@ -2967,7 +2967,7 @@ def modul_7_kapsam(kay, rap):
                         continue
         except SyntaxError as e:
             rap.atla(M, u'M7-ESLEME-AYRISTIRILAMADI',
-                     u'hedef_takson_esleme.py ayristirilabilmeli',
+                     u'target_taxon_mapping.py ayristirilabilmeli',
                      u'SyntaxError: %s' % e, kay.takson_esleme)
 
     karar_hedefleri = set(_ad_norm(v[0]) for v in esleme_karar.values()
@@ -3002,7 +3002,7 @@ def modul_7_kapsam(kay, rap):
                          if _ad_norm(r.get(u'hedef') or u'') == h), h)
             rap.ekle(M, u'M7-PANELDE-FAZLA', UYARI,
                      u'paneldeki her hedef bir toplanti kararina baglanabilmeli',
-                     u'"%s" hedefi hedef_takson_esleme.py KARAR tablosunda yok'
+                     u'"%s" hedefi target_taxon_mapping.py KARAR tablosunda yok'
                      % asil, kay.takson_esleme,
                      u'Rapora "bu neden panelde" diye sorulursa dayanak gosterilemez.')
     elif ciftler is not None and not karar_hedefleri:
@@ -3207,7 +3207,7 @@ def _sinama_kok_kur(gecici, kay):
       u'hedef\tuye_taxid\tharic\tkaynak\tnot\n'
       u'Hedef_A\t111,222\t999\tPANEL\t-\n'
       u'Hedef_B\t333\t\tPANEL\t-\n')
-    d(y('screening', 'hedef_takson_esleme.py'),
+    d(y('screening', 'target_taxon_mapping.py'),
       u"KARAR = {\n 2: ('Hedef_A', 'cins', 'Karar 1', 'not'),\n"
       u" 3: ('Hedef_B', 'cins', 'Karar 1', 'not'),\n}\n")
     # --- karar tablolari: tutarli
@@ -3247,10 +3247,10 @@ def _sinama_kok_kur(gecici, kay):
     # --- kimlik motorunu kopyala (VTB listesi M6 icin gerekli)
     if os.path.exists(kay.kimlik_dogrulama):
         with io.open(kay.kimlik_dogrulama, encoding='utf-8', errors='replace') as fh:
-            d(y('verification', 'kimlik_dogrulama.py'), fh.read())
+            d(y('verification', 'identity_verification.py'), fh.read())
     if os.path.exists(kay.tum_kutu):
         with io.open(kay.tum_kutu, encoding='utf-8', errors='replace') as fh:
-            d(y('verification', 'tum_kutu_kimlikleri.py'), fh.read())
+            d(y('verification', 'all_bin_identities.py'), fh.read())
     return gecici
 
 

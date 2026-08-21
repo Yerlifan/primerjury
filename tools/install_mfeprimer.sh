@@ -161,11 +161,11 @@ echo
 echo "kuruldu: $HEDEF"
 echo "kimlik : $("$HEDEF" --version 2>&1 | head -1)"
 echo
-echo "verification/mfe_katmani.py bu dosyayi tools/mfeprimer adiyla kendisi buluyor."
+echo "verification/mfeprimer_layer.py bu dosyayi tools/mfeprimer adiyla kendisi buluyor."
 echo "Not: tools/linux-x64 MFEprimer DEGIL, silinmesi gerekmez ama kullanilmaz."
 echo
 echo "Sinama:"
 echo "  cd $PROJE/WSL"
-echo "  python3 verification/dogrulama_turu.py --kok \"$PROJE\""
+echo "  python3 verification/specificity_round.py --kok \"$PROJE\""
 echo "Beklenen: 'MFEprimer bulundu' satirinda surum MFEprimer olmali ve"
 echo "indeks kurulumu bu sefer basarili olmali."

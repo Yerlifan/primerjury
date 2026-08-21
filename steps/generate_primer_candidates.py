@@ -23,9 +23,9 @@ KONSENSÜS HANGİ KLASÖRDEN OKUNMALI (2026-08-21 düzeltmesi)
   Yalnız `konsensus_kanonik/` kullanın. Eski örnekler `consensus sequences/`
   klasörünü gösteriyordu; o klasör KARIŞIK YÖNLÜDÜR (ölçülen: 71 antisense /
   27 sense). Ters yönlü bir konsensüste in-silico PCR SESSİZCE 0 ürün verir —
-  ölçülen kayıp %100, kanıt `screening/yon_etki_testi.py`. Yasak
-  `screening/yapilandirma.py` içinde de yazılıdır (KONSENSUS_KANONIK).
-  Kanonik klasör `screening/kanonik_uret.py` ile üretilir. Hangi kutunun
+  ölçülen kayıp %100, kanıt `screening/orientation_impact_test.py`. Yasak
+  `screening/config.py` içinde de yazılıdır (KONSENSUS_KANONIK).
+  Kanonik klasör `screening/build_canonical.py` ile üretilir. Hangi kutunun
   hangi dosyaya karşılık geldiği `konsensus_kanonik/INDEKS.tsv` içindedir;
   dosya adını tahmin etmeyin, indeksten okuyun.
 

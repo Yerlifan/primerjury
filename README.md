@@ -59,7 +59,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 
 ### Identity verification
 
-`verification/kimlik_dogrulama.py` deliberately shares no mechanism with Kraken2:
+`verification/identity_verification.py` deliberately shares no mechanism with Kraken2:
 
 - **No taxonomy tree, no k-mer LCA, no primers.** Seeds are extracted from the
   query consensus, the database is streamed, a short list is built, and every
@@ -155,8 +155,7 @@ Whatever *k* you build with, verify identity independently.
 Put your sequences in `sequences/`, then:
 
 ```bash
-bash screening.bat        # Windows menu (legacy)
-python3 verification/tam_zincir.py --kok . --onayla    # full chain
+python3 verification/full_chain.py --kok . --onayla    # full chain
 ```
 
 The full chain runs ten stages in dependency order and **checks the output of
@@ -169,9 +168,9 @@ erroring.
 Individual stages:
 
 ```bash
-python3 verification/kimlik_dogrulama.py --kok .      # identity verification
-python3 verification/dogrulama_turu.py --kok .        # 4-layer specificity
-python3 protocol/tek_protokol_olc.py --kok .  # single-protocol panel measurement
+python3 verification/identity_verification.py --kok .      # identity verification
+python3 verification/specificity_round.py --kok .        # 4-layer specificity
+python3 protocol/single_protocol_measure.py --kok .  # single-protocol panel measurement
 python3 cross_check.py --kok .                 # read-only independent audit
 ```
 
@@ -217,7 +216,7 @@ Honest list; these are the gaps between "runs for the original study" and
   `screening/hedef_klad.tsv` describe the original 20 targets and 5
   amplicon groups. Samples in `examples/` show the format. Generalising the
   target definition is the main open work item.
-- **`screening/yapilandirma.py` holds every path and constant** and is
+- **`screening/config.py` holds every path and constant** and is
   meant to be edited. Moving it to YAML/TOML is planned — the good news is that
   it is genuinely the only place paths are defined.
 - **Layer 2 taxonomic discrimination is new** and its effect on verdicts is

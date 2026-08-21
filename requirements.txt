@@ -6,7 +6,7 @@
 
 primer3-py>=2.0        # oligo thermodynamics (one of two independent Tm sources)
 biopython>=1.79        # sequence handling, second independent Tm source
-numpy>=1.21            # vectorised scanning in screening/motor.py
+numpy>=1.21            # vectorised scanning in screening/engine_gateway.py
 openpyxl>=3.0          # Excel deliverables
 pysam>=0.19            # BAM/pileup for consensus and N-analysis
 matplotlib>=3.5        # figures

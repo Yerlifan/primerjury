@@ -101,7 +101,7 @@ declare -A URL=(
   [refseq_18s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.18SrRNA.fna.gz"
   [refseq_28s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.28SrRNA.fna.gz"
 )
-# hedef dosya adlari - kod bu adlari bekliyor (verification/kimlik_dogrulama.py VTB listesi)
+# hedef dosya adlari - kod bu adlari bekliyor (verification/identity_verification.py VTB listesi)
 declare -A HEDEF=(
   [silva_ssu]="SILVA_138.2_SSURef_NR99.fasta"
   [silva_lsu]="SILVA_138.2_LSURef_NR99.fasta"
@@ -302,7 +302,7 @@ komut_durum() {
     top=$((top+1)); [ -s "$REFDB/$f" ] && var=$((var+1))
   done
   bilgi "$var / $top bagimsiz kaynak hazir"
-  bilgi "verification/kimlik_dogrulama.py bir iddiayi DOGRULANDI saymak icin EN AZ IKI"
+  bilgi "verification/identity_verification.py bir iddiayi DOGRULANDI saymak icin EN AZ IKI"
   bilgi "bagimsiz kaynagin uyusmasini sart kosar. Kaynak sayisi dustukce hukum"
   bilgi "'DOGRULANAMADI (tek kaynak)'a kayar - yani eksik veritabani sessizce"
   bilgi "yanlis cevap degil, ACIKCA zayif cevap uretir."
@@ -461,7 +461,7 @@ komut_kraken_kur() {
    (tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md). Sebep k-mer degil, LCA'nin
    kendisi ve veritabani kapsamidir. Bu yuzden hangi k ile kurarsaniz kurun,
    kimlik iddialari BAGIMSIZ olarak sinanmalidir:
-       python3 verification/kimlik_dogrulama.py --kok .
+       python3 verification/identity_verification.py --kok .
    O betik taksonomi agacini HIC kullanmaz, 12 ayri referans veritabaninda
    tohum + tam hizalama yapar ve EN AZ IKI kaynagin uyusmasini sart kosar.
 

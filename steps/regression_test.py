@@ -258,7 +258,7 @@ def testler(a):
 
     print("\n9. HIZALAMA ARKA UCU")
     try:
-        H = yukle("H", "hizalama.py")
+        H = yukle("H", "alignment.py")
         sina("hizalama arka ucu var", H.ARKA_UC is not None, str(H.ARKA_UC))
         ref = "".join(random.choice("ACGT") for _ in range(2000))
         A = H.Hizalayici(seq=ref, preset="map-ont")

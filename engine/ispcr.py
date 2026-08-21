@@ -1,5 +1,5 @@
 """Bagimsiz in-silico PCR motoru (2026-08-02 son etap).
-Onceki oturumun motor.py / kararlar.py kodu KULLANILMAZ - sifirdan yazildi.
+Onceki oturumun engine_gateway.py / kararlar.py kodu KULLANILMAZ - sifirdan yazildi.
 Kriter: F ve R primerleri karsilikli yonelimde baglanacak, 3' son 2 baz TAM tutacak,
 toplam uyumsuzluk <= max_mm, urun boyu araligi verilen pencerede olacak.
 """
@@ -14,25 +14,25 @@ toplam uyumsuzluk <= max_mm, urun boyu araligi verilen pencerede olacak.
 #          amplify -> [(bas, bit, urun_bp, mm_F, mm_R)]; scan_file ->
 #          (toplam_dizi, urun_veren_dizi, boy_dagilimi, vurus_listesi).
 #          Yalniz __main__ ekrana ozet basar.
-# ÇAĞRAN : screening/motor.py bu dosyayi ada gore bulup yukler; bulamazsa
-#          "HATA: ispcr.py bulunamadi" deyip cikar, yani motor.py'siz hicbir
-#          olcum kosamaz. motor.py'yi de paketin butun olcum modulleri
-#          (numune.py, kuresel_tarama.py, referans.py, uretec.py, hedefler.py,
-#          konsensus_uret.py, panel_olcum.py, uyelik_denetimi.py,
-#          kendini_sina.py) ve disaridan verification/kurtarma_turu.py ile
-#          protocol/tek_protokol_olc.py kullanir. Ayrica ayni klasordeki
+# ÇAĞRAN : screening/engine_gateway.py bu dosyayi ada gore bulup yukler; bulamazsa
+#          "HATA: ispcr.py bulunamadi" deyip cikar, yani engine_gateway.py'siz hicbir
+#          olcum kosamaz. engine_gateway.py'yi de paketin butun olcum modulleri
+#          (sample.py, global_scan.py, reference.py, generator.py, targets.py,
+#          build_consensus.py, panel_measurement.py, membership_check.py,
+#          self_test.py) ve disaridan verification/recovery_round.py ile
+#          protocol/single_protocol_measure.py kullanir. Ayrica ayni klasordeki
 #          ara.py, hiza.py, mazei*.py, deg_*.py, mmb_*.py ve
-#          engine/tarayici.py, cift.py dogrudan "import ispcr" der.
+#          engine/scanner.py, pair.py dogrudan "import ispcr" der.
 #          Menude her olcum tusunda yuklenir: P (tek protokolle panel olcumu),
 #          K (kurtarma), D (dogrulama), I ve G (kimlik), T (P->K->D->I),
 #          U (uyelik), H (hizli test), 1-9 (kapsamli arama).
-#          screening.bat bu dosyayi DOGRUDAN cagirmaz ama acilista
+#          full_chain.py bu dosyayi DOGRUDAN cagirmaz ama acilista
 #          "engine\ispcr.py" var mi diye bakar; yoksa arac acilmaz.
 #
 # NEDEN TOHUMSUZ: bu motor find_sites icinde tam kayan pencere tarar, hicbir
 # tohum/kisayol varsayimi yoktur; dolayisiyla kayipsizligi tanim geregidir.
-# Tohumlu hizli yollar (screening/okuma_motoru.py, tarayici.py Havuz)
-# bu dosyanin olcutunu taklit etmek zorundadir ve kendini_sina.py ucunu
+# Tohumlu hizli yollar (screening/read_engine.py, scanner.py Havuz)
+# bu dosyanin olcutunu taklit etmek zorundadir ve self_test.py ucunu
 # birebir karsilastirir.
 # ---------------------------------------------------------------------------
 import re, sys, os, glob
@@ -122,8 +122,8 @@ def encode(seq):
 # sezgisel bir hizlandirma degildir. Parca sayisi m + 1'in ALTINA duserse
 # garanti coker ve arama sessizce baglanma yeri kacirmaya baslar - hata da
 # atmaz, sadece sayilar kucuk cikar. Bu dosya hic tohum kullanmadigi icin o
-# riski tasimaz; tam da bu yuzden tohumlu yollarin dogrulugu (okuma_motoru.py,
-# tarayici.py) bu fonksiyona ve kaba_kuvvet.py'ye karsi sinanir.
+# riski tasimaz; tam da bu yuzden tohumlu yollarin dogrulugu (read_engine.py,
+# scanner.py) bu fonksiyona ve brute_force.py'ye karsi sinanir.
 #
 # 3' UC KURALI (tail_pos): polimeraz primeri 3' ucundan uzatir. 3' ucta
 # uyumsuzluk varsa uzatma pratikte olmaz; bu yuzden 3' son 2 bazin TAM tutmasi
@@ -185,7 +185,7 @@ def find_sites(enc, primer, max_mm, need_tail=True, tail_pos=(-1, -2)):
 #      baglanma sahte bir "urun" uretirdi; ayrica yanlis siradaki (R solda,
 #      F sagda) bir cift PCR'de hicbir sey vermez, burada da verilmez.
 #   4) URUN BOYU PENCEREYE girmeli: lo <= size <= hi. Bunun qPCR karsiligi
-#      var - yapilandirma.py'de URUN_IDEAL (60-150 bp), URUN_KABUL (150-250),
+#      var - config.py'de URUN_IDEAL (60-150 bp), URUN_KABUL (150-250),
 #      URUN_MUTLAK_UST 400. Kisa urun protokoldeki 30 sn uzatmada tamamlanir
 #      ve SYBR Green sinyali temiz cikar; cok uzun urun ne verimli cogalir ne
 #      de jelde/erime egrisinde beklenen yerde gorunur. Pencere yoksa motor

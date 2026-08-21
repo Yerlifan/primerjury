@@ -26,7 +26,7 @@ KONSENSÜS HANGİ KLASÖRDEN OKUNMALI (2026-08-21 düzeltmesi)
     Yalnız `konsensus_kanonik/` kullanın. Eski örnekler `consensus sequences/`
     klasörünü gösteriyordu; o klasör KARIŞIK YÖNLÜDÜR (ölçülen: 71 antisense /
     27 sense). Ters yönlü bir konsensüste in-silico PCR SESSİZCE 0 ürün verir —
-    ölçülen kayıp %100, kanıt `screening/yon_etki_testi.py`.
+    ölçülen kayıp %100, kanıt `screening/orientation_impact_test.py`.
     Bu betikte tehlike daha büyüktür: girdi bir GLOB'dur, yani ters yönlü tek
     bir üye sessizce "bu üyede ürün yok" diye sayılır ve çift haksız yere
     elenir. Kutu -> dosya eşlemesi `konsensus_kanonik/INDEKS.tsv` içindedir.

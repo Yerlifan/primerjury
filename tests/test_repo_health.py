@@ -43,10 +43,11 @@ ATLA_DIZIN = {'.git', '__pycache__', 'docs', 'sequences', 'examples'}
 
 # Packages that must import cleanly, side effects included.
 PAKETLER = [
-    'screening.yapilandirma', 'screening.taksonomi', 'screening.motor',
-    'screening.hedefler', 'screening.kuresel_tarama', 'screening.geometri',
-    'screening.siparis_siniflari', 'screening.numune', 'screening.referans',
-    'verification.mfe_katmani',
+    'screening.config', 'screening.taxonomy', 'screening.engine_gateway',
+    'screening.targets', 'screening.global_scan', 'screening.geometry',
+    'screening.order_classes', 'screening.sample', 'screening.reference',
+    'screening.checks', 'screening.report', 'screening.orientation',
+    'verification.mfeprimer_layer',
 ]
 
 # Names that must not survive anywhere in shipped code.
@@ -166,9 +167,9 @@ def kontrol_yasak_adlar(bulgu):
 def kontrol_yapilandirma(bulgu):
     """Config paths must be inside the repo or be documented run outputs."""
     try:
-        from screening import yapilandirma as C
+        from screening import config as C
     except Exception as e:
-        bulgu.append(('CONFIG', 'screening/yapilandirma.py',
+        bulgu.append(('CONFIG', 'screening/config.py',
                       'cannot import: %s' % type(e).__name__))
         return
     # Directories the config points at that the code loads AT IMPORT time

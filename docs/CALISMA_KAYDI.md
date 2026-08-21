@@ -133,15 +133,15 @@ sayısıdır, o türlerde oluşan ürün sayısı değil.
 | `abundance_rank.py` | bolluğun okunabildiği rütbe |
 | `reference_identity.py` | referans primerlerin numunede ne çoğalttığı |
 | `check_taxonomic_level.py` | tür/cins özgüllüğünün doğrudan sınanması |
-| `alan_denetimi.py` | alan (arke/bakteri/mantar) tutarlılığı, ortak modül |
+| `field_audit.py` | alan (arke/bakteri/mantar) tutarlılığı, ortak modül |
 
 ### 2.3 Sürücüler
 
 | Betik | İş |
 |---|---|
-| `CALISTIR.sh` | ana zincir |
-| `AGIR_ISLER.sh` | ağır adımlar (A-H), WSL'de |
-| `SENKRON.sh` | SHA256 manifesto, iki taraflı doğrulama |
+| `run.sh` | ana zincir |
+| `heavy_jobs.sh` | ağır adımlar (A-H), WSL'de |
+| `sync.sh` | SHA256 manifesto, iki taraflı doğrulama |
 
 ---
 
@@ -171,7 +171,7 @@ ve **197 sahte KRİTİK bulgu** üretiyordu. Varsayılan 50 nM'ye çekildi.
 `Sakarolitik_bakteriler` hedefinin kutuları B=6, F=2 dağılımında. Doğru sınıf
 olan B'de hiçbir çift bulunamayınca, geriye yalnız yanlış lokustaki F2 çifti
 kalıyordu ve tablo hedefi kapsanmış gösteriyordu. Kural denetimi bunu
-yakalamaz, çünkü ortada kural ihlali yok. `alan_denetimi.py` ortak modülü
+yakalamaz, çünkü ortada kural ihlali yok. `field_audit.py` ortak modülü
 yazıldı; alan bilgisi elle yazılmış bir tablodan değil, konsensüs dosya
 adlarından ve `hedefler.tsv` taxid listesinden çıkarılıyor. 08 çapraz alan
 tasarımı hiç üretmiyor, 13 bunları çalışma kitabından çıkarıyor, 18 her koşuda
@@ -673,7 +673,7 @@ kendi yardımcı fonksiyonlarına güvenilmez.
 
 ## 8. Senkronizasyon
 
-`SENKRON.sh` SHA256 manifestosu üretir; `[BETIK]` ve `[CIKTI]` bölümleri var,
+`sync.sh` SHA256 manifestosu üretir; `[BETIK]` ve `[CIKTI]` bölümleri var,
 `--dogrula` ile iki taraf karşılaştırılır. Kasıtlı bir kayma yaratılarak
 yakaladığı doğrulandı. 42 betik dosyası iki tarafta bayt bayt aynı.
 
@@ -745,10 +745,10 @@ cd "$PT/steps"
 python3 regression_test.py
 
 # Senkron doğrulama
-bash SENKRON.sh --dogrula
+bash sync.sh --dogrula
 
 # Geniş dış veritabanı taraması (12 dakika)
-bash AGIR_ISLER.sh --yalniz H
+bash heavy_jobs.sh --yalniz H
 
 # Düzey denetimi (5 dakika)
 python3 check_taxonomic_level.py \

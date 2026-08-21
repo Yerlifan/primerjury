@@ -8,7 +8,7 @@ NE SINANIYOR
 
 Bu soru onemli cunku o klasor karisik yonludur (olculen: 71 antisense /
 27 sense) ve ters yonlu bir konsensuste in-silico PCR SESSIZCE 0 urun verir;
-olculen kayip %100 (screening/yon_etki_testi.py).
+olculen kayip %100 (screening/orientation_impact_test.py).
 
 NEDEN AYRI BIR SINAMA GEREKIYOR
 -------------------------------
@@ -66,9 +66,9 @@ def kos(yaz, kok):
 
 # --- gercek dosyalar: 2026-08-09'da yanlis pozitif verenler --------------
 GERCEK_DOSYALAR = [
-    (os.path.join('screening', 'hepsi.py'), False,
+    (os.path.join('screening', 'run_all.py'), False,
      u'yalniz ekrana basilan mesaj dizesi'),
-    (os.path.join('screening', 'yon_denetimi.py'), False,
+    (os.path.join('screening', 'orientation_audit.py'), False,
      u'gorevi geregi okuyor (muaf liste)'),
     (os.path.join('steps', 'generate_primer_candidates.py'), False,
      u'yol CLI argumani, docstring ornegi'),

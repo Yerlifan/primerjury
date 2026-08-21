@@ -112,7 +112,7 @@ def _girdi_parmak_izi(a):
     # mantigi degistiginde eski dogrulama sonuclari gecerli degildir.
     _burada = os.path.dirname(os.path.abspath(__file__))
     for _b in ("design_group_primers.py", "generate_primer_candidates.py",
-               "specificity.py", "hizalama.py"):
+               "specificity.py", "alignment.py"):
         try:
             _st = os.stat(os.path.join(_burada, _b))
             h.update(("%s|%d|%d\n" % (_b, _st.st_size, int(_st.st_mtime))).encode())

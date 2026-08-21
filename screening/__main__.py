@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """KAPSAMLI ARAMA - ana akis.
 
-Kullanim (normalde screening.bat cagirir):
+Kullanim (normalde verification/full_chain.py cagirir):
     python3 -m screening --mod tam
     python3 -m screening --mod sorunlu
     python3 -m screening --mod devam
@@ -12,18 +12,18 @@ Kullanim (normalde screening.bat cagirir):
 #               ilgili asamayi (arama, panel olcumu, uyelik denetimi, konsensus
 #               uretimi, ozet, hepsi) sirasiyla calistirir.
 #
-# GIRDI  : yapilandirma.py'deki butun yollar ve sabitler; hedefler.panel_oku()
+# GIRDI  : config.py'deki butun yollar ve sabitler; hedefler.panel_oku()
 #          ile panel TSV'si; hedefler.konsensusler() ile kanonik konsensusler;
 #          hedefler.kutular() ile "fastq files" altindaki kutu dosyalari;
-#          numune.Numune ile kutu basina ham okuma havuzlari; referans.py ile
-#          SILVA/UNITE havuzlari; kontrol.py ile onceki kosunun kontrol
+#          numune.Numune ile kutu basina ham okuma havuzlari; reference.py ile
+#          SILVA/UNITE havuzlari; checks.py ile onceki kosunun kontrol
 #          noktalari. Argumanlari argparse ile alir (--mod, --hedef, --okuma,
 #          --hafif, --yeniden, --tam-derinlik, --sina, --sinama-atla).
 # CIKTI  : KAPSAMLI_ARAMA_SONUC/ altina kontrol/hedef_*.json kontrol noktalari;
 #          rapor.uret() araciligiyla adaylar.tsv, parametre_izgarasi.tsv ve
 #          KAPSAMLI_ARAMA_RAPORU.md. main() surec cikis kodunu dondurur
 #          (0 = basarili, 2 = kapi/sinama dusuklugu).
-# CAGRAN : screening.bat icinde "wsl -e python3 -m screening
+# CAGRAN : verification/full_chain.py icinde "wsl -e python3 -m screening
 #          --mod %MOD%" satiri. Tuslar: 1 (--mod tam), 2 (--mod sorunlu),
 #          3 (--mod devam), 4 (--mod panel-olc --tam-derinlik), 5 (--mod
 #          uyelik), 6 (--mod konsensus), 7 (tek hedef; secime gore sorunlu /
@@ -34,9 +34,9 @@ Kullanim (normalde screening.bat cagirir):
 # ---------------------------------------------------------------------------
 import os, sys, time, argparse, traceback
 
-from . import yapilandirma as C
-from . import motor, geometri as G, hedefler as H, uretec as U, numune as N
-from . import referans as REF, kuresel_tarama as KT, kontrol, rapor
+from . import config as C
+from . import engine_gateway, geometri as G, hedefler as H, uretec as U, numune as N
+from . import reference as REF, kuresel_tarama as KT, kontrol, rapor
 
 BASLANGIC = time.time()
 
@@ -400,14 +400,14 @@ def sec_ornekle(adaylar, ust):
 
 
 def aramayi_kos(a, yaz, sure, cizgi, mod=None):
-    """Kapsamli arama akisi. hepsi.py de bunu cagirir."""
+    """Kapsamli arama akisi. run_all.py de bunu cagirir."""
     # YON KAPISI - bu asamanin ilk isi. Nanopore okumalari cift yonludur ve
     # konsensus ters yonde uretilmis olabilir. Projenin butun in-silico PCR
     # motorlari (ispcr.amplify, okuma_motoru.Sonda) verilen diziyi YALNIZ arti
     # iplikte tarar; ters yonlu bir konsensuste ne ileri primer ne de ters
     # primerin tumleyeni bulunur. Motor hata atmaz, sessizce "urun yok" der -
     # yani butun gece kosan bir arama hicbir uyari vermeden "hicbir hedefte
-    # cozum yok" uretir. Olculen kayip %100'dur (yon_etki_testi.py: dogru yonde
+    # cozum yok" uretir. Olculen kayip %100'dur (orientation_impact_test.py: dogru yonde
     # 117 urun, ters yonde 0). Bu yuzden konsensusler kanonik degilse asama
     # BASLAMAZ; SystemExit(2) ile durulur.
     if mod:
@@ -422,7 +422,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         yaz('  Sebep: okunacak konsensusler kanonik degil. Ters yonlu bir')
         yaz('  konsensuste in-silico PCR hicbir uyari vermeden 0 urun dondurur,')
         yaz('  yani butun kosu sessizce yanlis sonuc uretirdi.')
-        yaz('  Cozum:  python3 screening/kanonik_uret.py --kok . --yeniden')
+        yaz('  Cozum:  python3 screening/build_canonical.py --kok . --yeniden')
         raise SystemExit(2)
 
     sorunlu, panel, panel_yolu = H.sorunlu_hedefler()
@@ -564,21 +564,21 @@ def main(argv=None):
     yaz('  cikti klasoru: %s' % C.CIKTI)
     cizgi('=')
 
-    from . import kendini_sina
+    from . import self_test
     if a.mod == 'ozet':
-        from . import hepsi as HP
+        from . import run_all as HP
         rc = HP.yalniz_ozet(yaz, sure, cizgi)
         yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
         return rc
 
     if a.mod == 'hepsi':
-        from . import hepsi as HP
+        from . import run_all as HP
         rc = HP.calistir(yaz, sure, cizgi, a)
         yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
         return rc
 
     if a.mod == 'uyelik':
-        from . import uyelik_denetimi
+        from . import membership_check
         if not a.sinama_atla and not kendini_sina.calistir(yaz):
             yaz('\nKENDINI SINAMA BASARISIZ - denetim baslatilmadi.')
             return 2
@@ -589,7 +589,7 @@ def main(argv=None):
         return 0
 
     if a.mod == 'konsensus':
-        from . import konsensus_uret
+        from . import build_consensus
         konsensus_uret.calistir(yaz, sure, yalniz=a.hedef, yeniden=a.yeniden)
         yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
         return 0
@@ -602,7 +602,7 @@ def main(argv=None):
         return 0
 
     if a.mod == 'panel-olc':
-        from . import panel_olcum
+        from . import panel_measurement
         panel_olcum.calistir(yaz, sure, okuma_sayisi=a.okuma if a.okuma else 0,
                              yalniz=a.hedef, yeniden=a.yeniden)
         yaz('  TOPLAM SURE: %s' % sure(time.time() - BASLANGIC))
