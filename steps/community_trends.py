@@ -62,17 +62,17 @@ RUTBE_ADI = {"D": "alem üstü", "K": "alem", "P": "şube", "C": "sınıf",
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--bracken", required=True, help="'bracken results' klasoru")
+    p.add_argument("--bracken", required=True, help="'bracken results' directory")
     p.add_argument("--ayirt", default=None, help="ayirt_edilemez.tsv")
     p.add_argument("--kimlik", nargs="*", default=[], help="kimlik_*.tsv")
     p.add_argument("--adlar", default=None, help="taxid_adlari.tsv")
     p.add_argument("--out", required=True)
-    p.add_argument("--ust", type=int, default=10, help="sayfada gosterilen takson")
+    p.add_argument("--ust", type=int, default=10, help="taxon shown on the page")
     p.add_argument("--rutbe", default=None,
-                   help="abundance_rank.py'nin cikti klasoru; verilirse "
+                   help="abundance_rank.py'nin output directory; if given "
                         "'Rutbe Kapsamasi' ve 'Guvenilir Bolluk' sayfalari eklenir")
     p.add_argument("--kimlik-esik", type=float, default=50.0,
-                   help="baskin_oran bu degerin altindaysa kutu kimligi suphelidir")
+                   help="bin identity is suspect when the dominant fraction is below this value")
     return p.parse_args()
 
 

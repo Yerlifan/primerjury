@@ -39,7 +39,7 @@ import subprocess, threading
 
 SURUM = u'1.0 (2026-08-08)'
 CIKTI_KLASOR = 'TEK_TUS_SONUC'
-CANLILIK_SN = 60          # uzun asamalarda kac saniyede bir canlilik isareti
+CANLILIK_SN = 60          # uzun asamalarda seconds between liveness messages
 LOG_YAZMA_ARALIGI = 2.0   # bagli klasore en cok bu sikligta yaziyoruz (D-11 kurali)
 
 
@@ -1070,24 +1070,24 @@ def main():
     global CANLILIK_SN
     p = argparse.ArgumentParser(description=u'TEK TUS - butun zinciri sirayla kosar')
     p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--plan', action='store_true', help=u'yalniz plani yaz, kosma')
+    p.add_argument('--plan', action='store_true', help=u'only plani yaz, kosma')
     p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
                    help=u'plani gosterip onay BEKLEMEDEN kos (bat bunu verir)')
     p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
-                   help=u'bitmis asamalari da yeniden kos')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default='', help=u'yalniz bu asamalar, orn: 8HS')
-    p.add_argument('--skip', '--atla', dest='atla', default='', help=u'bu asamalari atla, orn: IG')
+                   help=u're-run finished stages as well')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default='', help=u'these stages only, e.g. 8HS')
+    p.add_argument('--skip', '--atla', dest='atla', default='', help=u'skip these stages, e.g. IG')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto')
     p.add_argument('--organism', '--organizma', dest='organizma',
                    default='Bacteria (taxid:2) OR Archaea (taxid:2157) OR Fungi (taxid:4751)')
     p.add_argument('--order-16', '--siparis-16', dest='siparis_16', action='store_true',
-                   help=u'D asamasi 22 cift yerine yalniz 16 siparis ciftini sinar')
+                   help=u'D asamasi 22 cift yerine only 16 siparis ciftini sinar')
     p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 veritabani yolu')
     p.add_argument('--skip-precheck', '--on-kontrol-atla', dest='on_kontrol_atla', action='store_true',
-                   help=u'ON KONTROLU ATLA - tavsiye edilmez, ekrana yazilir')
+                   help=u'skip the pre-check - not recommended; it is reported on screen')
     p.add_argument('--liveness', '--canlilik', dest='canlilik', type=int, default=CANLILIK_SN,
-                   help=u'kac saniyede bir canlilik isareti')
+                   help=u'seconds between liveness messages')
     A = p.parse_args()
     CANLILIK_SN = max(2, A.canlilik)
 

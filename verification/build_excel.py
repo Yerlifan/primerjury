@@ -376,7 +376,7 @@ def main():
     # --- 4 Cins-Tur: tur adi VERILEMEYEN kutularda en yuksek yuzdeli tur adayi
     sys.path.insert(0, T('verification'))
     try:
-        import kimlik_dogrulama as KD
+        import identity_verification as KD
         ad_coz, TE, CE, AP = KD.ad_coz, KD.TUR_ESIGI, KD.CINS_ESIGI, KD.AYRIM_PAYI
     except Exception:                       # panelin fonksiyonu yoksa sayfa uretilmez
         ad_coz = None

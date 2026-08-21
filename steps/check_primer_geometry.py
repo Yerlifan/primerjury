@@ -67,7 +67,7 @@ def get_args():
     p.add_argument("--tsv", required=True)
     p.add_argument("--kons", required=True)
     p.add_argument("--capa", default=None,
-                   help="capa etiketi; verilmezse TSV'deki capa sutunu kullanilir")
+                   help="anchor label; if omitted TSV'deki capa column is used")
     p.add_argument("--en-fazla", type=int, default=200)
     return p.parse_args()
 

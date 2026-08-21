@@ -60,26 +60,26 @@ MERDIVEN = [
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--kons", required=True,
-                   help="konsensus klasoru (07 self ciktisi ya da 06 ciktisi)")
+                   help="consensus directory (output of the freeze-reference or anchored-consensus step)")
     p.add_argument("--hedefler", default=os.path.join(HERE, "hedefler.tsv"))
     p.add_argument("--out", required=True)
-    p.add_argument("--only", default=None, help="yalnizca bu hedef adi")
-    p.add_argument("--karar", default=None, help="yalnizca bu karar numarasi")
-    p.add_argument("--extra", default="", help="04'e aynen gecirilecek bayraklar")
+    p.add_argument("--only", default=None, help="this target name only")
+    p.add_argument("--karar", default=None, help="this decision group only")
+    p.add_argument("--extra", default="", help="04'e flags passed through unchanged")
     p.add_argument("--grup-extra", default="",
-                   help="Karar 3 ve 4 hedeflerine ek olarak gecirilen "
+                   help="passed in addition for decision-group 3 and 4 targets "
                         "bayraklar. Dejenerelik bayraklari kaldirildi: "
                         "toplanti karari butun hedeflerde salt ACGT oligo "
                         "istiyor, kalip belirsizligi --iupac-max ile "
                         "yonetiliyor.")
     p.add_argument("--min-uye", type=int, default=1)
     p.add_argument("--ayirt-edilemez-cikar", type=int, default=1,
-                   help="1: hedef uyelerinden biriyle ayirt edilemeyecek kadar "
+                   help="1: too close to one of the target members to be distinguished "
                         "ozdes olan taksonlar rakip listesinden cikarilir ve "
                         "gerekcesi loglanir. 0: cikarilmaz (toplanti kuralinin "
                         "mantiken saglanamadigi durumda hedef sifir aday verir)")
     p.add_argument("--yeniden", action="store_true",
-                   help="checkpoint'i yok say, her hedefi bastan tasarla")
+                   help="ignore the checkpoint, redesign every target from scratch")
     return p.parse_args()
 
 

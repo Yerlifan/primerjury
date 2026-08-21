@@ -1231,9 +1231,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--offline', '--agsiz', dest='agsiz', action='store_true',
-                   help='NCBI gerektiren denetimleri atla')
+                   help='NCBI gerektiren denetimleri skip')
     p.add_argument('--generate', '--uretilecek', dest='uretilecek', default='',
-                   help='bu kosuda yeniden uretilecek cikti yollari (virgulle); '
+                   help='output paths to regenerate in this run (comma-separated); '
                         'bunlara tazelik denetimi uygulanmaz')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

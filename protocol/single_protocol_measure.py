@@ -916,9 +916,9 @@ def main():
     p = argparse.ArgumentParser(description='Tek protokolle panel olcumu')
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=PROTOKOL['okuma_tavani'],
-                   help='kutu basina okuma tavani (0 = tamami)')
+                   help='cap on reads per bin (0 = all of them)')
     p.add_argument('--mixed', '--karisik', dest='karisik', choices=['member', 'competitor', 'exclude', 'uye', 'rakip', 'disla'], default=PROTOKOL['karisik'])
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama icin)')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='only targets whose name contains this (for testing)')
     p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)

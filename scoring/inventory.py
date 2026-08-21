@@ -17,7 +17,7 @@ degismis olabilir). Bu yuzden karar 1. olcuyle, dogrulama 3. olcuyle verilir.
 """
 import os, sys, json, statistics, argparse, gzip
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 
 KOK = '/path/to/your/project'
 KP = '/tmp/mrb/kontrol/envanter.json'

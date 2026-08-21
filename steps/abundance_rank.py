@@ -72,14 +72,14 @@ def ana_rutbe(kod):
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--kraken", required=True,
-                   help="guven duzeltmesi uygulanmis rapor klasoru")
+                   help="report directory with the confidence correction applied")
     p.add_argument("--out", required=True)
     p.add_argument("--desen", default="*_kraken2.report")
     p.add_argument("--kapsama", type=float, default=0.50,
-                   help="bir rutbenin secilebilmesi icin siniflandirilmis "
+                   help="classified fraction required before a rank can be chosen "
                         "okumalarin en az bu orani o rutbede ya da altinda "
                         "yerlesmeli")
-    p.add_argument("--ust", type=int, default=15, help="tabloda gosterilen takson")
+    p.add_argument("--ust", type=int, default=15, help="taxon shown in the table")
     return p.parse_args()
 
 

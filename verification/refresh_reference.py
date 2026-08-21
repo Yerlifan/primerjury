@@ -31,7 +31,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--source', '--kaynak', dest='kaynak', default=None,
-                   help='varsayilan: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv')
+                   help='default: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     kaynak = a.kaynak or os.path.join(kok, 'TEK_PROTOKOL_SONUC',

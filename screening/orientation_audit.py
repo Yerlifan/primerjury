@@ -45,7 +45,7 @@ Kullanim:
 import sys, os, glob, csv, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import okuma_motoru as om
+import read_engine as om
 
 # --- olcut 1: panelin evrensel ciftleri (sinifa gore) ------------------------
 PANEL = {

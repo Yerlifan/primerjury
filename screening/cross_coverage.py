@@ -29,7 +29,7 @@ Kullanim: python cross_coverage.py --fastq "..\fastq files" --out capraz.json
 # ---------------------------------------------------------------------------
 import sys, os, glob, json, argparse, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import okuma_motoru as om
+import read_engine as om
 
 GENIS = [(2,  'Metanojen_universal',   'GTGGAGCTTGCGGTTTAATTG',   'CAGGATGCTTCACAGTACGAAC'),
          (6,  'Mantar_universal (F1)', 'GGTTACCCGCTGAACTTAAGC',   'CGCTTCACTCGCCGTTAC'),

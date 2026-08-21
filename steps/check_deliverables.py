@@ -29,7 +29,7 @@ Kullanim:
 import argparse, csv, glob, os, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import alan_denetimi
+import field_audit
 
 try:
     import primer3
@@ -63,13 +63,13 @@ def en_uzun_tekrar(s):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--final", required=True, help="09'un cikti klasoru")
+    p.add_argument("--final", required=True, help="09'un output directory")
     p.add_argument("--kons", default=None,
-                   help="baskin alel konsensus klasoru; verilirse kalip da denetlenir")
+                   help="baskin alel consensus directory; if given the template is checked as well")
     p.add_argument("--hedefler", default=None,
-                   help="hedefler.tsv; verilirse alan tutarliligi da denetlenir")
+                   help="targets.tsv; if given field consistency is checked as well")
     p.add_argument("--yalniz-gecti", type=int, default=1)
-    p.add_argument("--out", default=None, help="bulgu tsv'si")
+    p.add_argument("--out", default=None, help="findings TSV'si")
     # toplanti karari esikleri
     p.add_argument("--uz-min", type=int, default=18)
     p.add_argument("--uz-max", type=int, default=25)

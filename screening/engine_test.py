@@ -43,8 +43,8 @@ Cikis kodu 0 = gecti, 1 = kaldi.
 import sys, os, glob, random, argparse, itertools
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import okuma_motoru as om
-import kaba_kuvvet as kk
+import read_engine as om
+import brute_force as kk
 
 CIFTLER = [
     ('Metanojen_universal',              'GTGGAGCTTGCGGTTTAATTG',    'CAGGATGCTTCACAGTACGAAC'),

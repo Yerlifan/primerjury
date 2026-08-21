@@ -189,7 +189,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cikti", default="")
     ap.add_argument("--kume", action="append", default=[],
-                    help="ad=/yol/dosya.fasta biciminde, birden cok kez verilebilir")
+                    help="ad=/yol/file.fasta biciminde, birden cok kez verilebilir")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:

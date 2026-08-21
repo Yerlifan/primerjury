@@ -82,16 +82,16 @@ def kutu_konsensuslari(kok, en_fazla):
 def main():
     p = argparse.ArgumentParser(description=u'Iki hizalayiciyi yan yana olcer')
     p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--bin', '--kutu', dest='kutu', type=int, default=4, help=u'kac kutu denenecek')
+    p.add_argument('--bin', '--kutu', dest='kutu', type=int, default=4, help=u'kac bin denenecek')
     p.add_argument('--records', '--kayit', dest='kayit', type=int, default=120,
                    help=u'veritabani basina kac kayit hizalanacak')
-    p.add_argument('--db', '--vtb', dest='vtb', default='', help=u'yalniz adinda bu gecen veritabanlari')
+    p.add_argument('--db', '--vtb', dest='vtb', default='', help=u'only databases whose name contains this')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 
     sys.path.insert(0, os.path.join(kok, 'verification'))
     try:
-        import hizalayici_minimap2 as mm
+        import minimap2_aligner as mm
     except ImportError:
         sys.stderr.write(u'HATA: verification/minimap2_aligner.py bulunamadi.\n')
         return 1

@@ -48,7 +48,7 @@ def geo_yukle(kok):
         if os.path.exists(os.path.join(d, 'geometry_core.py')):
             sys.path.insert(0, d)
             try:
-                import geo
+                import geometry_core
             except ImportError as e:
                 # primer3 yoksa YIGIN IZI basip kullaniciyi korkutma; ne
                 # eksik oldugunu ve nasil kurulacagini soyle.
@@ -200,7 +200,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--write', '--yaz', dest='yaz', action='store_true',
-                   help='panel tablosunun Tm ve dTm sutunlarini da guncelle '
+                   help='also update the Tm and dTm columns of the panel table '
                         '(once yedek alinir)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

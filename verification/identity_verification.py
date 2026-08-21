@@ -1784,6 +1784,17 @@ def raporla(CIKTI, sonuc, var, yaz):
                  u'veritabani uyusuyor.\n')
         fh.write(u'# Yontem: tohum + hizalama. Taksonomi agaci, k-mer LCA ve primer '
                  u'KULLANILMADI.\n')
+        try:
+            import sys as _s2, os as _o2
+            _k2 = _o2.path.dirname(_o2.path.dirname(_o2.path.abspath(__file__)))
+            if _k2 not in _s2.path:
+                _s2.path.insert(0, _k2)
+            from screening import labels as _L2
+            fh.write(_L2.verdict_legend(_L2.KIMLIK, 'VERDICTS'))
+            fh.write(_L2.verdict_legend(_L2.DUZEY, 'DEFENSIBLE TAXONOMIC LEVEL'))
+            fh.write(_L2.legend(_L2.SUTUN.keys()))
+        except Exception:
+            pass
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['no', 'oncelik', 'iddia', 'HUKUM',
                     'SAVUNULABILIR_DUZEY', 'ONERILEN_AD', 'adlandirma_gerekcesi',
@@ -2110,7 +2121,7 @@ def _ing_deger(a):
 def main():
     p = argparse.ArgumentParser(description='Kimlik iddialarinin bagimsiz dogrulanmasi')
     p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='iddia numarasi ya da metninden parca')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='iddia numarasi or metninden parca')
     p.add_argument('--db-max', '--vtb-ust', dest='vtb_ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
     p.add_argument('--shortlist', '--kisa-liste', type=int, default=KISA_LISTE, dest='kisa_liste',
                    help=(u'her veritabanindan TAM HIZALANACAK aday sayisi (varsayilan %d). '
@@ -2119,7 +2130,7 @@ def main():
                          u'Degistirmek eski kontrol noktalarini gecersiz kilar.'
                          % KISA_LISTE))
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto',
-                   help='NCBI nt katmani: oto (URL API), elle (sorgu dosyasi uret), yok')
+                   help='NCBI nt layer: auto (URL API), manual (write a query file), none')
     p.add_argument('--nt-load', '--nt-yukle', dest='nt_yukle', default=None,
                    help='doldurulmus NT_SONUC_SABLONU.tsv')
     p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto',

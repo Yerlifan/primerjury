@@ -32,7 +32,7 @@ import argparse, os, random, statistics, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hizalama
+import alignment
 
 if hizalama.ARKA_UC is None:
     sys.exit(hizalama.durum())
@@ -43,8 +43,8 @@ BAZLAR = "ACGT"
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--fastq", required=True)
-    p.add_argument("--etiket", required=True, help="ornek: B-1_2233851")
-    p.add_argument("--out", required=True, help="konsensus klasoru")
+    p.add_argument("--etiket", required=True, help="example: B-1_2233851")
+    p.add_argument("--out", required=True, help="consensus directory")
     p.add_argument("--tohum-sayisi", type=int, default=25)
     p.add_argument("--max-okuma", type=int, default=3000)
     p.add_argument("--min-uzunluk", type=int, default=400)
@@ -57,9 +57,9 @@ def get_args():
     p.add_argument("--min-kapsam", type=float, default=0.95,
                    help="iki yarinin hizalamasinda beklenen en az kapsama")
     p.add_argument("--indel-uyari", type=float, default=0.005,
-                   help="bu oranin ustundeki indel farki icin not basilir")
+                   help="print a note for indel differences above this fraction")
     p.add_argument("--tohum", type=int, default=20260801,
-                   help="rastgeleligin tohumu; ayni girdi ayni sonucu versin")
+                   help="random seed, so the same input gives the same result")
     return p.parse_args()
 
 

@@ -46,7 +46,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import dogrulama_turu as D                                   # noqa: E402
+import specificity_round as D                                   # noqa: E402
 
 SURUM = '1.0 (2026-08-10)'
 

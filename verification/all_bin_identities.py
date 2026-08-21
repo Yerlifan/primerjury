@@ -925,19 +925,19 @@ def main():
         description=u'Panel olcumlerine giren TUM kutularin kimligini bagimsiz dogrula')
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--shortlist', '--kisa-liste', type=int, default=None, dest='kisa_liste',
-                   help=u'tam hizalanacak aday sayisi (varsayilan: I ile ayni)')
+                   help=u'number of candidates to align fully (default: same as the identity stage)')
     p.add_argument('--cluster', '--kume', dest='kume', type=int, default=24,
-                   help=u'bir veritabani akisinda kac kutu birlikte taransin '
+                   help=u'how many bins to scan together in one database pass '
                         u'(bellek/hiz dengesi, varsayilan 24)')
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='yok',
-                   help=u'NCBI nt katmani (varsayilan yok: kutu basina ayri BLAST '
+                   help=u'NCBI nt layer (default none: a separate BLAST per bin '
                         u'kuyrugu gunlerce surer; I asamasindan kalan onbellek yine '
                         u'kullanilir)')
     p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto')
     p.add_argument('--only', '--yalniz', dest='yalniz', default=None,
-                   help=u'virgulle ayrilmis kutu adi parcalari (sinama icin)')
+                   help=u'comma-separated ayrilmis bin adi parcalari (for testing)')
     p.add_argument('--cap-bins', '--tavan-kutu', type=int, default=0, dest='tavan_kutu',
-                   help=u'yalniz ilk N kutu (sinama icin)')
+                   help=u'only ilk N bin (for testing)')
     p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)

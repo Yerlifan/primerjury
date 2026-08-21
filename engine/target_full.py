@@ -70,11 +70,11 @@ def main():
     ap.add_argument('--sig', type=int, default=900)
     ap.add_argument('--deep', '--derin', dest='derin', type=int, default=3000)
     ap.add_argument('--stage', '--asama', dest='asama', default='tara', choices=['tara', 'derin'])
-    ap.add_argument('--member-taxid', '--uye-taxid', dest='uye_taxid', default='', help='uyeligi ELLE ver (virgullu)')
-    ap.add_argument('--competitor-taxid', '--rakip-taxid', dest='rakip_taxid', default='', help='rakipleri ELLE ver')
-    ap.add_argument('--class', '--sinif', dest='sinif', default='', help='kutu sinifi suzgeci, or. F2')
+    ap.add_argument('--member-taxid', '--uye-taxid', dest='uye_taxid', default='', help='set membership MANUALLY (comma-separated)')
+    ap.add_argument('--competitor-taxid', '--rakip-taxid', dest='rakip_taxid', default='', help='set competitors MANUALLY')
+    ap.add_argument('--class', '--sinif', dest='sinif', default='', help='bin class filter, e.g. F2')
     ap.add_argument('--backbone', '--omurga', dest='omurga', default='',
-                    help='sablon kutuyu ELLE sec (saglam konsensuslu bir uye kutusu)')
+                    help='choose the template bin MANUALLY (a member bin with a solid consensus)')
     a = ap.parse_args()
     t0 = time.time()
     # Varsayilan durum dosyasi /tmp/fl altindaydi. Iki sakincasi vardi: klasor

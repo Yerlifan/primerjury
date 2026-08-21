@@ -47,7 +47,7 @@ ve her pozisyonu tek tek deneyen bagimsiz bir kaba kuvvet uygulamasiyla
 KULLANIM
 ---------------------------------------------------------------------------
 Modul olarak:
-    import okuma_motoru as om
+    import read_engine as om
     okumalar = list(om.okumalar('kutu.fastq'))            # 200-6000 bp suzgeci
     pos, n   = om.kutu_pcr(okumalar, F, R, max_mm=1)      # urun veren okuma sayisi
     yerler   = om.Sonda(F, uc5=False, max_mm=1).bul(dizi) # [(baslangic, uyumsuzluk), ...]
@@ -254,16 +254,16 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description='Duzeltilmis ham-okuma in-silico PCR (kayipsiz tohumlama).')
     ap.add_argument('F'); ap.add_argument('R')
-    ap.add_argument('fastq', nargs='+', help='fastq dosyalari ya da joker desen')
-    ap.add_argument('--mm', type=int, default=1, help='toplam izin verilen uyumsuzluk (varsayilan 1)')
+    ap.add_argument('fastq', nargs='+', help='fastq files or a glob pattern')
+    ap.add_argument('--mm', type=int, default=1, help='total mismatches allowed (default 1)')
     ap.add_argument('--lo', type=int, default=40)
     ap.add_argument('--hi', type=int, default=600)
-    ap.add_argument('--nmax', type=int, default=3000, help='kutu basina en cok okuma (0 = hepsi)')
+    ap.add_argument('--nmax', type=int, default=3000, help='maximum reads per bin (0 = all)')
     ap.add_argument('--seed', type=int, default=3)
     ap.add_argument('--minlen', type=int, default=MINL)
     ap.add_argument('--maxlen', type=int, default=MAXL)
-    ap.add_argument('--last-two', '--son2', dest='son2', type=int, default=1, help="1 = 3' son 2 baz tam eslesme sarti")
-    ap.add_argument('--tsv', default='', help='sonucu bu dosyaya TSV yaz')
+    ap.add_argument('--last-two', '--son2', dest='son2', type=int, default=1, help="1 = require an exact match at the last two 3' bases")
+    ap.add_argument('--tsv', default='', help='write the result to this file as TSV')
     a = ap.parse_args(argv)
 
     yollar = []

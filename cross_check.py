@@ -3441,23 +3441,23 @@ def _ing_deger(a):
 def main():
     p = argparse.ArgumentParser(
         description=u'PrimerJury paneli - bagimsiz, salt okunur capraz kontrol')
-    p.add_argument('--root', '--kok', dest='kok', default='.', help=u'proje kok klasoru')
-    p.add_argument('--output', '--cikti', dest='cikti', default=None, help=u'rapor klasoru (varsayilan KONTROL_SONUC)')
+    p.add_argument('--root', '--kok', dest='kok', default='.', help=u'project root directory')
+    p.add_argument('--output', '--cikti', dest='cikti', default=None, help=u'report directory (default KONTROL_SONUC)')
     p.add_argument('--modules', '--moduller', dest='moduller', default='hepsi',
-                   help=u'kosulacak moduller, virgulle: 1,2,3 ... ya da "hepsi"')
+                   help=u'modules to run, comma-separated: 1,2,3 ... or "all"')
     p.add_argument('--m1-mode', '--m1-kip', dest='m1_kip', default='hizli',
                    choices=['none', 'quick', 'full', 'yok', 'hizli', 'tam'],
-                   help=u'M1 kimlik taramasinin kapsami (varsayilan hizli)')
+                   help=u'M1 scope of the identity scan (default: quick)')
     p.add_argument('--m1-only', '--m1-yalniz', dest='m1_yalniz', default=None,
-                   help=u'yalniz bu kutular (virgulle), ornek: F2-1_500148,F2-4_500148')
+                   help=u'these bins only (comma-separated), example: F2-1_500148,F2-4_500148')
     p.add_argument('--m1-cap', '--m1-tavan', dest='m1_tavan', type=int, default=0,
-                   help=u'M1 icin en fazla kac kutu (0 = hepsi)')
+                   help=u'M1 for maximum number of bins (0 = all)')
     p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true',
-                   help=u'kontrol noktalarini yok say, her seyi yeniden hesapla')
+                   help=u'ignore checkpoints and recompute everything')
     p.add_argument('--no-checkpoint', '--kontrol-noktasi-yok', dest='kn_yok', action='store_true',
-                   help=u'kontrol noktasi hic kullanma')
+                   help=u'never use a checkpoint')
     p.add_argument('--self-test', '--kendini-sina', dest='kendini_sina', action='store_true',
-                   help=u'her module bilerek bozuk girdi verip hatayi yakaladigini goster')
+                   help=u'feed each module deliberately broken input and show that it catches the error')
     a = p.parse_args()
     a = _ing_deger(a)
 

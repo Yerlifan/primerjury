@@ -202,12 +202,12 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--coverage', '--kapsam', dest='kapsam', type=float, default=0.95,
-                   help='her barkodda ulasilacak tur-okumasi kapsami (0-1)')
+                   help='species-read coverage to reach in each barcode (0-1)')
     p.add_argument('--min-reads', '--asgari-okuma', dest='asgari_okuma', type=int, default=50,
-                   help='bu sayidan az okumasi olan takson kutuya cevrilmez '
+                   help='taxa with fewer reads than this are not turned into a bin '
                         '(konsensus guvenilmez olur)')
     p.add_argument('--raw-root', '--ham-kok', dest='ham_kok', default='',
-                   help='ham barkod fastq klasoru; bos ise bilinen yerlere bakilir')
+                   help='ham barkod fastq directory; bos ise bilinen yerlere bakilir')
     p.add_argument('--calibration-only', '--yalniz-kalibrasyon', dest='yalniz_kalibrasyon', action='store_true')
     p.add_argument('--plan-only', '--yalniz-plan', dest='yalniz_plan', action='store_true',
                    help='ne uretilecegini yaz, uretme')
