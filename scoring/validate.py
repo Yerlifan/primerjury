@@ -28,10 +28,10 @@ def kapsam_orani(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--is', dest='isler', action='append', required=True,
+    ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
                     help='hedef::kp_dosya::N')
-    ap.add_argument('--sure', type=float, default=36.0)
-    ap.add_argument('--cikti', default='/tmp/mrb/kontrol/dogrulama.json')
+    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
+    ap.add_argument('--output', '--cikti', dest='cikti', default='/tmp/mrb/kontrol/dogrulama.json')
     g = ap.parse_args()
     t0 = time.time()
 

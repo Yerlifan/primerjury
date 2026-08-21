@@ -894,15 +894,34 @@ def girdi_denetle(yaz, ad, dosyalar):
 # Komut satiri: --okuma derinlik tavani, --karisik karisik kutulara ne yapilacagi
 # (uye|rakip|disla; varsayilan rakip = en kotu durumu olcer), --yalniz alt kume,
 # --sifirla kontrol noktalarini siler.
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(description='Tek protokolle panel olcumu')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--okuma', type=int, default=PROTOKOL['okuma_tavani'],
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=PROTOKOL['okuma_tavani'],
                    help='kutu basina okuma tavani (0 = tamami)')
-    p.add_argument('--karisik', choices=['uye', 'rakip', 'disla'], default=PROTOKOL['karisik'])
-    p.add_argument('--yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama icin)')
-    p.add_argument('--sifirla', action='store_true')
+    p.add_argument('--mixed', '--karisik', dest='karisik', choices=['member', 'competitor', 'exclude', 'uye', 'rakip', 'disla'], default=PROTOKOL['karisik'])
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama icin)')
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
+    a = _ing_deger(a)
     kok = kok_bul(a.kok)
     return calistir(kok, a.okuma, a.karisik, a.yalniz, a.sifirla)
 

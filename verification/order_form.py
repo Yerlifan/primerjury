@@ -69,7 +69,7 @@ def panel_oku(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
+    p.add_argument('--root', '--kok', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

@@ -1229,10 +1229,10 @@ def d19_uyelik_icerigi(kok, yaz):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--agsiz', action='store_true',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--offline', '--agsiz', dest='agsiz', action='store_true',
                    help='NCBI gerektiren denetimleri atla')
-    p.add_argument('--uretilecek', default='',
+    p.add_argument('--generate', '--uretilecek', dest='uretilecek', default='',
                    help='bu kosuda yeniden uretilecek cikti yollari (virgulle); '
                         'bunlara tazelik denetimi uygulanmaz')
     a = p.parse_args()

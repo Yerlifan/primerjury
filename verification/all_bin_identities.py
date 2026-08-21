@@ -902,26 +902,45 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
 # --nt NCBI katmani (varsayilan "yok": kutu basina ayri BLAST kuyrugu gunlerce
 # surer; I asamasindan kalan onbellek yine kullanilir), --yalniz / --tavan-kutu
 # sinama icin alt kume.
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(
         description=u'Panel olcumlerine giren TUM kutularin kimligini bagimsiz dogrula')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--kisa-liste', type=int, default=None, dest='kisa_liste',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--shortlist', '--kisa-liste', type=int, default=None, dest='kisa_liste',
                    help=u'tam hizalanacak aday sayisi (varsayilan: I ile ayni)')
-    p.add_argument('--kume', type=int, default=24,
+    p.add_argument('--cluster', '--kume', dest='kume', type=int, default=24,
                    help=u'bir veritabani akisinda kac kutu birlikte taransin '
                         u'(bellek/hiz dengesi, varsayilan 24)')
-    p.add_argument('--nt', choices=['oto', 'elle', 'yok'], default='yok',
+    p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='yok',
                    help=u'NCBI nt katmani (varsayilan yok: kutu basina ayri BLAST '
                         u'kuyrugu gunlerce surer; I asamasindan kalan onbellek yine '
                         u'kullanilir)')
-    p.add_argument('--literatur', choices=['oto', 'yok'], default='oto')
-    p.add_argument('--yalniz', default=None,
+    p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None,
                    help=u'virgulle ayrilmis kutu adi parcalari (sinama icin)')
-    p.add_argument('--tavan-kutu', type=int, default=0, dest='tavan_kutu',
+    p.add_argument('--cap-bins', '--tavan-kutu', type=int, default=0, dest='tavan_kutu',
                    help=u'yalniz ilk N kutu (sinama icin)')
-    p.add_argument('--sifirla', action='store_true')
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
+    a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.exit('HATA: %s icinde screening yok.' % kok)

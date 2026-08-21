@@ -49,8 +49,8 @@ def ucuz_gecti(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--hedef', required=True)
-    ap.add_argument('--cikti', required=True)
+    ap.add_argument('--target', '--hedef', dest='hedef', required=True)
+    ap.add_argument('--output', '--cikti', dest='cikti', required=True)
     ap.add_argument('--sinama_F', default='')
     ap.add_argument('--sinama_R', default='')
     g = ap.parse_args()

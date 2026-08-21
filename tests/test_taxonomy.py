@@ -197,7 +197,7 @@ def bolum3(ornek):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--ornek', type=int, default=2000)
+    p.add_argument('--sample', '--ornek', dest='ornek', type=int, default=2000)
     a = p.parse_args()
     s = [bolum1(), bolum2(), bolum3(a.ornek)]
     print()

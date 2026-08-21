@@ -1445,19 +1445,19 @@ def girdi_denetle(yaz, ad, dosyalar):
 # belirler.
 def main():
     p = argparse.ArgumentParser(description='Esik alti satirlar icin kurtarma turu')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--aday-ust', type=int, default=400,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=400,
                    help='yol 3 taramasinda olculecek en fazla aday cift')
-    p.add_argument('--tarama-ust', type=int, default=3000,
+    p.add_argument('--scan-max', '--tarama-ust', dest='tarama_ust', type=int, default=3000,
                    help='yol 3 taramasinda omurgadan ornekle nen en fazla primer adayi')
-    p.add_argument('--yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama)')
-    p.add_argument('--arms-ust', type=int, default=5,
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama)')
+    p.add_argument('--arms-max', '--arms-ust', dest='arms_ust', type=int, default=5,
                    help='kac adayin ARMS varyantlari uretilsin')
-    p.add_argument('--okuma', type=int, default=OKUMA_TAVANI,
+    p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=OKUMA_TAVANI,
                    help='kutu basina okuma tavani (TEK PROTOKOL ile ayni olmali)')
-    p.add_argument('--panelsiz-atla', action='store_true',
+    p.add_argument('--skip-if-no-panel', '--panelsiz-atla', dest='panelsiz_atla', action='store_true',
                    help='panelde satiri olmayan talepleri atla (yalniz hizli test icin)')
-    p.add_argument('--sifirla', action='store_true')
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):

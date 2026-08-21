@@ -110,8 +110,8 @@ def uygun(c, ta):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--deneme', type=int, default=20000)
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--trial', '--deneme', dest='deneme', type=int, default=20000)
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

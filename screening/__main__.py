@@ -521,22 +521,22 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument('--mod', default='sorunlu',
+    ap.add_argument('--mode', '--mod', dest='mod', default='sorunlu',
                     choices=['tam', 'sorunlu', 'devam', 'panel-olc', 'konsensus',
                              'uyelik', 'hepsi', 'ozet'])
-    ap.add_argument('--sina', action='store_true')
-    ap.add_argument('--hedefleri-listele', action='store_true')
-    ap.add_argument('--sinama-atla', action='store_true',
+    ap.add_argument('--selftest', '--sina', dest='sina', action='store_true')
+    ap.add_argument('--list-targets', '--hedefleri-listele', dest='hedefleri_listele', action='store_true')
+    ap.add_argument('--skip-tests', '--sinama-atla', dest='sinama_atla', action='store_true',
                     help='kendini sinamayi atla (yalniz gelistirme/test icin)')
-    ap.add_argument('--yeniden', action='store_true',
+    ap.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
                     help='kontrol noktalarini yok say, bastan hesapla')
-    ap.add_argument('--hafif', action='store_true', help='referans/kuresel adimlari atla')
-    ap.add_argument('--tam-derinlik', action='store_true',
+    ap.add_argument('--light', '--hafif', dest='hafif', action='store_true', help='referans/kuresel adimlari atla')
+    ap.add_argument('--full-depth', '--tam-derinlik', dest='tam_derinlik', action='store_true',
                     help='kutudaki BUTUN okumalari kullan (--okuma 0 ile ayni)')
-    ap.add_argument('--okuma', type=int, default=C.NUMUNE_OKUMA_SAYISI,
+    ap.add_argument('--reads', '--okuma', dest='okuma', type=int, default=C.NUMUNE_OKUMA_SAYISI,
                     help='kutu basina okuma; 0 = kutudaki BUTUN okumalar (yavas ama kesin)')
-    ap.add_argument('--hedef', default=None, help='yalniz bu hedef (test icin)')
-    ap.add_argument('--aday-ust', type=int, default=None)
+    ap.add_argument('--target', '--hedef', dest='hedef', default=None, help='yalniz bu hedef (test icin)')
+    ap.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=None)
     a = ap.parse_args(argv)
 
     if a.tam_derinlik:

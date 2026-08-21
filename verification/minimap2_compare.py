@@ -81,11 +81,11 @@ def kutu_konsensuslari(kok, en_fazla):
 
 def main():
     p = argparse.ArgumentParser(description=u'Iki hizalayiciyi yan yana olcer')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--kutu', type=int, default=4, help=u'kac kutu denenecek')
-    p.add_argument('--kayit', type=int, default=120,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--bin', '--kutu', dest='kutu', type=int, default=4, help=u'kac kutu denenecek')
+    p.add_argument('--records', '--kayit', dest='kayit', type=int, default=120,
                    help=u'veritabani basina kac kayit hizalanacak')
-    p.add_argument('--vtb', default='', help=u'yalniz adinda bu gecen veritabanlari')
+    p.add_argument('--db', '--vtb', dest='vtb', default='', help=u'yalniz adinda bu gecen veritabanlari')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

@@ -200,16 +200,16 @@ def ham_fastq_bul(kok, bc, ek_kokler):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--kapsam', type=float, default=0.95,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--coverage', '--kapsam', dest='kapsam', type=float, default=0.95,
                    help='her barkodda ulasilacak tur-okumasi kapsami (0-1)')
-    p.add_argument('--asgari-okuma', type=int, default=50,
+    p.add_argument('--min-reads', '--asgari-okuma', dest='asgari_okuma', type=int, default=50,
                    help='bu sayidan az okumasi olan takson kutuya cevrilmez '
                         '(konsensus guvenilmez olur)')
-    p.add_argument('--ham-kok', default='',
+    p.add_argument('--raw-root', '--ham-kok', dest='ham_kok', default='',
                    help='ham barkod fastq klasoru; bos ise bilinen yerlere bakilir')
-    p.add_argument('--yalniz-kalibrasyon', action='store_true')
-    p.add_argument('--yalniz-plan', action='store_true',
+    p.add_argument('--calibration-only', '--yalniz-kalibrasyon', dest='yalniz_kalibrasyon', action='store_true')
+    p.add_argument('--plan-only', '--yalniz-plan', dest='yalniz_plan', action='store_true',
                    help='ne uretilecegini yaz, uretme')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

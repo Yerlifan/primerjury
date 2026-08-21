@@ -156,7 +156,7 @@ def daha_yeni_liste_var_mi(kok, bizim_dosya, kaynak_panel):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--kok', required=True)
+    ap.add_argument('--root', '--kok', dest='kok', required=True)
     a = ap.parse_args()
 
     # ---- CANLI dosyadan oku ------------------------------------------------

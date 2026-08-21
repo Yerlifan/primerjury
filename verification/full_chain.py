@@ -725,28 +725,28 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
 
 def main():
     p = argparse.ArgumentParser(description=u'Tam zincir: 8 H W I G T X Y Z S')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--onayla', action='store_true',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
                    help=u'onay sormadan basla (menuden gelirken kullanilir)')
-    p.add_argument('--yeniden', action='store_true',
+    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
                    help=u'durum.json sifirlanir, her sey bastan kosar')
-    p.add_argument('--sifirdan', action='store_true',
+    p.add_argument('--from-scratch', '--sifirdan', dest='sifirdan', action='store_true',
                    help=u'TEMIZ KOSU: yalniz bu betigin degil, CAGRILAN her '
                         u'asamanin kontrol noktalarini da gecersiz kilar. '
                         u'Hicbir sey silinmez, zaman damgali klasorlere tasinir.')
-    p.add_argument('--yalniz', default='',
+    p.add_argument('--only', '--yalniz', dest='yalniz', default='',
                    help=u'yalniz bu asamalar, virgulle: ornek 8,S')
-    p.add_argument('--atla', default='',
+    p.add_argument('--skip', '--atla', dest='atla', default='',
                    help=u'bu asamalar atlanir, virgulle')
     p.add_argument('--pluspfp', default=os.environ.get('PLUSPFP', ''),
                    help=u'PlusPFP veritabani yolu (verilmezse Y adimi atlanir)')
-    p.add_argument('--vt', default=os.environ.get('VT_A', ''),
+    p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 veritabani yolu (verilmezse ~/k2db, sonra arac diski tarar)')
-    p.add_argument('--ortam', default=os.environ.get('ORTAM', ''),
+    p.add_argument('--env', '--ortam', dest='ortam', default=os.environ.get('ORTAM', ''),
                    help=u'micromamba/conda ortam adi (varsayilan: mikro). '
                         u'kraken2 baska bir ortamdaysa burada verin; '
                         u'ortam adlarini gormek icin: micromamba env list')
-    p.add_argument('--kuru', action='store_true',
+    p.add_argument('--dry-run', '--kuru', dest='kuru', action='store_true',
                    help=u'komutlari CALISTIRMADAN plani ve denetimi gosterir')
     p.add_argument('--plan', action='store_true',
                    help=u'YALNIZ plani basar ve cikar; hicbir sey kosulmaz. '

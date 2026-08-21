@@ -14,9 +14,10 @@
 #  of ninety files to call, in what order, with which flags. This file is the
 #  contract; the layout behind it can change without breaking anyone's habits.
 #
-#  It also keeps the interface in one language. Several stage scripts still take
-#  Turkish flags (--kok, --onayla); they are translated here, so nothing you
-#  type is Turkish.
+#  The interface is entirely English. Stage scripts take English flags
+#  (--root, --confirm, --only, --reset, ...); the original Turkish names are
+#  kept as hidden aliases so older notes and scripts keep working, but nothing
+#  you need to type is Turkish.
 # =============================================================================
 set -o pipefail
 
@@ -142,33 +143,33 @@ kos() {                       # echo the command, then run it
     "$@"
 }
 
-cmd_check()      { bash install.sh durum; }
+cmd_check()      { bash install.sh status; }
 cmd_index()      { bash build_index.sh "$@"; }
 
 cmd_install() {
     local ne="${1:-all}"; shift 2>/dev/null || true
     case "$ne" in
-        tools|araclar)          bash install.sh araclar ;;
-        databases|db|veritabani) bash install.sh veritabani "$@" ;;
+        tools)           bash install.sh tools ;;
+        databases|db)    bash install.sh databases "$@" ;;
         kraken)
             # --kmer given -> build our own; otherwise show the download path
             if [ "$1" = "--kmer" ] || [ "$1" = "--minimizer" ]; then
-                bash install.sh kraken-kur "$@"
+                bash install.sh kraken-build "$@"
             else
-                bash install.sh kraken-indir
+                bash install.sh kraken-download
             fi ;;
-        qiime)                  bash install.sh qiime ;;
-        all|hepsi)              bash install.sh hepsi ;;
+        qiime)           bash install.sh qiime ;;
+        all)             bash install.sh all ;;
         *) no "unknown install target: $ne"
            i "expected one of: tools databases kraken qiime all"; return 2 ;;
     esac
 }
 
-cmd_run()         { kos "$PY" verification/full_chain.py --kok . --onayla "$@"; }
-cmd_identity()    { kos "$PY" verification/identity_verification.py --kok . "$@"; }
-cmd_specificity() { kos "$PY" verification/specificity_round.py --kok . "$@"; }
-cmd_panel()       { kos "$PY" protocol/single_protocol_measure.py --kok . "$@"; }
-cmd_audit()       { kos "$PY" cross_check.py --kok . "$@"; }
+cmd_run()         { kos "$PY" verification/full_chain.py --root . --confirm "$@"; }
+cmd_identity()    { kos "$PY" verification/identity_verification.py --root . "$@"; }
+cmd_specificity() { kos "$PY" verification/specificity_round.py --root . "$@"; }
+cmd_panel()       { kos "$PY" protocol/single_protocol_measure.py --root . "$@"; }
+cmd_audit()       { kos "$PY" cross_check.py --root . "$@"; }
 
 cmd_status() {
     if [ -f GUNCEL_DURUM.md ]; then

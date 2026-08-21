@@ -141,8 +141,8 @@ def adaylar(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--tasi', action='store_true', help='gercekten tasi')
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--move', '--tasi', dest='tasi', action='store_true', help='gercekten tasi')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     hedef = os.path.join(kok, '_SILINECEKLER', time.strftime('%Y-%m-%d') + '_arsiv')

@@ -21,11 +21,11 @@ IDEAL = (60, 150)
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--girdi', required=True)
-    ap.add_argument('--cikti', required=True)
-    ap.add_argument('--kisa', type=int, default=70)
+    ap.add_argument('--input', '--girdi', dest='girdi', required=True)
+    ap.add_argument('--output', '--cikti', dest='cikti', required=True)
+    ap.add_argument('--short', '--kisa', dest='kisa', type=int, default=70)
     ap.add_argument('--arms', type=int, default=16)
-    ap.add_argument('--kontrol', type=int, default=150)
+    ap.add_argument('--check', '--kontrol', dest='kontrol', type=int, default=150)
     g = ap.parse_args()
 
     t0 = time.time()

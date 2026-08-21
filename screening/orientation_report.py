@@ -77,9 +77,9 @@ def yaz(ws, r, c, v, fill=None, bold=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--yon', required=True)
-    ap.add_argument('--kod', required=True)
-    ap.add_argument('--indeks', required=True)
+    ap.add_argument('--orientation', '--yon', dest='yon', required=True)
+    ap.add_argument('--code', '--kod', dest='kod', required=True)
+    ap.add_argument('--index', '--indeks', dest='indeks', required=True)
     a = ap.parse_args()
 
     yr = list(csv.DictReader(open(a.yon, encoding='utf-8'), delimiter='\t'))

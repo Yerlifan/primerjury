@@ -60,12 +60,12 @@ import os, sys, csv, time, random, argparse
 # ---------------------------------------------------------------------------
 def main():
     p = argparse.ArgumentParser(description='Veritabani erisim dogrulamasi')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--vtb', default=None, help='yalniz bu veritabani (dosya adindan parca)')
-    p.add_argument('--kayit', type=int, default=3, help='veritabani basina sinama kaydi')
-    p.add_argument('--tavan', type=int, default=0,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--db', '--vtb', dest='vtb', default=None, help='yalniz bu veritabani (dosya adindan parca)')
+    p.add_argument('--records', '--kayit', dest='kayit', type=int, default=3, help='veritabani basina sinama kaydi')
+    p.add_argument('--cap', '--tavan', dest='tavan', type=int, default=0,
                    help='taranacak en fazla kayit (0 = TAMAMI, varsayilan)')
-    p.add_argument('--mutasyon', type=float, default=0.08)
+    p.add_argument('--mutation', '--mutasyon', dest='mutasyon', type=float, default=0.08)
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

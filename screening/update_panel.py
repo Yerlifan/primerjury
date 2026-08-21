@@ -357,7 +357,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
     ap.add_argument('--tsv', required=True)
-    ap.add_argument('--yedek', default='')
+    ap.add_argument('--backup', '--yedek', dest='yedek', default='')
     a = ap.parse_args()
     yedek = a.yedek or a.xlsx.replace('.xlsx', '_YEDEK_motor_oncesi.xlsx')
     if not os.path.exists(yedek):

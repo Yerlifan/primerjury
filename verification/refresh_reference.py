@@ -29,8 +29,8 @@ import time
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kok', default='.')
-    p.add_argument('--kaynak', default=None,
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--source', '--kaynak', dest='kaynak', default=None,
                    help='varsayilan: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

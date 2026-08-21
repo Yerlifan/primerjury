@@ -95,12 +95,12 @@ def baglanir(primer, diziler, geri=False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--sure', type=float, default=34.0)
-    ap.add_argument('--durum', default='/tmp/fl/cl_durum.json')
+    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=34.0)
+    ap.add_argument('--status', '--durum', dest='durum', default='/tmp/fl/cl_durum.json')
     ap.add_argument('--sig', type=int, default=900)
-    ap.add_argument('--on-aday', type=int, default=8)
-    ap.add_argument('--primer-ust', type=int, default=1100)
-    ap.add_argument('--hedef', default='')
+    ap.add_argument('--pre-candidate', '--on-aday', dest='on_aday', type=int, default=8)
+    ap.add_argument('--primer-max', '--primer-ust', dest='primer_ust', type=int, default=1100)
+    ap.add_argument('--target', '--hedef', dest='hedef', default='')
     a = ap.parse_args()
     t0 = time.time()
 

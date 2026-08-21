@@ -421,13 +421,32 @@ def ozet(kok, CIKTI, durum, yaz):
 
 # Komut satiri: --kok proje klasoru, --ncbi D asamasinin NCBI kipi, --yeniden
 # bitmis asamalari da tekrar kosar, --atla belirli asamalari atlar (orn. "DI").
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(description='P -> K -> D -> I sirayla')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--ncbi', choices=['oto', 'elle', 'yok'], default='elle')
-    p.add_argument('--yeniden', action='store_true', help='bitmis asamalari da yeniden kos')
-    p.add_argument('--atla', default='', help='atlanacak asamalar, orn: I ya da DI')
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle')
+    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true', help='bitmis asamalari da yeniden kos')
+    p.add_argument('--skip', '--atla', dest='atla', default='', help='atlanacak asamalar, orn: I ya da DI')
     a = p.parse_args()
+    a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.exit('HATA: %s icinde screening yok.' % kok)

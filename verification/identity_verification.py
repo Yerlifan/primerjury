@@ -2089,25 +2089,44 @@ def girdi_denetle(yaz, ad, dosyalar):
 # Komut satiri: --yalniz tek iddia, --vtb-ust kac veritabani, --kisa-liste tam
 # hizalanacak aday sayisi (degistirmek eski kontrol noktalarini gecersiz kilar),
 # --nt NCBI kipi, --nt-yukle elle doldurulmus sablon, --literatur, --sifirla.
+
+# --- CLI value normalisation ------------------------------------------------
+# English option values are accepted alongside the original Turkish ones and
+# mapped back here. The internal values are unchanged on purpose: they are
+# compared in dozens of places and, in some cases, written to output files.
+# Translating the interface must not translate the data.
+_DEGER = {'auto': 'oto', 'manual': 'elle', 'none': 'yok', 'quick': 'hizli',
+          'full': 'tam', 'member': 'uye', 'competitor': 'rakip',
+          'exclude': 'disla'}
+
+
+def _ing_deger(a):
+    for _ad in ('nt', 'literatur', 'ncbi', 'karisik', 'moduller', 'mod'):
+        _v = getattr(a, _ad, None)
+        if isinstance(_v, str) and _v in _DEGER:
+            setattr(a, _ad, _DEGER[_v])
+    return a
+
 def main():
     p = argparse.ArgumentParser(description='Kimlik iddialarinin bagimsiz dogrulanmasi')
-    p.add_argument('--kok', default='.')
-    p.add_argument('--yalniz', default=None, help='iddia numarasi ya da metninden parca')
-    p.add_argument('--vtb-ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
-    p.add_argument('--kisa-liste', type=int, default=KISA_LISTE, dest='kisa_liste',
+    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='iddia numarasi ya da metninden parca')
+    p.add_argument('--db-max', '--vtb-ust', dest='vtb_ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
+    p.add_argument('--shortlist', '--kisa-liste', type=int, default=KISA_LISTE, dest='kisa_liste',
                    help=(u'her veritabanindan TAM HIZALANACAK aday sayisi (varsayilan %d). '
                          u'Buyuk deger kesme noktasini baglayici olmaktan cikarir; '
                          u'raporda "kazanan sira" sutunu yeterli olup olmadigini soyler. '
                          u'Degistirmek eski kontrol noktalarini gecersiz kilar.'
                          % KISA_LISTE))
-    p.add_argument('--nt', choices=['oto', 'elle', 'yok'], default='oto',
+    p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto',
                    help='NCBI nt katmani: oto (URL API), elle (sorgu dosyasi uret), yok')
-    p.add_argument('--nt-yukle', default=None,
+    p.add_argument('--nt-load', '--nt-yukle', dest='nt_yukle', default=None,
                    help='doldurulmus NT_SONUC_SABLONU.tsv')
-    p.add_argument('--literatur', choices=['oto', 'yok'], default='oto',
+    p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto',
                    help='NCBI Taxonomy + PubMed literatur kontrolu')
-    p.add_argument('--sifirla', action='store_true')
+    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
+    a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.exit('HATA: %s icinde screening yok.' % kok)

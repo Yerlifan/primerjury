@@ -262,7 +262,7 @@ KONTROLLER = [
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--ayrinti', action='store_true', help='list every finding')
+    p.add_argument('--detail', '--ayrinti', dest='ayrinti', action='store_true', help='list every finding')
     a = p.parse_args()
 
     bulgu = []

@@ -28,17 +28,17 @@ def kapsam_orani(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--is', dest='isler', action='append', required=True,
+    ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
                     help='hedef::kisa_dosya::kp_dosya')
-    ap.add_argument('--sure', type=float, default=36.0)
+    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
     # BELLEK: KutuHavuzu (otorite=False) kutu basina ~160 MB (1,5 kb okuma) ile
     # ~400 MB (3,7 kb okuma) tutar; tohum indeksi int64 anahtar dizisi yuzunden
     # baskin kalem odur. 20 kutu x 3000 okuma F2/F1/A2 siniflarinda 3,9 GB RAM'i
     # asiyor ve surec OOM ile SIGKILL aliyor (olculdu: 3,77 GB RSS, 23 sn).
     # Cozum: tarama daha SIG derinlikte (bellek dogrusal duser), KARAR ise her
     # zaman panel derinliginde ve panelin motoruyla verilir (--otorite 1).
-    ap.add_argument('--derinlik', type=int, default=3000)
-    ap.add_argument('--otorite', type=int, default=0)
+    ap.add_argument('--depth', '--derinlik', dest='derinlik', type=int, default=3000)
+    ap.add_argument('--authority', '--otorite', dest='otorite', type=int, default=0)
     g = ap.parse_args()
     t0 = time.time()
 

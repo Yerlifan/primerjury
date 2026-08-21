@@ -436,9 +436,9 @@ def s9_yalniz_atla(ana):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--taban', default=os.path.join(tempfile.gettempdir(),
+    p.add_argument('--base', '--taban', dest='taban', default=os.path.join(tempfile.gettempdir(),
                                                    'tek_tus_sinama'))
-    p.add_argument('--yalniz', default='')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default='')
     A = p.parse_args()
     ana = A.taban
     if not os.path.exists(TEK_TUS):

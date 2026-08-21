@@ -70,9 +70,9 @@ def ciftleri_oku():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--kucuk', action='store_true')
-    p.add_argument('--vtb', nargs='*', default=None)
-    p.add_argument('--hedef', default=None)
+    p.add_argument('--small', '--kucuk', dest='kucuk', action='store_true')
+    p.add_argument('--db', '--vtb', dest='vtb', nargs='*', default=None)
+    p.add_argument('--target', '--hedef', dest='hedef', default=None)
     a = p.parse_args()
 
     ciftler = ciftleri_oku()
