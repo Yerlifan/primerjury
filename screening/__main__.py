@@ -1,37 +1,39 @@
 # -*- coding: utf-8 -*-
-"""KAPSAMLI ARAMA - ana akis.
+"""THE FULL SEARCH - the main flow.
 
-Kullanim (normalde verification/full_chain.py cagirir):
+Usage (normally verification/full_chain.py calls it):
     python3 -m screening --mod tam
     python3 -m screening --mod sorunlu
     python3 -m screening --mod devam
-    python3 -m screening --sina          (kendini sina, olcum yapmaz)
+    python3 -m screening --sina          (a self test; it measures nothing)
+
 """
-# ---------------------------------------------------------------------------
-# __main__.py — paketin tek giris noktasi; komut satiri secenegini okur ve
-#               ilgili asamayi (arama, panel olcumu, uyelik denetimi, konsensus
-#               uretimi, ozet, hepsi) sirasiyla calistirir.
+# -------------------------------------------------------------------------
+# __main__.py - the package's single entry point; it reads the command line option
+#               and runs the matching stage (search, panel measurement, membership
+#               audit, consensus generation, summary, all of them) in order.
 #
-# GIRDI  : config.py'deki butun yollar ve sabitler; hedefler.panel_oku()
-#          ile panel TSV'si; hedefler.konsensusler() ile kanonik konsensusler;
-#          hedefler.kutular() ile "fastq files" altindaki kutu dosyalari;
-#          numune.Numune ile kutu basina ham okuma havuzlari; reference.py ile
-#          SILVA/UNITE havuzlari; checks.py ile onceki kosunun kontrol
-#          noktalari. Argumanlari argparse ile alir (--mod, --hedef, --okuma,
-#          --hafif, --yeniden, --tam-derinlik, --sina, --sinama-atla).
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/ altina kontrol/hedef_*.json kontrol noktalari;
-#          rapor.uret() araciligiyla adaylar.tsv, parametre_izgarasi.tsv ve
-#          KAPSAMLI_ARAMA_RAPORU.md. main() surec cikis kodunu dondurur
-#          (0 = basarili, 2 = kapi/sinama dusuklugu).
-# CAGRAN : verification/full_chain.py icinde "wsl -e python3 -m screening
-#          --mod %MOD%" satiri. Tuslar: 1 (--mod tam), 2 (--mod sorunlu),
-#          3 (--mod devam), 4 (--mod panel-olc --tam-derinlik), 5 (--mod
-#          uyelik), 6 (--mod konsensus), 7 (tek hedef; secime gore sorunlu /
-#          panel-olc / uyelik + --hedef), 8 (--sina), 9 (--mod hepsi),
-#          S (--mod ozet). P, K, D, T, I, G, E, R, U, H ve W/X/Y/Z tuslari
-#          verification/, protocol/, engine/ ve tools/WSL klasorlerindeki
-#          ayri betikleri calistirir; bu paketi dogrudan cagirmazlar.
-# ---------------------------------------------------------------------------
+# INPUT  : every path and constant in config.py; the panel TSV through
+#          hedefler.panel_oku(); the canonical consensuses through
+#          hedefler.konsensusler(); the bin files under "fastq files" through
+#          hedefler.kutular(); the per bin raw read pools through numune.Numune;
+#          the SILVA/UNITE pools through reference.py; the previous run's
+#          checkpoints through checks.py. It takes its arguments with argparse
+#          (--mod, --hedef, --okuma, --hafif, --yeniden, --full-depth, --sina,
+#          --sinama-atla).
+# OUTPUT : the kontrol/hedef_*.json checkpoints under KAPSAMLI_ARAMA_SONUC/;
+#          adaylar.tsv, parametre_izgarasi.tsv and KAPSAMLI_ARAMA_RAPORU.md
+#          through rapor.uret(). main() returns the process exit code
+#          (0 = success, 2 = a gate or self test failed).
+# CALLED BY: the "python3 -m screening --mod <MOD>" line inside
+#          verification/full_chain.py. The keys: 1 (--mod tam), 2 (--mod sorunlu),
+#          3 (--mod devam), 4 (--mod panel-olc --full-depth), 5 (--mod uyelik),
+#          6 (--mod konsensus), 7 (a single target; sorunlu / panel-olc / uyelik
+#          plus --hedef, depending on the choice), 8 (--sina), 9 (--mod hepsi),
+#          S (--mod ozet). The keys P, K, D, T, I, G, E, R, U, H and W/X/Y/Z run
+#          separate scripts under verification/, protocol/, engine/ and tools/;
+#          they do not call this package directly.
+# -------------------------------------------------------------------------
 import os, sys, time, argparse, traceback
 
 from . import config as C
@@ -58,16 +60,17 @@ def cizgi(ch='-'):
     yaz(ch * 78)
 
 
-# ---------------------------------------------------------------- tek hedef
-# Tek bir panel hedefi icin BUTUN arama hunisini bastan sona kosar. Asamalarin
-# sirasi keyfi degil, maliyete gore dizilmistir: once ucuz ve eleyici olan
-# (geometri), sonra pahali olan (ham okumalarda in-silico PCR), en sonda en
-# pahali olan (yaklasik 500 bin kayitlik kuresel tarama) gelir. Boylece pahali
-# adima yalniz onceki suzgeclerden gecen az sayida aday girer.
+# ---------------------------------------------------------------- one target
+# It runs the WHOLE search funnel end to end for a single panel target. The order of
+# the stages is not arbitrary but arranged by cost: what is cheap and eliminating
+# first (the geometry), then what is expensive (in-silico PCR on the raw reads), and
+# last what is most expensive (a global scan of roughly 500 thousand records). That
+# way only the few candidates that passed the earlier filters enter the expensive step.
 #
-# Asama [0] mevcut panel cifti icin bir TABAN olcer. Bu taban olmadan "aday
-# daha iyi" cumlesi olculemez: aday ile mevcut cift AYNI motorda, AYNI
-# kutularda, AYNI olcutle olculmedikce karsilastirma anlamsizdir.
+# Stage [0] measures A BASELINE for the panel's existing pair. Without that baseline
+# the sentence "the candidate is better" cannot be measured: comparing a candidate
+# against the existing pair is meaningless unless both are measured with THE SAME
+# engine, on THE SAME bins, under THE SAME criterion.
 def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     ad = satir['hedef']
     t0 = time.time()
@@ -89,7 +92,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         % (len(baglam['uye_kutu']), len(baglam['rakip_kutu']),
            len(baglam['uye_kons']), len(baglam['rakip_kons'])))
 
-    # ---------------- TABAN: paneldeki mevcut cift AYNI motorla olculur
+    # ---------------- THE BASELINE: the panel's existing pair, measured with THE SAME engine
     yaz(u'\n  [0] Measuring the existing panel pair with the same engine (comparison baseline)')
     taban = numune.olc(satir['F'], satir['R'], baglam['uye_kutu'], baglam['rakip_kutu'],
                        lo=C.URUN_IDEAL[0], hi=C.URUN_MUTLAK_UST)
@@ -209,7 +212,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
 
     en_iyi = olculen[:C.HUNI['referansa_giden']]
 
-    # ---------------- ASAMA D: geometri detayi + referans kapsam
+    # ---------------- STAGE D: the geometry detail plus reference coverage
     yaz(u'\n  [D] Pair geometry (hairpin/dimer dG at 60 C) plus reference coverage and competitor discrimination')
     taxad = H.taxid_adlari()
     cinsler, rakip_cins = REF.uye_ve_rakip_anahtar(baglam, taxad)
@@ -221,8 +224,8 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         % (len(uye_havuz), ', '.join(cinsler[:4]), len(rak_havuz), ', '.join(rakip_cins[:4])))
 
     for i, c in enumerate(en_iyi, 1):
-        # IKINCI OLCUT: panelin bazi satirlari <=3 ile olculmustu; en iyi
-        # adaylar iki olcutle de verilir ki karsilastirilabilsinler.
+        # THE SECOND CRITERION: some rows of the panel were measured at <=3; the best
+        # candidates are given under both criteria so that they can be compared.
         try:
             c['numune_mm3'] = numune.olc(c['F'], c['R'], baglam['uye_kutu'],
                                          baglam['rakip_kutu'], lo=C.URUN_IDEAL[0],
@@ -294,19 +297,22 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
 
 
 def puan(c):
-    """Siralama olcutu: ONCE uye kapsami (kac uye kutusu cogaliyor), SONRA ayrim.
+    """The ranking criterion: FIRST the member coverage (how many member bins amplify),
+        THEN the discrimination.
 
-    Tek bir uye kutusunun bos cikmasi uye_alt'i 0 yapar ve butun adaylari
-    esitler; kapsam ekseni bunu onler.
+        A single member bin coming out empty makes uye_alt 0 and levels every candidate;
+        the coverage axis prevents that.
+
     """
-    # NEDEN KAPSAM ONCE GELIYOR: ayrim kati, uye kutularinin Wilson ALT sinirinin
-    # en kucugu uzerinden hesaplanir. Tek bir uye kutusu hic urun vermezse o alt
-    # sinir 0 olur ve oran da 0 cikar - iyi ile kotu aday ayni puani alir,
-    # siralama coker. Kapsam (kac uye kutusu >=%20 urun veriyor) bu cokusten
-    # etkilenmez, bu yuzden birinci anahtar odur. Rakip kumesi bos olan evrensel
-    # hedeflerde ayrim kati zaten tanimsizdir; orada karsilastirmayi tasiyan tek
-    # eksen kapsamdir. Sonraki iki anahtar once "yalniz kapsanan kutular"
-    # uzerinden, sonra butun uye kutulari uzerinden hesaplanan ayrim katidir.
+    # WHY COVERAGE COMES FIRST: the discrimination ratio is computed over the smallest
+    # of the member bins' Wilson LOWER bounds. If a single member bin gives no product
+    # at all, that lower bound is 0 and so is the ratio, so a good and a bad candidate
+    # get the same score and the ranking collapses. Coverage (how many member bins give
+    # >=20% product) is not affected by that collapse, which is why it is the first key.
+    # On universal targets, where the competitor set is empty, the discrimination ratio
+    # is undefined anyway; there the only axis carrying the comparison is coverage. The
+    # next two keys are the discrimination ratio computed first over "the covered bins
+    # only" and then over all the member bins.
     n = c['numune']
     return (-n.get('uye_kapsam', 0),
             -(n.get('kat_enkotu_kapsayan') or n.get('kat_havuz_kapsayan') or 0),
@@ -314,21 +320,22 @@ def puan(c):
 
 
 def uyelik_uyarisi(satir, taban):
-    """Olculen taban, panelin YAYIMLANMIS degerinden cok saparsa uyar.
+    """Warns when the measured baseline deviates far from the panel's PUBLISHED value.
 
-    En sik sebep uyelik tanimidir (uye/rakip kutu listesi). Sessizce yanlis
-    olcmektense yuksek sesle uyarmak dogrudur.
+        The most common cause is the membership definition (the member and competitor bin
+        list). Warning loudly is better than measuring the wrong thing silently.
+
     """
-    # UYELIK KOSULSUZ BENIMSENMEZ. Bu fonksiyon sapmayi yalniz BILDIRIR; uye
-    # ya da rakip kutu listesini kendiliginden degistirmez, hedef_uyelik.tsv'ye
-    # yazmaz. Ilke: kanit yoklugu kanit sayilmaz - bir kutunun yer degistirmesi
-    # icin pozitif olcum kaniti gerekir, "sayi beklenenden farkli cikti" boyle
-    # bir kanit degildir. Bu yuzden burada yapilan tek sey, kullaniciyi dosyanin
-    # hangi satirina bakmasi gerektigine yonlendirmektir.
-    # Bant 0,34x - 3,0x arasidir: olculen degerlerden HERHANGI BIRI panelin
-    # yayimladigi degerin bu araliginda kaliyorsa uyari basilmaz. Bant genis
-    # tutulmustur cunku panel satirlari farkli okuma derinliklerinde olculmustu
-    # ve Wilson araliginin genisligi derinlige baglidir.
+    # THE MEMBERSHIP IS NOT ADOPTED UNCONDITIONALLY. This function only REPORTS the
+    # deviation; it does not change the member or competitor bin list on its own and it
+    # does not write to hedef_uyelik.tsv. The principle: an absence of evidence is not
+    # evidence. For a bin to change place, positive measured evidence is needed, and "the
+    # number came out different from what was expected" is not such evidence. So the only
+    # thing done here is to point the user at which row of the file to look at.
+    # The band is 0.34x to 3.0x: if ANY of the measured values falls inside that range
+    # around the value the panel published, no warning is printed. The band is kept wide
+    # because the panel rows were measured at different read depths, and the width of the
+    # Wilson interval depends on depth.
     if not taban:
         return []
     p = satir.get('ayrim_sayi')
@@ -371,8 +378,10 @@ def numunede_olc(adaylar, numune, baglam, t0, yaz):
 
 
 def sec_ornekle(adaylar, ust):
-    """Her izgara hucresinden temsilci al - boylece 'hangi ayarda cozum var'
-    sorusu butun ayarlar icin cevaplanabilir olur."""
+    """Take a representative from every grid cell, so that the question 'at which setting
+        is there an answer' can be answered for all the settings.
+
+    """
     from collections import defaultdict
     kova = defaultdict(list)
     for c in adaylar:
@@ -400,15 +409,15 @@ def sec_ornekle(adaylar, ust):
 
 def aramayi_kos(a, yaz, sure, cizgi, mod=None):
     """Kapsamli arama akisi. run_all.py de bunu cagirir."""
-    # YON KAPISI - bu asamanin ilk isi. Nanopore okumalari cift yonludur ve
-    # konsensus ters yonde uretilmis olabilir. Projenin butun in-silico PCR
-    # motorlari (ispcr.amplify, okuma_motoru.Sonda) verilen diziyi YALNIZ arti
-    # iplikte tarar; ters yonlu bir konsensuste ne ileri primer ne de ters
-    # primerin tumleyeni bulunur. Motor hata atmaz, sessizce "urun yok" der -
-    # yani butun gece kosan bir arama hicbir uyari vermeden "hicbir hedefte
-    # cozum yok" uretir. Olculen kayip %100'dur (orientation_impact_test.py: dogru yonde
-    # 117 urun, ters yonde 0). Bu yuzden konsensusler kanonik degilse asama
-    # BASLAMAZ; SystemExit(2) ile durulur.
+    # THE ORIENTATION GATE - this stage's first job. Nanopore reads are bidirectional and
+    # a consensus may have been produced in reverse. Every in-silico PCR engine in this
+    # project (ispcr.amplify, okuma_motoru.Sonda) scans the given sequence ONLY on the
+    # plus strand; on a reversed consensus neither the forward primer nor the complement
+    # of the reverse primer is found. The engine raises no error, it quietly says "no
+    # product", which means a search running all night produces "no answer on any target"
+    # with no warning at all. The measured loss is 100% (orientation_impact_test.py: 117
+    # products in the correct orientation, 0 in the reverse). So if the consensuses are
+    # not canonical the stage DOES NOT START; it stops with SystemExit(2).
     if mod:
         a.mod = mod
     from .hepsi import yon_kapisi
