@@ -141,7 +141,7 @@ def yon_kapisi(yaz, asama):
         kons = H.konsensusler()
     except Exception as e:
         return False, ['Kanonik konsensus okunamadi: %s' % e,
-                       'Uretmek icin:  python3 screening/build_canonical.py --kok .']
+                       'To generate it:  python3 screening/build_canonical.py --root . ']
     if not kons:
         return False, ['Kanonik konsensus indeksi BOS.']
     ters = [k['kutu'] for k in kons
@@ -149,7 +149,7 @@ def yon_kapisi(yaz, asama):
     if ters:
         return False, ['%d konsensus TERS yonde: %s' % (len(ters), ', '.join(ters[:5])),
                        'Ters yonlu konsensuste urunlerin TAMAMI kaybolur.',
-                       'Duzeltmek icin:  python3 screening/build_canonical.py --kok . --yeniden']
+                       'To fix it:  python3 screening/build_canonical.py --root . --yeniden']
     m.append('yon kapisi [%s]: %d kutu, hepsi SENSE - GECTI' % (asama, len(kons)))
     return True, m
 

@@ -1038,7 +1038,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
         # --- PANELSIZ TALEP: dogrudan tasarim denemesi ---
         if pz:
             s.update(olcu=u'panelde satiri yok - kutudan tasarim denemesi',
-                     yollar=[u'yol 3 - panelsiz talep, kutu konsensusundan tasarim'])
+                     yollar=["route 3 - a request with no panel row, designed from the bin's own consensus"])
             yaz(u'      -> PANELSIZ TALEP (%s): %s' % (pz['karar'], pz['not_'][:90]))
             t = yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, '', '',
                                      False, aday_ust, tarama_ust, arms_ust, yaz)
@@ -1086,7 +1086,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                            u'cift var: "%s" (%s x, uye kumesi ortusme %%%d). Bu satir '
                            u'artik gereksiz; panelde tutulmasi plaka yeri israfidir.'
                            % (g, vir(kat), int(100 * ort)),
-                     yollar=[u'yol 4 - eslenigi kalmis satir'])
+                     yollar=['route 4 - a row whose counterpart is still there'])
             yaz(u'      -> ROUTE 4: an equivalent exists (%s, %s x), moved to the failed list' % (g, vir(kat)))
 
         # --- YOL 1: evrensel ---
