@@ -49,7 +49,7 @@ def main():
 
     P = Puanlayici(KOK, otorite=bool(g.otorite), derinlik=g.derinlik)
     P.havuz_hazirla([h for h, _, _ in isler])
-    print('havuz hazir (%d kutu, derinlik=%d, otorite=%s) [%.1f sn]'
+    print(u'pool ready (%d bins, depth=%d, authority=%s) [%.1f s]'
           % (len(P._yuklu), g.derinlik, bool(g.otorite), time.time() - t0), flush=True)
 
     for h, kd, kpy in isler:
@@ -86,7 +86,7 @@ def main():
         v = list(kp['olcum'].values())
         kalan = len(aday) - len(kp['olcum'])
         evrensel = all(s['kat'] is None for s in v) and v
-        print('%-44s +%-4d toplam %4d/%-4d kalan %4d  [%.0f sn]'
+        print(u'%-44s +%-4d total %4d/%-4d remaining %4d  [%.0f s]'
               % (h[:44], n, len(kp['olcum']), len(aday), kalan, time.time() - t0))
         if evrensel:
             en = sorted(v, key=lambda s: -kapsam_orani(s))[:3]
@@ -96,7 +96,7 @@ def main():
         else:
             en = sorted(v, key=lambda s: -(s['kat'] if s['kat'] is not None else -1))[:3]
             for s in en:
-                print('    kat=%-8s dCq=%-6s %-10s kapsam=%-6s %-16s sira1=%-4s %s %s/%s'
+                print(u'    layer=%-8s dCq=%-6s %-10s coverage=%-6s %-16s rank1=%-4s %s %s/%s'
                       % (s['kat'], s['dcq'], s['durum'], s['kapsam'], s['grup'],
                          s['sira1'], s['arms'] or '-', s['F'], s['R']))
         if kalan == 0:
@@ -107,9 +107,9 @@ def main():
             if r and k:
                 br, bk = max(s['kat'] for s in r), max(s['kat'] for s in k)
                 iyi = max(r, key=lambda s: s['kat'])
-                print('    ON ELEME: en iyi siralamali sira=%d/%d, ranked=%.2f kontrol=%.2f -> %s'
+                print(u'    PRE-FILTER: best ranked position=%d/%d, ranked=%.2f control=%.2f -> %s'
                       % (iyi['sira1'], len(r), br, bk,
-                         'BAGLAYICI' if bk > br else 'baglayici degil'))
+                         'BAGLAYICI' if bk > br else u'not binding'))
     return 0
 
 

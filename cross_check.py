@@ -3522,7 +3522,7 @@ def main():
         except KeyboardInterrupt:
             # Kesinti YUTULMAZ: kontrol noktalari yazildigi icin kaldigi yerden
             # devam edilebilir, ama kosu YARIM oldugu acikca soylenir.
-            yaz(u'KESILDI (Ctrl+C). Kontrol noktalari korundu, yeniden kosun.')
+            yaz(u'INTERRUPTED (Ctrl+C). The checkpoints were kept, so run it again.')
             rap.modul_durumu[ad] = dict(durum=u'KESILDI')
             rap.atla(ad, u'KESINTI', u'modul bastan sona kosmali',
                      u'kullanici kesti (Ctrl+C)', u'-')
