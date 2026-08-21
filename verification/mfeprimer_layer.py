@@ -15,66 +15,50 @@ Two traps this module handles, both measured the hard way:
     klad_siniflandir() therefore classifies each hit taxonomically, and only
     (same domain outside clade) + (different domain) reach the verdict.
 
---- ozgun aciklama ---
-MFEprimer katmani - BAGIMSIZ ucuncu arac.
-
-NEDEN VAR
----------
-Ilk iki katman da BIZIM kodumuz: numune olcumu ve yerel veritabani taramasi ayni
-motoru (screening/read_engine.py, ispcr.py) kullaniyor. O motorda bir hata
-varsa iki katman da AYNI yonde yanilir ve birbirini "dogrular". Bu katman disaridan
-gelen, bagimsiz yazilmis bir araci (MFEprimer 4.4.0) ayni sorulara sokar.
-
-NE YAPAR
-  * spec    : hedef disi amplikon taramasi (klasordeki .primerqc.bin indeksleri)
-  * hairpin : her oligo icin sac tokasi
-  * dimer   : oligo cifti arasi dimer
-
-INDEKSLER: REFERANS_DB altinda .primerqc.bin dosyalari hazir. Gecmiste
-"RecordCount=0, uyumsuz" notu dusulmustu; bu bir IKILI/BICIM uyusmazligiydi,
-indeksler saglam. Bu modul her kosuda once indeksi SINAR, okunmuyorsa o
-veritabanini atlar ve sebebini yazar - sessizce gecmez.
 """
 
 # -------------------------------------------------------------------------
-# mfeprimer_layer.py, MFEprimer 4.4.0 ikilisini (hedef disi amplikon, hairpin,
-# dimer) surer; dogrulama zincirinin BAGIMSIZ ucuncu kanit katmanidir.
+# mfeprimer_layer.py drives the MFEprimer 4.4.0 binary (off-target amplicons,
+# hairpins, dimers); it is the INDEPENDENT third layer of evidence in the
+# verification chain.
 #
-# GİRDİ  : REFERANS_DB/ altindaki .fna/.fasta kumeleri ve onlarin
-#          .primerqc.bin indeksleri (MFE_DB listesi), tools/mfeprimer ikilisi,
-#          dogrulanacak primer ciftleri (cagiran betikten gelir).
-# ÇIKTI  : DOGRULAMA_SONUC/mfe/ altina girdi ve ham cikti dosyalari
-#          (girdi_*.tsv, spec_*.txt, hairpin.txt, dimer.txt) + cift/veritabani
-#          basina JSON kontrol noktalari. Kendi basina rapor yazmaz; sonucu
-#          specificity_round.py birlestirir.
-# ÇAĞRAN : verification/full_chain.py -> D tusu (dolayli: specificity_round.py bu modulu
-#          "KATMAN 3" olarak yukler; --mfe-yok verilirse atlanir).
+# INPUT  : the .fna/.fasta sets under REFERANS_DB/ and their .primerqc.bin
+#          indexes (the MFE_DB list), the tools/mfeprimer binary, and the primer
+#          pairs to verify (which come from the calling script).
+# OUTPUT : the input and raw output files under DOGRULAMA_SONUC/mfe/
+#          (girdi_*.tsv, spec_*.txt, hairpin.txt, dimer.txt) plus JSON checkpoints
+#          per pair and database. It writes no report of its own; the result is
+#          combined by specificity_round.py.
+# CALLED BY: verification/full_chain.py -> key D (indirectly: specificity_round.py
+#          loads this module as "LAYER 3"; it is skipped when --mfe-yok is given).
 #
-# NEDEN BAGIMSIZ ARAC SART: numune olcumu ile yerel veritabani taramasi BIZIM
-# ayni motorumuzu kullanir. O motorda bir hata varsa iki katman da ayni yonde
-# yanilir ve birbirini "dogrular". Disaridan gelen bir arac ayni sorulara
-# sokulmadikca celiski gorunmez.
+# WHY AN INDEPENDENT TOOL IS REQUIRED: the sample measurement and the local database
+# scan use OUR same engine. If that engine has a bug, both layers go wrong in the
+# same direction and "confirm" one another. Unless a tool from outside is put to the
+# same questions, the contradiction stays invisible.
 # -------------------------------------------------------------------------
 import os, re, csv, json, subprocess, time
 
 MFE_ADAYLARI = [os.path.join('tools', 'mfeprimer'), 'mfeprimer']
-# spec taramasinda kullanilacak indeksler (kucukten buyuge - sure kontrolu icin)
+# the indexes used in the spec scan (smallest to largest, to keep the time in hand)
 MFE_DB = ['archaea.16S.fna', 'bacteria.16S.fna', 'fungi.ITS.fna',
           'fungi.28SrRNA.fna', 'fungi.18SrRNA.fna',
           'SILVA_138.2_SSURef_NR99.fasta']
 URUN_ALT, URUN_UST = 70, 400
-HAIRPIN_TM_UST = 45.0          # panelin kendi geometri kurali
+HAIRPIN_TM_UST = 45.0          # the panel's own geometry rule
 DIMER_TM_UST = 45.0
-# D-5: MFEprimer dimer/hairpin kayitlarinda Tm raporlamaz; raporladigi olcu
-# Delta G'dir. Bu esik, 3' dimerleri icin yaygin kullanilan -9 kcal/mol
-# sinirindan alinmistir (IDT/Primer3 pratigi). Tm<45 kurali bu araca
-# UYGULANAMAZ - uygulanmis gibi yapmak sessiz bir 'ihlal yok' oyu uretirdi.
+# D-5: MFEprimer does not report a Tm on dimer and hairpin records; the measure it
+# reports is Delta G. This threshold is taken from the -9 kcal/mol limit commonly
+# used for 3' dimers (IDT and Primer3 practice). The Tm<45 rule CANNOT BE APPLIED
+# to this tool, and pretending it had been applied would produce a silent 'no
+# violation' vote.
 DG_ESIGI = -9.0
 
 
-# tools/mfeprimer once proje icinde aranir, sonra PATH uzerinde. Proje icindeki
-# kopyaya calistirma izni verilir: depodan/arsivden cikan dosya cogu zaman izinsiz
-# gelir ve katman sessizce "arac yok" diye atlanirdi.
+# tools/mfeprimer is looked for inside the project first and then on PATH. The copy
+# inside the project is given execute permission: a file coming out of a repository
+# or an archive often arrives without it, and the layer would then be skipped
+# silently as "the tool is missing".
 def mfe_bul(kok):
     for a in MFE_ADAYLARI:
         y = a if os.path.isabs(a) else os.path.join(kok, a)
@@ -93,7 +77,7 @@ def mfe_bul(kok):
 
 
 def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
-    """Indeks GERCEKTEN okunuyor mu? Tek bir sahte ciftle sinar."""
+    """Is the index REALLY being read? It tests with a single synthetic pair."""
     db = os.path.join(kok, 'REFERANS_DB', dosya)
     if not os.path.exists(db):
         return (False, u'fasta yok')
@@ -118,16 +102,16 @@ def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
             return (False, u'indeks RecordCount=0 bildiriyor - yeniden kurulmali')
         if 'Primer ID' not in s:
             return (False, u'cikti ayristirilamadi')
-        # D-4 HATA DUZELTMESI (2026-08-06): asil sessiz basarisizlik burasi.
-        # SILVA_138.2_SSURef_NR99.fasta.primerqc.bin 515 MB olmasina ragmen
-        # HER primer icin 'Binding Number  Plus 0  Minus 0' donuyor ve amplikon
-        # sayisi 0 cikiyor. Ayni FASTA'da bizim yerel tarayici Bakteri_universal
-        # icin 419.090 vurus buluyor - yani indeks okunmuyor (muhtemelen baska
-        # bir MFEprimer surumuyle kurulmus). Eski kapi bunu KACIRIYORDU: yalniz
-        # 'RecordCount=0' dizgesini ve 'Primer ID' varligini ariyordu, ikisi de
-        # bu durumda saglam gorunuyor. Sonuc: en buyuk veritabani sessizce
-        # "0 hedef disi amplikon" oyu veriyordu. Artik baglanma sayisi TOPLAM
-        # sifirsa indeks BOZUK sayilir ve o veritabani ATLANANLAR'a yazilir.
+        # THE D-4 BUG FIX (2026-08-06): this is where the real silent failure was.
+        # Although SILVA_138.2_SSURef_NR99.fasta.primerqc.bin is 515 MB, it returned
+        # 'Binding Number  Plus 0  Minus 0' for EVERY primer and the amplicon count came
+        # out 0. On the same FASTA our local scanner finds 419,090 hits for
+        # Bakteri_universal, which means the index is not being read (it was probably
+        # built with a different MFEprimer version). The old gate MISSED this: it looked
+        # only for the string 'RecordCount=0' and the presence of 'Primer ID', and both
+        # look sound in this situation. The result: the largest database was silently
+        # voting "0 off-target amplicons". Now, if the TOTAL binding count is zero the
+        # index counts as BROKEN and that database goes onto the skipped list.
         _bag = re.findall(r'^\S+\s+[ACGTUNRYKMSWBDHVacgtu]{10,}\s+\d+\s+[\d.]+\s+'
                           r'[\d.]+\s+[-\d.]+\s+(\d+)\s+(\d+)\s*$', s, re.M)
         if _bag and all(int(a) == 0 and int(b) == 0 for a, b in _bag):
@@ -138,13 +122,15 @@ def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
 
 
 def _spec_ayristir(yol, beklenen_bp=None, tolerans=10):
-    """Amplikonlari ayristir.
+    """Parse the amplicons.
 
-    ONEMLI: MFEprimer hedefin KENDI amplikonunu da sayar. Beklenen urun boyu
-    verilirse o boydakiler AYRI sayilir ('ayni_boyda') ve 'hedef_disi' yalnizca
-    FARKLI boydakileri kapsar. Ayni boyda cikan bir amplikon baska bir
-    organizmada da olabilir - o yuzden ayri sutun olarak raporlanir, yok
-    sayilmaz."""
+        IMPORTANT: MFEprimer counts the target's OWN amplicon too. When the expected
+        product length is given, the ones at that length are counted SEPARATELY
+        ('ayni_boyda') and 'hedef_disi' covers only the ones of a DIFFERENT length. An
+        amplicon coming out at the same length may also be in another organism, which
+        is why it is reported as a separate column rather than ignored.
+
+    """
     if not os.path.exists(yol):
         return {}
     s = open(yol, encoding='utf-8', errors='replace').read()
@@ -165,12 +151,12 @@ def _spec_ayristir(yol, beklenen_bp=None, tolerans=10):
 
 
 def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
-    """Her cift icin hedef disi amplikon taramasi. Cift bazinda kontrol noktasi."""
+    """The off-target amplicon scan for each pair. A checkpoint per pair."""
     d = os.path.join(CIKTI, 'mfe')
     os.makedirs(d, exist_ok=True)
-    # HER CIFT AYRI KOSULUR. Tek dosyada birden fazla cift verilirse MFEprimer
-    # tek bir toplam sayi yaziyor ve o sayi ciftlere DAGITILAMIYOR - butun
-    # ciftler ayni degeri alirdi.
+    # EVERY PAIR IS RUN SEPARATELY. Given more than one pair in a single file,
+    # MFEprimer writes one combined number and that number CANNOT BE DISTRIBUTED across
+    # the pairs; every pair would get the same value.
     girdiler = []
     for c in ciftler:
         ad = re.sub(r'\W+', '_', c['hedef'])
@@ -196,23 +182,23 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
     for c, ad, gi in girdiler:
         sonuc[c['hedef']] = {}
         for dosya in kullanilan:
-            # 2026-08-10 DIZI MUHRU: dosya adi yalnizca hedef adini tasiyordu,
-            # dizi degisince ayni dosya okunup eski MFEprimer sonucu geri
-            # veriliyordu. Dizi ozeti artik adin parcasi.
+            # THE 2026-08-10 SEQUENCE SEAL: the file name carried only the target name, so when
+            # the sequence changed the same file was read and the old MFEprimer result came
+            # back. The sequence digest is now part of the name.
             import hashlib as _hl
             _dz = _hl.md5(((c.get('F') or '') + '|' + (c.get('R') or ''))
                           .encode('utf-8')).hexdigest()[:10]
             kp = os.path.join(kontrol, 'mfe_%s_%s_%s.json'
                               % (ad, _dz, re.sub(r'\W+', '_', dosya)))
-            # D-9 HATA DUZELTMESI (2026-08-07): ZEHIRLI KONTROL NOKTASI.
-            # Kontrol noktalari yalnizca "dosya var mi" diye bakiliyordu. SILVA
-            # indeksi 2026-08-06 13:0x'te BOZUKKEN kosmus ve 16 ciftin hepsi icin
-            # {"_toplam":0,"hedef_disi":0,"sure":2.5} yazilmisti. Indeks 23:30'da
-            # YENIDEN KURULDU ama o dosyalar yerinde durdugu icin sonraki her
-            # kosu SILVA'yi HIC KOSMADAN o sifirlari geri okuyacakti - yani
-            # "en buyuk veritabaninda hedef disi yok" diye SESSIZ ve YANLIS bir
-            # guvence uretecekti. Tam da kacinmamiz gereken hata deseni.
-            # Kural: indeks kontrol noktasindan YENIYSE kontrol noktasi GECERSIZ.
+            # THE D-9 BUG FIX (2026-08-07): A POISONED CHECKPOINT.
+            # The checkpoints were only being checked for "does the file exist". The SILVA
+            # index had run WHILE BROKEN at 13:0x on 2026-08-06 and
+            # {"_toplam":0,"hedef_disi":0,"sure":2.5} had been written for all 16 pairs. The
+            # index was REBUILT at 23:30, but because those files were still in place every
+            # later run would read those zeros back WITHOUT RUNNING SILVA AT ALL, that is, it
+            # would produce a SILENT and WRONG assurance that "there is nothing off-target in
+            # the largest database". Exactly the failure pattern we have to avoid.
+            # The rule: if the index is NEWER than the checkpoint, the checkpoint is INVALID.
             if os.path.exists(kp):
                 _ix = os.path.join(kok, 'REFERANS_DB', dosya + '.primerqc.bin')
                 _bayat = False
@@ -234,19 +220,18 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                     except Exception:
                         pass
             co = os.path.join(d, 'spec_%s_%s.txt' % (ad, re.sub(r'\W+', '_', dosya)))
-            # D-10 HATA DUZELTMESI (2026-08-07): MFEprimer 4.4.0 cikti dosyasi
-            # VARSA CALISMAYI REDDEDER:
+            # THE D-10 BUG FIX (2026-08-07): MFEprimer 4.4.0 REFUSES TO RUN when the output
+            # file EXISTS:
             #   "... is already exists, please remove it first"  (returncode 1)
-            # Bu gunes gormeyen bir tuzakti: eski kosularin spec_*.txt dosyalari
-            # DOGRULAMA_SONUC/mfe/ altinda duruyor (16 adet SILVA ciktisi, hepsi
-            # indeks bozukken yazildigi icin "0 potential amplicons"). Kontrol
-            # noktasi tutarken mfeprimer HIC cagrilmadigi icin hata gorunmuyordu;
-            # bayat kontrol noktasi temizlenip yeniden kosulmak istendiginde ise
-            # mfeprimer 1 donduruyor, biz onu dict(hata=...) yazip geciyoruz ve
-            # SILVA yine OLCULMEMIS oluyordu. Yani "indeksi duzelttik" dedigimiz
-            # halde sonuc yine sessizce eksik cikardi.
-            # Cozum: kosmadan once eski ciktiyi (ve yanindaki .spec.tsv/.mfe.log)
-            # SIL. Silinemiyorsa SESSIZ GECME - acik hata yaz.
+            # This was a trap that never saw daylight: the spec_*.txt files of earlier runs sat
+            # under DOGRULAMA_SONUC/mfe/ (16 SILVA outputs, all of them written while the index
+            # was broken, so all of them "0 potential amplicons"). While the checkpoint
+            # matched, mfeprimer was never called and the error was invisible; and when the
+            # stale checkpoint was cleared and a re-run attempted, mfeprimer returned 1, we
+            # wrote dict(hata=...) and moved on, and SILVA was UNMEASURED again. So even after
+            # we said "we fixed the index", the result came out silently incomplete once more.
+            # The fix: DELETE the old output (and the .spec.tsv/.mfe.log beside it) before
+            # running. If it cannot be deleted, DO NOT PASS SILENTLY; write a clear error.
             _silinemedi = None
             for _es in (co, co + '.spec.tsv', co + '.mfe.log'):
                 if os.path.exists(_es):
@@ -263,20 +248,20 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                     % co)
                 continue
             t0 = time.time()
-            # D-11 HIZ DUZELTMESI (2026-08-07, OLCULDU): MFEprimer amplikon
-            # raporunu COK SAYIDA KUCUK yazma ile uretir. Bagli Windows klasorune
-            # (/mnt/c/...) yazarken her yazmanin gecikmesi toplanir ve is
-            # taninmayacak kadar yavaslar. OLCUM:
-            #   Proteolitik_Synergistaceae, SILVA, ayni komut:
-            #     yerel diske (/tmp)     : 5,2 sn   (11,5 MB cikti)
-            #     bagli klasore dogrudan : 3 dakikada BITMEDI (2,35 MB yazilmisti)
+            # THE D-11 SPEED FIX (2026-08-07, MEASURED): MFEprimer produces its amplicon report
+            # with A LARGE NUMBER OF SMALL writes. Writing to a mounted Windows directory
+            # (/mnt/c/...) accumulates the latency of every write and the job slows to the
+            # point of being unrecognisable. THE MEASUREMENT:
+            #   Proteolitik_Synergistaceae, SILVA, the same command:
+            #     to a local disk (/tmp)      : 5.2 s   (11.5 MB of output)
+            #     straight to the mounted dir : DID NOT FINISH in 3 minutes (2.35 MB written)
             #   Bakteri_universal, SILVA:
-            #     yerel diske (/tmp)     : 49,8 sn  (282 MB cikti)
-            #     bagli klasore dogrudan : 2026-08-06 kosusunda ~38 dakika
-            # Buna karsilik TOPLU kopyalama hizlidir (233 MB / 26 sn olculdu),
-            # cunku tek buyuk ardisik yazmadir. Bu yuzden: mfeprimer YEREL
-            # diskte kosar, kanit dosyalari is bitince TOPLU kopyalanir.
-            # Kanit dosyalarindan hicbiri kaybolmaz, yalnizca yazma deseni degisir.
+            #     to a local disk (/tmp)      : 49.8 s  (282 MB of output)
+            #     straight to the mounted dir : ~38 minutes in the 2026-08-06 run
+            # Against that, a BULK copy is fast (233 MB / 26 s measured), because it is one
+            # large sequential write. So: mfeprimer runs on the LOCAL disk and the evidence
+            # files are copied over IN BULK when the job finishes. No evidence file is lost;
+            # only the write pattern changes.
             import tempfile, shutil
             _yerel = tempfile.mkdtemp(prefix='mfe_spec_')
             _co = os.path.join(_yerel, os.path.basename(co))
@@ -314,7 +299,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
 
 
 def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
-    """hairpin + dimer. Panelin kendi kurallariyla (Tm < 45) degerlendirilir."""
+    """hairpin plus dimer. Evaluated by the panel's own rules (Tm < 45)."""
     d = os.path.join(CIKTI, 'mfe')
     os.makedirs(d, exist_ok=True)
     fa = os.path.join(d, 'oligolar.fa')
@@ -325,10 +310,10 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
     out = {}
     for komut, ust in (('hairpin', HAIRPIN_TM_UST), ('dimer', DIMER_TM_UST)):
         co = os.path.join(d, '%s.txt' % komut)
-        # D-10 (2026-08-07): spec_kos ile ayni tuzak - MFEprimer var olan cikti
-        # dosyasinin uzerine YAZMAZ, 1 dondurur ("is already exists"). hairpin.txt
-        # ve dimer.txt onceki kosulardan kaliyordu; duzeltilmezse bu iki olcum
-        # her yeniden kosuda sessizce dict(hata=...) olurdu.
+        # D-10 (2026-08-07): the same trap as spec_kos - MFEprimer DOES NOT OVERWRITE an
+        # existing output file, it returns 1 ("is already exists"). hairpin.txt and
+        # dimer.txt were left over from earlier runs; without the fix these two measurements
+        # would silently become dict(hata=...) on every re-run.
         for _es in (co, co + '.mfe.log'):
             if os.path.exists(_es):
                 try:
@@ -348,14 +333,14 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
         s = open(co, encoding='utf-8', errors='replace').read()
         m = re.search(r'%s List \((\d+)\)' % komut.capitalize(), s)
         n = int(m.group(1)) if m else 0
-        # D-5 HATA DUZELTMESI (2026-08-06): eski kod 'Tm:\s*([0-9.]+)' ariyordu.
-        # MFEprimer 3.0/4.4 dimer ve hairpin KAYITLARINDA Tm YOK - her kayit
-        # 'Score: N, Delta G = -X.XX kcal/mol' yaziyor ('Tm' yalniz ustteki oligo
-        # ozet tablosunun BASLIGINDA gecer, iki nokta olmadan). Sonuc: tms hep
-        # bos kaliyor, en_yuksek_tm None, kural_ihlali her zaman False - yani bu
-        # katman 66 dimer kaydina ragmen SESSIZCE "ihlal yok" oyu veriyordu.
-        # Artik gercekten raporlanan olcu (Delta G) ayristirilir ve Tm'in
-        # HESAPLANMADIGI acikca isaretlenir.
+        # THE D-5 BUG FIX (2026-08-06): the old code looked for 'Tm:\s*([0-9.]+)'.
+        # MFEprimer 3.0/4.4 report NO Tm ON dimer and hairpin RECORDS; every record says
+        # 'Score: N, Delta G = -X.XX kcal/mol' ('Tm' appears only in the HEADING of the
+        # oligo summary table above, without a colon). The result: tms stayed empty,
+        # en_yuksek_tm was None, kural_ihlali was always False, and so this layer was
+        # SILENTLY voting "no violation" despite 66 dimer records.
+        # Now the measure that is actually reported (Delta G) is parsed, and the fact that
+        # the Tm IS NOT COMPUTED is marked openly.
         dgs = [float(x) for x in re.findall(r'Delta G\s*=\s*(-?[0-9.]+)', s)]
         skor = [int(x) for x in re.findall(r'Score:\s*(\d+)', s)]
         tms = [float(x) for x in re.findall(r'Tm:\s*([0-9.]+)', s)]
@@ -373,27 +358,29 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
 
 
 def hedef_disi_kimlikleri(CIKTI, ciftler, yaz, tolerans=10):
-    """D-7 (2026-08-06): 'hedef disi N amplikon' SAYISI tek basina hukum verdirmez.
+    """D-7 (2026-08-06): THE COUNT of 'N off-target amplicons' does not decide on its own.
 
-    MFEprimer'in hedef disi olcusu SADECE BOYA dayanir: beklenen urun boyundan
-    +-tolerans disinda kalan her amplikon 'hedef disi' sayilir. Ama grup ve
-    EVRENSEL primerlerde hedef klad icindeki bir uyenin amplikonu da farkli
-    boyda cikabilir (16S/18S'te dogal indel uzunluk polimorfizmi). Ornek:
-    Bakteri_universal'in 31 'hedef disi' amplikonunun HEPSI bakteri 16S'idir
-    (Thermodesulfovibrio, Desulfurella, Gemmata, Planctomycetes...) - evrensel
-    bir bakteri primeri icin bunlar TASARIM GEREGI hedef ICIDIR.
+        MFEprimer's off-target measure rests ON LENGTH ALONE: every amplicon outside
+        the expected product length plus or minus a tolerance counts as 'off-target'.
+        But for group and UNIVERSAL primers, an amplicon from a member inside the
+        target clade can also come out at a different length (natural indel length
+        polymorphism in 16S/18S). An example: ALL 31 of Bakteri_universal's
+        'off-target' amplicons are bacterial 16S (Thermodesulfovibrio, Desulfurella,
+        Gemmata, Planctomycetes and so on), and for a universal bacterial primer those
+        are INSIDE the target BY DESIGN.
 
-    Bu yuzden sayinin yanina KIMLIK yazilir: hangi erisim numarasi, hangi
-    organizma, kac bp. Karar bu dosyaya bakilarak verilir.
+        So the IDENTITY is written beside the count: which accession, which organism,
+        how many bp. The decision is made by looking at that file.
+
     """
     d = os.path.join(CIKTI, 'mfe')
     yol = os.path.join(CIKTI, 'mfe_hedef_disi_kimlikleri.tsv')
-    # A4 DUZELTMESI (2026-08-21): burasi eskiden sessizce 'pass' idi.
-    # 'urun' sayiya cevrilemezse o hedef 'bek' sozlugune HIC girmiyordu; sonuc
-    # olarak beklenen_bp bilinmedigi icin o hedefin BUTUN amplikonlari hedef
-    # disi sayiliyordu. Yani bozuk TEK bir hucre, o satirin hukmunu SESSIZCE
-    # sertlestiriyordu - projenin bas hata turu: hata vermeden yanlis cevap.
-    # Artik dusen her hedef ekrana ve dosyaya yazilir.
+    # THE A4 FIX (2026-08-21): this used to be a silent 'pass'.
+    # If 'urun' could not be converted to a number, that target NEVER entered the 'bek'
+    # dictionary; and because beklenen_bp was then unknown, ALL of that target's
+    # amplicons counted as off-target. So ONE malformed cell SILENTLY hardened that
+    # row's verdict, which is this project's chief kind of bug: a wrong answer with no
+    # error. Every target that drops is now written to the screen and to the file.
     bek = {}
     bek_dusen = []
     for c in ciftler:
@@ -451,43 +438,45 @@ def hedef_disi_kimlikleri(CIKTI, ciftler, yaz, tolerans=10):
 
 
 def hedef_disi_say(spec_sonuc, hedef_ad, ciftler=None):
-    """MFEprimer'in bu cift icin bildirdigi TOPLAM amplikon sayisi.
+    """The TOTAL amplicon count MFEprimer reports for this pair.
 
-    NOT: MFEprimer hedefin KENDI amplikonunu da sayar. Hedef disi olcusu icin
-    'beklenen urun boyunda olmayanlar' degil, TOPLAM kullaniliyor ve bu acikca
-    boyle raporlaniyor - iki arac ayni seyi saymadiginda celiski isareti bunu
-    yakalasin diye. Ham dosyalar mfe/ altinda duruyor.
+        NOTE: MFEprimer counts the target's OWN amplicon too. For the off-target
+        measure the TOTAL is used rather than 'the ones not at the expected product
+        length', and that is reported openly, so that the contradiction flag catches it
+        when two tools are not counting the same thing. The raw files sit under mfe/.
+
     """
     v = (spec_sonuc or {}).get(hedef_ad) or {}
     return sum(x.get('hedef_disi', 0) for x in v.values()
                if isinstance(x, dict) and not x.get('hata'))
 
 
-# ---------------------------------------------------------------------------
-# D-12 (2026-08-07): "hedef disi N amplikon" SAYISI HUKUM VERDIRMEZ.
+# -------------------------------------------------------------------------
+# D-12 (2026-08-07): THE COUNT of "N off-target amplicons" DOES NOT DECIDE.
 #
-# OLCULMUS GEREKCE: 2026-08-07 12:11 kosusunda MFEprimer 1605 farkli-boy
-# amplikon buldu. mfe_hedef_disi_kimlikleri.tsv'deki taksonomi dizgeleri
-# siniflandirildiginda dagilim sudur:
-#     (a) hedef kladin ICINDEN, boyu farkli   1536   %95,7
-#    (ao) hedef alan icinde ama ORGANEL         31   %1,9   (bitki mitokondri/kloroplast)
-#     (b) ayni alan, klad disi                  24   %1,5
-#     (c) farkli alan (gercek capraz)           14   %0,9
-# Yani ham sayinin %95,7'si zararsiz uzunluk varyanti. Bakteri_universal'in
-# 1550 "hedef disi"sinin 1519'u SILVA'da "Bacteria;..." ile basliyor - evrensel
-# bir bakteri primeri icin TASARIM GEREGI hedef ICI.
+# THE MEASURED REASONING: in the 2026-08-07 12:11 run, MFEprimer found 1605
+# amplicons of a different length. Classifying the taxonomy strings in
+# mfe_hedef_disi_kimlikleri.tsv gives this distribution:
+#     (a) INSIDE the target clade, different length   1536   95.7%
+#    (ao) inside the target domain but an ORGANELLE     31   1.9%   (plant mitochondrion/chloroplast)
+#     (b) the same domain, outside the clade            24   1.5%
+#     (c) a different domain (a real cross reaction)    14   0.9%
+# So 95.7% of the raw count is a harmless length variant. Of Bakteri_universal's
+# 1550 "off-target" hits, 1519 begin with "Bacteria;..." in SILVA, which for a
+# universal bacterial primer is INSIDE the target BY DESIGN.
 #
-# Bu fonksiyon hukme girecek olcuyu uretir: klad_disi = (b) + (c).
-# Ayrica her (b)/(c) kaydinin primer Tm'i panelin baglanma sicakligiyla
-# karsilastirilir; Tm belirgin altindaysa (>=TM_MARJI C) o urun standart
-# kosulda olusmaz ve "olusabilir" sayimina girmez.
-# ---------------------------------------------------------------------------
+# This function produces the measure that enters the verdict: klad_disi = (b) + (c).
+# The primer Tm of every (b)/(c) record is also compared against the panel's
+# annealing temperature; if the Tm is clearly below it (by >=TM_MARJI C) that
+# product does not form under standard conditions and does not enter the "can form"
+# count.
+# -------------------------------------------------------------------------
 TM_MARJI = 5.0          # min(FpTm,RpTm) < Ta - TM_MARJI ise urun olusmaz sayilir
 ORGANEL_JETONLARI = ('Chloroplast', 'Mitochondria')
 
 
 def klad_tablosu(kok):
-    """screening/hedef_klad.tsv -> {hedef: (alan, [klad jetonlari], kaynak)}"""
+    """screening/hedef_klad.tsv -> {target: (domain, [clade tokens], source)}"""
     y = os.path.join(kok, 'screening', 'hedef_klad.tsv')
     if not os.path.exists(y):
         return {}
@@ -503,9 +492,9 @@ def klad_tablosu(kok):
     return out
 
 
-# spec dosya adindaki veritabani -> alan. RefSeq basliklarinda taksonomi
-# dizgesi YOKTUR; o kayitlarin alani veritabaninin TANIMINDAN gelir (bacteria
-# .16S.fna icindeki her kayit tanimi geregi bakteri 16S'idir). Tahmin degil.
+# The database in the spec file name -> its domain. RefSeq headers carry NO taxonomy
+# string; the domain of those records comes from the DEFINITION of the database
+# (every record inside bacteria.16S.fna is bacterial 16S by definition). Not a guess.
 VTB_ALAN = {'archaea_16S_fna': 'Archaea', 'bacteria_16S_fna': 'Bacteria',
             'fungi_ITS_fna': 'Eukaryota', 'fungi_28SrRNA_fna': 'Eukaryota',
             'fungi_18SrRNA_fna': 'Eukaryota'}
@@ -524,15 +513,16 @@ def _kayit_coz(org, vtb):
 
 
 def klad_siniflandir(kok, CIKTI, ciftler, ta_panel, yaz=None):
-    """mfe_hedef_disi_kimlikleri.tsv'yi okur, cift basina a/ao/b/c sayar.
+    """Reads mfe_hedef_disi_kimlikleri.tsv and counts a/ao/b/c per pair.
 
-    Doner: {hedef: dict(a, ao, b, c, klad_disi, olusabilir, olusmaz,
-                        klad, alan, kaynak, kayitlar=[...])}
-    'klad_disi' hukme girecek olcudur. 'olusabilir', o kayitlardan primer
-    Tm'i baglanma sicakligina yakin olanlarin sayisidir.
-    Tablo ya da dosya yoksa BOS doner - o zaman cagiran taraf ham sayiyi
-    kullanmaya DEVAM eder ama bunu acikca "klad ayrimi YAPILAMADI" diye
-    isaretlemek zorundadir (sessizce temiz saymak yasak).
+        Returns: {target: dict(a, ao, b, c, klad_disi, olusabilir, olusmaz,
+                            klad, alan, kaynak, kayitlar=[...])}
+        'klad_disi' is the measure that enters the verdict. 'olusabilir' is the number
+        of those records whose primer Tm is close to the annealing temperature.
+        If the table or the file is missing it returns EMPTY, and the caller then
+        CARRIES ON using the raw count but MUST mark that openly as "the clade
+        separation COULD NOT BE MADE" (counting it clean silently is forbidden).
+
     """
     tab = klad_tablosu(kok)
     yol = os.path.join(CIKTI, 'mfe_hedef_disi_kimlikleri.tsv')
