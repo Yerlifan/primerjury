@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# LINE ENDINGS — THIS FILE IS LOAD-BEARING.
+#
+# This project runs on Linux and WSL2. On a Windows checkout, git's default
+# autocrlf converts LF to CRLF, and a shell script with CRLF is broken on
+# Linux in a confusing way: bash reads the trailing \r as part of the command
+# and reports errors that name characters, not causes:
+#
+#     install.sh: line 44: $'\r': command not found
+#     install.sh: line 68: syntax error near unexpected token `$'{\r''
+#
+# Measured on this repository — every shell script failed in WSL after a
+# Windows checkout, while the same files ran correctly when read directly.
+#
+# Forcing LF for everything text-like prevents that. Do not remove.
+# ---------------------------------------------------------------------------
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.tsv   text eol=lf
+*.txt   text eol=lf
+*.cff   text eol=lf
+primerjury text eol=lf
+
+# Executable bits git should preserve
+*.sh        text eol=lf
+primerjury  text eol=lf
+
+# Binary — never touch
+*.png   binary
+*.pdf   binary
+*.xlsx  binary
+*.docx  binary
+*.gz    binary
+*.qza   binary

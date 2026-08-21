@@ -104,16 +104,15 @@ Python packages are in `requirements.txt`.
 
 ---
 
-## Install
+## Quick start
 
-One entry point handles tools, databases, Kraken2 and QIIME2:
+Linux or WSL2. Everything runs through one file:
 
 ```bash
-bash install.sh durum          # measure what is installed — changes nothing
-bash install.sh araclar        # kraken2, bracken, minimap2, samtools, blast, seqkit
-bash install.sh veritabani     # SILVA + PR2 + RefSeq (+ UNITE/ROD instructions)
-bash install.sh qiime          # QIIME2 + PICRUSt2 + SILVA classifier
-bash install.sh hepsi          # all of the above
+./primerjury                   # the built-in guide
+./primerjury check             # what is installed? changes nothing
+./primerjury install all       # tools + reference databases + QIIME2
+./primerjury run               # the full chain
 ```
 
 Reference databases total roughly **28 GB** and are never committed to git.
@@ -136,7 +135,7 @@ current one and verifies whatever you hand it.
 Prebuilt Kraken2 databases are fixed at `k=35, l=31`. To choose your own:
 
 ```bash
-bash install.sh kraken-kur --kmer 31 --db ~/k2db_k31
+./primerjury install kraken --kmer 31
 ```
 
 Shorter *k* raises sensitivity on error-prone long reads (ONT) but pushes the
@@ -155,7 +154,7 @@ Whatever *k* you build with, verify identity independently.
 Put your sequences in `sequences/`, then:
 
 ```bash
-python3 verification/full_chain.py --kok . --onayla    # full chain
+./primerjury run
 ```
 
 The full chain runs ten stages in dependency order and **checks the output of
@@ -168,10 +167,10 @@ erroring.
 Individual stages:
 
 ```bash
-python3 verification/identity_verification.py --kok .      # identity verification
-python3 verification/specificity_round.py --kok .        # 4-layer specificity
-python3 protocol/single_protocol_measure.py --kok .  # single-protocol panel measurement
-python3 cross_check.py --kok .                 # read-only independent audit
+./primerjury identity          # identity verification
+./primerjury specificity       # four-layer specificity
+./primerjury panel             # single-protocol panel measurement
+./primerjury audit             # independent read-only audit
 ```
 
 ### Tests
@@ -240,7 +239,8 @@ Honest list; these are the gaps between "runs for the original study" and
 | `scoring/` | shared scoring |
 | `tests/` | tests |
 | `tools/` | Kraken2 environment/database tooling |
-| `docs/` | audit report and working log (Turkish) |
+| `primerjury` | **the single entry point — start here** |
+| `docs/` | user guide, audit report, measurements |
 | `sequences/` | **your input goes here** |
 
 ---

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 orientation_audit.py - her konsensus dosyasinin SAKLANDIGI YONU tespit eder.
 
 Neden gerek: yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri

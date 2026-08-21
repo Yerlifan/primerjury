@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 tsv_sync.py - TESLIM TSV ikizlerini panel xlsx'inden YENIDEN URETIR.
 
 Neden: TSV'ler panelden elle turetildigi icin kayabiliyor. 2026-08-02 denetimi
