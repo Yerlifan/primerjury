@@ -1158,8 +1158,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                             u'primerin sonucuna BAKILMADAN verildi - bu satirin dusmesi '
                             u'kuralın tek yonlu calismadiginin kanitidir.'
                             % (vir(eski), vir(kat)))
-                        yaz(u'         NOT: dusus bir KAYIP DEGIL, olcunun duzelmesi. '
-                            u'Eski %s x yanlis uyelikten geliyordu.' % vir(eski))
+                        yaz(u'         NOTE: the drop is NOT A LOSS, it is the measurement being corrected. The old %s x came from a wrong membership.' % vir(eski))
                     s['uyelik_gerekcesi'] = (
                         u'Uye kumesi YALNIZ olculen konsensus kimligine gore '
                         u'belirlendi (esik %%%s), primerin sonucundan BAGIMSIZ olarak '
@@ -1208,7 +1207,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     s['sebep'] = s['sebep'] or (
                         u'Tarandi, esigi gecen aday yok (en iyi %s x).'
                         % (vir(en_iyi['kat1']) if en_iyi else '-'))
-                    yaz(u'         esigi gecen aday yok')
+                    yaz(u'         no candidate passes the threshold')
 
                 # --- YOL 5: COK LOKUSLU ARAMA ---
                 # Yol 3 tek omurga penceresine dayanir. Petriella'da cozum ITS'te
@@ -1252,8 +1251,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                 # ---------------------------------------------------------------
                 _uzun = max([len(kons[k['kutu']]) for k in uye if k['kutu'] in kons] or [0])
                 if _uzun >= 2000:
-                    yaz(u'      -> YOL 5: taban dusuk ama konsensus %d bp - '
-                        u'BASKA LOKUSLAR denenir' % _uzun)
+                    yaz(u'      -> ROUTE 5: the floor is low but the consensus is %d bp, so OTHER LOCI are tried' % _uzun)
                     t5 = yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons,
                                           aday_ust=min(aday_ust, 40),
                                           tarama_ust=min(tarama_ust, 200), yaz=yaz)

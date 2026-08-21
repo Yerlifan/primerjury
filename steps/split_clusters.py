@@ -93,7 +93,7 @@ def main():
     if not pool:
         sys.exit("hedef kumesi bos")
     print("baslangic uye sayisi : %d" % len(pool))
-    print("rakip sayisi         : %d" % len(outg))
+    print(u'number of competitors : %d' % len(outg))
     print("motor                : %s" % ENGINE)
 
     sets, si, log = [], 0, []
@@ -107,17 +107,17 @@ def main():
             tsv = os.path.join(a.outdir, "%s_SET%d.tsv" % (a.label, si))
             n, blockers, best, txt = run_engine(cur, outg,
                                                 "%s_SET%d" % (a.label, si), tsv, a.extra)
-            print("  SET%d denemesi: %d uye -> %d gecerli cift" % (si, len(cur), n))
+            print(u'  SET%d attempt: %d members -> %d valid pairs' % (si, len(cur), n))
             if n > 0:
                 sets.append(dict(set=si, members=[tag_of(x) for x in cur],
                                  pairs=n, best=best, tsv=tsv))
-                print("  SET%d tamam: %d uye, %d cift" % (si, len(cur), n))
+                print(u'  SET%d done: %d members, %d pairs' % (si, len(cur), n))
                 if best:
                     print("     en iyi: %s" % best)
                 pool = removed
                 break
             if not blockers:
-                print("  SET%d: cift yok ve engelleyen uye raporlanmadi, duruldu" % si)
+                print(u'  SET%d: no pair, and no blocking member was reported, so it stopped' % si)
                 cur = []
                 break
             worst = blockers[0][0]
@@ -148,7 +148,7 @@ def main():
 
     print("\n=== SONUC ===")
     for s in sets:
-        print("SET%d : %d uye, %d gecerli cift" % (s["set"], len(s["members"]), s["pairs"]))
+        print(u'SET%d : %d members, %d valid pairs' % (s["set"], len(s["members"]), s["pairs"]))
         print("        uyeler: %s" % ", ".join(s["members"]))
         if s["best"]:
             print("        %s" % s["best"])
@@ -161,7 +161,7 @@ def main():
         yazilan |= set(st["members"])
     kayip = sorted(girdi - yazilan)
     if kayip:
-        print("\nUYARI: raporlanmayan uye var, listeye ekleniyor: %s"
+        print(u'\nWARNING: an unreported member exists and is being added to the list: %s'
               % ", ".join(kayip))
         kalan = sorted(set(kalan) | set(kayip))
     if kalan:

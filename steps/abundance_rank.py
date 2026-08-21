@@ -118,7 +118,7 @@ def main():
     if not dosyalar:
         sys.exit("rapor bulunamadi: %s" % a.kraken)
     os.makedirs(a.out, exist_ok=True)
-    print("rapor: %d" % len(dosyalar))
+    print(u'reports: %d' % len(dosyalar))
 
     kapsama_satir, bolluk_satir, ozet_satir = [], [], []
     for yol in dosyalar:
@@ -128,11 +128,11 @@ def main():
             continue
         bc = int(m.group(1))
         if bc not in BARKOD_GRUP:
-            print("   ATLANDI, ornekleme haritasinda yok: barcode%02d" % bc)
+            print(u'   SKIPPED, not in the sampling map: barcode%02d' % bc)
             continue
         dogrudan, klan, ebeveyn, toplam = rapor_oku(yol)
         if toplam <= 0:
-            print("   ATLANDI, bos rapor: %s" % os.path.basename(yol))
+            print(u'   SKIPPED, empty report: %s' % os.path.basename(yol))
             continue
         sinifsiz = sum(d for r, _, d in dogrudan.values() if r == "U")
         siniflanan = toplam - sinifsiz
@@ -196,8 +196,7 @@ def main():
         # okuma sayisini asamaz
         _t = sum(z[1] for z in sec)
         if _t > kumulatif[secilen] + 1:
-            print("   UYARI barcode%02d: %s rutbesinde klan toplami (%d) "
-                  "yerlesen okumayi (%d) asiyor, cift sayim olabilir"
+            print(u'   WARNING barcode%02d: at rank %s the clade total (%d) exceeds the placed reads (%d), which can be double counting'
                   % (bc, secilen, _t, kumulatif[secilen]))
         # o rutbenin ustunde kalanlar
         ust_kalan = siniflanan - kumulatif[secilen]
@@ -231,8 +230,7 @@ def main():
             if siniflanan else 0.0,
             tur_orani=round(100.0 * kumulatif["S"] / siniflanan, 2)
             if siniflanan else 0.0))
-        print("   barcode%02d %-3s toplam=%8d  secilen rutbe=%s (%s)  "
-              "yerlesme=%.1f%%  cins=%.1f%%  tur=%.1f%%"
+        print(u'   barcode%02d %-3s total=%8d  chosen rank=%s (%s)  placed=%.1f%%  genus=%.1f%%  species=%.1f%%'
               % (bc, BARKOD_GRUP[bc], toplam, secilen, RUTBE_ADI[secilen],
                  100.0 * kumulatif[secilen] / siniflanan if siniflanan else 0,
                  100.0 * kumulatif["G"] / siniflanan if siniflanan else 0,
@@ -263,10 +261,7 @@ def main():
         to = sum(x["tur_orani"] for x in ilgili) / len(ilgili)
         print("%-4s %-24s %-14s %9.1f%% %9.1f%%"
               % (g, ac, ", ".join(rutler), co, to))
-    print("\nCins orani, o gruptaki okumalarin yuzde kacinin cins ya da daha "
-          "dar bir rutbeye yerlesebildigini gosterir. Dusuk oran, o gruptaki "
-          "organizmalarin Kraken2 veritabaninda temsil edilmedigi anlamina "
-          "gelir; sayilari cinse dagitmak veri uretmek olur.")
+    print(u'\nThe genus fraction shows what percentage of the reads in that group could be placed at genus rank or narrower. A low fraction means the organisms in that group are not represented in the Kraken2 database, and spreading their counts over a genus would be inventing data.')
 
 
 if __name__ == "__main__":
