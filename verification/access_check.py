@@ -1,63 +1,67 @@
 # -*- coding: utf-8 -*-
-"""ERISIM DOGRULAMASI - arama her veritabanini GERCEKTEN kullaniyor mu?
+"""ACCESS VERIFICATION - is the search REALLY using every database?
 
-NEDEN VAR
----------
-Ayarda 12 veritabani yazmasi, oralara duzgun BAKILDIGI anlamina gelmiyor.
-Olculmus ornek: F2-1_101201 kutusu icin Petriella kayitlari fungi.28S
-veritabaninda VARDI (P. guttulata %99,65, P. musispora %99,00) ama kisa listeye
-GIRMIYORDU; arac en iyi isabet olarak %98,16'lik Parascedosporium'u bildirdi.
-Kayit oradaydi, arama onu geri getiremiyordu.
+WHY IT EXISTS
+-------------
+Having 12 databases in the configuration does not mean they are being LOOKED AT
+properly. A measured example: for the F2-1_101201 bin, the Petriella records WERE
+THERE in the fungi.28S database (P. guttulata 99.65%, P. musispora 99.00%) but
+they WERE NOT ENTERING the short list; the tool reported Parascedosporium at
+98.16% as the best hit. The record was there and the search could not bring it
+back.
 
-YONTEM - geri cagirma (recall) olcumu
-  1) Her veritabanindan, dosya boyunca YAYILMIS birkac kayit secilir.
-  2) O kaydin KENDI dizisi sorgu olarak verilir -> kisa liste onu geri getiriyor mu?
-  3) Ayni dizi %8 rastgele mutasyonla bozulup tekrar sorulur (nanopore konsensusu
-     hatali olur; gercek kullanim bu). Yine geri getiriyor mu?
-  (2) duserse arama o veritabanini FIILEN KULLANMIYOR demektir.
-  (3) duserse arama yalnizca kusursuz dizilerde calisiyor demektir - bizim
-     kullanimimizda ise konsensusler hatalidir.
+THE METHOD - a recall measurement
+  1) A few records SPREAD across the file are chosen from each database.
+  2) That record's OWN sequence is given as the query -> does the short list bring
+     it back?
+  3) The same sequence is corrupted with 8% random mutation and asked again (a
+     nanopore consensus carries errors, and that is real use). Does it still bring
+     it back?
+  If (2) fails, the search IS NOT ACTUALLY USING that database.
+  If (3) fails, the search works only on flawless sequences - while in our use the
+     consensuses carry errors.
 
-Cikti: veritabani basina GECTI / DUSTU + sebep. Bu tablo olmadan hicbir kimlik
-sonucuna guvenilmemelidir.
+The output: GECTI / DUSTU per database, plus the reason. Without this table no
+identity result should be trusted.
+
 """
 
 # -------------------------------------------------------------------------
-# access_check.py — her referans veritabaninin ARAMA TARAFINDAN gercekten
-# kullanilip kullanilmadigini geri cagirma (recall) olcerek kanitlar.
+# access_check.py proves whether each reference database is REALLY BEING USED BY THE
+# SEARCH, by measuring recall.
 #
-# GİRDİ  : REFERANS_DB/ altindaki FASTA kumeleri (hangileri sorulacagi
-#          identity_verification.py icindeki VTB listesinden okunur) ve o kumelerin
-#          KENDI kayitlari - sorgu disaridan gelmez, veritabaninin icinden secilir.
-# ÇIKTI  : ERISIM_SONUC/erisim_dogrulama.tsv  (veritabani basina GECTI / KISMEN /
-#          DUSTU + sebep; dosyaya EKLENEREK yazilir, eski kosular korunur).
-# ÇAĞRAN : verification/full_chain.py -> E tusu
-#          (bat icinde: wsl -e python3 "verification/access_check.py" --kok .)
+# INPUT  : the FASTA sets under REFERANS_DB/ (which of them to ask is read from the
+#          VTB list inside identity_verification.py) and those sets' OWN records; the
+#          query does not come from outside, it is chosen from inside the database.
+# OUTPUT : ERISIM_SONUC/erisim_dogrulama.tsv (GECTI / KISMEN / DUSTU per database,
+#          plus the reason; it is APPENDED to the file, so earlier runs are kept).
+# CALLED BY: verification/full_chain.py -> key E
+#          (python3 verification/access_check.py --root .)
 #
-# NEDEN AYRI BIR OLCUM - KISA LISTE HIKAYESININ KOKU
-# Bu betik, kisa liste kesme noktasinin BAGLAYICI oldugu doneme ait hatanin
-# kanitini uretti: Petriella kayitlari fungi.28S dosyasinda VARDI (P. guttulata
-# %99,65, P. musispora %99,00) ama kisa listeye HIC girmiyordu, cunku liste
-# 60 kayitla kesiliyordu ve siralama olcutu (tohum sayisi) ile karar olcutu
-# (hizalama kimligi) ayni sey degildi. Arac bu yuzden yanlis cinsi (%98,16
-# Parascedosporium) en iyi isabet diye bildirdi. Duzeltme siralama olcutunu
-# iyilestirmek DEGIL, listeyi 500'e buyutup kesme noktasini baglayici olmaktan
-# cikarmaktir. Bu betik o duzeltmenin fiilen tuttugunu her kosuda yeniden olcer.
+# WHY A SEPARATE MEASUREMENT - THE ROOT OF THE SHORT LIST STORY
+# This script produced the evidence for the bug of the period when the short list cut
+# off WAS BINDING: the Petriella records WERE THERE in the fungi.28S file
+# (P. guttulata 99.65%, P. musispora 99.00%) but they NEVER entered the short list,
+# because the list was cut at 60 records and the ranking criterion (the seed count)
+# and the deciding criterion (alignment identity) were not the same thing. So the
+# tool reported the wrong genus (Parascedosporium at 98.16%) as the best hit. The fix
+# was NOT to improve the ranking criterion but to grow the list to 500 and make the
+# cut off non-binding. This script re-measures on every run that the fix still holds.
 # -------------------------------------------------------------------------
 import os, sys, csv, time, random, argparse
 
 
-# ---------------------------------------------------------------------------
-# GERI CAGIRMA OLCUMU: her veritabanindan dosya boyunca YAYILMIS kayitlar
-# secilir, o kaydin KENDI dizisi sorgu olarak verilir ve kisa listenin onu geri
-# getirip getirmedigine bakilir. Bir veritabani kendi kaydini geri getiremiyorsa
-# o veritabani fiilen taranmiyor demektir.
+# -------------------------------------------------------------------------
+# THE RECALL MEASUREMENT: records SPREAD across the file are chosen from each
+# database, that record's OWN sequence is given as the query, and we look at whether
+# the short list brings it back. If a database cannot bring back its own record, that
+# database is effectively not being scanned.
 #
-# Ikinci sinama %8 mutasyonlu kopya iledir ve ASIL sinama odur: bizim
-# konsensuslerimiz nanopore kaynaklidir, yani hatalidir. Yalniz kusursuz dizide
-# calisan bir arama gercek kullanimda kayit KACIRIR - "KISMEN" hukmu tam olarak
-# bu durumu isaretler.
-# ---------------------------------------------------------------------------
+# The second test uses a copy with 8% mutation, and THAT is the real test: our
+# consensuses come from nanopore, that is, they carry errors. A search that works
+# only on a flawless sequence MISSES records in real use, and the "KISMEN" verdict
+# marks exactly that case.
+# -------------------------------------------------------------------------
 def main():
     p = argparse.ArgumentParser(description='Veritabani erisim dogrulamasi')
     p.add_argument('--root', '--kok', dest='kok', default='.')
@@ -69,13 +73,13 @@ def main():
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 
-    # ---- KOK DENETIMI (eklendi 2026-08-04) --------------------------------
-    # Eskiden bu betik, --kok yanlis verildiginde ham bir Python izlemesi
-    # (FileNotFoundError + traceback) basiyordu. Izleme teknik olarak dogruydu
-    # ama kullaniciya ne yapacagini soylemiyordu. Artik once bakilir, sonra
-    # yuklenir; eksik olan sey adiyla soylenir ve cozum yazilir.
-    # DIKKAT: bu bir davranis degisikligidir - eskiden de sifirdan farkli kodla
-    # duruyordu, degisen yalniz MESAJDIR. Olcum mantigina dokunulmadi.
+    # ---- THE ROOT CHECK (added 2026-08-04) --------------------------------
+    # This script used to print a raw Python traceback (FileNotFoundError plus the
+    # traceback) when --root was given wrongly. The traceback was technically correct but
+    # did not tell the user what to do. Now it looks first and loads second; what is
+    # missing is named and the fix is written out.
+    # NOTE: this is a change of behaviour - it stopped with a non-zero code before too,
+    # and what changed is only THE MESSAGE. The measurement logic was not touched.
     _kd_yolu = os.path.join(kok, 'verification', 'identity_verification.py')
     _eksik = []
     if not os.path.isdir(os.path.join(kok, 'verification')):
@@ -166,10 +170,10 @@ def main():
         for idx, bas, diz in secilen:
             q = diz[:4000]
             kl = kd.kisa_liste(yol, q, ilerle=None)
-            # DUZELTME 2026-08-09: kisa_liste() 3'lu demet degil, DICT listesi
-            # donduruyor (anahtarlar: tohum, skor, baslik, dizi, sira, kaynak).
-            # Eski satir "too many values to unpack (expected 3, got 6)" veriyordu
-            # ve E asamasi bu yuzden cikis kodu 1 ile dusuyordu.
+            # THE 2026-08-09 FIX: kisa_liste() returns a list of DICTS rather than 3-tuples
+            # (the keys: tohum, skor, baslik, dizi, sira, kaynak). The old line gave
+            # "too many values to unpack (expected 3, got 6)" and stage E was failing with
+            # exit code 1 because of it.
             bulundu = any(r['baslik'] == bas for r in kl)
             tam_ok += 1 if bulundu else 0
             rnd = random.Random(idx)

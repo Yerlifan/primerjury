@@ -1,76 +1,81 @@
 # -*- coding: utf-8 -*-
-"""SECENEK 5 - UYELIK TANIMI DENETIMI ve DUYARLILIK ANALIZI.
+"""OPTION 5 - THE MEMBERSHIP DEFINITION AUDIT and SENSITIVITY ANALYSIS.
 
-NEDEN GEREKLI
--------------
-Bir hedefin "ayrim kati" sayisi, hangi kutularin UYE hangilerinin RAKIP
-sayildigina dogrudan baglidir. Uyelik tanimi degisince sayi degisir - motor
-degismese bile. Olculdu:
-
-  Proteolitik_Cloacimonas, grup satiri (3 takson) ile  ->  ayrim  0,0x
-  Proteolitik_Cloacimonas, tek uye (456827) ile        ->  ayrim 23,5x
-  panelde yazan                                        ->        23,0x
-
-Yani sayinin kendisi degil, TANIM yanlisti. Bu modul her hedef icin uyeligin
-BUTUN makul tanimlarini yan yana olcer, boylece hangi sayinin hangi tanima
-bagli oldugu gorunur olur.
-
-TANIM KAYNAKLARI
+WHY IT IS NEEDED
 ----------------
-  A. hedef_uyelik.tsv       aracin su an kullandigi tanim (PANEL / TURETILDI)
-  B. hedefler.tsv           projenin karar tablosu (grup satiri)
-  C. tek uye                yalniz en cok urun veren tek takson
-  D. ciftler.tsv            diger oturumun (okuma motoru duzeltmesi) tanimi
-  E. olculen kimlik         hedef_kimlik.tsv'deki OLCULEN organizmadan turetilmis
+A target's "discrimination ratio" depends directly on which bins count as MEMBERS
+and which as COMPETITORS. Change the membership definition and the number changes,
+even with the engine unchanged. Measured:
 
-TANI (Proteiniphilum gibi durumlar)
------------------------------------
-Bir hedefin uye kutularinda hic urun yoksa iki ihtimal vardir:
-  (1) uye kumesi yanlis  -> hangi kutu(lar) urun veriyor, tek tek bulunur
-  (2) konsensus ile ham okumalar uyusmuyor -> ayni cift KONSENSUSTE olculur;
-      konsensuste urun verip okumalarda vermiyorsa sorun uyelik degil,
-      konsensus/okuma uyusmazligidir
-Modul IKISINI DE sinar ve hangisi oldugunu yazar.
+  Proteolitik_Cloacimonas, with the group row (3 taxa)  ->  discrimination  0.0x
+  Proteolitik_Cloacimonas, with a single member (456827) ->  discrimination 23.5x
+  what the panel says                                    ->                 23.0x
+
+So it was not the number that was wrong but THE DEFINITION. This module measures
+EVERY reasonable definition of the membership for each target side by side, so
+that it becomes visible which number depends on which definition.
+
+THE DEFINITION SOURCES
+----------------------
+  A. hedef_uyelik.tsv       the definition the tool currently uses (PANEL / TURETILDI)
+  B. hedefler.tsv           the project's decision table (the group row)
+  C. a single member        only the single taxon giving the most product
+  D. ciftler.tsv            the definition from the other session (the read engine fix)
+  E. the measured identity  derived from the MEASURED organism in hedef_kimlik.tsv
+
+THE DIAGNOSIS (situations like Proteiniphilum)
+----------------------------------------------
+When there is no product at all in a target's member bins there are two
+possibilities:
+  (1) the member set is wrong  -> which bin or bins do give a product is found one
+      by one
+  (2) the consensus and the raw reads do not agree -> the same pair is measured ON
+      THE CONSENSUS; if it gives a product on the consensus but not on the reads,
+      the problem is not the membership but a consensus and read mismatch
+The module tests BOTH and writes down which it is.
+
 """
-# ---------------------------------------------------------------------------
-# membership_check.py — her panel hedefinin uyelik tanimlarini (hangi kutu uye,
-#                      hangisi rakip) yan yana olcer ve sayinin tanima ne kadar
-#                      duyarli oldugunu gosterir.
+# -------------------------------------------------------------------------
+# membership_check.py measures every panel target's membership definitions (which bin
+#                      is a member, which a competitor) side by side and shows how
+#                      sensitive the number is to the definition.
 #
-# GIRDI  : hedefler.panel_oku() ile panel TSV'si; hedefler.kutular() ile fastq
-#          kutulari; hedefler.konsensusler() ile kanonik konsensusler;
-#          hedefler.acik_uyelik() ile screening/hedef_uyelik.tsv;
-#          hedefler.uyelik_oku() ile steps/hedefler.tsv;
-#          screening/ciftler.tsv (ya da eski/ciftler.tsv);
-#          primer_final/hedef_kimlik.tsv; olcumu numune.Numune yapar.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/UYELIK_DENETIMI.md ve uyelik_duyarlilik.tsv
-#          (calistir bu iki yolu liste olarak dondurur); ayrica hedef basina
-#          kontrol/uyelik_*.json kontrol noktasi.
-# CAGRAN : verification/full_chain.py tusu 5 (--mod uyelik), tusu 7 -> "3" secimi
-#          (tek hedefin uyelik denetimi) ve tusu 9 icindeki 6. asama
+# INPUT  : the panel TSV through hedefler.panel_oku(); the fastq bins through
+#          hedefler.kutular(); the canonical consensuses through
+#          hedefler.konsensusler(); screening/hedef_uyelik.tsv through
+#          hedefler.acik_uyelik(); steps/hedefler.tsv through hedefler.uyelik_oku();
+#          screening/ciftler.tsv (or eski/ciftler.tsv);
+#          primer_final/hedef_kimlik.tsv. numune.Numune does the measuring.
+# OUTPUT : KAPSAMLI_ARAMA_SONUC/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
+#          (calistir returns those two paths as a list); plus a
+#          kontrol/uyelik_*.json checkpoint per target.
+# CALLED BY: verification/full_chain.py key 5 (--mod uyelik), key 7 -> choice "3"
+#          (the membership audit of a single target) and the 6th stage inside key 9
 #          (hepsi.calistir -> uyelik_denetimi.calistir).
 #
-# BU MODUL UYELIGI DEGISTIRMEZ. Butun makul tanimlari olcer, yan yana koyar ve
-# raporun sonuna "Bu arac uyelik tanimini kendiliginden degistirmez" diye yazar;
-# hedef_uyelik.tsv'ye YAZMAZ. Ilke: kanit yoklugu kanit sayilmaz. Bir sayinin
-# beklenenden farkli cikmasi, kutunun yerinin degistirilmesi icin kanit degildir;
-# yer degistirme ancak pozitif olcum kanitiyla ve elle yapilir. Bu yuzden modulun
-# ciktisi bir karar degil, bir secenek tablosudur.
-# ---------------------------------------------------------------------------
+# THIS MODULE DOES NOT CHANGE THE MEMBERSHIP. It measures every reasonable
+# definition, puts them side by side, and writes at the end of the report "this tool
+# does not change the membership definition by itself"; it DOES NOT WRITE to
+# hedef_uyelik.tsv. The principle: an absence of evidence is not evidence. A number
+# coming out different from what was expected is not evidence for moving a bin; a bin
+# moves only on positive measured evidence and by hand. So this module's output is
+# not a decision but a table of options.
+# -------------------------------------------------------------------------
 import os, csv, json, time, re
 from . import config as C
 from . import engine_gateway, hedefler as H, numune as N, kontrol
 
-# ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
-# Kat karsiligi 2 ** ESIK_DCQ = 8,00. Sabit sayi GOMULMEZ; dCq degisirse
-# tek yerden degisir. Gerekce ve verim uyarisi o dosyada yazili.
+# THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
+# Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
+# changes it changes in one place. The reasoning and the efficiency warning are
+# written in that file.
 ESIK = C.AYRIM_ESIK
 PAKET = os.path.dirname(os.path.abspath(__file__))
 
 
 # ---------------------------------------------------------------- tanim kaynaklari
 def _ciftler_tsv_uyelik():
-    """eski/ciftler.tsv (diger oturumun tanimi) -> hedef -> taxid listesi."""
+    """eski/ciftler.tsv (the other session's definition) -> target -> the taxid list."""
     out = {}
     for aday in (os.path.join(PAKET, 'ciftler.tsv'),
                  os.path.join(PAKET, 'eski', 'ciftler.tsv')):
@@ -118,7 +123,7 @@ def _kimlik_uyelik():
 
 
 def tanimlar(satir, kut, acik, grup_uyelik, cift_uyelik, kimlik_uyelik):
-    """Bir panel hedefi icin butun uyelik tanimlarini uret."""
+    """Produce every membership definition for one panel target."""
     ad = satir['hedef']
     sf = [x.strip() for x in (satir['sinif'] or '').split('/') if x.strip()]
     out = []
@@ -163,19 +168,19 @@ def _kutu_coz(uye_tax, haric, sf, kut):
 
 # ---------------------------------------------------------------- tani
 def tani(satir, sf, kut, numune, kons):
-    """Uye kutusunda urun yoksa sebebini bul: uyelik mi, konsensus/okuma mi."""
-    # Iki soru ayri ayri sorulur cunku cevaplari farkli iki duzeltmeye isaret
-    # eder. (1) "Ayni sinifin HANGI kutulari urun veriyor" - urun veren kutu
-    # uye listesinde degilse sorun uyelik tanimindadir. (2) "Ayni cift KONSENSUS
-    # dizisinde urun veriyor mu" - konsensuste veriyor ama ham okumalarda
-    # vermiyorsa sorun uyelik degil, konsensusun okumalari temsil etmemesidir
-    # ve cozum konsensusu yeniden uretmektir. Ikisi karistirilirsa yanlis dosya
-    # duzeltilir.
+    """With no product in a member bin, find the reason: the membership, or the consensus and reads."""
+    # The two questions are asked separately because their answers point at two different
+    # fixes. (1) "WHICH bins of the same class give a product" - if a bin giving a
+    # product is not in the member list, the problem is in the membership definition.
+    # (2) "Does the same pair give a product on the CONSENSUS sequence" - if it does on
+    # the consensus but not on the raw reads, the problem is not the membership but the
+    # consensus failing to represent the reads, and the fix is to regenerate the
+    # consensus. Confuse the two and the wrong file gets corrected.
     F, R = satir['F'], satir['R']
     lo, hi = C.URUN_IDEAL[0], C.URUN_MUTLAK_UST
     taxad = H.taxid_adlari()
 
-    # (1) HANGI kutular urun veriyor - butun sinif taranir
+    # (1) WHICH bins give a product - the whole class is scanned
     veren = []
     for k in kut:
         if k['sinif'] not in sf:
@@ -207,17 +212,19 @@ def tani(satir, sf, kut, numune, kons):
 
 
 def tani_yorumu(uye_kutu, veren, kons_veren, panel_urun, olcum=None, panel_uye=''):
-    """Kapsam sifirsa sebebini bul: uyelik mi, konsensus/okuma uyusmazligi mi.
+    """When the coverage is zero, find the reason: the membership, or a consensus and read mismatch.
 
-    "Urun var" ile "kapsandi" ayni sey DEGILDIR: bir uye kutusu %2 urun
-    veriyorsa urun VARDIR ama kapsam esigini gecmez. Panelin o satir icin
-    bildirdigi deger cok daha yuksekse bu ayrica aciklanmasi gereken bir
-    celiskidir - modul bunu ayri bir tani olarak bildirir.
+        "There is a product" and "it is covered" ARE NOT the same thing: if a member bin
+        gives 2% product there IS a product, but it does not pass the coverage threshold.
+        If the value the panel reports for that row is far higher, that is a contradiction
+        needing a separate explanation, and the module reports it as a separate diagnosis.
+
     """
-    # Tani sirasi ONEMLI ve daralan bir eleme olarak yazilmistir: once kapsam
-    # var mi, sonra uye kutusunda zayif da olsa urun var mi, sonra sinifin baska
-    # kutusunda var mi, en sonda konsensusta var mi. Her basamak bir onceki
-    # ihtimali dislar; sirasi degisirse ayni durum farkli teshis alir.
+    # The diagnostic order MATTERS and is written as a narrowing elimination: first is
+    # there coverage, then is there a product in a member bin however weak, then is there
+    # one in another bin of the class, and last is there one on the consensus. Each step
+    # rules out the previous possibility; change the order and the same situation gets a
+    # different diagnosis.
     uye_ad = {k['kutu'] for k in uye_kutu}
     uye_veren = [v for v in veren if v['kutu'] in uye_ad]
     kons_uye = [v for v in kons_veren if v['kutu'] in uye_ad]
@@ -356,7 +363,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                 % (etiket[:42], len(uk), (o or {}).get('uye_kapsam_pay', '-'),
                    (o or {}).get('kat_havuz'), (o or {}).get('kat_enkotu')))
 
-        # C. tek uye - hangi tek takson en iyi sonucu veriyor
+        # C. a single member - which single taxon gives the best result
         a = acik.get(d['hedef'])
         aday_tax = (a['uye'] if a else [])
         aday_tax = [t for t in aday_tax if not t.startswith('*')]
@@ -384,7 +391,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
                        en[2].get('uye_kapsam_pay', '-'),
                        en[2].get('kat_havuz'), en[2].get('kat_enkotu')))
 
-        # tani: A tanimindaki uye kutularinda urun var mi
+        # the diagnosis: is there a product in the member bins of definition A
         uk_a, _rk_a, _ = _kutu_coz(a['uye'], a['haric'], sf, kut) if a else ([], [], [])
         veren, kons_veren = tani(d, sf, kut, numune, kons)
         olcum_a = None
@@ -433,7 +440,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
     return yollar
 
 
-# ---------------------------------------------------------------- rapor
+# ---------------------------------------------------------------- the report
 def rapor_yaz(sonuclar, panel_yolu, turetildi):
     os.makedirs(C.CIKTI, exist_ok=True)
     tsv = os.path.join(C.CIKTI, 'uyelik_duyarlilik.tsv')
