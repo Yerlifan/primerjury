@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
-"""TEK PROTOKOL - panelin tamamini AYNI kural ve AYNI derinlikle olcer,
+"""Single-protocol measurement — one rule, one depth, for the whole panel.
+
+Every pair in the panel is measured under IDENTICAL settings, so the numbers
+are comparable across targets. Mixed protocols were the earlier failure mode:
+two pairs measured at different depths cannot be ranked against each other, and
+nothing in the output revealed it.
+
+Reports dCq (discrimination power) per pair, and the panel threshold each pair
+must clear.
+
+--- ozgun aciklama ---
+TEK PROTOKOL - panelin tamamini AYNI kural ve AYNI derinlikle olcer,
 tek bir siparis listesi uretir.
 
 NEDEN VAR

@@ -1,5 +1,22 @@
 # -*- coding: utf-8 -*-
-"""MFEprimer katmani - BAGIMSIZ ucuncu arac.
+"""MFEprimer layer — the independent third tool.
+
+Wraps the MFEprimer 4.4 binary for off-target amplicons, hairpins and dimers.
+Its value is that it is NOT our code: a bug in our engine cannot confirm itself
+here.
+
+Two traps this module handles, both measured the hard way:
+  * MFEprimer does not overwrite an existing output file — it returns 1 and
+    leaves the old result in place, so a re-run would silently reuse stale
+    numbers. Old outputs are deleted first.
+  * "Off-target" in MFEprimer means BY SIZE ONLY. For group and universal
+    primers, members of the target clade legitimately amplify at other lengths:
+    of 1,605 amplicons flagged off-target, 95.7% were inside the target clade.
+    klad_siniflandir() therefore classifies each hit taxonomically, and only
+    (same domain outside clade) + (different domain) reach the verdict.
+
+--- ozgun aciklama ---
+MFEprimer katmani - BAGIMSIZ ucuncu arac.
 
 NEDEN VAR
 ---------

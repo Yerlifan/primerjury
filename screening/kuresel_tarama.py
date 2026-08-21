@@ -1,5 +1,40 @@
 # -*- coding: utf-8 -*-
-"""KURESEL OZGULLUK - aramanin EN PAHALI adimi, en sona birakilir.
+"""Global specificity scan — the most expensive step, run last.
+
+WHAT IT DOES
+    Scans a full reference database (SILVA SSURef NR99, ~500k records; UNITE or
+    LSU when needed) for places where both primers bind in opposing orientation
+    within the product window. The criterion matches the panel's global rule:
+    at most 5 mismatches in total, F and R reported separately.
+
+    This is a RAW SCANNER. It counts every product it finds; deciding which of
+    those are genuinely off-target is the caller's job (see
+    verification/dogrulama_turu.py). Keeping the two apart is deliberate — a
+    scanner that also judged would make its own bugs invisible.
+
+EFFICIENCY
+    The database is read ONCE and all candidates are measured against each
+    chunk together. A per-candidate pass would re-read ~500k records once per
+    candidate. Chunk size is bounded because peak memory is roughly six times
+    the chunk.
+
+RESUMABILITY
+    Every chunk writes its state to disk; restarting continues from the last
+    completed chunk.
+
+OPTIONAL TAXONOMIC CLASSIFICATION
+    Pass `siniflandirici` to have every hit classified into the four D-12
+    classes (inside clade / organelle / same domain outside clade / different
+    domain) and COUNTED. Identities are not stored: one universal primer alone
+    produced 483,098 hits, and keeping headers for those would cost ~100 MB.
+    Counters are constant memory per candidate and the count is complete; the
+    `vurus` list stays capped at 300 as an evidence sample.
+
+    'siniflandirildi' False means the classification was NOT RUN. It does not
+    mean "no cross-reaction found". Callers must not conflate the two.
+
+--- ozgun aciklama ---
+KURESEL OZGULLUK - aramanin EN PAHALI adimi, en sona birakilir.
 
 REFERANS_DB altindaki tam veritabanina (SILVA SSURef NR99 ~500 bin kayit,
 gerekirse UNITE/LSU) karsi tarama. Olcut panelin kuresel olcutuyle ayni:

@@ -1,5 +1,38 @@
 # -*- coding: utf-8 -*-
-"""DOGRULAMA TURU - kurtarilan ciftleri siparise gondermeden once uc bagimsiz
+"""Specificity verification — four independent evidence layers before ordering.
+
+WHY A SEPARATE STAGE
+    A pair that looks clean in your sample can still fail in the lab: a sample
+    is 99 bins, not the world. A pair may face no competitor in the sample and
+    still amplify something abundant that the sample never captured.
+
+THE FOUR LAYERS, AND WHY THEY ARE BUILT DIFFERENTLY
+    1  in-sample    in-silico PCR against the raw reads.
+                    Independent of every reference database.
+    2  local DB     scan of the local reference sets. Uses OUR code and OUR
+                    engine — so it shares our bugs, and cannot corroborate
+                    itself. That is exactly why layers 3 and 4 exist.
+    3  MFEprimer    an external binary. Different implementation, different
+                    thermodynamic model, written by other people.
+    4  NCBI         Primer-BLAST against nt. Independent of our choice of
+                    databases, which is layer 2's main blind spot.
+
+    If the layers disagree the row is marked CELISKILI and is NOT orderable.
+    Disagreement is treated as information, not noise: a contradiction means at
+    least one measurement is wrong, and shipping either would be a gamble.
+
+THREE STATES, NOT TWO
+    BILINMIYOR (unknown) is distinct from TEMIZ (clean). A layer that did not
+    run never votes in favour. This is the single most common way pipelines of
+    this kind mislead: an unmeasured check silently reads as a passed check.
+
+    Related: the in-sample column is DISPLAYED but does not VOTE. It is the
+    admission criterion that put the pair on this list, so by construction it
+    can never say RISKLI. Letting a constant vote made 16 of 16 rows come out
+    CELISKILI mechanically (fixed 2026-08-06).
+
+--- ozgun aciklama ---
+DOGRULAMA TURU - kurtarilan ciftleri siparise gondermeden once uc bagimsiz
 kanit katmaniyla sinar.
 
 NEDEN AYRI BIR SECENEK
