@@ -225,7 +225,7 @@ def calistir(yaz, sure, cizgi, a):
     yaz(u'  Source: "consensus sequences" (the strict set the panel was built on).')
     ok, msj = kanonik_kos(yaz, sure, oncelik='ozgun')
     if not ok:
-        yaz('\n  KANONIK URETIM BASARISIZ: %s' % msj)
+        yaz(u'\n  THE CANONICAL PRODUCTION FAILED: %s' % msj)
         yaz(u'  The following stages were NOT STARTED (so that no wrong result is produced).')
         return 2
     yaz('  ' + msj)
@@ -251,7 +251,7 @@ def calistir(yaz, sure, cizgi, a):
             yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
-            yaz('\n  ASAMA 3 HATASI: %s' % e)
+            yaz(u'\n  STAGE 3 ERROR: %s' % e)
             yaz(u'  No new consensus could be generated; the canonical reference set stays in use.')
 
     # ---- 4 YENI konsensusleri kanonige al (tek kaynak korunur)
@@ -288,7 +288,7 @@ def calistir(yaz, sure, cizgi, a):
             yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
-            yaz('\n  ASAMA 5 HATASI: %s' % e)
+            yaz(u'\n  STAGE 5 ERROR: %s' % e)
 
     # ---- 6 uyelik denetimi
     if 'uyelik' in d['bitmis']:
@@ -307,13 +307,13 @@ def calistir(yaz, sure, cizgi, a):
             yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
-            yaz('\n  ASAMA 6 HATASI: %s' % e)
+            yaz(u'\n  STAGE 6 ERROR: %s' % e)
 
     # ---- 7 kapsamli arama
     if 'arama' in d['bitmis']:
         yaz(u'\n[STAGE 7/7] Full search - SKIPPED (already finished)')
     else:
-        yaz('\n[ASAMA 7/7] Kapsamli arama (sorunlu hedefler)')
+        yaz(u'\n[STAGE 7/7] The comprehensive search (problem targets)')
         from . import __main__ as M
         try:
             rc = M.aramayi_kos(a, yaz, sure, cizgi, mod='devam')
@@ -324,7 +324,7 @@ def calistir(yaz, sure, cizgi, a):
             yaz(u'\nSTOPPED - continue with (9).')
             return 1
         except Exception as e:
-            yaz('\n  ASAMA 7 HATASI: %s' % e)
+            yaz(u'\n  STAGE 7 ERROR: %s' % e)
 
     # ---- 6 the combined summary
     yaz(u'\n[AFTER STAGE 7/7] Combined summary report')

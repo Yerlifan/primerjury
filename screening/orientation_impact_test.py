@@ -120,7 +120,7 @@ def main():
         kayip = dogru - ters
         print('%-28s %-4s %5d/%-3d %5d/%-3d %8d   %s'
               % (ad[:28], sn, dogru, top, ters, top, kayip,
-                 'ters yon urunu SIFIRLIYOR' if ters == 0 and dogru > 0
+                 u'the reverse orientation ZEROES the product' if ters == 0 and dogru > 0
                  else ('etkilenmedi' if dogru == ters else 'kismi kayip')))
     print(u'\nTOTAL  %d products in the correct orientation,  %d in the reverse orientation,  %d lost (%.1f%%)'
           % (tp_d, tp_t, tp_d - tp_t, 100.0 * (tp_d - tp_t) / max(tp_d, 1)))

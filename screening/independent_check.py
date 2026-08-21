@@ -46,7 +46,7 @@ try:
     ISPCR = True
 except Exception as e:
     ISPCR = False
-    sys.stderr.write('UYARI: ispcr yuklenemedi (%s). Yol A atlanacak.\n' % e)
+    sys.stderr.write(u'WARNING: ispcr could not be loaded (%s). Route A will be skipped.\n' % e)
 
 # Baslik sayilarinin dayandigi kutular: M. mazei cifti (satir 22) ve
 # hatanin en buyuk oldugu M. hadiensis rakip kutulari.

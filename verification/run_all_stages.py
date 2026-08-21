@@ -353,7 +353,7 @@ def ozet(kok, CIKTI, durum, yaz):
                          % (r['no'], r['iddia'][:78], r['HUKUM'], r.get('sonuc_veren_vtb', r.get('uyusan_vtb_sayisi', ''))))
             duz = [r for r in I if r['HUKUM'] == 'DUZELTILMELI']
             if duz:
-                fh.write(u'\n### Rapora gonderilecek duzeltmeler\n\n')
+                fh.write(u'\n### The corrections to be sent to the report\n\n')
                 for r in duz:
                     fh.write(u'**%s. %s**\n\n' % (r['no'], r['iddia']))
                     fh.write(u'> %s\n\n' % r.get('DOGRU_IFADE (duzeltilmeliyse)', ''))
@@ -377,7 +377,7 @@ def ozet(kok, CIKTI, durum, yaz):
                          % (kar, ad))
                 continue
             if not bul and kb:
-                fh.write(u'| %s | %s | *(panelsiz, K turunda denendi)* | evet | %s |\n'
+                fh.write(u'| %s | %s | *(with no panel row, tried in round K)* | yes | %s |\n'
                          % (kar, ad, kb[0].get('esigi_gecti_mi', '-')))
                 continue
             durumlar = []
@@ -395,7 +395,7 @@ def ozet(kok, CIKTI, durum, yaz):
         if panelsiz:
             fh.write(u'These requests are listed in the recovery round\'s `PANELSIZ_TALEPLER` table, and a design attempt is made from the bin\'s OWN consensus, so none of them is left as "never attempted".\n')
         else:
-            fh.write(u'Zincir toplanti listesinin TAMAMINI kapsiyor.\n')
+            fh.write(u'The chain covers THE WHOLE of the meeting list.\n')
 
         fh.write(u'\n---\n\n## Where to look\n\n| Question | File |\n|---|---|\n| What should I order? | `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` |\n| Why did this row fail? | `KURTARMA_SONUC/KURTARMA_RAPORU.md` |\n| Which pair is suspect? | `DOGRULAMA_SONUC/CELISKILER.md` |\n| What do I write in the report? | `KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
     yaz(u'  written: %s' % yol)

@@ -204,7 +204,7 @@ def main():
             hedefler.append(dict(ad=p[0], sinif=p[1], veritabani=p[2],
                                  ic=p[3], dis=p[4] if len(p) > 4 else "",
                                  taxid=p[5] if len(p) > 5 else ""))
-    log("islenecek referans hedefi: %d" % len(hedefler))
+    log(u'reference targets to process: %d' % len(hedefler))
 
     fq = {}
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
@@ -238,7 +238,7 @@ def main():
             continue
         yok_dis = [x for x in dis_adlar if not bul.get(x)]
         if yok_dis:
-            log("   %-34s veritabaninda bulunamayan RAKIP adi: %s"
+            log(u'   %-34s a COMPETITOR name that is not in the database: %s'
                 % (h["ad"], ", ".join(yok_dis)))
 
         # VERIDEN TURETILEN KARDES TUR RAKIPLERI
@@ -253,7 +253,7 @@ def main():
                 if tur not in bul or not bul[tur]:
                     bul[tur] = kayitlar
                     dis_adlar.append(tur)
-            log("   %-34s kardes tur rakibi: %d tur, %d dizi%s"
+            log(u'   %-34s sibling species competitors: %d species, %d sequences%s'
                 % (h["ad"], len(kardes),
                    sum(len(v) for v in kardes.values()),
                    (" (KIRPILDI: %d tur alinmadi)" % kirpilan_tur)
@@ -288,7 +288,7 @@ def main():
             lf.write(txt)
         m = re.search(r"gecerli cift sayisi\s*:\s*(\d+)", txt)
         n = int(m.group(1)) if m else 0
-        log("%-34s %-3s referans_uye=%d referans_rakip=%d cift=%d"
+        log(u'%-34s %-3s reference_members=%d reference_competitors=%d pairs=%d'
             % (h["ad"], h["sinif"], len(ing), len(outg), n))
         if not n or not os.path.exists(tsv):
             continue
@@ -328,7 +328,7 @@ def main():
                 numune_wilson_alt=round(w, 5),
                 durum=("numunede_destekli" if w > 0.01 else
                        "numuneden_dogrulanamadi")))
-        log("      numune destegi olculdu: %d aday" % min(len(rows), a.top))
+        log(u'      sample support measured: %d candidates' % min(len(rows), a.top))
 
     if sonuc:
         yol = os.path.join(a.out, "primer_referans.tsv")
@@ -339,7 +339,7 @@ def main():
             w.writerows(sonuc)
         log(u'written: %s  (%d rows)' % (yol, len(sonuc)))
         d = sum(1 for x in sonuc if x["durum"] == "numunede_destekli")
-        log("numunede destekli: %d, numuneden dogrulanamayan: %d"
+        log(u'supported in the sample: %d, not confirmed from the sample: %d'
             % (d, len(sonuc) - d))
     else:
         log(u'no pair could be produced for any reference target')

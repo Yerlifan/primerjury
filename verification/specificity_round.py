@@ -1722,8 +1722,8 @@ def main():
     elif a.yalniz_yerel or a.ncbi == 'yok':
         yaz(u'--- LAYER 4: NCBI SKIPPED (by request) ---')
     elif a.ncbi == 'oto':
-        yaz(u'--- KATMAN 4: NCBI OTOMATIK (URL API) ---')
-        yaz(u'  Not: blastn -remote KULLANILMIYOR (45 sn tavanini asiyor).')
+        yaz(u'--- LAYER 4: NCBI AUTOMATIC (THE URL API) ---')
+        yaz(u'  Note: blastn -remote IS NOT USED (it goes over the 45 s ceiling).')
         if _n4 != len(ciftler):
             yaz(u'  COVERAGE: %d/%d pairs (those on the order list). The rest were only seen by layers 2 and 3.' % (_n4, len(ciftler)))
         ncbi = katman2_oto(_ncbi_ciftler, CIKTI, yaz, a.organizma,
@@ -1753,7 +1753,7 @@ def main():
         try:
             klad_sonuc = _MK2.klad_siniflandir(kok, CIKTI, ciftler, TA_PANEL, yaz)
         except Exception as _e:
-            yaz(u'  klad suzgeci koselemedi (%s: %s) - ham sayi kullanilacak'
+            yaz(u'  the clade filter did not corner it (%s: %s), the raw count will be used'
                 % (type(_e).__name__, _e))
             klad_sonuc = {}
     satirlar = birlestir(ciftler, yerel, ncbi, mfe_sonuc, klad_sonuc)

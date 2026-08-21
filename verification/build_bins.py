@@ -231,13 +231,13 @@ def main():
     if sapan:
         yaz(u'')
         yaz(u'  CALIBRATION FAILED. The clade rule will re-derive the bins already on disk')
-        yaz(u'  uretemiyor; kalan taksonlara uygulamak YANLIS olurdu.')
+        yaz(u'  cannot produce it; applying it to the remaining taxa WOULD BE WRONG.')
         yaz(u'  No file was produced.')
         return 1
     if tam == 0:
         yaz(u'  No ready bin to calibrate was found, so the gate never opened.')
         return 1
-    yaz(u'  Kalibrasyon GECTI (%d/%d). Uretime izin verildi.' % (tam, tam))
+    yaz(u'  The calibration PASSED (%d/%d). Production is allowed.' % (tam, tam))
     if a.yalniz_kalibrasyon:
         return 0
 

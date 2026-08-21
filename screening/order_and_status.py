@@ -228,9 +228,9 @@ def main():
             if x[sut] != deg:
                 fark += 1
                 print(u'  !! SEQUENCE DIFFERENCE %s column %d: file=%s panel=%s' % (h, sut, x[sut], deg))
-    print('\nSIPARIS DOSYASI: %s' % syol)
+    print(u'\nTHE ORDER FILE: %s' % syol)
     print(u'  pairs to be ordered : %d   (NOT to be ordered: %d)' % (len(sip), len(hayir)))
-    print('  karsilastirilan dizi  : %d' % kar)
+    print(u'  sequences compared    : %d' % kar)
     print('  bulunan fark          : %d' % fark)
 
     # ---- 2) TOPLANTI KARARLARI DURUMU --------------------------------------
@@ -354,8 +354,8 @@ def main():
         shutil.copyfile(syol, kyol)
         print(u'\nCANONICAL LIST : %s   (the order is placed from THIS file)' % kyol)
 
-    print('\nDURUM DOSYASI  : %s' % myol)
-    print('  YAPILDI %d | KISMEN %d | YAPILAMIYOR %d' % (len(yapildi), len(kismen), len(YAPILAMIYOR)))
+    print(u'\nTHE STATUS FILE: %s' % myol)
+    print(u'  YAPILDI %d | KISMEN %d | YAPILAMIYOR %d' % (len(yapildi), len(kismen), len(YAPILAMIYOR)))
     return 0 if fark == 0 else 1
 
 

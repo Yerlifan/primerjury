@@ -165,7 +165,7 @@ def main():
               % ", ".join(kayip))
         kalan = sorted(set(kalan) | set(kayip))
     if kalan:
-        print("Kalan, tek basina tasarlanmasi gereken uye: %s" % ", ".join(kalan))
+        print(u'The members left, which have to be designed on their own: %s' % ", ".join(kalan))
     with open(os.path.join(a.outdir, "%s_bolme.json" % a.label), "w",
               encoding="utf-8") as fh:
         json.dump(dict(sets=sets, kalan=kalan, cikarma_kaydi=log), fh,

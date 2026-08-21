@@ -119,8 +119,8 @@ def main():
 
     h = yon.kendini_sina()
     if h:
-        sys.exit('orientation.py kendini sinamayi GECEMEDI: %s' % h)
-    print('orientation.py kendini sinama: GECTI. Kanonik yon =', yon.KANONIK_YON)
+        sys.exit(u'orientation.py DID NOT PASS its self test: %s' % h)
+    print(u'orientation.py self test: PASSED. The canonical orientation =', yon.KANONIK_YON)
     print('kaynak onceligi :', ' > '.join(e for e, _ in ONCELIK[a.oncelik]))
 
     cik = os.path.join(a.kok, a.cikti)
@@ -198,7 +198,7 @@ def main():
     print(u'bins written        : %d' % len(yazilan))
     print('  cevrildi     : %d (ANTISENSE -> SENSE)' % len(cevrilen))
     print('  zaten sense  : %d' % (len(yazilan) - len(cevrilen)))
-    print('BELIRSIZ       : %d (yazilmadi, BELIRSIZ.tsv)' % len(belirsiz))
+    print(u'BELIRSIZ       : %d (not written, BELIRSIZ.tsv)' % len(belirsiz))
     kay = {}
     for m in yazilan:
         kay[m['kaynak']] = kay.get(m['kaynak'], 0) + 1

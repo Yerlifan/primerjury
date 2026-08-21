@@ -307,7 +307,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
     yaz(u'  MEMBERSHIP DEFINITION AUDIT and SENSITIVITY ANALYSIS')
     yaz('=' * 78)
     yaz(u'  number of targets   : %d' % len(panel))
-    yaz('  tanim kaynaklari    : hedef_uyelik.tsv, hedefler.tsv, ciftler.tsv,')
+    yaz(u'  definition sources  : hedef_uyelik.tsv, hedefler.tsv, ciftler.tsv,')
     yaz(u'                        measured identity, single member')
     yaz(u'  marked DERIVED      : %d rows  (these deserve a specific look)' % len(turetildi))
     for t in turetildi:

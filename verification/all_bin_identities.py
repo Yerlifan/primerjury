@@ -533,7 +533,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                         pass
                 kalan[k] = q
             if not kalan:
-                yaz(u'     %-20s: %d kutunun HEPSI onbellekten geldi' % (et, len(kume)))
+                yaz(u'     %-20s: ALL %d bins came from the cache' % (et, len(kume)))
                 continue
             t0 = time.time()
             yol = os.path.join(kok, 'REFERANS_DB', dosya)
@@ -830,9 +830,9 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         fh.write(u'| **bins whose identity CHANGED** | **%d** |\n' % len(degisen))
         fh.write(u'| bins whose identity was verified | %d |\n'
                  % len([s for s in sonuc if s['uyusuyor'] == 'EVET']))
-        fh.write(u'| belirsiz / kayitli adi olmayan | %d |\n' % len(belirsiz))
+        fh.write(u'| uncertain, or with no recorded name | %d |\n' % len(belirsiz))
         fh.write(u'| **targets affected** | **%d** |\n' % len(etkilenen))
-        fh.write(u'| bunlardan UYELIK kumesi degisen | %d |\n' % len(uye_etkilenen))
+        fh.write(u'| of those, the ones whose MEMBERSHIP set changed | %d |\n' % len(uye_etkilenen))
         fh.write(u'| skipped bins (not in the measurement) | %d |\n\n' % len(atlanan))
         if degisen:
             fh.write(u'> **RE-MEASUREMENT IS NEEDED.** %d bins changed identity, and that affects the member or competitor set of %d targets'
@@ -850,9 +850,9 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                 fh.write(u'- **Dogrulanan:** %s  (`%s`) - %s\n'
                          % (s['dogrulanan_ad'], s['duzey'], s['hukum']))
                 fh.write(u'  - *Gerekce:* %s\n' % s['gerekce'])
-                fh.write(u'- **Uyesi oldugu hedefler:** %s\n'
+                fh.write(u'- **The targets it is a member of:** %s\n'
                          % (', '.join(s['uye_hedefler']) or '-'))
-                fh.write(u'- **Rakibi oldugu hedefler:** %s\n'
+                fh.write(u'- **The targets it is a competitor of:** %s\n'
                          % (', '.join(s['rakip_hedefler']) or '-'))
                 a = s.get('adlandirma') or {}
                 fh.write(u'\n  | # | nearest record | genus | species | identity | database |\n  |---|---|---|---|---|---|\n')
@@ -862,7 +862,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                         fh.write(u'  | %d | %s | %s | %s | %%%s | %s |\n'
                                  % (n_, it['tam_ad'], it['cins'], it['tur'],
                                     K.vir(it['kimlik']), it['vtb']))
-                fh.write(u'\n  **Kaynak muhasebesi (%d/%d):**\n\n'
+                fh.write(u'\n  **Source accounting (%d/%d):**\n\n'
                          % (s['sorgulanan_vtb'], s['toplam_vtb']))
                 fh.write(u'  | database | status | best hit | identity | winner rank |\n  |---|---|---|---|---|\n')
                 for e, v in s['vtb_detay'].items():

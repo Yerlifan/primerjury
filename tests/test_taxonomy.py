@@ -154,7 +154,7 @@ def bolum3(ornek):
         print(u'\n(REFERANS_DB is absent, so the real file section was skipped)')
         return True
     print()
-    print('=== 3) GERCEK DOSYALAR (ilk %d baslik) ===' % ornek)
+    print(u'=== 3) THE REAL FILES (the first %d headers) ===' % ornek)
     print('%-40s | %8s | %8s | %s' % ('dosya', 'cozuldu', 'cozulmedi', 'baskin alan'))
     print('-' * 100)
     ok = True
@@ -191,7 +191,7 @@ def bolum3(ornek):
         print('%-40s | %8d | %8d | %s %s'
               % (d, cozuldu, cozulmedi,
                  ('%s %%%.1f' % (baskin[0][1], 100.0 * baskin[0][0] / max(n, 1))) if baskin else '-',
-                 '' if gecti else '<-- COZULEMEYEN ORANI YUKSEK (%%%.1f)' % oran))
+                 '' if gecti else u'<-- THE UNRESOLVED RATIO IS HIGH (%%%.1f)' % oran))
     return ok
 
 

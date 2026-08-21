@@ -104,8 +104,7 @@ def main():
             raise IOError('klasore yazma izni yok')
     except Exception as _e:
         _yedek = os.path.join(KOK, 'TEK_TUS_SONUC', os.path.basename(dur))
-        print('  NOT: durum dosyasi %s yazilamadi (%s).\n'
-              '       Durum su dosyaya yazilacak: %s' % (dur, _e, _yedek))
+        print(u'  NOTE: the state file %s could not be written (%s).\n       The state will be written to this file instead: %s' % (dur, _e, _yedek))
         try:
             os.makedirs(os.path.dirname(_yedek))
         except Exception:

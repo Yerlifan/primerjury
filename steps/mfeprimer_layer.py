@@ -160,7 +160,7 @@ def main():
                 continue
             eks = indeks_eksik(fna)
             if eks:
-                print("   mfeprimer indeksi eksik (%s): %s"
+                print(u'   the mfeprimer index is missing (%s): %s'
                       % (", ".join(eks), dbad))
                 print(u'   To build it: %s index -i %s -c %d'
                       % (a.mfe, fna, a.cpu))

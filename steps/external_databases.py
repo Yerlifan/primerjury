@@ -644,7 +644,7 @@ def main():
             w.writeheader(); w.writerows(sonuc)
         print("\nyazildi: %s" % a.out)
     if atlanan:
-        print("\nOLCULEMEYEN VERITABANLARI (temiz sayilmazlar):")
+        print(u'\nTHE DATABASES THAT COULD NOT BE MEASURED (they do not count as clean):')
         for sn, db, sb in atlanan:
             print("   %-4s %-34s %s" % (sn, db, sb))
     if gecersiz:

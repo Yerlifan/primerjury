@@ -98,7 +98,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     yaz('  motor         : screening/read_engine.py %s'
         % getattr(motor.okuma_motoru, '__version__', '?'))
     yaz(u'                  pigeonhole seeding - LOSSLESS, verified against brute_force.py')
-    yaz('                  birebir dogrulanmis. reads.py/Sonda KULLANILMIYOR.')
+    yaz(u'                  one to one. reads.py/Sonda IS NOT USED.')
     yaz('')
 
     baglamlar = {d['hedef']: H.hedef_baglami(d, uyelik, kons, kut) for d in panel}

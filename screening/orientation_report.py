@@ -141,7 +141,7 @@ def main():
         n += 1
     n += 1
 
-    yaz(ws, n, 1, '3. KOK NEDEN (kod kaniti)', bold=True, fill=KIRMIZI); n += 1
+    yaz(ws, n, 1, u'3. THE ROOT CAUSE (the evidence in the code)', bold=True, fill=KIRMIZI); n += 1
     for s in ['screening/config.py:  KONSENSUS = y(\'consensus sequences\')  '
               '-> paket KARISIK klasoru tek kaynak sayiyordu.',
               'screening/build_consensus.py -> _sablon_sec(): the template was taken from the "current consensus". The reads were anchored to the template in both directions and NORMALISED (the code called this "the orientation is normalised"), but THE TEMPLATE\'S OWN ORIENTATION was normalised nowhere. The result: the output inherits the template\'s orientation exactly. Measured evidence: konsensus_yeni was 28 antisense / 7 sense.',
@@ -170,7 +170,7 @@ def main():
         yaz(ws, n, 3, '%d/%d' % (d, top), fill=KIRMIZI)
         yaz(ws, n, 4, '%d/%d' % (t, top), fill=KIRMIZI)
         yaz(ws, n, 5, d - t, fill=KIRMIZI)
-        yaz(ws, n, 6, 'ters yon urunu SIFIRLIYOR', fill=KIRMIZI)
+        yaz(ws, n, 6, u'the reverse orientation ZEROES the product', fill=KIRMIZI)
         n += 1
     yaz(ws, n, 1, u'TOTAL: 117 products in the correct orientation, 0 in the reverse orientation. LOSS 100%.', bold=True, fill=KIRMIZI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7); n += 1
@@ -178,7 +178,7 @@ def main():
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 30; n += 2
 
-    yaz(ws, n, 1, '5. KANONIK COZUM - tek kaynak, tek tanim', bold=True, fill=YESIL); n += 1
+    yaz(ws, n, 1, u'5. THE CANONICAL FIX - one source, one definition', bold=True, fill=YESIL); n += 1
     for s in ['THE CANONICAL ORIENTATION = SENSE (the reference, or plus, strand). The definition lives in ONE PLACE: screening/orientation.py. Two independent criteria, and if they disagree the file counts as UNCERTAIN, is NOT normalised, and is flagged instead (the project rule: no decision is left to a single code path).',
               'TEK KAYNAK: konsensus_kanonik/ - %d kutu, hepsi SENSE. Uretici: '
               'screening/build_canonical.py. Yaninda MANIFEST.tsv (her dosyanin kaynagi, '

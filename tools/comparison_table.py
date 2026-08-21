@@ -391,7 +391,7 @@ def yorum(satirlar, bilgi):
 # ------------------------------------------------------------------ selftest
 def selftest():
     print("=" * 72)
-    print("KARSILASTIRMA TABLOSU, BILINEN CEVAPLI SINAV")
+    print(u'THE COMPARISON TABLE, A TEST WITH KNOWN ANSWERS')
     print("=" * 72)
     hata = 0
     def K(ad, bul, bek):
@@ -507,7 +507,7 @@ def main():
     if not bilgi["h_var"]:
         eksikler.append("kimlik_sonuc.csv bulunamadi (sutun 4 bos)")
     if eksikler:
-        print("UYARI, tablo eksik uretiliyor:")
+        print(u'WARNING, the table is produced incomplete:')
         for e in eksikler:
             print("  " + e)
         print(u'  A missing column must not be read as a column that was measured and came out empty.\n')

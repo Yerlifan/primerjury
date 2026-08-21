@@ -126,7 +126,7 @@ def kume_isle(yol, tak, cikti_fh):
 
 def selftest():
     print("=" * 72)
-    print("OZEL TAKSONOMI, BILINEN CEVAPLI SINAV")
+    print(u'THE CUSTOM TAXONOMY, A TEST WITH KNOWN ANSWERS')
     print("=" * 72)
     hata = 0
     def K(ad, bul, bek):

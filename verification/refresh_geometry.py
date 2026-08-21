@@ -259,7 +259,7 @@ def main():
 
     # --- plaka basina Ta = min(Tm) - 3 sinavi -----------------------------
     print()
-    print('  --- Ta = min(Tm) - 3 kurali (motor degerleriyle) ---')
+    print(u'  --- the Ta = min(Tm) - 3 rule (with the engine\'s values) ---')
     grup = {}
     for c, tF, tR, _a, _b, _h in sonuc:
         grup.setdefault((c['plaka'], c['ta']), []).extend([tF, tR])
@@ -306,7 +306,7 @@ def main():
     cy = os.path.join(kok, 'primer_final',
                       'geometri_denetimi_%s.tsv' % time.strftime('%Y%m%d'))
     with io.open(cy, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Geometri denetimi - SU ANKI panel dizileriyle. Uretim %s\n'
+        fh.write(u'# The geometry audit, with the panel sequences AS THEY ARE NOW. Produced %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'# Motor: %s  ayarlar: %s\n' % (geo_yol, geo.KW))
         fh.write(u'Hedef\tPrimer\tDizi\tUz\tGC%\tTm\tHairpin Tm\tHomodimer Tm\tIhlal\n')
@@ -326,7 +326,7 @@ def main():
         for x in uyusmaz:
             print('    * %s' % x)
     else:
-        print('  Tablodaki Tm motorla uyusuyor.')
+        print(u'  The Tm in the table agrees with the engine.')
     if ihlal:
         print('  PANEL KURALI IHLALI (%d):' % len(ihlal))
         for x in ihlal:
@@ -358,7 +358,7 @@ def main():
         with io.open(panel_yolu, 'w', encoding='utf-8', newline='') as fh:
             for r in sat:
                 fh.write(u'\t'.join(r) + u'\n')
-        print('  panel tablosu guncellendi (yedek: %s)' % os.path.basename(yed))
+        print(u'  the panel table was updated (backup: %s)' % os.path.basename(yed))
 
     print('=' * 78)
     return 1 if (uyusmaz or ihlal or ta_sorun or urun_sapan) else 0

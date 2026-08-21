@@ -265,7 +265,7 @@ def main():
     print("TAM KUME")
     tam, hiz = kur(okumalar, a, gun)
     if not tam:
-        sys.exit("konsensus kurulamadi")
+        sys.exit(u'the consensus could not be built')
 
     # iki bagimsiz olcum: ayrik yarilar
     karisik = okumalar[:]
@@ -287,7 +287,7 @@ def main():
             "ayrisan_olcum(%s)" % "+".join(nedenler))
         print("\niki yarinin karsilastirmasi (%d baz ortusuyor)" % ortak)
         print(u'   substitution difference : %.4f   (threshold %.4f)' % (f, a.ayrisma_esigi))
-        print("   indel farki : %.4f   (bilgi amacli, karara girmiyor)" % fi)
+        print(u'   the indel difference : %.4f   (for information, it does not enter the decision)' % fi)
         print(u'   containment             : %.4f   (threshold %.4f)' % (kaps, a.min_kapsam))
         print(u'   result                  : %s' % uyum)
         if fi > a.indel_uyari:

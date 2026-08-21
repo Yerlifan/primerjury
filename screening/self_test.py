@@ -275,7 +275,7 @@ def calistir(yaz):
             _ok(yaz, 'panelin ESKI motoru (reads.py/Sonda) site kaciriyor', True,
                 '%s: %d yerine %d (%%%.0f kayip)'
                 % (en_kotu[2], en_kotu[3], en_kotu[4], 100 * (1 - en_kotu[0])))
-            yaz('      -> Bu arac o motoru KULLANMIYOR. Panelin numune tabanli')
+            yaz(u'      -> This tool DOES NOT USE that engine. The panel\'s sample based')
             yaz(u'         the numbers have to be re-measured with option (4).')
     except Exception as e:
         tum &= _ok(yaz, 'uc motor karsilastirmasi', False, str(e)[:70])

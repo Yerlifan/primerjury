@@ -116,12 +116,10 @@ def main():
 
     ty = os.path.join(kok, 'SIPARIS_FORMU.tsv')
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# SIPARIS FORMU - %s\n' % time.strftime('%Y-%m-%d %H:%M'))
+        fh.write(u'# THE ORDER FORM - %s\n' % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'# Kaynak: %s (md5 %s)\n' % (PANEL.replace('\\', '/'), ozet))
         fh.write(u'# This file is NEVER WRITTEN BY HAND; it is generated from the panel source.\n')
-        fh.write(u'# xlsx dosyasindan KOPYALAMAYIN: 2026-08-10 itibariyla oradaki\n'
-                 u'# alti ciftin dizisi ESKIDIR (Bacteroidales, Bakteri_universal,\n'
-                 u'# Mantar F1, Microascaceae, Petriella_musispora, Petrimonas).\n')
+        fh.write(u'# DO NOT COPY FROM THE xlsx FILE: as of 2026-08-10 the sequence of six\n# pairs there IS OUT OF DATE (Bacteroidales, Bakteri_universal,\n# Mantar F1, Microascaceae, Petriella_musispora, Petrimonas).\n')
         for u_ in uyari:
             fh.write(u'# UYARI: %s\n' % u_)
         fh.write(u'oligo_adi\tdizi_5_3\tuzunluk\thedef\tyon\tplaka\tTa_C\turun_bp\tsinif\n')
