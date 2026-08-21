@@ -324,8 +324,7 @@ def main():
     mask_contig = a.mask_contig if a.mask_contig else None
     masked, mclasses, mseen = read_mask(a.mask, L, contig=mask_contig)
     if a.mask and not masked:
-        print("UYARI: maske dosyasi okundu ama hicbir pozisyon yasaklanmadi. "
-              "Dosyadaki kontig adlari: %s" % (list(mseen) or "yok"))
+        print(u'WARNING: the mask file was read but no position was forbidden. Contig names in the file: %s' % (list(mseen) or "yok"))
     print(u'target           : %s' % label)
     print("konsensus        : %s (%d bp, basliği %s)" % (a.consensus, L, name))
     print("maske            : %s" % (a.mask or "yok"))
@@ -514,7 +513,7 @@ def main():
     print(u'      definition. Its real purpose appears at the specificity stage, where')
     print(u'      it runs against competitor and raw-read templates)')
     print(u'   dropped, hetero-dimer dG               : %d' % n_het)
-    print("gecerli cift sayisi                     : %d" % len(pairs))
+    print(u'valid pairs                              : %d' % len(pairs))
     if not pairs:
         sys.exit("gecerli cift bulunamadi")
 
@@ -527,11 +526,11 @@ def main():
                    for q in taken):
                 kept_pairs.append(p)
                 taken.append((p["ileri_baslangic"], p["geri_baslangic"]))
-        print("lokus seyreltmesi (%d bp): %d -> %d cift"
+        print(u'locus thinning (%d bp): %d -> %d pairs'
               % (a.min_locus_spacing, len(pairs), len(kept_pairs)))
         pairs = kept_pairs
     if len(pairs) > a.max_pairs:
-        print("cikti %d satira kirpildi (puan sirasina gore)" % a.max_pairs)
+        print(u'output trimmed to %d rows (by score)' % a.max_pairs)
         pairs = pairs[:a.max_pairs]
 
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
@@ -542,11 +541,11 @@ def main():
     print("\nyazildi: %s" % a.out)
     print(u'\nFive best candidates:')
     for p in pairs[:5]:
-        print("  ceza=%.2f  urun=%d bp (GC %.1f)  F=%s (Tm %.1f)  R=%s (Tm %.1f)"
+        print(u'  penalty=%.2f  product=%d bp (GC %.1f)  F=%s (Tm %.1f)  R=%s (Tm %.1f)'
               % (p["ceza"], p["urun_uzunluk"], p["urun_gc"], p["ileri_dizi"],
                  p["ileri_tm_primer3"], p["geri_dizi"], p["geri_tm_primer3"]))
-    print("\nSonraki asama: ozgulluk suzgeci. Bu adaylar rakip konsensuslere ve")
-    print("REFERANS_DB veritabanlarina karsi mfeprimer ve blastn ile sinanacak.")
+    print(u'\nNext stage: the specificity filter. These candidates will be tested against')
+    print(u'competitor consensus sequences and the REFERANS_DB databases with mfeprimer and blastn.')
 
 
 if __name__ == "__main__":

@@ -421,7 +421,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                 u'D asamasi zincirde bos kaldi cunku K hicbir cifti kurtarmadi '
                 u'(dogrulanacak sey yok). D KENDI BASINA sinandi ve %d satir uretti '
                 u'- asama saglam.' % len(D2))
-            yaz(u'    D: kendi sinamasinda %d satir uretti - asama SAGLAM' % len(D2))
+            yaz(u'    D: produced %d rows in its own self-test, so the stage is SOUND' % len(D2))
             Dd = D2
         else:
             sonuc['hata'].append(u'D asamasi sentetik girdiyle de satir uretmedi.')
@@ -432,7 +432,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
             sonuc['uyari'].append(
                 u'D asamasi kosmadi cunku K hic satir uretmedi (ardisik cokus). '
                 u'Bu D\'nin hatasi degildir; K duzeltilince D de kosar.')
-            yaz(u'    D: ATLANDI - K satir uretmedigi icin girdi bos (ardisik cokus)')
+            yaz(u'    D: SKIPPED - the input is empty because K produced no rows (a knock-on failure)')
         else:
             sonuc['hata'].append(u'D asamasi HIC satir uretmedi.')
     else:
@@ -563,11 +563,8 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON, sure_metni(gecen_sure)))
         fh.write(u'## VERDICT\n\n')
         if guvenilir:
-            fh.write(u'# ZINCIR TUTARLI (kendi referansina gore) — tam kosuya girilebilir\n\n')
-            fh.write(u'> **Bu bir DOGRULUK testi degildir.** Beklenen degerler de ayni '
-                     u'motorun tam derinlikli kosusundan gelir; motorun sistematik bir '
-                     u'hatasi varsa bu test onu yakalayamaz. Yakalayabilecegi sey kod ve '
-                     u'yapilandirma kaymasidir. Bagimsiz teyit: MFEprimer raporu.\n\n')
+            fh.write(u'# CHAIN CONSISTENT (against its own reference): the full run can be started\n\n')
+            fh.write(u'> **This is not a CORRECTNESS test.** The expected values also come from a full-depth run of the same engine;')
             # 2026-08-06 DUZELTMESI - temiz kosuda yakalandi: bu cumle KOSULSUZ
             # yazildigi icin "butun satirlar sinifini korudu" diyordu, oysa ayni
             # raporun tablosunda Petriella_cinsi satirinda "sinif korundu mu:
@@ -576,29 +573,20 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
             # ama ozet cumlesi tabloyla CELISIYORDU. Artik sayilarak yazilir.
             _bozan = [s['hedef'] for s in sonuc['satir'] if not s.get('sinif_ok')]
             if _bozan:
-                fh.write(u'Siralama bozulmadi ve dort asamanin dordu de bos olmayan '
-                         u'cikti uretti. Sinanan %d satirin %d\'i sinifini korudu; '
-                         u'%d satir esik SINIRINDA oldugu icin dusuk derinlikte taraf '
-                         u'degistirdi ve bu bilerek HATA sayilmadi (ayrinti: Uyarilar): '
-                         u'%s\n\n'
+                fh.write(u'The ranking held and all four stages produced non-empty output. %d of the %d rows tested kept their class'
                          % (len(sonuc['satir']), len(sonuc['satir']) - len(_bozan),
                             len(_bozan), ', '.join(_bozan)))
             else:
-                fh.write(u'Sinanan butun satirlar sinifini korudu, siralama bozulmadi ve '
-                         u'dort asamanin dordu de bos olmayan cikti uretti.\n\n')
+                fh.write(u'Every row tested kept its class, the ranking held, and all four stages produced non-empty output')
         else:
             fh.write(u'# ZINCIR TUTARSIZ — TAM KOSUYA GIRMEYIN\n\n')
-            fh.write(u'Asagidaki uyusmazliklar giderilmeden 6-16 saatlik kosu '
-                     u'harcanmamalidir.\n\n')
+            fh.write(u'The 6 to 16 hour run should not be spent before the mismatches below are resolved.\n\n')
             for h in sonuc['hata']:
                 fh.write(u'- **%s**\n' % h)
             fh.write(u'\n')
         if sonuc.get('referans_bayat'):
             fh.write(u'## Referansi bayat satirlar (gerileme DEGIL)\n\n')
-            fh.write(u'Bu satirlarin primer cifti referans olcumunden bu yana '
-                     u'degisti. Eski cifte ait sayiyla yeni cifti karsilastirmak '
-                     u'anlamsiz oldugu icin karsilastirma YAPILMADI. Bu bir hata '
-                     u'degildir; referansin yenilenmesi gerekir.\n\n')
+            fh.write(u'The primer pair on these rows changed since the reference was measured. Comparing a number belonging to the old pair against the new one')
             for h in sonuc['referans_bayat']:
                 fh.write(u'- %s\n' % h)
             fh.write(u'\n')

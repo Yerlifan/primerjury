@@ -96,9 +96,7 @@ def main():
     if not [f for f in os.listdir(os.path.join(kok, 'REFERANS_DB'))
             if f.endswith(('.fasta', '.fna'))]:
         sys.stderr.write(
-            u'HATA: REFERANS_DB klasorunde hic FASTA dosyasi yok (%s).\n'
-            u'  Erisim dogrulamasi veritabanlarinin KENDI kayitlarini sorgu olarak\n'
-            u'  kullanir; veritabani yoksa olculecek bir sey de yoktur.\n'
+            u'ERROR: there is no FASTA file in the REFERANS_DB directory (%s).\n  The access check reads the databases\' OWN rec'
             % os.path.join(kok, 'REFERANS_DB'))
         return 1
 
@@ -165,7 +163,7 @@ def main():
                     secilen.append(havuz[idx])
         kapsam = ('TAMAMI' if not a.tavan or n <= a.tavan else
                   'ILK %d KAYIT (tavan)' % a.tavan)
-        print('  %d kayit tarandi (%.0f sn) - kapsam: %s | sinama kaydi: %s'
+        print(u'  %d records scanned (%.0f s) - coverage: %s | test record: %s'
               % (n, time.time() - t0, kapsam,
                  ', '.join('#%d' % x[0] for x in secilen)), flush=True)
 
