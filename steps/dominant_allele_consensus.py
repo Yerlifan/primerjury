@@ -215,8 +215,7 @@ def main():
         dizi = "".join(cikti)
         yol = os.path.join(a.out, "konsensus", "%s_baskin_konsensus.fasta" % etiket)
         with open(yol, "w", encoding="utf-8") as fh:
-            fh.write(">%s baskin_alel okuma=%d hizalanan=%d min_derinlik=%d "
-                     "min_oran=%.2f kirpma=%d-%d ic_N_girdide=%d\n"
+            fh.write(u'>%s dominant_allele reads=%d aligned=%d min_depth=%d min_fraction=%.2f trim=%d-%d inner_N_in_input=%d\n'
                      % (etiket, n, hiz, a.min_derinlik, a.min_oran,
                         bas + 1, son, ic_n))
             for k in range(0, len(dizi), 70):

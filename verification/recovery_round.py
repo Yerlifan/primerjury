@@ -1006,7 +1006,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                 # kullanilmamali (TEK PROTOKOL modulunun var olus sebebi bu).
                 if _v.get('_ayar') == _ayar_of(r):
                     sonuc.append(_v)
-                    yaz('[%2d/%2d] %-44s (onceki kosudan alindi)'
+                    yaz(u'[%2d/%2d] %-44s (taken from the previous run)'
                         % (i, len(hedefler), hedef[:44]))
                     continue
                 yaz(u'[%2d/%2d] %-44s (settings changed, re-measuring)'
