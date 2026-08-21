@@ -2,34 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 specificity.py
-08'in ürettiği aday çiftleri toplantı kararındaki özgüllük ve doğrulama
-kurallarından geçirir.
+Puts the candidate pairs produced by batch_design.py through the specificity and
+verification rules of the panel decision.
 
-Uygulanan kurallar:
-  1. HAM OKUMADA DOĞRULAMA. Konsensüste geçen çift, hedefin ham okumalarında
-     tekrar sınanır. Ürün çıkmazsa aday "numuneden_dogrulanamadi" işaretini
-     alır ve elenir.
-  2. RAKİP ORANI, WILSON ALT SINIRI. Rakip taksonların okumalarında ürün
-     veren okuma oranı ham sayı olarak değil Wilson alt sınırıyla
-     değerlendirilir; on yedi okumalı bir taksonda tek okuma yüzde altı
-     görünüp kararı bozmasın diye.
-  3. SUŞ İÇİ DEĞİŞKENLİK. İki primer ayrı ayrı ölçülür. Biri okumaların
-     yüzde sekseninde bağlanırken diğeri yüzde kırkında kalıyorsa ikincisi
-     değişken bir pozisyonda oturuyordur ve aday cezalandırılır.
-  4. DIŞ VERİTABANI ÖZGÜLLÜĞÜ. mfeprimer ile referans veritabanlarında
-     amplikon aranır (--bind-amp-only). İkinci bağımsız ölçüm olarak blastn
-     ile bağlanma yerleri sayılır; ikisi ayrışırsa aday elenir ve ayrılık
-     log'a yazılır.
+The rules applied:
+  1. VERIFICATION ON RAW READS. A pair that passed on the consensus is tested
+     again on the target's raw reads. If no product comes out, the candidate is
+     flagged "numuneden_dogrulanamadi" and eliminated.
+  2. THE COMPETITOR RATIO, THE WILSON LOWER BOUND. The proportion of competitor
+     taxa reads giving a product is judged by its Wilson lower bound rather than
+     the raw ratio, so a small sample cannot make a competitor look clean.
 
-Her satır tarih ve saatle log'lanır. Her hedeften sonra checkpoint yazılır,
-koşu yarıda kesilirse kaldığı yerden devam eder.
-
-Kullanım:
-  python3 specificity.py \
-      --adaylar "/.../primer_adaylari" \
-      --pt      "/.../PrimerTasarlama" \
-      --out     "/.../primer_final" \
-      [--top 30] [--max-okuma 200000] [--atla-mfe] [--atla-blast]
 """
 import hashlib
 import argparse, csv, datetime, glob, importlib.util, json, math, os, re
@@ -65,7 +48,7 @@ rc = E.rc
 
 
 class Kural:
-    """04 ile birebir ayni baglanma kurali."""
+    """Exactly the same binding rule as steps/design_group_primers.py."""
     exact_last = 2
     tail_len = 5
     tail_max_mm = 1
@@ -108,8 +91,8 @@ def _girdi_parmak_izi(a):
         h.update(("hedefler|%d|%d\n" % (st.st_size, int(st.st_mtime))).encode())
     except OSError:
         pass
-    # Motor betikleri de parmak ize girer: baglanma kurali ya da tarama
-    # mantigi degistiginde eski dogrulama sonuclari gecerli degildir.
+    # The engine scripts go into the fingerprint too: when the binding rule or the scan
+    # logic changes, the old verification results are no longer valid.
     _burada = os.path.dirname(os.path.abspath(__file__))
     for _b in ("design_group_primers.py", "generate_primer_candidates.py",
                "specificity.py", "alignment.py"):
@@ -142,8 +125,10 @@ def wilson_ust(k, n, z=1.96):
 
 
 def wilson_alt(k, n, z=1.96):
-    """Bir orani ham sayiyla degil Wilson alt siniriyla degerlendirir.
-    k basari, n deneme. n=0 ise 0 doner."""
+    """Judges a ratio by its Wilson lower bound rather than by the raw count.
+        k successes, n trials. Returns 0 when n=0.
+
+    """
     if n <= 0:
         return 0.0
     p = k / n
@@ -154,7 +139,7 @@ def wilson_alt(k, n, z=1.96):
 
 
 def fastq_oku(path, limit):
-    """Okuma dizilerini uretir, limit kadar."""
+    """Yields the read sequences, up to the limit."""
     n = 0
     with open(path, encoding="utf-8", errors="replace") as fh:
         for i, line in enumerate(fh):
@@ -166,7 +151,7 @@ def fastq_oku(path, limit):
 
 
 class _PArg:
-    """product_len icin gereken en kucuk arguman kumesi."""
+    """The smallest set of arguments product_len needs."""
     prod_min = 50
     prod_hard_max = 400
 
@@ -175,15 +160,17 @@ _OKUMA_BELLEK = {}
 
 
 def okumalari_al(path, limit):
-    """Ayni fastq bir hedefteki butun adaylar icin tekrar tekrar taraniyor;
-    diskten bir kez okunup bellekte tutulur."""
+    """The same fastq is scanned again and again for every candidate of a target;
+        it is read from disk once and held in memory.
+
+    """
     k = (path, limit)
     v = _OKUMA_BELLEK.get(k)
     if v is None:
         v = [(s, rc(s)) for s in fastq_oku(path, limit)]
-        # Onbellek en fazla --onbellek-dosya kadar fastq tutar. Eski surumde
-        # her isabetsizlikte tamamen bosaltiliyordu, yani isabet orani
-        # pratikte sifirdi ve ayni fastq her aday icin yeniden okunuyordu.
+        # The cache holds at most --onbellek-dosya fastq files. In the old version it was
+        # emptied completely on every miss, so the hit rate was effectively zero and the
+        # same fastq was read again for every candidate.
         while len(_OKUMA_BELLEK) >= 3:
             _OKUMA_BELLEK.pop(next(iter(_OKUMA_BELLEK)))          # tek hedefin dosyalari; bellek sismesin
         _OKUMA_BELLEK[k] = v
@@ -195,22 +182,26 @@ _BULASMA = {}
 
 def capraz_bulasma(hedef_kons_yolu, rakip_kons_yolu, rakip_fq, ornek=400,
                    min_uzunluk=400):
-    """Rakip kutusundaki okumalarin ne kadari aslinda HEDEFE ait.
+    """How much of the reads in a competitor bin actually belong to THE TARGET.
 
-    Kraken kutulari birbirine sizabiliyor: bir kutudaki okumalarin bir kismi
-    baska taksonun molekulleridir. Bu okumalar dogal olarak hedef primerle
-    urun verir. O yuzden 'rakipte urun var' karari, olculen bu sizinti
-    oraniyla karsilastirilmadan verilemez. Doner: (k, n) = hedefe daha iyi
-    uyan okuma sayisi ve incelenen okuma sayisi."""
+        Kraken bins can leak into one another: some of the reads in a bin are the
+        molecules of another taxon. Those reads naturally give a product with the target
+        primer. So a 'there is a product in the competitor' decision cannot be made
+        without comparing against this measured leakage ratio. Returns: (k, n) = the
+        number of reads that fit the target better, and the number of reads examined.
+
+    """
     if not MAPPY:
         return (0, 0)
     anahtar = (hedef_kons_yolu, rakip_kons_yolu, rakip_fq)
     if anahtar in _BULASMA:
         return _BULASMA[anahtar]
     def _oku(p):
-        """Bastaki ve sondaki N kirpilir, IC N yerinde birakilir. Ic N'leri
-        silmek kapsama bosluklarinin iki yanini birlestirip kimerik referans
-        uretir; hizalama sonuclari o kavsakta anlamsizlasir."""
+        """Ns at the start and the end are trimmed; INNER Ns are left in place. Deleting
+                the inner Ns joins the two sides of a coverage gap and produces a chimeric
+                reference; the alignment results become meaningless at that junction.
+
+        """
         d = "".join(l.strip() for l in open(p, encoding="utf-8",
                                             errors="replace")
                     if not l.startswith(">")).upper()
@@ -240,8 +231,8 @@ def capraz_bulasma(hedef_kons_yolu, rakip_kons_yolu, rakip_fq, ornek=400,
                 okumalar["o%d" % n] = r
     except OSError:
         pass
-    # Toplu hizalama: komut satiri arka ucunda okuma basina surec baslatmak
-    # kabul edilemez derecede yavas olurdu.
+    # Batch alignment: starting a process per read on the command line backend would be
+    # unacceptably slow.
     skor_h = {ad: max((x.mlen for x in hl), default=0)
               for ad, hl in A_h.map_toplu(okumalar)}
     skor_r = {ad: max((x.mlen for x in hl), default=0)
@@ -253,35 +244,35 @@ def capraz_bulasma(hedef_kons_yolu, rakip_kons_yolu, rakip_fq, ornek=400,
 
 
 def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
-    """Ham okumalarda cift dogrulamasi.
+    """Pair verification on the raw reads.
 
-    Iki asamali. Once 3' ucun son 12 bazi str.find ile hizlica aranir, bu
-    C hizinda ve okumalarin cogunu eler. Sonra yalnizca aday okumalarda
-    04'un sinanmis find_bindings ve product_len fonksiyonlari calistirilir,
-    yani baglanma kurali ile urun koordinati tasarim asamasindakiyle birebir
-    ayni kodla degerlendirilir.
+        In two stages. First the last 12 bases of the 3' end are searched quickly with
+        str.find, which runs at C speed and discards most of the reads. Then, only on the
+        candidate reads, the tested find_bindings and product_len functions of
+        steps/design_group_primers.py are run, so the binding rule and the product
+        coordinate are evaluated with exactly the same code as in the design stage.
 
-    Doner: (toplam_okuma, F_baglanan, R_baglanan, urun_veren)
+        Returns: (total_reads, F_bound, R_bound, with_product)
+
     """
     pa = _PArg()
     pa.prod_min, pa.prod_hard_max = prod_min, prod_max
     K = KURAL.tail_len
     tot = f_hit = r_hit = both = 0
-    # Eski surumde kapi F[-12:] tam eslesmesini sarti kosuyordu. Bu kural
-    # metninden KATIYDI: kural son bes bazda bir, toplamda uc uyumsuzluga
-    # izin veriyor, dolayisiyla -12..-3 araligindaki tek bir uyumsuzluk bile
-    # gecerli bir baglanmayi tarama disi birakiyordu. Olculdu: ONT benzeri
-    # %5 hatada gercek baglanmalarin %15'i, %8 hatada %30'u kayboluyordu ve
-    # rakip urun orani sistematik olarak DUSUK cikiyordu, yani ozgul olmayan
-    # ciftler GECTI aliyordu. Kapi artik find_noidx'in kullandigi cekirdek
-    # kumesinin AYNISIYLA kuruluyor; boylece kapi hicbir zaman kuralin
-    # gecirdigi bir okumayi elemez.
+    # In the old version the gate required an exact match of F[-12:]. That was STRICTER
+    # than the rule's own text: the rule allows one mismatch in the last five bases and
+    # three in total, so even a single mismatch in the -12..-3 range left a valid binding
+    # outside the scan. Measured: at an ONT-like 5% error, 15% of the real bindings were
+    # lost, and at 8% error, 30%; the competitor product ratio came out systematically
+    # LOW, which means non-specific pairs were PASSING. The gate is now built from THE
+    # SAME core set that find_noidx uses, so it can never discard a read the rule would
+    # have let through.
 
-    # Okuma basina 5-mer indeksi kurmak darbogazdi: 3700 bazlik bir okumada
-    # her cagride ~3700 girdilik sozluk olusuyordu. Okuma tek bir dizi
-    # oldugu icin indeks yerine cekirdek varyantlarini str.find ile taramak
-    # cok daha ucuz; sonuc find_bindings ile birebir ayni olmali ve bu
-    # asagida sinanmistir.
+    # Building a 5-mer index per read was the bottleneck: on a 3700 base read, a
+    # dictionary of ~3700 entries was created on every call. Since a read is a single
+    # string, scanning the core variants with str.find instead of an index is far
+    # cheaper; the result must be exactly the same as find_bindings, and that is tested
+    # below.
     varyant = {}
 
     def _var(oligo):
@@ -310,11 +301,11 @@ def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
                 j0 = max(0, -start)
                 if n - j0 < KURAL.min_overlap:
                     continue
-                # Hizli yol: ham okumalar yalnizca A, C, G, T ve N icerir.
-                # Oligo da saf ACGT ise base_match'in kume kesisimi yerine
-                # dogrudan karakter karsilastirmasi yeterlidir ve ayni sonucu
-                # verir (N her zaman uyumsuz sayilir). Kume islemi okuma
-                # basina yuzlerce kez cagrildigi icin bu fark buyuk.
+                # The fast path: raw reads hold only A, C, G, T and N.
+                # If the oligo is pure ACGT as well, a direct character comparison is
+                # enough instead of base_match's set intersection, and it gives the same
+                # result (N always counts as a mismatch). Because the set operation is
+                # called hundreds of times per read, the difference is large.
                 mm = 0
                 ok = True
                 if saf:
@@ -346,9 +337,11 @@ def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
     kapiR = _var(R)
 
     def _kapi_gecer(seq, seqrc):
-        """find_noidx ile AYNI cekirdek kumesi. Kapi yalnizca hicbir cekirdek
-        varyanti bulunmayan okumalari eler; bu okumalarda find_noidx da
-        tanimi geregi bos doner, dolayisiyla kapi sonucu degistirmez."""
+        """THE SAME core set as find_noidx. The gate discards only the reads in which
+                no core variant is found at all; on those reads find_noidx returns empty by
+                definition too, so the gate does not change the result.
+
+        """
         for v in kapiF:
             if v in seq or v in seqrc:
                 return True
@@ -452,10 +445,10 @@ def main():
     if not a.atla_mfe and not kullan_mfe:
         log("UYARI: mfeprimer bulunamadi ya da calistirilabilir degil (%s), "
             "dis veritabani adimi atlanacak" % mfe)
-    # Dis veritabani ozgullugu ARTIK external_databases.py'de yapiliyor.
-    # Buradaki bayraklar yalnizca geriye donuk uyum icin duruyor; hangi
-    # adimin nerede kostugunu log'a acikca yaziyoruz ki belge ile kod
-    # arasinda sessiz bir fark kalmasin.
+    # External database specificity is NOW done in external_databases.py.
+    # The flags here stand only for backward compatibility; which step runs where is
+    # written openly into the log, so that no silent difference is left between the
+    # documentation and the code.
     kullan_blast = (not a.atla_blast) and bool(
         subprocess.run(["bash", "-c", "command -v blastn"],
                        capture_output=True).stdout.strip())
@@ -471,7 +464,7 @@ def main():
             fq[(re.split(r"[-_]", grp)[0], grp, m.group(1))] = p
     log("fastq envanteri: %d dosya" % len(fq))
 
-    # konsensus envanteri: (grup, taxid) -> yol. Capraz bulasma olcumu icin.
+    # the consensus inventory: (group, taxid) -> path. For the cross contamination measurement.
     kons = {}
     if a.kons:
         for p2 in glob.glob(os.path.join(a.kons, "*_konsensus.fasta")):
@@ -494,7 +487,7 @@ def main():
         m = re.search(r"reads[-_](\d+)", b)
         return kons.get((g, m.group(1))) if m else None
 
-    # hedef tanimlari
+    # the target definitions
     hedefler = {}
     for line in open(a.hedefler, encoding="utf-8"):
         if line.startswith("#") or not line.strip():
@@ -505,27 +498,26 @@ def main():
         hedefler[p[1]] = dict(karar=p[0], duzey=p[2], inn=p[3],
                               haric=p[4] if len(p) > 4 else "")
 
-    # 08'in olctugu ayirt edilemez takson ciftleri. Ayni ayiklama burada da
-    # uygulanmazsa 08'in rakip listesinden cikardigi takson 09'da geri gelir
-    # ve hedefin kendi dizisi rakip sayilir.
-    # 08'in bozuk konsensus yuzunden disladigi taksonlar. 09 fastq
-    # envanterinden calistigi icin ayni taksonu rakip (ve alan hedeflerinde
-    # uye) olarak geri aliyordu; 08 ile 09 ayni kumeler uzerinde calismali.
-    # (grup, taxid) ikilisi. Takson bazinda dislamak yanlis olurdu: bir
-    # taksonun konsensusu bir numunede bos, otekinde saglam olabilir.
-    # Dislama YALNIZ uye kumesine uygulanir; rakip kumesinde bu kutularin
-    # ham okumalari degerlidir ve onlari cikarmak ozgulluk denetimini
-    # zayiflatir. Konsensusun bos olmasi okumalarin yok oldugu anlamina
-    # gelmez, yalnizca konsensus kurulamadigi anlamina gelir.
+    # The indistinguishable taxon pairs measured by batch_design.py. Unless the same
+    # exclusion is applied here too, a taxon batch_design.py removed from the competitor
+    # list comes back in this stage and the target's own sequence counts as a competitor.
+    # The taxa batch_design.py excluded because of a broken consensus. Because this stage
+    # works from the fastq inventory, it was taking the same taxon back as a competitor
+    # (and as a member on domain targets); the two stages have to work on the same sets.
+    # A (group, taxid) pair. Excluding by taxon alone would be wrong: a taxon's consensus
+    # can be empty in one sample and sound in another.
+    # The exclusion applies ONLY to the member set; in the competitor set the raw reads
+    # of these bins are valuable and removing them weakens the specificity check. An
+    # empty consensus does not mean the reads are gone, only that no consensus could be
+    # built.
     dislanan = set()
     dl = os.path.join(a.adaylar, "dislanan_takson.tsv")
     if os.path.exists(dl):
-        # Sutunlar KONUMA gore degil BASLIGA gore okunur. Eski surumlerde bu
-        # dosya 4 sutunluydu (taxid, etiket, uzunluk, kapsanan); konuma gore
-        # okuyan kod o dosyada (taxid, etiket) ikilisini (grup, taxid) sanip
-        # hicbir seyle eslesmeyen bir kume kurar ve dislama SESSIZCE devre
-        # disi kalir. Basligi tanimazsak durmak, yanlis kumeyle devam
-        # etmekten iyidir.
+        # The columns are read BY HEADER, not BY POSITION. In earlier versions this file had
+        # 4 columns (taxid, etiket, uzunluk, kapsanan); code reading by position took the
+        # (taxid, etiket) pair for (group, taxid) in that file, built a set matching nothing,
+        # and THE EXCLUSION WAS SILENTLY DISABLED. Stopping when we do not recognise the
+        # header is better than carrying on with the wrong set.
         with open(dl, encoding="utf-8") as fh:
             satirlar = [l.rstrip("\n") for l in fh
                         if l.strip() and not l.startswith("#")]
@@ -580,21 +572,22 @@ def main():
         in_t = set(x for x in h.get("inn", "").split(",") if x and x != "*")
         haric = set(x for x in h.get("haric", "").split(",") if x)
         alan = h.get("inn", "").startswith("*")
-        # Uye fastq'lari TAKSON basina gruplanir. Eski surumde dogrulama
-        # sayaci DOSYA basina artiyordu; ayni taksonun birden cok yildaki
-        # dosyasi varsa, hic dogrulanmayan bir uye takson oranin icinde
-        # kaybolabiliyordu. Olculdu: Asetoklastik_metanojenler A2'de bes
-        # uye taksondan yalnizca ikisi urun verdiginde dosya bazli oran
-        # 7/10=0,70 ile GECTI, takson bazli oran 2/5=0,40 ile elenmeliydi.
+        # The member fastq files are grouped PER TAXON. In the old version the verification
+        # counter incremented PER FILE; when the same taxon had files from several years, a
+        # member taxon that was never verified could be lost inside the ratio. Measured: when
+        # only two of five member taxa gave a product for Asetoklastik_metanojenler in A2,
+        # the file based ratio PASSED at 7/10=0.70, while the taxon based ratio 2/5=0.40
+        # should have failed.
         if alan:
-            # Alan hedefi (*A, *B, *F): uye = ayni harfle baslayan butun
-            # siniflar, rakip = OTEKI alanlarin siniflari. 08 tam olarak
-            # boyle kuruyor; 09'un eski surumu rakip listesini bos
-            # birakiyordu ve evrensel primerler hicbir rakip sinanmadan
-            # GECTI aliyordu. Ayrica 'haric' sutunu alan hedeflerinde de
-            # uye kumesine uygulanir.
-            # 08 ile BIREBIR ayni kurulum: uye = YALNIZ bu amplikon
-            # sinifindaki taksonlar, rakip = baska ALANLARIN siniflari.
+            # A domain target (*A, *B, *F): the members are every class starting
+            # with the same letter, the competitors are the classes of the OTHER
+            # domains. batch_design.py builds it exactly that way; the old version
+            # of this stage left the competitor list empty and the universal primers
+            # PASSED without a single competitor being tested. The 'haric' column
+            # also applies to the member set on domain targets.
+            # EXACTLY the same setup as batch_design.py: the members are ONLY the
+            # taxa in this amplicon class, the competitors are the classes of other
+            # DOMAINS.
             harf = sinif[0]
             uye_ikili = [(t, v) for (s, g, t), v in fq.items()
                          if s == sinif and t not in haric
@@ -636,8 +629,10 @@ def main():
         uye_kons = [k for k in (_kons_of(x) for x in uye_fq) if k]
 
         def _bulasma_getir(rakip_yolu):
-            """Rakip kutusundaki okumalarin kacinin aslinda HEDEFE ait
-            oldugunu olcer. En yuksek sizinti veren hedef uyesi alinir."""
+            """Measures how many of the reads in a competitor bin actually belong
+                        to THE TARGET. The target member with the highest leakage is taken.
+
+            """
             rk = _kons_of(rakip_yolu)
             if not (uye_kons and rk and MAPPY):
                 return (0, 0)
@@ -652,8 +647,8 @@ def main():
         gecen = []
         for ri, r in enumerate(rows[:a.top], 1):
             F, R = r["ileri_dizi"], r["geri_dizi"]
-            # Urun penceresi tasarim asamasindakiyle AYNI olmali; farkli
-            # olursa sinirdaki urunler iki asamada farkli degerlendirilir.
+            # The product window must be THE SAME as in the design stage; if it
+            # differs, borderline products are judged differently in the two stages.
             pmin, pmax = a.prod_min, a.prod_hard_max
             uye_dogru = 0
             f_or, r_or = [], []
@@ -672,24 +667,23 @@ def main():
                 else:
                     dogrulanmayan.append(tx)
             uye_orani = (uye_dogru / len(uye_takson)) if uye_takson else None
-            # rakipte urun veren okuma orani, Wilson alt siniri
+            # the proportion of competitor reads giving a product, the Wilson lower bound
             rak_w = 0.0
             rak_detay = []
             rakipte_gercek = False
             for p in rakip_fq:
                 tot, fh_, rh, both = okuma_taramasi(p, F, R, pmin, pmax, a.max_okuma)
                 w = wilson_alt(both, tot)
-                # Olculen kutu sizintisinin UST siniri. Urun orani bunun
-                # altindaysa, urun veren okumalar yanlis kutuya dusmus HEDEF
-                # okumalariyla aciklanabilir; rakibin kendisinin cogaldigina
-                # dair kanit degildir.
+                # The UPPER bound of the measured bin leakage. If the product ratio is
+                # below this, the reads giving a product can be explained by TARGET
+                # reads that fell into the wrong bin; it is not evidence that the
+                # competitor itself amplified.
                 bk, bn = _bulasma_getir(p)
-                # Wilson UST siniri az okumada 1'e yaklasir. Korumasiz
-                # birakilirsa 10 okumalik bir rakip kutusunda esik 0,28'e,
-                # 5 okumalikta 0,43'e cikar ve okumalarinin yarisinda urun
-                # veren bir rakip "temiz" sayilir. Bu yuzden sizinti ancak
-                # yeterli okuma varsa esigi acabilir ve actigi miktar
-                # tavanlanir.
+                # The Wilson UPPER bound approaches 1 with few reads. Left unguarded,
+                # on a competitor bin of 10 reads the threshold rises to 0.28 and on
+                # one of 5 reads to 0.43, so a competitor giving a product in half its
+                # reads counts as "clean". So leakage can only raise the threshold when
+                # there are enough reads, and the amount it raises it by is capped.
                 if bn >= a.bulasma_min_okuma:
                     sizinti_ust = min(wilson_ust(bk, bn), a.sizinti_tavan)
                     sizinti_not = "%.4f" % sizinti_ust
@@ -708,9 +702,9 @@ def main():
             sus_fark = abs((sum(f_or) / len(f_or) if f_or else 0)
                            - (sum(r_or) / len(r_or) if r_or else 0))
             durum = []
-            # Hicbir ham okuma taranmamis bir aday "gecti" sayilamaz. Eski
-            # surumde uye_fq ya da rakip_fq bos oldugunda hicbir etiket
-            # eklenmiyor ve aday GECTI olarak teslim ediliyordu.
+            # A candidate on which not a single raw read was scanned cannot count as
+            # "passed". In the old version, when uye_fq or rakip_fq was empty no flag
+            # was added at all and the candidate was delivered as PASSED.
             if not uye_fq:
                 durum.append("uye_okumasi_yok")
             elif uye_orani is None or uye_orani < a.min_uye_orani:
@@ -757,9 +751,11 @@ def main():
 
 
 def yaz(out, sonuc):
-    """Sonuc bos olsa bile dosya yeniden yazilir. Eski surumde erken
-    donuldugu icin onceki kosunun bayat primer_final.tsv'si diskte kaliyor
-    ve 13 onu gecerli sanip Excel'e basiyordu."""
+    """The file is rewritten even when the result is empty. In the old version it
+        returned early, so the previous run's stale primer_final.tsv stayed on disk and
+        the Excel export took it for a valid one and published it.
+
+    """
     if not sonuc:
         with open(os.path.join(out, "primer_final.tsv"), "w",
                   encoding="utf-8") as fh:
