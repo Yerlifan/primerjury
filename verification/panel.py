@@ -116,7 +116,7 @@ def main(argv):
             kodlar[k] = kos(k, [])
         print()
         print('=' * 78)
-        print('  HEPSI BITTI')
+        print(u'  ALL DONE')
         for k in SIRA:
             print('    %-10s cikis kodu %s' % (k, kodlar[k]))
         print()

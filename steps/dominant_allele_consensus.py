@@ -94,7 +94,7 @@ def main():
     ozet = []
     dosyalar = sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta")))
     if not dosyalar:
-        sys.exit("konsensus bulunamadi: %s" % a.kons)
+        sys.exit(u'no consensus found: %s' % a.kons)
     print(hizalama.durum())
     print(u'consensus files: %d' % len(dosyalar))
     for f in dosyalar:

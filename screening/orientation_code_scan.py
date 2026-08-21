@@ -126,7 +126,7 @@ def main():
     for r in satirlar:
         if r['sinif'] == 'HAM_KAYNAK_VARSAYIM':
             print('  ', r['betik'])
-    print('\ntoplam', len(satirlar), '->', a.out)
+    print(u'\ntotal', len(satirlar), '->', a.out)
 
 
 if __name__ == '__main__':

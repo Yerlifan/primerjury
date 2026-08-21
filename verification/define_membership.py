@@ -88,12 +88,12 @@ def main():
                         sinif = (r.get('sinif') or '').strip().upper()
                         break
     if not sinif:
-        sys.exit('HATA: sinif bulunamadi, --sinif ile verin.')
+        sys.exit(u'ERROR: no class was found, give one with --sinif.')
 
     K = kimlikler(kok)
     ayni_sinif = [r for r in K if r['kutu'].split('-')[0].upper() == sinif]
     if not ayni_sinif:
-        sys.exit('HATA: %s sinifinda kutu bulunamadi.' % sinif)
+        sys.exit(u'ERROR: no bin was found in class %s.' % sinif)
 
     uye, rakip = [], []
     for r in ayni_sinif:
@@ -118,7 +118,7 @@ def main():
     for r in rakip:
         print('    %-18s %s' % (r['kutu'], (r.get('ONERILEN_AD') or '')[:52]))
     if not uye:
-        sys.exit('\nHATA: hicbir kutu kalibi tasimiyor - uyelik tanimlanamaz.')
+        sys.exit(u'\nERROR: not one bin carries the template, so membership cannot be defined.')
 
     if not a.yaz:
         print()
@@ -128,7 +128,7 @@ def main():
     # ---- 1) uyelik_yeniden_turetme dosyasi ----
     uy = uyelik_dosyasi(kok)
     if not uy:
-        sys.exit('HATA: uyelik_yeniden_turetme_uyelik_*.tsv bulunamadi.')
+        sys.exit(u'ERROR: uyelik_yeniden_turetme_uyelik_*.tsv was not found.')
     sat = [l.rstrip('\n').split('\t') for l in io.open(uy, encoding='utf-8')]
     bas = sat[0]
     varsa = [i for i, r in enumerate(sat[1:], 1) if r and r[0].strip() == a.hedef]
@@ -179,7 +179,7 @@ def main():
         try:
             plaka, ta = a.panel_satiri.split(':')
         except ValueError:
-            sys.exit('HATA: --panel-satiri PLAKA:Ta biciminde olmali (orn P1:55)')
+            sys.exit(u'ERROR: --panel-satiri must have the form PLATE:Row (for example P1:55)')
         py = os.path.join(kok, 'primer_final',
                           'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
         psat = [l.rstrip('\n').split('\t') for l in io.open(py, encoding='utf-8')]
@@ -198,7 +198,7 @@ def main():
                         sl = r
                         break
             if not sl:
-                sys.exit('HATA: %s siparis listesinde yok, panel satiri yazilamaz.'
+                sys.exit(u'ERROR: %s is not in the order list, the panel row cannot be written.'
                          % a.hedef)
             shutil.copy2(py, py + '.yedek_%s_panelsatiri' % time.strftime('%H%M'))
             yeni_p = [''] * len(pb)

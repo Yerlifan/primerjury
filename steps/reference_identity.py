@@ -118,10 +118,10 @@ def baskin_konsensus(urunler):
 def main():
     a = get_args()
     if not shutil.which("blastn"):
-        sys.exit("blastn bulunamadi")
+        sys.exit(u'blastn was not found')
     rows = list(csv.DictReader(open(a.referans, encoding="utf-8"), delimiter="\t"))
     if not rows:
-        sys.exit("referans cift yok")
+        sys.exit(u'there is no reference pair')
     # hedefin amaclanan organizmasi
     amac = {}
     if os.path.exists(a.hedefler_ref):

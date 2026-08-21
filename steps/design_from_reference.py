@@ -222,18 +222,18 @@ def main():
                  for x in h["veritabani"].split(",") if x.strip()]
         var_olan = [v for v in vtler if os.path.exists(v)]
         if not var_olan:
-            log("ATLANDI %-34s veritabani yok: %s" % (h["ad"], h["veritabani"]))
+            log(u'SKIPPED %-34s there is no database: %s' % (h["ad"], h["veritabani"]))
             continue
         for v in vtler:
             if v not in var_olan:
-                log("   %-34s veritabani bulunamadi, atlandi: %s"
+                log(u'   %-34s the database was not found, skipped: %s'
                     % (h["ad"], os.path.basename(v)))
         ic_adlar = [x.strip() for x in h["ic"].split(",") if x.strip()]
         dis_adlar = [x.strip() for x in h["dis"].split(",") if x.strip()]
         bul = sec(var_olan, ic_adlar + dis_adlar, a.azami_uye)
         eksik = [x for x in ic_adlar if not bul.get(x)]
         if eksik:
-            log("ATLANDI %-34s veritabaninda bulunamayan hedef adi: %s"
+            log(u'SKIPPED %-34s a target name that is not in the database: %s'
                 % (h["ad"], ", ".join(eksik)))
             continue
         yok_dis = [x for x in dis_adlar if not bul.get(x)]
@@ -337,12 +337,12 @@ def main():
                                delimiter="\t", lineterminator="\n")
             w.writeheader()
             w.writerows(sonuc)
-        log("yazildi: %s  (%d satir)" % (yol, len(sonuc)))
+        log(u'written: %s  (%d rows)' % (yol, len(sonuc)))
         d = sum(1 for x in sonuc if x["durum"] == "numunede_destekli")
         log("numunede destekli: %d, numuneden dogrulanamayan: %d"
             % (d, len(sonuc) - d))
     else:
-        log("hicbir referans hedefi icin cift uretilemedi")
+        log(u'no pair could be produced for any reference target')
 
 
 if __name__ == "__main__":

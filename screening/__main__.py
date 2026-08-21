@@ -270,7 +270,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                 c['kuresel'] = kr.get('a%d' % i, {})
             yaz(u'\n      global scan finished (%s)' % sure(time.time() - te))
         except Exception as e:
-            yaz('\n      KURESEL TARAMA HATASI (diger sonuclar gecerli): %s' % e)
+            yaz('\n      GLOBAL SCAN ERROR (the other results are still valid): %s' % e)
 
     sonuc = dict(
         hedef=ad, durum='TAMAMLANDI',

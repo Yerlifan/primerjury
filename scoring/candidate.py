@@ -60,7 +60,7 @@ def main():
     motor = P.motor
     b = P.baglam(g.hedef)
     if not b:
-        sys.exit('HATA: %s icin uyelik yok' % g.hedef)
+        sys.exit(u'ERROR: there is no membership for %s' % g.hedef)
     kons = konsensus_tablosu(KOK)
     uye_ad = [k['kutu'] for k in b['uye'] if k['kutu'] in kons]
     rak_ad = [k['kutu'] for k in b['rakip'] if k['kutu'] in kons]
@@ -68,7 +68,7 @@ def main():
     rak_sq = [kons[a] for a in rak_ad]
     eksik_uye = [k['kutu'] for k in b['uye'] if k['kutu'] not in kons]
     if not uye_sq:
-        sys.exit('HATA: uye konsensus yok')
+        sys.exit(u'ERROR: there is no member consensus')
     ref = max(range(len(uye_sq)), key=lambda i: len(uye_sq[i]))
     print('%s | uye kons %d (ref=%s %d bp) | rakip kons %d | konsensussuz uye %d'
           % (g.hedef, len(uye_sq), uye_ad[ref], len(uye_sq[ref]), len(rak_sq), len(eksik_uye)))

@@ -170,7 +170,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
         ok, not_ = indeks_sina(kok, mfe, dosya, yaz)
         if ok:
             kullanilan.append(dosya)
-            yaz(u'    indeks OK : %s' % dosya)
+            yaz(u'    index OK : %s' % dosya)
         else:
             atlanan.append((dosya, not_))
             yaz(u'    index SKIPPED: %s - %s' % (dosya, not_))

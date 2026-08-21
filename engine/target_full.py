@@ -130,7 +130,7 @@ def main():
     ad = next((h for h in panel if a.hedef.lower() in h.lower()), None)
     if ad is None:
         if not a.uye_taxid:
-            sys.exit('HATA: "%s" panelde yok. Yeni hedef icin --uye-taxid verin.'
+            sys.exit(u'ERROR: "%s" is not in the panel. For a new target give --uye-taxid.'
                      % a.hedef)
         sahte = {'hedef': a.hedef, 'sinif': (a.sinif or ''), 'F': '', 'R': ''}
         b = dict(hedef=a.hedef, siniflar=[a.sinif] if a.sinif else [],
@@ -189,7 +189,7 @@ def main():
         if a.omurga:
             zorla = [k for k in kons if k['kutu'] == a.omurga]
             if not zorla:
-                sys.exit('HATA: --omurga %s diye bir kutu yok.' % a.omurga)
+                sys.exit(u'ERROR: there is no bin called --omurga %s.' % a.omurga)
             om_liste = zorla
             print('OMURGA ELLE: %s (%d bp)' % (a.omurga, len(zorla[0]['dizi'])),
                   flush=True)
@@ -252,7 +252,7 @@ def main():
                       % (omk, x, y, len(havuz), en), flush=True)
                 json.dump(D, open(dur, 'w', encoding='utf-8'), ensure_ascii=False)
         json.dump(D, open(dur, 'w', encoding='utf-8'), ensure_ascii=False)
-        print('TARAMA BITTI' if len(D['bitmis']) >= len(birim) else 'DEVAM')
+        print(u'THE SCAN IS FINISHED' if len(D['bitmis']) >= len(birim) else 'DEVAM')
         return
 
     # ---- derin asama: en iyiler + ARMS varyantlari, n=3000 ----

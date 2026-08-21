@@ -77,8 +77,7 @@ def db_hazirla(fna, calisma):
 def main():
     a = get_args()
     if not shutil.which("blastn"):
-        sys.exit("blastn bulunamadi. Kurmak icin: "
-                 "sudo apt-get install -y ncbi-blast+")
+        sys.exit(u'blastn was not found. To install it: sudo apt-get install -y ncbi-blast+')
     ad = {}
     if os.path.exists(a.adlar):
         for l in open(a.adlar, encoding="utf-8"):
@@ -103,7 +102,7 @@ def main():
         if m:
             kutular[et] = (m.group(1), m.group(2), oku_fasta(p))
     if not kutular:
-        sys.exit("konsensus bulunamadi: %s" % a.kons)
+        sys.exit(u'no consensus found: %s' % a.kons)
     print(u'bins: %d' % len(kutular))
 
     calisma = tempfile.mkdtemp(prefix="kimlik_")
@@ -135,7 +134,7 @@ def main():
                  "-out", cikti], capture_output=True, text=True)
             print(u'   blastn %-3s x %-20s (%d bins)' % (sinif, dbad, len(kalan)))
             if r.returncode != 0:
-                print("      HATA: %s" % r.stderr.strip()[:160])
+                print(u'      ERROR: %s' % r.stderr.strip()[:160])
                 continue
             en, zayif_en = {}, {}
             for line in open(cikti, encoding="utf-8"):
@@ -225,7 +224,7 @@ def main():
                              for k, v in say.most_common()[1:4]) or "")))
 
     if not sonuc:
-        sys.exit("hicbir hedef icin kimlik olculemedi")
+        sys.exit(u'no identity could be measured for any target')
     d = os.path.dirname(os.path.abspath(a.out))
     if d:
         os.makedirs(d, exist_ok=True)
@@ -241,7 +240,7 @@ def main():
         if say_uyum.get(k):
             print("   %-26s %d" % (k, say_uyum[k]))
     print("\n%-34s %-30s %-34s %s"
-          % ("HEDEF", "KRAKEN2 ETIKETI", "OLCULEN KIMLIK", "UYUM"))
+          % ("TARGET", "KRAKEN2 LABEL", "MEASURED IDENTITY", "AGREEMENT"))
     for x in sonuc:
         print("%-34s %-30s %-34s %s"
               % (x["hedef"][:33], x["kraken_etiketi"][:29],

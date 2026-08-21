@@ -190,8 +190,7 @@ def siparistekiler(kok, hepsi=False):
     if not os.path.exists(yol):
         yol = os.path.join(kok, 'SIPARIS_LISTESI.tsv')
     if not os.path.exists(yol):
-        sys.exit('HATA: SIPARIS_LISTESI.tsv yok.\n'
-                 '      Once verification/full_chain.py -> secenek (T) kosulmalidir.')
+        sys.exit(u'ERROR: SIPARIS_LISTESI.tsv is missing.\n      verification/full_chain.py -> option (T) has to be run first.')
     with open(yol, encoding='utf-8') as fh:
         satirlar = list(csv.DictReader(
             (s for s in fh if not s.startswith('#')), delimiter='\t'))
@@ -223,7 +222,7 @@ def kurtarilanlar(kok):
     """KURTARMA_SONUC/kurtarma_satirlari.tsv -> esigi gecen YENI/DEGISMIS ciftler."""
     yol = os.path.join(kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv')
     if not os.path.exists(yol):
-        sys.exit('HATA: %s yok.\n      Once verification/full_chain.py -> secenek (K) kosulmalidir.' % yol)
+        sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (K) has to be run first.' % yol)
     with open(yol, encoding='utf-8') as fh:
         satirlar = list(csv.DictReader((s for s in fh if not s.startswith('#')), delimiter='\t'))
 
@@ -1593,7 +1592,7 @@ def main():
 
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit('HATA: %s icinde screening yok.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s.' % kok)
     CIKTI = os.path.join(kok, 'DOGRULAMA_SONUC')
     KONTROL = os.path.join(CIKTI, 'kontrol')
     os.makedirs(KONTROL, exist_ok=True)

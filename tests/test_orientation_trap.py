@@ -137,7 +137,7 @@ def main():
                  u'DOGRU' if ok else u'YANLIS'))
 
     print()
-    print(u'SONUC: ' + (u'YEDI SINAMANIN YEDISI DE BEKLENDIGI GIBI'
+    print(u'RESULT: ' + (u'YEDI SINAMANIN YEDISI DE BEKLENDIGI GIBI'
                         if gecti else u'BASARISIZ'))
     return 0 if gecti else 1
 

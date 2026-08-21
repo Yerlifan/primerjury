@@ -146,7 +146,7 @@ def main():
         return 1
     ham = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_ham')
     if not os.path.isdir(ham):
-        sys.exit('HATA: %s yok.' % ham)
+        sys.exit(u'ERROR: %s is missing.' % ham)
 
     eski = {}
     ey = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_katman4.tsv')

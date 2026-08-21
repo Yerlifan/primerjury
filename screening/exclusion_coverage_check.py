@@ -201,7 +201,7 @@ def main():
     uy = os.path.join(kok, 'screening', 'hedef_uyelik.tsv')
     for f in (hy, uy):
         if not os.path.exists(f):
-            sys.exit('HATA: %s yok.' % f)
+            sys.exit(u'ERROR: %s is missing.' % f)
     H = oku_harita(hy)
     U = oku_uyelik(uy)
 

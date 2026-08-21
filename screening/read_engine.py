@@ -284,7 +284,7 @@ def main(argv=None):
     satirlar = []
     for p in yollar:
         if not os.path.exists(p):
-            sys.stderr.write('YOK: %s\n' % p); continue
+            sys.stderr.write(u'MISSING: %s\n' % p); continue
         rs, n0 = kutu_yukle(p, a.nmax, a.seed, a.minlen, a.maxlen)
         pos, n, boylar = kutu_pcr(rs, a.F, a.R, a.lo, a.hi, a.mm, bool(a.son2))
         pct = 100.0 * pos / n if n else 0.0

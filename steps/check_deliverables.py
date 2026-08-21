@@ -34,12 +34,12 @@ import field_audit
 try:
     import primer3
 except ImportError:
-    sys.exit("primer3-py gerekli: pip install primer3-py --break-system-packages")
+    sys.exit(u'primer3-py is required: pip install primer3-py --break-system-packages')
 try:
     from Bio.SeqUtils import MeltingTemp as mt
     from Bio.Seq import Seq
 except ImportError:
-    sys.exit("biopython gerekli: pip install biopython --break-system-packages")
+    sys.exit(u'biopython is required: pip install biopython --break-system-packages')
 
 TAM = str.maketrans("ACGT", "TGCA")
 
@@ -122,12 +122,12 @@ def main():
     a = get_args()
     tsv = os.path.join(a.final, "primer_final.tsv")
     if not os.path.exists(tsv):
-        sys.exit("bulunamadi: %s" % tsv)
+        sys.exit(u'not found: %s' % tsv)
     rows = list(csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t"))
     if a.yalniz_gecti:
         rows = [r for r in rows if r.get("ozgulluk_durum") == "GECTI"]
     if not rows:
-        sys.exit("denetlenecek satir yok")
+        sys.exit(u'there is no row to audit')
 
     kaliplar = kalip_yukle(a.kons)
     print("=" * 72)

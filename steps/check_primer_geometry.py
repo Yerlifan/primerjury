@@ -81,7 +81,7 @@ def main():
     aday = sorted(glob.glob(os.path.join(a.kons, "*%s*" % capa_ad))) or \
         sorted(glob.glob(os.path.join(a.kons, "*")))
     if not aday:
-        sys.exit("capa konsensusu bulunamadi: %s" % capa_ad)
+        sys.exit(u'the anchor consensus was not found: %s' % capa_ad)
     kalip = oku(aday[0])
     print("capa dosyasi : %s" % os.path.basename(aday[0]))
     print("kalip uzunluk: %d" % len(kalip))
@@ -100,7 +100,7 @@ def main():
             bildirilen_min = int(r["urun_min"])
             bildirilen_maks = int(r.get("urun_maks") or r["urun_min"])
         except (KeyError, ValueError):
-            sys.exit("TSV'de konum sutunlari yok; 04'un guncel surumu gerekli")
+            sys.exit(u'the TSV has no position columns; the current version of design_group_primers.py is needed')
         if fb < 0 or gb + gl > len(kalip):
             say["kalip_disi"] += 1
             continue
@@ -146,7 +146,7 @@ def main():
             ornek.append((r, urun, hata))
 
     n = min(len(rows), a.en_fazla)
-    print("SONUC")
+    print(u'RESULT')
     print(u'   rows passing all four geometry conditions : %d / %d' % (say["tamam"], n))
     print(u'   the product does not start with the forward primer : %d' % say["urun_basi"])
     print(u'   the product does not end with the rc of the reverse primer: %d' % say["urun_sonu"])
@@ -156,7 +156,7 @@ def main():
     print("   geri primerin 3' ucu belirsiz bazda  : %d" % say["r_3p_belirsiz"])
     print(u'   rows running off the end of the template          : %d' % say["kalip_disi"])
     for r, urun, hata in ornek:
-        print("\n   HATA %s" % ", ".join(hata))
+        print(u'\n   ERROR %s' % ", ".join(hata))
         print("      F=%s  R=%s" % (r["ileri_dizi"], r["geri_dizi"]))
         print(u'      product start=%s ... end=%s' % (urun[:28], urun[-28:]))
         print("      rc(R)   =%s" % rc(r["geri_dizi"]))

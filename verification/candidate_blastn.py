@@ -161,7 +161,7 @@ def _dizileri_cek(fasta_yolu, idler):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cikti, hata = p.communicate()
         if p.returncode != 0:
-            sys.stderr.write(u'blastdbcmd HATA: %s\n'
+            sys.stderr.write(u'blastdbcmd ERROR: %s\n'
                              % hata.decode('utf-8', 'replace')[:200])
             return None
         out = []
@@ -201,5 +201,5 @@ if __name__ == '__main__':
         for f in sorted(os.listdir(rd)):
             if f.endswith(('.fasta', '.fna')):
                 y = os.path.join(rd, f)
-                print(u'  %-40s indeks: %s'
+                print(u'  %-40s index: %s'
                       % (f, u'VAR' if indeks_var_mi(y) else u'yok'))

@@ -251,13 +251,13 @@ def main():
     a = get_args()
     random.seed(a.tohum)
     if not os.path.exists(a.fastq):
-        sys.exit("fastq bulunamadi: %s" % a.fastq)
+        sys.exit(u'no fastq found: %s' % a.fastq)
     os.makedirs(a.out, exist_ok=True)
     print(hizalama.durum())
     okumalar = fastq_oku(a.fastq, a.min_uzunluk, a.max_okuma)
-    print("okuma: %d (>= %d bp)" % (len(okumalar), a.min_uzunluk))
+    print(u'reads: %d (>= %d bp)' % (len(okumalar), a.min_uzunluk))
     if len(okumalar) < a.min_derinlik * 2:
-        sys.exit("okuma sayisi yetersiz: %d" % len(okumalar))
+        sys.exit(u'the read count is not enough: %d' % len(okumalar))
 
     def gun(s):
         print(s)
@@ -271,9 +271,9 @@ def main():
     karisik = okumalar[:]
     random.shuffle(karisik)
     yarim = len(karisik) // 2
-    print("YARI 1 (%d okuma)" % yarim)
+    print(u'HALF 1 (%d reads)' % yarim)
     y1, _ = kur(karisik[:yarim], a, gun)
-    print("YARI 2 (%d okuma)" % (len(karisik) - yarim))
+    print(u'HALF 2 (%d reads)' % (len(karisik) - yarim))
     y2, _ = kur(karisik[yarim:], a, gun)
 
     if y1 and y2:

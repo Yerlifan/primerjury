@@ -37,14 +37,13 @@ def main():
     kaynak = a.kaynak or os.path.join(kok, 'TEK_PROTOKOL_SONUC',
                                       'panel_tek_protokol.tsv')
     if not os.path.exists(kaynak):
-        sys.exit('HATA: kaynak yok: %s\n'
-                 '      Once tam kosu (P asamasi) tamamlanmalidir.' % kaynak)
+        sys.exit(u'ERROR: there is no source: %s\n      the full run (stage P) has to be finished first.' % kaynak)
 
     with io.open(kaynak, encoding='utf-8') as fh:
         satirlar = list(csv.DictReader(
             (l for l in fh if not l.startswith('#')), delimiter='\t'))
     if not satirlar:
-        sys.exit('HATA: kaynak bos: %s' % kaynak)
+        sys.exit(u'ERROR: the source is empty: %s' % kaynak)
 
     hedef_dizin = os.path.join(kok, 'HIZLI_TEST')
     if not os.path.isdir(hedef_dizin):

@@ -91,7 +91,7 @@ def main():
     pool = expand(a.in_group)
     outg = expand(a.out_group)
     if not pool:
-        sys.exit("hedef kumesi bos")
+        sys.exit(u'the target set is empty')
     print(u'starting member count : %d' % len(pool))
     print(u'number of competitors : %d' % len(outg))
     print("motor                : %s" % ENGINE)
@@ -146,7 +146,7 @@ def main():
                 # hic ilerleme yok, sonsuz donguye girmemek icin durulur
                 break
 
-    print("\n=== SONUC ===")
+    print(u'\n=== RESULT ===')
     for s in sets:
         print(u'SET%d : %d members, %d valid pairs' % (s["set"], len(s["members"]), s["pairs"]))
         print("        uyeler: %s" % ", ".join(s["members"]))
