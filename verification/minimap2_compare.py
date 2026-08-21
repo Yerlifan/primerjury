@@ -48,7 +48,7 @@ def _kd_yukle(kok):
     import importlib.util as u
     y = os.path.join(kok, 'verification', 'identity_verification.py')
     if not os.path.exists(y):
-        sys.stderr.write(u'HATA: %s yok. --kok proje klasorunu gostermeli.\n' % y)
+        sys.stderr.write(u'ERROR: %s does not exist. --kok must point at the project directory.\n' % y)
         return None
     sp = u.spec_from_file_location('kd', y)
     m = u.module_from_spec(sp)
@@ -98,14 +98,7 @@ def main():
 
     if not mm.var_mi():
         sys.stderr.write(
-            u'\nKARSILASTIRMA YAPILAMADI: mappy calismiyor.\n'
-            u'  Sebep: %s\n'
-            u'  Kurulum: pip install mappy\n'
-            u'           (ya da: micromamba install -n mikro -c bioconda minimap2\n'
-            u'                   micromamba run -n mikro pip install mappy)\n'
-            u'\n'
-            u'  Mevcut motor calismaya devam eder; zincir bundan ETKILENMEZ.\n'
-            u'  Varsayilan hizalayici degismedi: saf Python.\n\n' % mm.sebep())
+            u'\nCOMPARISON NOT POSSIBLE: mappy does not work.\n  Reason: %s\n  Install: pip install mappy\n           (or: micromamba install -n mikro -c bioconda minimap2\n                micromamba run -n mikro pip install mappy)\n\n  The current engine keeps working and the chain is NOT AFFECTED.\n  The default aligner is unchanged: pure Python.\n\n' % mm.sebep())
         return 2
 
     kd = _kd_yukle(kok)
@@ -114,7 +107,7 @@ def main():
 
     kutular = kutu_konsensuslari(kok, a.kutu)
     if not kutular:
-        sys.stderr.write(u'HATA: kutu konsensusu bulunamadi.\n')
+        sys.stderr.write(u'ERROR: no bin consensus found.\n')
         return 1
 
     vtb = [(e, d) for e, d, _t, kullan, _n in kd.VTB
@@ -122,12 +115,12 @@ def main():
     if a.vtb:
         vtb = [v for v in vtb if a.vtb.lower() in v[1].lower()]
     if not vtb:
-        sys.stderr.write(u'HATA: REFERANS_DB altinda kullanilabilir veritabani yok.\n')
+        sys.stderr.write(u'ERROR: there is no usable database under REFERANS_DB.\n')
         return 1
 
     satirlar = []
     t_py_top = t_mm_top = 0.0
-    print(u'%d kutu x %d veritabani, veritabani basina %d kayit'
+    print(u'%d bins x %d databases, %d records per database'
           % (len(kutular), len(vtb), a.kayit))
 
     for kutu, q in kutular:

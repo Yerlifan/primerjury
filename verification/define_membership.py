@@ -103,10 +103,10 @@ def main():
         (uye if a.kalip.lower() in metin.lower() else rakip).append(r)
 
     print('=' * 78)
-    print('  UYELIK TANIMI  hedef=%s  sinif=%s  kalip="%s"'
+    print(u'  MEMBERSHIP DEFINITION  target=%s  class=%s  pattern="%s"'
           % (a.hedef, sinif, a.kalip))
     print('=' * 78)
-    print('  %s sinifinda kutu: %d' % (sinif, len(ayni_sinif)))
+    print(u'  bins in class %s: %d' % (sinif, len(ayni_sinif)))
     print()
     print('  UYE (%d) - olculen kimliginde "%s" geciyor:' % (len(uye), a.kalip))
     for r in uye:
@@ -122,7 +122,7 @@ def main():
 
     if not a.yaz:
         print()
-        print('  Bu bir PLANDIR. Yazmak icin --yaz ekleyin.')
+        print(u'  This is a PLAN. Add --yaz to write it.')
         return 0
 
     # ---- 1) uyelik_yeniden_turetme dosyasi ----
@@ -147,10 +147,10 @@ def main():
                  % (a.kalip, len(uye), len(rakip), time.strftime('%Y-%m-%d')))
     if varsa:
         sat[varsa[0]] = yeni
-        print('\n  uyelik satiri GUNCELLENDI: %s' % os.path.basename(uy))
+        print(u'\n  membership row UPDATED: %s' % os.path.basename(uy))
     else:
         sat.append(yeni)
-        print('\n  uyelik satiri EKLENDI: %s' % os.path.basename(uy))
+        print(u'\n  membership row ADDED: %s' % os.path.basename(uy))
     with io.open(uy, 'w', encoding='utf-8', newline='') as fh:
         for r in sat:
             fh.write(u'\t'.join(r) + u'\n')
@@ -172,7 +172,7 @@ def main():
             io.open(hy, 'w', encoding='utf-8', newline='').write(metin)
             print('  acik tanim EKLENDI: screening/hedef_uyelik.tsv')
         else:
-            print('  acik tanim zaten var: screening/hedef_uyelik.tsv')
+            print(u'  an explicit definition already exists: screening/hedef_uyelik.tsv')
 
     # ---- 3) panel kaynagina satir ----
     if a.panel_satiri:
@@ -186,7 +186,7 @@ def main():
         pb = psat[0]
         if any(len(r) > pb.index('Hedef') and r[pb.index('Hedef')].strip() == a.hedef
                for r in psat[1:]):
-            print('  panel satiri zaten var, dokunulmadi.')
+            print(u'  the panel row already exists and was left untouched.')
         else:
             import csv as _csv
             sl = None

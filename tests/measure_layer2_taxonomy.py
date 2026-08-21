@@ -53,7 +53,7 @@ URUN_ALT, URUN_UST, BOY_TOL = 70, 400, 10
 
 def ciftleri_oku():
     if not os.path.exists(KAYNAK):
-        sys.stderr.write('cift kaynagi yok: %s\n' % KAYNAK)
+        sys.stderr.write(u'no source of pairs: %s\n' % KAYNAK)
         sys.exit(2)
     out = []
     with io.open(KAYNAK, encoding='utf-8') as fh:
@@ -79,13 +79,12 @@ def main():
     if a.hedef:
         ciftler = [c for c in ciftler if a.hedef.lower() in c['hedef'].lower()]
     if not ciftler:
-        sys.stderr.write('cift bulunamadi\n'); return 2
+        sys.stderr.write(u'no pair found\n'); return 2
 
     klad = MK.klad_tablosu(KOK)
     yok = [c['hedef'] for c in ciftler if c['hedef'] not in klad]
     if yok:
-        print('UYARI: hedef_klad.tsv\'de tanimi olmayan %d hedef - bunlarda'
-              ' taksonomik ayrim YAPILAMAZ:' % len(yok))
+        print(u'WARNING: %d targets have no definition in hedef_klad.tsv, so taxonomic separation CANNOT be made for them:' % len(yok))
         for h in yok:
             print('   - %s' % h)
         print()
@@ -141,10 +140,10 @@ def main():
             if _k.get('imza') == imza:
                 top = _k['top']
                 tamamlanan = _k.get('tamamlanan', [])
-                print('onceki kosudan devam: %d veritabani zaten olculmus (%s)'
+                print(u'resuming from an earlier run: %d databases already measured (%s)'
                       % (len(tamamlanan), ', '.join(tamamlanan)))
         except Exception as e:
-            print('kismi sonuc okunamadi (%s) - bastan olculuyor' % type(e).__name__)
+            print(u'the partial result could not be read (%s), so it is being measured from scratch' % type(e).__name__)
 
     def kismi_yaz():
         gecici = kismi_yol + '.tmp'
@@ -155,14 +154,14 @@ def main():
             os.remove(kismi_yol)
         os.rename(gecici, kismi_yol)
 
-    print('%d cift, %d veritabani' % (len(ciftler), len(vtbler)))
+    print(u'%d pairs, %d databases' % (len(ciftler), len(vtbler)))
     for d in vtbler:
         if d in tamamlanan:
             print('  ATLANDI (zaten olculmus): %s' % d)
             continue
         yol = os.path.join(refdb, d)
         if not os.path.exists(yol):
-            print('  ATLANDI (yok): %s' % d)
+            print(u'  SKIPPED (absent): %s' % d)
             continue
         t0 = time.time()
         print('  taraniyor: %-34s (%s)' % (d, '%.0f MB' % (os.path.getsize(yol) / 1e6)),
@@ -186,7 +185,7 @@ def main():
                 top[h]['sinif'][k] += v
         tamamlanan.append(d)
         kismi_yaz()
-        print('     kismi sonuc yazildi: %s' % os.path.relpath(kismi_yol, KOK))
+        print(u'     partial result written: %s' % os.path.relpath(kismi_yol, KOK))
 
     print()
     print('=' * 118)
@@ -211,7 +210,7 @@ def main():
     print()
     print('=== FARK ===')
     if not degisen:
-        print('Iki olcut ayni sonucu verdi (bu veritabani alt kumesinde).')
+        print(u'The two criteria gave the same answer (on this subset of databases).')
     else:
         print('%-40s %14s %14s %s' % ('hedef', 'BOY olcutu', 'TAKSON olcutu', 'etki'))
         print('-' * 100)
@@ -227,8 +226,8 @@ def main():
             print('%-40s %14d %14d  %s' % (h[:40], b, k, etki))
 
     print()
-    print('NOT: bu olcum yalniz su veritabanlarinda yapildi: %s' % ', '.join(vtbler))
-    print('     Tam kapsam SILVA/UNITE/PR2/ROD gerektirir ve SAATLER surer.')
+    print(u'NOTE: this measurement covered only these databases: %s' % ', '.join(vtbler))
+    print(u'     Full coverage needs SILVA/UNITE/PR2/ROD and takes HOURS.')
     print('     Buradaki sayilar KAPSAM DEGIL, yontemin calistiginin kanitidir.')
     return 0
 
