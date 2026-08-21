@@ -1,37 +1,44 @@
 # -*- coding: utf-8 -*-
-u"""TEK TUS - butun zinciri sirayla, dogru bagimlilik sirasinda, tek komutla kosar.
+"""ONE KEY - it runs the whole chain in order, in the right dependency order, from
+one command.
 
-CAGIRAN : verification/one_key.py  ve  verification/full_chain.py -> B tusu
-CIKTI   : TEK_TUS_SONUC/00_SABAH_OZETI.md   (sabah bakilacak TEK dosya)
-          TEK_TUS_SONUC/durum.json          (kontrol noktalari)
-          TEK_TUS_SONUC/gunluk_<zaman>.log  (ekranin zaman damgali kopyasi)
+CALLED BY : verification/one_key.py  and  verification/full_chain.py -> key B
+OUTPUT    : TEK_TUS_SONUC/00_SABAH_OZETI.md   (the ONE file to look at in the morning)
+            TEK_TUS_SONUC/durum.json          (the checkpoints)
+            TEK_TUS_SONUC/gunluk_<time>.log   (a timestamped copy of the screen)
 
-BU DOSYA NEDEN VAR
-------------------
-Var olan A tusu (verification/full_chain.py) on asama kosuyor ama:
-  * on kontrol yapmiyor - eksik dosya/arac/paketi kosunun ortasinda kesfediyor,
-  * U ve P asamalarini hic tanimiyor (P'nin girdisi U'nun ciktisidir),
-  * kontrol noktasi gecerliligini yalnizca "damga var mi" diye soruyor;
-    GIRDI kontrol noktasindan yeniyse bayat damgayi okuyup asamayi atliyor.
-    Bu tam olarak 2026-08-07'de yasandi (D-9, zehirli kontrol noktasi).
-Bu dosya o uc boslugu kapatir. full_chain.py'ye DOKUNULMADI; o hala calisiyor.
+WHY THIS FILE EXISTS
+--------------------
+The existing key A (verification/full_chain.py) runs ten stages, but:
+  * it does no pre-check, and discovers a missing file, tool or package in the
+    middle of a run,
+  * it does not know stages U and P at all (P's input is U's output),
+  * it asks about checkpoint validity only as "is there a stamp"; when the INPUT
+    is newer than the checkpoint it reads the stale stamp and skips the stage.
+    That happened exactly on 2026-08-07 (D-9, the poisoned checkpoint).
+This file closes those three gaps. full_chain.py WAS NOT TOUCHED; it still works.
 
-TASARIM KURALLARI (hepsi bir hatadan ogrenildi, hicbiri suslemek icin degil)
----------------------------------------------------------------------------
-1. ON KONTROL BIR KAPIDIR. Eksik varsa NE eksik oldugu yazilir ve DURULUR.
-   Yarim kosu yok. (--on-kontrol-atla ile bilerek gecilebilir, ekrana yazilir.)
-2. CIKIS KODU MASKELENMEZ. rc != 0 ise asama DUSTU'dur. Gecmiste full_chain.py
-   T asamasinin 3 dondurdugunu goz ardi edip "BITTI" yazmisti; ozet yaniltici
-   cikti. Burada rc VE cikti denetimi AYRI iki suzgectir, ikisi de gecmelidir.
-3. KONTROL NOKTASI ANAHTARI BELIRLENIMCIDIR. md5 kullanilir; Python'un
-   hash() fonksiyonu KULLANILMAZ (PYTHONHASHSEED yuzunden kosular arasinda
-   degisir ve her kosu kontrol noktasini isikalar).
-4. GIRDI KONTROL NOKTASINDAN YENIYSE KONTROL NOKTASI GECERSIZDIR. Asamanin
-   kendi BETIGI de girdi sayilir: betik degistiyse asama yeniden kosar.
-5. BAGIMLILIK YONLUDUR. Dusen bir asamanin bagimlilari KOSULMAZ, "atlandi
-   (bagimli)" yazilir. Bagimsiz asamalar devam eder.
-6. SURE TAHMINLERI OLCUMDUR. Her sayinin yaninda hangi dosyadan/kosudan
-   geldigi yazilidir. Olculmemis asamaya sayi YAZILMAZ, "olculmedi" yazilir.
+THE DESIGN RULES (every one learned from a bug, none of them decoration)
+-----------------------------------------------------------------------
+1. THE PRE-CHECK IS A GATE. If something is missing, WHAT is missing is written
+   out and the run STOPS. There is no half run. (It can be passed deliberately
+   with --on-kontrol-atla, and that is printed to the screen.)
+2. THE EXIT CODE IS NOT MASKED. If rc != 0 the stage FAILED. In the past
+   full_chain.py ignored stage T returning 3 and wrote "BITTI"; the summary came
+   out misleading. Here rc AND the output audit are TWO SEPARATE filters and both
+   must pass.
+3. THE CHECKPOINT KEY IS DETERMINISTIC. md5 is used; Python's hash() function IS
+   NOT (it changes between runs because of PYTHONHASHSEED, so every run misses
+   the checkpoint).
+4. IF THE INPUT IS NEWER THAN THE CHECKPOINT, THE CHECKPOINT IS INVALID. The
+   stage's own SCRIPT counts as an input too: if the script changed, the stage
+   runs again.
+5. DEPENDENCIES ARE DIRECTED. The dependants of a failed stage ARE NOT RUN and
+   are written "atlandi (bagimli)". Independent stages carry on.
+6. THE TIME ESTIMATES ARE MEASUREMENTS. Beside every number stands the file or
+   run it came from. A stage that was never measured gets NO number; it gets
+   "olculmedi".
+
 """
 
 import os, sys, io, csv, json, time, glob, signal, hashlib, argparse
@@ -64,7 +71,10 @@ def boyut_metni(b):
 
 
 def veri_satiri_say(yol):
-    u"""TSV'de BASLIK HARIC veri satiri sayar. Yorum ve bos satir sayilmaz."""
+    """Counts the data rows in a TSV, EXCLUDING THE HEADER. Comment and blank lines do
+        not count.
+
+    """
     if not os.path.exists(yol):
         return -1
     n = 0
@@ -77,13 +87,13 @@ def veri_satiri_say(yol):
 
 
 def dosya_parmak(kok, yol):
-    u"""Bir dosyanin BELIRLENIMCI parmak izi: goreli yol | boy | mtime_ns.
+    """A DETERMINISTIC fingerprint of a file: relative path | size | mtime_ns.
 
-    Neden icerik md5'i degil: REFERANS_DB icindeki tek bir dosya 1,5 GB.
-    Her kosuda 30 GB okumak kabul edilemez. Boy+mtime_ns cifti dosya
-    degisiminde degisir ve AYNI dosya icin kosular arasinda SABITTIR - bizim
-    ihtiyacimiz olan iki ozellik de bu. Klasorler icin: dosya sayisi + en yeni
-    mtime.
+        Why not a content md5: a single file inside REFERANS_DB is 1.5 GB. Reading
+        30 GB on every run is unacceptable. The size plus mtime_ns pair changes when the
+        file changes and is CONSTANT between runs for THE SAME file, and those are the
+        two properties we need. For directories: the file count plus the newest mtime.
+
     """
     try:
         st = os.stat(yol)
@@ -132,12 +142,14 @@ def cozumle(kok, yol):
 
 
 def yollari_ac(kok, listeler):
-    u"""girdi/cikti listesini gercek yollara cevirir.
+    """Turns the input and output lists into real paths.
 
-    'GLOB:desen' yazan bir oge desene uyan BUTUN dosyalara acilir. Buna ihtiyac
-    var cunku uyelik ciktisinin adi tarihli: uyelik_yeniden_turetme_uyelik_
-    20260803.tsv. Sabit yol yazsaydik yeni bir tarihte uretilen dosya
-    goruinmezdi ve asama her kosuda bastan kosardi.
+        An entry written 'GLOB:pattern' expands to EVERY file matching the pattern. That
+        is needed because the membership output's name carries a date:
+        uyelik_yeniden_turetme_uyelik_20260803.tsv. Had a fixed path been written, a file
+        produced on a new date would be invisible and the stage would run from scratch on
+        every run.
+
     """
     out = []
     for y in listeler:
@@ -148,11 +160,11 @@ def yollari_ac(kok, listeler):
     return out
 
 
-# ===========================================================================
-#  1) ASAMA CIKTI DENETCILERI
-#     Cikis kodu 0 olmasi YETMEZ. Her asama icin "beklenen cikti gercekten
-#     uretildi mi ve icinde veri var mi" ayrica sorulur.
-# ===========================================================================
+# =========================================================================
+#  1) THE STAGE OUTPUT AUDITORS
+#     AN EXIT CODE OF 0 IS NOT ENOUGH. For every stage, "was the expected output
+#     really produced, and is there data in it" is asked separately.
+# =========================================================================
 def d_tsv_dolu(yollar, en_az=1):
     def f(kok, ayar, cikti_metni):
         eksik, bos, tamam = [], [], []
@@ -209,39 +221,43 @@ def d_yok(kok, ayar, cikti_metni):
     return True, u'bu asama dosya uretmez, yalniz ekrana yazar'
 
 
-# ===========================================================================
-#  2) ASAMA CIZELGESI  -  BAGIMLILIK YONLU VE SIRA ZORUNLUDUR
+# =========================================================================
+#  2) THE STAGE SCHEDULE  -  DEPENDENCY ORDERED, AND THE ORDER IS REQUIRED
 #
-#  Alanlar:
-#    kod          menude ve ozette gorunecek harf
-#    ad           tek satirlik aciklama
-#    betik        varligi on kontrolde aranan dosya (None ise dis arac)
-#    argv(kok,a)  calistirilacak komut listelerinin listesi
-#    girdi[]      bu asamanin OKUDUGU dosyalar. Bunlardan biri asamanin
-#                 ciktisindan YENIYSE kontrol noktasi GECERSIZDIR.
-#    cikti[]      bu asamanin URETTIGI dosyalar (cikti denetimi ve tazelik icin)
-#    bagimli[]    once bitmesi gereken asama kodlari
-#    sure_sn      OLCULMUS sure (saniye). None ise "olculmedi" yazilir.
-#    kaynak       o sayinin hangi dosyadan/kosudan geldigi
-#    denet        cikti denetcisi
+#  The fields:
+#    kod          the letter shown in the menu and the summary
+#    ad           a one line description
+#    betik        the file whose presence the pre-check looks for (None for an
+#                 external tool)
+#    argv(kok,a)  the list of command lists to run
+#    girdi[]      the files this stage READS. If one of them is NEWER than the
+#                 stage's output, THE CHECKPOINT IS INVALID.
+#    cikti[]      the files this stage PRODUCES (for the output audit and freshness)
+#    bagimli[]    the stage codes that must finish first
+#    sure_sn      the MEASURED time (seconds). None writes "not measured".
+#    kaynak       which file or run that number came from
+#    denet        the output auditor
 #    kraken       True: needs tools/kraken_tool.sh
-#    hep_kos      True: hizli ve yan etkisiz; kontrol noktasi tutulmaz
+#    hep_kos      True: fast and side effect free; no checkpoint is kept
 #
-#  SIRA NEDEN BOYLE (kod okunarak cikarildi, tahmin degil):
-#    U -> P : single_protocol_measure.py uyeligi uyelik_yeniden_turetme_uyelik_*.tsv
-#             dosyasindan alir (verification/full_chain.py satir 1092 de bunu arar).
-#    P -> K : recovery_round.py girdisi TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv
-#             (verification/full_chain.py satir 946 bunu on kosul olarak dogruluyor).
-#    P -> D : dogrulama_turu.siparistekiler() TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv
-#             okur (specificity_round.py satir 150-155).
-#    K -> D : D, K'nin kurtardigi ciftleri de sinar (kurtarma_satirlari.tsv).
-#    I -> G : all_bin_identities.py onbellegi I ile PAYLASIR; I once kosarsa
-#             ayni kutu iki kez taranmaz (verification/full_chain.py satir 686).
-#    W -> X : esik taramasi once ortam denetiminden gecer.
-#    X -> Z : tablo, esik taramasinin ciktisini okur, yeni olcum yapmaz.
-#    H once : H bir GERILEME KAPISIDIR - onceki referans kosuya karsi sinar.
-#             Bu yuzden P'den ONCE kosar; P'nin yeni ciktisini beklemez.
-# ===========================================================================
+#  WHY THE ORDER IS WHAT IT IS (read out of the code, not guessed):
+#    U -> P : single_protocol_measure.py takes its membership from
+#             uyelik_yeniden_turetme_uyelik_*.tsv (verification/full_chain.py line
+#             1092 looks for it too).
+#    P -> K : recovery_round.py's input is
+#             TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv
+#             (verification/full_chain.py line 946 verifies it as a precondition).
+#    P -> D : dogrulama_turu.siparistekiler() reads
+#             TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv (specificity_round.py lines 150-155).
+#    K -> D : D also tests the pairs K recovered (kurtarma_satirlari.tsv).
+#    I -> G : all_bin_identities.py SHARES its cache with I; if I runs first the
+#             same bin is not scanned twice (verification/full_chain.py line 686).
+#    W -> X : the threshold scan goes through the environment check first.
+#    X -> Z : the table reads the output of the threshold scan, it makes no new
+#             measurement.
+#    H first: H is A REGRESSION GATE; it tests against the previous reference run.
+#             So it runs BEFORE P and does not wait for P's new output.
+# =========================================================================
 def _py(*a):
     return [sys.executable] + list(a)
 
@@ -278,11 +294,11 @@ def ASAMALAR(ayar):
              sure_sn=4.6, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 kosusu',
              denet=d_selftest, hep_kos=True),
 
-        # 2026-08-10 EKLENDI. Bu projede hatalarin cogu olcumde degil olcumun
-        # DAYANDIGI tabloda cikti ve hicbiri kosuyu dusurmedi; ancak birisi
-        # "baska hata var mi" diye sordugunda bulundu. Sormaya bagli denetim
-        # denetim degildir. Bu asama o soruyu HER kosuda kendisi sorar.
-        # Olcum yapmaz, dosya degistirmez; bu yuzden hep_kos=True.
+        # ADDED 2026-08-10. In this project most of the bugs were not in the measurement but
+        # in THE TABLE THE MEASUREMENT RESTED ON, and none of them failed a run; each was
+        # found only when somebody asked "is there another bug". An audit that depends on
+        # being asked is not an audit. This stage asks that question itself ON EVERY RUN.
+        # It measures nothing and changes no file, which is why hep_kos=True.
         dict(kod='N', ad=u'DENETIM - tablolar, referanslar ve muhurler her kosuda bakilir',
              grup=u'Grup 4', betik='verification/audit_all.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'audit_all.py'),
@@ -357,13 +373,13 @@ def ASAMALAR(ayar):
         dict(kod='D', ad=u'DOGRULAMA - paneldeki ciftler dort kanit katmaniyla sinanir',
              grup=u'Grup 1', betik='verification/specificity_round.py',
              argv=d_argv,
-             # 2026-08-09 DUZELTME (girdi takibi): asamalarin HICBIRI
-             # screening/ciftler.tsv dosyasini girdi saymiyordu. O dosya
-             # panelin PRIMER DIZILERINI tutuyor. Yani butun panelin dizileri
-             # degistirilse bile zincir "girdi degismemis" deyip her asamayi
-             # atlardi. 09.08'de iki cift degistirildi ve D yine atlanacakti;
-             # dogruladigi sey eski cift olurdu. Kok SIPARIS_LISTESI.tsv de
-             # eklendi, cunku D siparis satirlarini oradan okuyor.
+             # THE 2026-08-09 FIX (input tracking): NONE of the stages counted
+             # screening/ciftler.tsv as an input. That file holds the panel's PRIMER
+             # SEQUENCES. So even if the sequences of the whole panel were changed, the
+             # chain would say "the input has not changed" and skip every stage. On
+             # 09.08 two pairs were changed and D would have been skipped again; what it
+             # verified would have been the old pair. The root SIPARIS_LISTESI.tsv was
+             # added too, because D reads the order rows from there.
              girdi=['verification/specificity_round.py', 'verification/mfeprimer_layer.py',
                     'screening/hedef_klad.tsv',
                     'screening/ciftler.tsv',
@@ -436,10 +452,11 @@ def ASAMALAR(ayar):
 #  3) ON KONTROL  -  EKSIK VARSA DURUR
 # ===========================================================================
 def on_kontrol(kok, ayar, yaz):
-    u"""Kosuya girmeden once her sart tek tek olculur.
+    """Every condition is measured one by one before the run starts.
 
-    ZORUNLU dusen tek bir madde varsa kosu BASLAMAZ. Bu bilerek boyle:
-    yarim kosu, sabah okunacak yaniltici bir ozet uretir.
+        If a single REQUIRED item fails, the run DOES NOT START. That is deliberate: a
+        half run produces a misleading summary to be read in the morning.
+
     """
     zorunlu_dusen, uyari, sayac = [], [], [0]
     yaz(u'')
@@ -525,9 +542,9 @@ def on_kontrol(kok, ayar, yaz):
     satir(u'katman 2 veritabanlari (11 kume)', not eksik_kume,
           u'11/11 yerinde' if not eksik_kume else u'EKSIK: %s' % u', '.join(eksik_kume))
 
-    # --- 6) SILVA SSU RNA/DNA kapisi ---------------------------------------
-    # Gecmiste SILVA'nin RNA alfabesi (U) indeksi bozmus ve butun baglanmalar
-    # 0/0 gelmisti. Ilk birkac bin satirda U/T sayarak DNA oldugunu dogruluyoruz.
+    # --- 6) The SILVA SSU RNA/DNA gate -------------------------------------
+    # In the past SILVA's RNA alphabet (U) broke the index and every binding came back
+    # 0/0. We confirm it is DNA by counting U against T in the first few thousand lines.
     sp = os.path.join(kok, 'REFERANS_DB', 'SILVA_138.2_SSURef_NR99.fasta')
     if os.path.exists(sp):
         try:
@@ -581,7 +598,7 @@ def on_kontrol(kok, ayar, yaz):
           ayar.get('karac') or ayar.get('kraken_sebep', u'yok - W/X/Z ATLANACAK'),
           zorunlu=False)
 
-    # --- 10) Ag (NCBI katmani icin) ----------------------------------------
+    # --- 10) The network (for the NCBI layer) ------------------------------
     if ayar.get('ncbi') == 'oto':
         ok, ayr = _ag_dene()
         satir(u'NCBI erisimi (--ncbi oto secildi)', ok, ayr, zorunlu=False)
@@ -589,9 +606,10 @@ def on_kontrol(kok, ayar, yaz):
             uyari.append(u'NCBI\'ye ulasilamadi. D asamasinin 4. katmani '
                          u'"BILINMIYOR" kalir; yerel katmanlar yine kosar.')
 
-    # --- 11) Yazma izni ----------------------------------------------------
-    # Sorulan tek sey YAZABILIYOR MUYUZ. Silme yetkisi AYRI bir sorudur ve bu
-    # zincir hicbir sey silmez; silinemeyen deneme dosyasi kosuyu durdurmaz.
+    # --- 11) Write permission -----------------------------------------------
+    # The only thing asked is CAN WE WRITE. Permission to delete is A SEPARATE question,
+    # and this chain deletes nothing; a test file that cannot be removed does not stop
+    # the run.
     try:
         t = os.path.join(kok, CIKTI_KLASOR)
         os.makedirs(t, exist_ok=True)
@@ -648,12 +666,12 @@ def _ag_dene():
 #  4) KONTROL NOKTASI - GECERLILIK
 # ===========================================================================
 def girdi_imzasi(kok, a):
-    u"""Asamanin OKUDUGU her seyin belirlenimci parmak izi.
+    """A deterministic fingerprint of everything the stage READS.
 
-    Asamanin KENDI BETIGI de girdidir: betik degistiyse eski sonuc bayattir.
-    Bu, 2026-08-07'de yasanan 'zehirli kontrol noktasi' hatasinin ayni
-    sinifini kapatir - orada indeks yenilenmis ama kontrol noktasi eski
-    sifirlari geri okumustu.
+        The stage's OWN SCRIPT is an input too: if the script changed, the old result is
+        stale. This closes the same class as the 'poisoned checkpoint' bug of 2026-08-07,
+        where the index had been rebuilt but the checkpoint read the old zeros back.
+
     """
     p = [u'surum=%s' % SURUM, u'kod=%s' % a['kod']]
     if a.get('betik'):
@@ -675,13 +693,14 @@ def _girdi_yollari(kok, a):
 
 
 def kontrol_noktasi_gecerli(kok, a, durum):
-    u"""(atlanabilir_mi, sebep) - NEDEN atlandigi/atlanmadigi acikca yazilir.
+    """(can_it_be_skipped, reason) - WHY it was or was not skipped is written openly.
 
-    Dort suzgec, hepsi gecmeli:
-      1. damga var ve 'bitti'
-      2. girdi imzasi ayni (girdi degismemis)
-      3. beklenen ciktilarin hepsi var ve dolu
-      4. en yeni cikti, en yeni girdiden YENI (bayat cikti okunmaz)
+        Four filters, and all of them must pass:
+          1. there is a stamp and it says 'bitti'
+          2. the input signature is the same (the input has not changed)
+          3. all the expected outputs exist and are non-empty
+          4. the newest output is NEWER than the newest input (a stale output is not read)
+
     """
     if a.get('hep_kos'):
         return False, u'bu asama her kosuda yeniden kosar (hizli ve yan etkisiz)'
@@ -708,10 +727,10 @@ def kontrol_noktasi_gecerli(kok, a, durum):
         return True, (u'onceki kosuda bitmisti (%s), girdi degismemis'
                       % sn_metni(d.get('sure', 0)))
 
-    # Damga yok. Diskte HAZIR ve TAZE bir cikti var mi?
-    # Bu, bu betik yazilmadan once uretilmis sonuclari tanimak icindir; onlari
-    # korkudan yeniden kosmak saatler israf ederdi. Ama "var" YETMEZ: "girdiden
-    # yeni" de sart, yoksa bayat sonucu tazeymis gibi kabul ederiz.
+    # There is no stamp. Is there a READY and FRESH output on disk?
+    # This is for recognising results produced before this script was written; re-running
+    # them out of caution would waste hours. But "it exists" IS NOT ENOUGH: "newer than
+    # the input" is required too, or we accept a stale result as a fresh one.
     if ciktilar:
         ok, mesaj = a['denet'](kok, {}, u'')
         if ok:
@@ -735,11 +754,12 @@ KESME = {'var': False}
 
 
 def asama_kos(kok, a, ayar, yaz):
-    u"""Bir asamanin butun komutlarini sirayla kosar.
+    """Runs all of a stage's commands in order.
 
-    * Cikis kodu okunur ve MASKELENMEZ.
-    * Ilk sifir disi kodda o asamanin kalan komutlari kosulmaz.
-    * Uzun sessizliklerde canlilik isareti basilir.
+        * The exit code is read and IS NOT MASKED.
+        * On the first non-zero code the stage's remaining commands are not run.
+        * A sign of life is printed during long silences.
+
     """
     t0 = time.time()
     rc, son_cikti = 0, u''
@@ -750,7 +770,8 @@ def asama_kos(kok, a, ayar, yaz):
     cevre['PYTHONUNBUFFERED'] = '1'
     if ayar.get('vt_a'):
         cevre['VT_A'] = ayar['vt_a']
-    # Kraken araci kendi klasorunden cagrilmali (yan dosyalarini goreli arar).
+    # The Kraken tool has to be called from its own directory (it looks for its
+    # companion files relatively).
     calisma = os.path.dirname(a['karac']) if (a.get('kraken') and a.get('karac')) else kok
 
     for i, argv in enumerate(komutlar, 1):
@@ -803,13 +824,13 @@ def asama_kos(kok, a, ayar, yaz):
     return rc, son_cikti, time.time() - t0
 
 
-# ===========================================================================
-#  6) PLAN, OZET, ANA AKIS
-# ===========================================================================
+# =========================================================================
+#  6) THE PLAN, THE SUMMARY, THE MAIN FLOW
+# =========================================================================
 def kraken_bul(kok):
-    # OLCULDU: yalniz <kok>/../tools/WSL/ araniyordu, yani projenin KARDESI olan
-    # bir klasor. Bu depoda tools/ kokun ICINDE, dolayisiyla arac hicbir zaman
-    # bulunmuyor ve W, X, Z her kosuda sessizce atlaniyordu.
+    # MEASURED: only <root>/../tools/WSL/ was being looked in, that is, a directory
+    # that is a SIBLING of the project. In this repository tools/ is INSIDE the root,
+    # so the tool was never found and W, X and Z were silently skipped on every run.
     adaylar = [os.path.join(kok, 'tools', 'kraken_tool.sh'),
                os.path.abspath(os.path.join(kok, '..', 'tools', 'WSL', 'kraken_tool.sh'))]
     for aday in adaylar:
@@ -852,36 +873,39 @@ def plan_yaz(kok, asamalar, durum, ayar, yaz):
     return toplam, olculmeyen
 
 
-# Nihai hukum tablosunun kaynagi. Sirayla denenir; ilk BULUNAN kullanilir.
-# En basta en YENI dosya durur. Yeni bir hukum turu uretilirse bu listenin
-# basina eklenmeli - kod dosyayi kendisi secmez, burada yazili sirayi izler.
-# 2026-08-10 DUZELTME. Liste basinda 08-08 tarihli ESIK_VE_OLCUT duruyordu ve
-# sabah ozeti "SIPARIS EDILEBILIR 11 cift" yaziyordu; oysa AYNI KOSUNUN kendi
-# urettigi TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv 20 cift diyor (15 KESIN +
-# 5 EVRENSEL). Aradaki fark, 08-08'den sonra bes ciftin degistirilmis ve
-# Microascaceae'nin geri alinmis olmasi. Ozet dosyadan okudugunu acikca
-# yaziyordu, yani yalan soylemiyordu - ama YANLIS DOSYAYI okuyordu ve sabah
-# ilk bakilan yer orasi. Kosunun KENDI urettigi tablo listenin basina alindi.
+# The source of the final verdict table. They are tried in order and the FIRST ONE
+# FOUND is used. The NEWEST file stands first. If a new kind of verdict is produced,
+# it has to be added at the head of this list; the code does not choose the file
+# itself, it follows the order written here.
+# THE 2026-08-10 FIX. An ESIK_VE_OLCUT dated 08-08 stood at the head of the list and
+# the morning summary said "11 pairs ORDERABLE", while the
+# TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv produced by THE SAME RUN said 20 (15 KESIN
+# plus 5 EVRENSEL). The difference is that five pairs were changed after 08-08 and
+# Microascaceae was brought back. The summary said openly which file it had read,
+# so it was not lying, but it was READING THE WRONG FILE, and that is the first
+# place anyone looks in the morning. The table THE RUN ITSELF produces was moved to
+# the head of the list.
 SIPARIS_KAYNAKLARI = [
     ('TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv', 'durum'),
     ('ESIK_VE_OLCUT_2026-08-08.tsv', 'YENI_HUKUM'),
     ('NIHAI_SIPARIS_LISTESI_2026-08-07.tsv', None),
 ]
 
-# SIPARIS EDILEBILIR sayilan hukum onekleri. Kural ACIKCA yazili, kodun icine
-# gomulu bir sezgi degil:
-#   * "SIPARIS EDILEBILIR..." -> grup ozgul, esigi gecen yedi cift
-#   * "KOSULLU..."            -> evrensel/kontrol primerleri. Onlarda dCq
-#                                tanimsizdir (rakip kumesi bosa yaklasir), bu
-#                                yuzden esik hukmu verilemez; olcu KAPSAMDIR.
-# "ESIK ALTI...", "ONERILMEZ...", "UYELIK DOGRULANAMADI" siparise GIRMEZ.
-#   * "ESIK USTU - SIPARIS EDILEBILIR" -> SIPARIS_LISTESI.tsv'nin kendi
-#                                dili. Ayni kural, farkli sozcuk sirasi.
+# The verdict prefixes that count as ORDERABLE. The rule is written OPENLY rather
+# than being an intuition buried in the code:
+#   * "SIPARIS EDILEBILIR..." -> group specific, the seven pairs past the threshold
+#   * "KOSULLU..."            -> universal and control primers. Their dCq is
+#                                undefined (the competitor set approaches empty), so
+#                                no threshold verdict can be given; the measure is
+#                                COVERAGE.
+# "ESIK ALTI...", "ONERILMEZ..." and "UYELIK DOGRULANAMADI" DO NOT enter the order.
+#   * "ESIK USTU - SIPARIS EDILEBILIR" -> SIPARIS_LISTESI.tsv's own wording. The
+#                                same rule, a different word order.
 SIPARIS_ONEKLERI = (u'SIPARIS EDILEBILIR', u'KOSULLU', u'ESIK USTU')
 
 
 def siparis_tablosu(kok):
-    u"""Nihai siparis tablosunu DISKTEKI dosyadan okur; YENIDEN HESAPLAMAZ."""
+    """Reads the final order table FROM THE FILE ON DISK; it DOES NOT RECOMPUTE it."""
     y = hk = None
     for ad, sut_adi in SIPARIS_KAYNAKLARI:
         t = os.path.join(kok, *ad.split('/'))
@@ -909,12 +933,12 @@ def siparis_tablosu(kok):
     def hukum(s):
         return (s.get(hk) or u'?').strip()
 
-    # SINIF sutunu varsa hukum ONDAN okunur. Sebep: evrensel primerlerde dCq
-    # TANIMSIZDIR (rakip kumesinin paydasi sifira gider) ve tablo onlara
-    # "OLCULEMEDI - KARAR YOK" yazar. Yalniz metne bakan bir kural o bes
-    # kontrol primerini siparis disi sayar - oysa panelin kontrolleri onlar ve
-    # siparise GIRERLER. dogrulama_turu.siparistekiler() de ayni kurali
-    # kullaniyor; iki yer ayni tanimi kullanmazsa iki farkli sayi uretilir.
+    # If there is a CLASS column the verdict is read FROM IT. The reason: on universal
+    # primers dCq IS UNDEFINED (the denominator of the competitor set goes to zero) and
+    # the table writes "OLCULEMEDI - KARAR YOK" for them. A rule looking only at the
+    # text counts those five control primers as not orderable, when they are the panel's
+    # controls and they DO go to order. dogrulama_turu.siparistekiler() uses the same
+    # rule; if two places do not use the same definition, two different numbers come out.
     sinif_s = next((k for k in sut if k.strip().upper() == 'SINIF'), None)
 
     def siparise_girer(s):
@@ -987,9 +1011,10 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
 
         uyarili = [a for a in asamalar if durum.get(a['kod'], {}).get('uyarili')]
         if uyarili:
-            # Danisma asamasi zinciri durdurmaz ama SESSIZ de kalmaz. Bulgu
-            # varsa ozetin basinda gorunur; yoksa denetim yapilmis ama kimse
-            # bakmamis olur ve kapinin bir anlami kalmaz.
+            # An advisory stage does not stop the chain but it DOES NOT STAY SILENT
+            # either. If there is a finding it appears at the top of the summary;
+            # otherwise an audit has been made that nobody looked at, and the gate means
+            # nothing.
             w(u'## WARNING: the audit found something, but the chain still ran\n\n')
             for a in uyarili:
                 d = durum[a['kod']]
@@ -1101,9 +1126,9 @@ def main():
     tampon = {'t': 0.0}
 
     def yaz(s=u''):
-        # Ekrana zamansiz, gunluge ZAMAN DAMGALI. Bagli klasore yazma sikligi
-        # LOG_YAZMA_ARALIGI ile sinirli (D-11: /mnt/c'ye cok sayida kucuk
-        # yazmanin yavas oldugu olculmustu).
+        # Without a timestamp on the screen, WITH one in the log. Writing to a mounted
+        # directory is limited by LOG_YAZMA_ARALIGI (D-11: many small writes to /mnt/c
+        # were measured to be slow).
         try:
             print(s, flush=True)
         except UnicodeEncodeError:
@@ -1190,9 +1215,9 @@ def main():
     sirano = 0
     for a in sec:
         kod = a['kod']
-        # PLAN BIR TAHMINDIR, BURASI HUKUMDUR. Onceki asamalar diski
-        # degistirmis olabilir (ornek: U kosunca P'nin girdisi degisir), bu
-        # yuzden atlama karari asamaya GELINDIGI ANDA yeniden hesaplanir.
+        # THE PLAN IS AN ESTIMATE, THIS IS THE VERDICT. Earlier stages may have
+        # changed the disk (for example, running U changes P's input), so the skip
+        # decision is recomputed AT THE MOMENT the stage is reached.
         if not a.get('_kraken_atla'):
             yeni_atla, yeni_sebep = kontrol_noktasi_gecerli(kok, a, durum)
             if yeni_atla != a['_atla']:
@@ -1253,20 +1278,21 @@ def main():
         son_satirlar = u'\n'.join((cikti_metni or u'').splitlines()[-15:])
         tamam, mesaj = a['denet'](kok, ayar, cikti_metni)
 
-        # IKI AYRI SUZGEC, IKISI DE GECMELI.
-        # Gecmiste yalniz cikti denetimine bakilip sifir disi kod goz ardi
-        # edilmisti (full_chain.py, T asamasi, 2026-08-06): T cikis kodu 3
-        # dondurdugu halde "BITTI" damgasi almisti ve ozet yaniltici cikmisti.
+        # TWO SEPARATE FILTERS, AND BOTH MUST PASS.
+        # In the past only the output audit was looked at and a non-zero code was
+        # ignored (full_chain.py, stage T, 2026-08-06): T returned exit code 3 and
+        # still got a "BITTI" stamp, and the summary came out misleading.
         if rc != 0:
             mesaj = (u'CIKIS KODU %s (sifir degil). Cikti denetimi: %s' % (rc, mesaj))
             tamam = False
-        # DANISMA ASAMASI: bulgu bildirir ama zinciri DUSURMEZ.
-        # N (DENETIM) boyle bir asamadir: isi "su an neyin bozuk oldugunu
-        # soylemek". Bozuk bir sey bulmasi zincirin kosmamasi demek degil;
-        # tersine, zincir kossun ki ne uretildigi de gorulsun. Ama sessiz de
-        # kalmaz - ozete UYARILI yazilir ve bulgular DENETIM_RAPORU.md'de
-        # durur. (2026-08-10: N eklenince tek_tus_sinama S1 senaryosu
-        # dusuyordu; kapinin isi sinav dusurmek degil.)
+        # AN ADVISORY STAGE: it reports findings but DOES NOT FAIL the chain.
+        # N (THE AUDIT) is such a stage: its job is "to say what is broken right
+        # now". Finding something broken does not mean the chain should not run; on
+        # the contrary, let the chain run so that what was produced can be seen too.
+        # But it does not stay silent either: UYARILI is written into the summary and
+        # the findings sit in DENETIM_RAPORU.md. (2026-08-10: when N was added, the
+        # tek_tus_sinama S1 scenario started failing; the gate's job is not to fail a
+        # test.)
         if a.get('danisma') and rc != 0:
             mesaj = u'UYARILI - %s (danisma asamasi, zincir durdurulmadi)' % mesaj
             tamam = True
