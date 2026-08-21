@@ -57,10 +57,13 @@ TUS="${1:-yardim}"
 # --- proje klasoru olculur, tahmin edilmez (rerun_kraken.sh ile ayni yol) ---
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
-if [ ! -d "$PROJE/TESLIM" ]; then
-  echo "HATA: proje klasoru dogrulanamadi ('$PROJE' icinde TESLIM yok)."
-  echo "  Betik konumu: $_BETIK_DIZIN"
-  echo "  Elle vermek icin:  PROJE=/tam/yol/proje bash $0 $TUS"
+# OLCULDU: burasi bir zamanlar kaynak projede duran TESLIM klasorunu ariyordu.
+# O klasor bu depoda YOK, dolayisiyla betik hangi tusla cagrilirsa cagrilsin ilk
+# denetimde duruyordu. Isaret artik depoda GERCEKTEN duran iki klasor.
+if [ ! -d "$PROJE/tools" ] || [ ! -d "$PROJE/verification" ]; then
+  echo "ERROR: the project root could not be verified ('$PROJE' holds no tools/ and verification/)."
+  echo "  Script location: $_BETIK_DIZIN"
+  echo "  To give it by hand:  PROJE=/full/path/to/project bash $0 $TUS"
   exit 1
 fi
 

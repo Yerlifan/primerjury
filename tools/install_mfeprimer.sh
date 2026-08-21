@@ -31,10 +31,11 @@ set -euo pipefail
 # Kurulum tasindiysa disaridan bastirilabilir:  PROJE=/tam/yol/proje bash <betik>
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
-if [ ! -d "$PROJE/0_TESLIM_RAPOR" ]; then
-  echo "HATA: proje klasoru dogrulanamadi ('$PROJE' icinde 0_TESLIM_RAPOR yok)."
-  echo "  Betik konumu: $_BETIK_DIZIN"
-  echo "  Elle vermek icin:  PROJE=/tam/yol/proje bash $0"
+# OLCULDU: 0_TESLIM_RAPOR bu depoda YOK; betik ilk denetimde duruyordu.
+if [ ! -d "$PROJE/tools" ] || [ ! -d "$PROJE/verification" ]; then
+  echo "ERROR: the project root could not be verified ('$PROJE' holds no tools/ and verification/)."
+  echo "  Script location: $_BETIK_DIZIN"
+  echo "  To give it by hand:  PROJE=/full/path/to/project bash $0"
   exit 1
 fi
 SURUM="${1:-v4.4.0}"
