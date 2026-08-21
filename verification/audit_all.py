@@ -93,7 +93,7 @@ def d1_harita_anahtarlari(kok, yaz):
     sl = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
     hy = os.path.join(kok, 'screening', 'hedef_taxid.tsv')
     if not os.path.exists(sl) or not os.path.exists(hy):
-        ATLANAN.append(u'1 harita anahtarlari (dosya yok)')
+        ATLANAN.append(u'1 map keys (no such file)')
         return
     adlar = set((r.get('hedef') or '').strip() for r in _tsv(sl) if r.get('hedef'))
     H = _harita(hy)
@@ -102,17 +102,15 @@ def d1_harita_anahtarlari(kok, yaz):
     yaz(u'  [1] exclusion map keys: %d targets, %d map rows'
         % (len(adlar), len(H)))
     if eksik:
-        bulgu(u'Dislama haritasinda OLMAYAN hedef',
-              u'%s\n      Bu hedefler NCBI katmaninda SINANMADI yazilir. Anahtar '
-              u'adi SIPARIS_LISTESI ile BIREBIR ayni olmalidir.' % ', '.join(eksik))
+        bulgu(u'A target that is NOT in the exclusion map',
+              u'%s\n      These targets are written as SINANMADI in the NCBI layer. The key name must be EXACTLY the same as in SIPARIS_LISTESI.' % ', '.join(eksik))
     if fazla:
         bulgu(u'Haritada olup panelde OLMAYAN anahtar',
-              u'%s\n      Muhtemelen ad degisti ve eski anahtar kaldi; olu satir '
-              u'yanlis guven verir.' % ', '.join(fazla))
+              u'%s\n      The name probably changed and the old key stayed; a dead row gives false confidence.' % ', '.join(fazla))
     bos = sorted(k for k, v in H.items() if not v)
     if bos:
-        bulgu(u'Dislama taksidi BOS birakilmis hedef',
-              u'%s\n      Bos taxid = o hedef NCBI katmaninda hic sinanmaz.'
+        bulgu(u'A target whose exclusion taxid was left EMPTY',
+              u'%s\n      An empty taxid means that target is never tested in the NCBI layer.'
               % ', '.join(bos))
 
 
@@ -120,10 +118,10 @@ def d1_harita_anahtarlari(kok, yaz):
 def d2_kapsama(kok, yaz, agsiz):
     bet = os.path.join(kok, 'screening', 'exclusion_coverage_check.py')
     if not os.path.exists(bet):
-        ATLANAN.append(u'2 kapsama denetimi (betik yok)')
+        ATLANAN.append(u'2 the coverage audit (no such script)')
         return
     if agsiz:
-        ATLANAN.append(u'2 kapsama denetimi (--agsiz verildi; NCBI Taxonomy gerekir)')
+        ATLANAN.append(u'2 the coverage audit (--agsiz was given; NCBI Taxonomy is needed)')
         return
     yaz(u'  [2] running the exclusion coverage check (NCBI Taxonomy)...')
     try:
@@ -132,7 +130,7 @@ def d2_kapsama(kok, yaz, agsiz):
                            timeout=900)
         cik = p.stdout.decode('utf-8', 'replace')
     except Exception as e:
-        ATLANAN.append(u'2 kapsama denetimi (kosturulamadi: %s)' % e)
+        ATLANAN.append(u'2 the coverage audit (could not be run: %s)' % e)
         return
     for satir in cik.splitlines():
         if 'KAPSAMIYOR' in satir or 'denetlenemedi' in satir:
@@ -140,10 +138,9 @@ def d2_kapsama(kok, yaz, agsiz):
     if p.returncode != 0:
         kotu = [s.strip() for s in cik.splitlines() if 'KAPSAMIYOR' in s]
         if kotu:
-            bulgu(u'Dislama taksonu uyeleri KAPSAMIYOR',
+            bulgu(u'The exclusion taxon DOES NOT COVER its members',
                   u'\n      '.join(kotu[:8]) +
-                  u'\n      Kapsanmayan uye hedefin KENDISI oldugu halde hedef disi '
-                  u'sayilir. Ayrinti: screening/exclusion_coverage_check.py', BLOKE)
+                  u'\n      An uncovered member counts as off target although it IS the target itself. Detail: screening/exclusion_coverage_check.py', BLOKE)
         else:
             yaz(u'      (coverage is complete; only some targets could not be audited)')
 
@@ -153,13 +150,11 @@ def d3_referans_bayat(kok, yaz):
     ry = os.path.join(kok, 'HIZLI_TEST', 'referans_degerler.tsv')
     py_ = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
     if not os.path.exists(ry):
-        bulgu(u'Hizli test referans dosyasi YOK',
-              u'HIZLI_TEST/referans_degerler.tsv uretilmemis. Referans koda gomulu '
-              u'sabitlerden okunur ve hangi ciftten olculdugu bilinmez. Uretmek '
-              u'icin: python verification/refresh_reference.py --kok .')
+        bulgu(u'The quick test reference file IS MISSING',
+              u'HIZLI_TEST/referans_degerler.tsv was not produced. The reference is then read from constants embedded in the code and which pair it was measured from is unknown. To produce it: python verification/refresh_reference.py --kok .')
         return
     if not os.path.exists(py_):
-        ATLANAN.append(u'3 referans tazeligi (panel_tek_protokol.tsv yok)')
+        ATLANAN.append(u'3 reference freshness (there is no panel_tek_protokol.tsv)')
         return
     ref = {}
     for r in _tsv(ry):
@@ -176,10 +171,8 @@ def d3_referans_bayat(kok, yaz):
     yaz(u'  [3] reference freshness: %d rows in the reference, %d pairs changed'
         % (len(ref), len(bayat)))
     if bayat:
-        bulgu(u'Referans BAYAT - primer cifti degismis',
-              u'%s\n      Bu satirlarda eski cifte ait sayi yeni ciftle '
-              u'karsilastirilir ve sahte "gerileme" uretir. Yenile: '
-              u'python verification/refresh_reference.py --kok .' % ', '.join(bayat), DIKKAT)
+        bulgu(u'The reference is STALE, the primer pair has changed',
+              u'%s\n      On these rows a number belonging to the old pair is compared against the new pair and produces a false regression. Refresh it: python verification/refresh_reference.py --kok .' % ', '.join(bayat), DIKKAT)
 
 
 # --- 4 ------------------------------------------------------------------
@@ -189,13 +182,13 @@ def d4_kaynak_tutarliligi(kok, yaz):
     pk = os.path.join(kok, 'primer_final',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(sl) or not os.path.exists(pk):
-        ATLANAN.append(u'4 kaynak tutarliligi (dosya yok)')
+        ATLANAN.append(u'4 source consistency (no such file)')
         return
     panel = {}
     with io.open(pk, encoding='utf-8') as fh:
         sat = [l.rstrip('\n').split('\t') for l in fh]
     if not sat:
-        ATLANAN.append(u'4 kaynak tutarliligi (panel kaynagi bos)')
+        ATLANAN.append(u'4 source consistency (the panel source is empty)')
         return
     bas = sat[0]
     try:
@@ -203,7 +196,7 @@ def d4_kaynak_tutarliligi(kok, yaz):
         iF = [i for i, b in enumerate(bas) if b.startswith('Ileri primer')][0]
         iR = [i for i, b in enumerate(bas) if b.startswith('Geri primer')][0]
     except (ValueError, IndexError):
-        ATLANAN.append(u'4 kaynak tutarliligi (panel sutunlari taninmadi)')
+        ATLANAN.append(u'4 source consistency (the panel columns were not recognised)')
         return
     for r in sat[1:]:
         if len(r) > max(iF, iR) and r[iH].strip():
@@ -230,14 +223,12 @@ def d4_kaynak_tutarliligi(kok, yaz):
         % (len(liste_adlari & set(panel)), len(fark),
            len(yalniz_listede), len(yalniz_panelde)))
     if yalniz_listede:
-        bulgu(u'Siparis listesinde VAR, panel kaynaginda YOK',
-              u'%s\n      Bu ciftlerin plaka ve Ta bilgisi panel tablosunda yok; '
-              u'siparise giriyorlar ama deney duzeninde yerleri belirsiz.'
+        bulgu(u'In the order list but NOT in the panel source',
+              u'%s\n      The plate and Ta of these pairs are not in the panel table; they go into the order but their place in the experimental layout is undefined.'
               % ', '.join(yalniz_listede), BLOKE)
     if fark:
-        bulgu(u'Panel kaynagi ile SIPARIS_LISTESI AYRISIYOR',
-              u'%s\n      Iki dosya farkli dizi soyluyor. Hangisinin siparis '
-              u'edilecegi belirsiz - once bu giderilmeli.' % ', '.join(fark), BLOKE)
+        bulgu(u'The panel source and SIPARIS_LISTESI DISAGREE',
+              u'%s\n      The two files give different sequences. Which one is to be ordered is undefined, and that has to be settled first.' % ', '.join(fark), BLOKE)
 
 
 # --- 5 ------------------------------------------------------------------
@@ -270,9 +261,8 @@ def d5_muhur_diziyi_iceriyor_mu(kok, yaz):
     yaz(u'  [5] checkpoint seals: %d scripts examined, %d suspect'
         % (len(bakilacak), len(eksik)))
     if eksik:
-        bulgu(u'Muhur diziyi ICERMIYOR olabilir',
-              u'%s\n      Muhurde primer dizisi yoksa dizi degistiginde eski '
-              u'olcum TAZE sanilir. Elle bakin.' % ', '.join(eksik))
+        bulgu(u'The seal may NOT COVER the sequence',
+              u'%s\n      If the seal holds no primer sequence, an old measurement looks FRESH when the sequence changes. Look at it by hand.' % ', '.join(eksik))
 
 
 # --- 6 ------------------------------------------------------------------
@@ -355,9 +345,9 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
                             g, time.strftime('%d.%m %H:%M', time.localtime(os.path.getmtime(gp)))))
     yaz(u'  [6] output freshness: %d dependencies, %d stale' % (len(ciftler), len(bayat)))
     if bayat:
-        bulgu(u'Cikti girdisinden ESKI',
+        bulgu(u'The output is OLDER than its input',
               u'\n      '.join(bayat) +
-              u'\n      Bu cikti guncel girdiyi gormemis; yeniden uretilmeli.')
+              u'\n      This output has not seen the current input; it has to be reproduced.')
 
 
 
@@ -378,7 +368,7 @@ def d7_geometri_kapisi(kok, yaz):
                                             'geometri_denetimi_*.tsv')))
     adaylar = [x for x in adaylar if 'yedek' not in x]
     if not os.path.exists(pk) or not adaylar:
-        ATLANAN.append(u'7 geometri kapisi (dosya yok)')
+        ATLANAN.append(u'7 the geometry gate (no such file)')
         return
     gy = max(adaylar, key=os.path.getmtime)
     g = {}
@@ -394,7 +384,7 @@ def d7_geometri_kapisi(kok, yaz):
         iF = next(i for i, b in enumerate(bas) if b.startswith('Ileri primer'))
         iR = next(i for i, b in enumerate(bas) if b.startswith('Geri primer'))
     except (ValueError, StopIteration):
-        ATLANAN.append(u'7 geometri kapisi (panel sutunlari taninmadi)')
+        ATLANAN.append(u'7 the geometry gate (the panel columns were not recognised)')
         return
     import re as _re
     gecmemis = []
@@ -412,11 +402,8 @@ def d7_geometri_kapisi(kok, yaz):
     yaz(u'  [7] geometry gate: source %s, not passing %d'
         % (os.path.basename(gy), len(gecmemis)))
     if gecmemis:
-        bulgu(u'Geometri kapisindan GECMEMIS cift',
-              u'%s\n      Bu ciftlerin dizisi son geometri denetiminden sonra '
-              u'degismis. Uzunluk, GC, Tm penceresi, sac tokasi ve dimer '
-              u'kurallari bu diziler icin HIC olculmedi. Kosun: '
-              u'python verification/refresh_geometry.py --kok .' % ', '.join(gecmemis), BLOKE)
+        bulgu(u'A pair that DID NOT PASS the geometry gate',
+              u'%s\n      The sequence of these pairs changed after the last geometry audit. Length, GC, the Tm window, hairpin and dimer rules were NEVER measured for these sequences. Run: python verification/refresh_geometry.py --kok .' % ', '.join(gecmemis), BLOKE)
 
 
 
@@ -435,7 +422,7 @@ def d8_plaka_jel_ve_bant(kok, yaz):
     pk = os.path.join(kok, 'primer_final',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(pk):
-        ATLANAN.append(u'8 plaka/jel (panel dosyasi yok)')
+        ATLANAN.append(u'8 plate and gel (there is no panel file)')
         return
     sat = [l.rstrip('\n').split('\t') for l in io.open(pk, encoding='utf-8')]
     bas = sat[0]
@@ -444,7 +431,7 @@ def d8_plaka_jel_ve_bant(kok, yaz):
         iU = bas.index('Urun (bp)')
         iF = next(i for i, b in enumerate(bas) if b.startswith('Ileri primer'))
     except (ValueError, StopIteration):
-        ATLANAN.append(u'8 plaka/jel (sutunlar taninmadi)')
+        ATLANAN.append(u'8 plate and gel (the columns were not recognised)')
         return
     pl = {}
     bant = []
@@ -471,14 +458,11 @@ def d8_plaka_jel_ve_bant(kok, yaz):
     if cak:
         bulgu(u'Plaka ici JEL AYRIMI cakismasi',
               u'\n      '.join(cak) +
-              u'\n      Ayni plakada 10 bp\'den yakin iki urun %2 agarozda '
-              u'ayirt edilemez. Ya plaka yeniden atanmali ya da fark kabul '
-              u'edildigi RAPORDA yazili olmali.', DIKKAT)
+              u'\n      Two products closer than 10 bp on the same plate cannot be told apart on a %2 agarose gel. Either the plate has to be reassigned or the accepted difference has to be written IN THE REPORT.', DIKKAT)
     if bant:
         bulgu(u'Amplikon bant sinifi disinda',
               u'\n      '.join(bant) +
-              u'\n      QuantiNova SYBR Green icin ideal 60-150 bp, 150-250 bp '
-              u'30 sn uzatma ister, 250 uzeri onerilmez.', DIKKAT)
+              u'\n      For QuantiNova SYBR Green the ideal is 60-150 bp, 150-250 bp needs a 30 s extension, and above 250 is not recommended.', DIKKAT)
 
 
 
@@ -498,7 +482,7 @@ def d9_belgelerde_bayat_sayi(kok, yaz):
     import re as _re
     sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
     if not sl:
-        ATLANAN.append(u'9 belge sayilari (SIPARIS_LISTESI yok)')
+        ATLANAN.append(u'9 document counts (there is no SIPARIS_LISTESI)')
         return
     kesin = sum(1 for r in sl if (r.get('SINIF') or '').strip().upper() == 'KESIN')
     evr = sum(1 for r in sl if (r.get('SINIF') or '').strip().upper() == 'EVRENSEL')
@@ -516,17 +500,14 @@ def d9_belgelerde_bayat_sayi(kok, yaz):
         for m in kalip.finditer(metin):
             n = int(m.group(1))
             if n not in dogru:
-                kotu.append(u'%s: "%s" (bugunku dogru sayi: %d siparis, %d hedef '
-                            u'ozgul, %d evrensel)'
+                kotu.append(u'%s: "%s" (the correct number today: %d ordered, %d target specific, %d universal)'
                             % (ad, m.group(0).strip()[:60], kesin + evr, kesin, evr))
     yaz(u'  [9] pair counts in the documents: %d documents examined, %d stale claims'
         % (bakilan, len(kotu)))
     if kotu:
-        bulgu(u'Belgede BAYAT cift sayisi',
+        bulgu(u'A STALE pair count in a document',
               u'\n      '.join(kotu) +
-              u'\n      Sayiyi elle yazan her belge bayatlar. Cumleyi '
-              u'GUNCEL_DURUM.md\'e isaret edecek sekilde degistirin; o dosya '
-              u'her kosuda uretilir.', DIKKAT)
+              u'\n      Every document that writes the number by hand goes stale. Change the sentence to point at GUNCEL_DURUM.md, which is produced on every run.', DIKKAT)
 
 
 
@@ -541,7 +522,7 @@ def d10_ad_kurali_sinavi(kok, yaz):
     """
     bet = os.path.join(kok, 'verification', 'ncbi_reclassify.py')
     if not os.path.exists(bet):
-        ATLANAN.append(u'10 ad kurali sinavi (betik yok)')
+        ATLANAN.append(u'10 the name rule test (no such script)')
         return
     try:
         p = subprocess.run([sys.executable, bet, '--sina'],
@@ -556,8 +537,7 @@ def d10_ad_kurali_sinavi(kok, yaz):
     if p.returncode != 0:
         bulgu(u'NCBI ad kurali sinavi DUSTU',
               cik[-600:] +
-              u'\n      Bu kural hedef disi SAYISINI belirler; bozuksa rapordaki '
-              u'sayilar yanlistir.', BLOKE)
+              u'\n      This rule sets the off target COUNT; if it is broken the numbers in the report are wrong.', BLOKE)
 
 
 
@@ -582,7 +562,7 @@ def d11_siparis_dizileri(kok, yaz):
     _p = sorted(_glob.glob(os.path.join(kok, 'PrimerJury_PANEL_*.xlsx')))
     xl = _p[-1] if _p else ''
     if not os.path.exists(pk):
-        ATLANAN.append(u'11 siparis dizileri (panel kaynagi yok)')
+        ATLANAN.append(u'11 order sequences (there is no panel source)')
         return
     sat = [l.rstrip('\n').split('\t') for l in io.open(pk, encoding='utf-8')]
     b = sat[0]
@@ -591,7 +571,7 @@ def d11_siparis_dizileri(kok, yaz):
         iF = next(i for i, x in enumerate(b) if x.startswith('Ileri primer'))
         iR = next(i for i, x in enumerate(b) if x.startswith('Geri primer'))
     except (ValueError, StopIteration):
-        ATLANAN.append(u'11 siparis dizileri (panel sutunlari taninmadi)')
+        ATLANAN.append(u'11 order sequences (the panel columns were not recognised)')
         return
     tsv = {}
     for r in sat[1:]:
@@ -601,13 +581,12 @@ def d11_siparis_dizileri(kok, yaz):
                 tsv[r[iH].strip()] = (F, r[iR].strip().upper())
     if not xl or not os.path.exists(xl):
         yaz(u'  [11] order sequences: no Excel generated yet - build one with python verification/build_excel.py --root .')
-        ATLANAN.append(u'11 siparis dizileri (uretilmis Excel yok)')
+        ATLANAN.append(u'11 order sequences (there is no produced Excel)')
         return
     try:
         import openpyxl
     except ImportError:
-        ATLANAN.append(u'11 siparis dizileri (openpyxl yok: '
-                       u'pip3 install openpyxl --break-system-packages)')
+        ATLANAN.append(u'11 order sequences (there is no openpyxl: pip3 install openpyxl --break-system-packages)')
         return
     try:
         wb = openpyxl.load_workbook(xl, data_only=True, read_only=True)
@@ -615,7 +594,7 @@ def d11_siparis_dizileri(kok, yaz):
         rows = [[('' if c is None else str(c)).strip() for c in r]
                 for r in ws.iter_rows(values_only=True)]
     except Exception as e:
-        ATLANAN.append(u'11 siparis dizileri (xlsx okunamadi: %s)' % e)
+        ATLANAN.append(u'11 order sequences (the xlsx could not be read: %s)' % e)
         return
     # THE NEW Excel format: a "1 Siparis" sheet with the columns "oligo adi",
     # "dizi (5-3)", "hedef" and "yon". That was not the old delivery file's format;
@@ -627,7 +606,7 @@ def d11_siparis_dizileri(kok, yaz):
             bas = i
             break
     if bas is None:
-        ATLANAN.append(u'11 siparis dizileri (Excel "1 Siparis" basligi bulunamadi)')
+        ATLANAN.append(u'11 order sequences (the Excel "1 Siparis" heading was not found)')
         return
     h = rows[bas]
     xH, xD, xY = h.index('hedef'), h.index('dizi (5→3)'), h.index('yon')
@@ -653,15 +632,12 @@ def d11_siparis_dizileri(kok, yaz):
     yaz(u'  [11] order sequences: xlsx %d pairs, panel %d pairs, diverging %d'
         % (len(xls), len(tsv), len(fark)))
     if fark:
-        bulgu(u'SIPARIS DIZILERI AYRISIYOR - xlsx ESKI',
-              u'%s\n      "%s" dosyasindaki "2 Panel" sayfasinda bu ciftlerin '
-              u'dizisi panelin su anki dizisinden FARKLI. O sayfadan siparis '
-              u'verilirse YANLIS OLIGO gelir. Dogru liste: SIPARIS_FORMU.tsv '
-              u'(uretilmis, elle yazilmamis).'
+        bulgu(u'THE ORDER SEQUENCES DISAGREE, the xlsx is OLD',
+              u'%s\n      On the "2 Panel" sheet of the "%s" file the sequence of these pairs is DIFFERENT from the panel\'s current sequence. Ordering from that sheet brings THE WRONG OLIGO. The right list is SIPARIS_FORMU.tsv (produced, not written by hand).'
               % (', '.join(fark), os.path.basename(xl)), BLOKE)
     if eksik:
-        bulgu(u'xlsx\'te OLMAYAN cift',
-              u'%s\n      Panelde var, siparis sayfasinda yok.' % ', '.join(eksik))
+        bulgu(u'A pair that is NOT in the xlsx',
+              u'%s\n      It is in the panel but not on the order sheet.' % ', '.join(eksik))
 
     # ALL the xlsx files: any file holding a primer sequence could one day be taken for
     # the order source. Write out BY NAME which of them are stale.
@@ -685,13 +661,12 @@ def d11_siparis_dizileri(kok, yaz):
                             if v in guncel:
                                 bulundu.add(v)
         if var and len(bulundu) < len(guncel):
-            bayat_dosya.append(u'%s (guncel dizi %d/%d)'
+            bayat_dosya.append(u'%s (current sequence %d/%d)'
                                % (os.path.basename(xy), len(bulundu), len(guncel)))
     if bayat_dosya:
-        bulgu(u'Icinde ESKI primer dizisi tasiyan xlsx dosyalari',
+        bulgu(u'xlsx files carrying an OLD primer sequence inside',
               u'\n      '.join(bayat_dosya) +
-              u'\n      Bunlarin hicbiri siparis kaynagi DEGILDIR. Tek yetkili '
-              u'liste: SIPARIS_FORMU.tsv (her kosuda uretilir).', BILGI)
+              u'\n      NONE of these is an order source. The one authoritative list is SIPARIS_FORMU.tsv, produced on every run.', BILGI)
 
 
 
@@ -709,7 +684,7 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
     """
     sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
     if not sl:
-        ATLANAN.append(u'12 kanitsiz kosulsuz (SIPARIS_LISTESI yok)')
+        ATLANAN.append(u'12 unconditional without evidence (there is no SIPARIS_LISTESI)')
         return
     supheli = []
     for r in sl:
@@ -722,20 +697,18 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
         uy = (r.get('uyusan_vtb_sayisi') or '').strip()
         eksik = []
         if not kim or 'YOK' in kim.upper() or 'TANIMI' in kim.upper():
-            eksik.append(u'olculen kimlik: "%s"' % (kim or 'bos'))
+            eksik.append(u'measured identity: "%s"' % (kim or 'bos'))
         if uy in ('', '-', '0'):
-            eksik.append(u'uyusan veritabani sayisi: "%s"' % (uy or 'bos'))
+            eksik.append(u'the number of agreeing databases: "%s"' % (uy or 'bos'))
         if eksik:
             supheli.append(u'%s -> %s' % (ad, '; '.join(eksik)))
     yaz(u'  [12] evidence for unconditional ordering: %d rows examined, %d suspect'
         % (sum(1 for r in sl if (r.get('siparis_sarti') or '').strip().upper()
                .startswith('KOSULSUZ')), len(supheli)))
     if supheli:
-        bulgu(u'KOSULSUZ yazili ama kaniti eksik',
+        bulgu(u'Written KOSULSUZ but the evidence is missing',
               u'\n      '.join(supheli) +
-              u'\n      "Kosulsuz" raporda "tartisilacak bir sey yok" diye okunur. '
-              u'Kaniti eksik bir satir ya KOSULLU yapilmali ya da eksigi '
-              u'giderilmeli.', BLOKE)
+              u'\n      "Unconditional" reads in the report as "there is nothing to discuss". A row whose evidence is missing has to be made KOSULLU, or the gap has to be filled.', BLOKE)
 
 
 
@@ -758,7 +731,7 @@ def d13_urun_boyu(kok, yaz):
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     kd = os.path.join(kok, 'konsensus_kanonik')
     if not os.path.exists(pk) or not os.path.isdir(kd):
-        ATLANAN.append(u'13 urun boyu (panel ya da konsensus klasoru yok)')
+        ATLANAN.append(u'13 product length (there is no panel or consensus directory)')
         return
     # GLOB IS NOT USED. There are 250 files in the konsensus_kanonik directory but only
     # 100 are valid; the other 150 are leftovers that cannot be deleted on a mounted
@@ -769,8 +742,7 @@ def d13_urun_boyu(kok, yaz):
     # 2026-08-10 my first version did exactly that.
     ixy = os.path.join(kd, 'INDEKS.tsv')
     if not os.path.exists(ixy):
-        ATLANAN.append(u'13 urun boyu (konsensus_kanonik/INDEKS.tsv yok - '
-                       u'kalinti dosyalarla olcum YAPILMAZ)')
+        ATLANAN.append(u'13 product length (there is no konsensus_kanonik/INDEKS.tsv; NO measurement is made with leftover files)')
         return
     kons = {}
     for r in _tsv(ixy):
@@ -781,7 +753,7 @@ def d13_urun_boyu(kok, yaz):
             l.strip() for l in io.open(f, encoding='utf-8', errors='replace')
             if not l.startswith('>')).upper()
     if not kons:
-        ATLANAN.append(u'13 urun boyu (indekste okunabilir dosya yok)')
+        ATLANAN.append(u'13 product length (there is no readable file in the index)')
         return
 
     def _rc(x):
@@ -810,7 +782,7 @@ def d13_urun_boyu(kok, yaz):
         iF = next(i for i, x in enumerate(b) if x.startswith('Ileri primer'))
         iR = next(i for i, x in enumerate(b) if x.startswith('Geri primer'))
     except (ValueError, StopIteration):
-        ATLANAN.append(u'13 urun boyu (sutunlar taninmadi)')
+        ATLANAN.append(u'13 product length (the columns were not recognised)')
         return
     sapan = []
     bakilan = 0
@@ -844,10 +816,9 @@ def d13_urun_boyu(kok, yaz):
                          % (r[iH].strip(), u, sorted(boylar)[:5]))
     yaz(u'  [13] product length: %d pairs measured, %d deviations' % (bakilan, len(sapan)))
     if sapan:
-        bulgu(u'Tablodaki urun boyu olculenle TUTMUYOR',
+        bulgu(u'The product length in the table DOES NOT MATCH the measured one',
               u'\n      '.join(sapan) +
-              u'\n      Urun boyu jel ayrimi hesabina ve QuantiNova bant sinifina '
-              u'girer; yanlis sayi iki hesabi da bozar.', DIKKAT)
+              u'\n      The product length enters the gel separation calculation and the QuantiNova band class; a wrong number spoils both.', DIKKAT)
 
 
 
@@ -873,11 +844,10 @@ def d14_bat_dosyalari(kok, yaz):
         try:
             t = b.decode('ascii')
         except UnicodeDecodeError:
-            sorun.append(u'%s: saf ASCII DEGIL (Turkce karakter yorumlayiciyi bozar)' % ad)
+            sorun.append(u'%s: NOT pure ASCII (a non-ASCII character breaks the interpreter)' % ad)
             continue
         if b.count(b'\n') and b.count(b'\r\n') != b.count(b'\n'):
-            sorun.append(u'%s: LF satir sonu (%d satirin %d\'i CRLF). goto '
-                         u'hedefini bulamayabilir ve HATA VERMEZ.'
+            sorun.append(u'%s: LF line endings (%d of %d lines are CRLF). It may fail to find the goto target and RAISES NO ERROR.'
                          % (ad, b.count(b'\n'), b.count(b'\r\n')))
         et = set(m.group(1).lower()
                  for m in _re.finditer(r'^:([a-z0-9_]+)', t, _re.M | _re.I))
@@ -885,7 +855,7 @@ def d14_bat_dosyalari(kok, yaz):
                   for m in _re.finditer(r'^[^\n]*?\bgoto\s+:([a-z0-9_]+)', t, _re.M | _re.I))
         eksik = sorted(x for x in git - et if x != 'eof')
         if eksik:
-            sorun.append(u'%s: karsiligi olmayan goto hedefi: %s' % (ad, ', '.join(eksik)))
+            sorun.append(u'%s: a goto target with no counterpart: %s' % (ad, ', '.join(eksik)))
         # A REPEATED LABEL. goto always jumps to the FIRST label; if the same name appears
         # twice, one key of the menu silently goes to the wrong place. That happened on
         # 2026-08-11 while adding a new key to PANEL.bat: a second ":sk" fell below the
@@ -897,15 +867,13 @@ def d14_bat_dosyalari(kok, yaz):
             tekrar[k] = tekrar.get(k, 0) + 1
         cift = sorted(k for k, v in tekrar.items() if v > 1)
         if cift:
-            sorun.append(u'%s: AYNI etiket birden cok kez tanimli: %s. goto ilk '
-                         u'etikete atlar, o tus sessizce yanlis yere gider.'
+            sorun.append(u'%s: THE SAME label is defined more than once: %s. goto jumps to the first label, so that key silently goes to the wrong place.'
                          % (ad, ', '.join(cift)))
     yaz(u'  [14] batch files: %d files, %d problems' % (n, len(sorun)))
     if sorun:
-        bulgu(u'.bat dosyasinda bicim sorunu',
+        bulgu(u'A formatting problem in a .bat file',
               u'\n      '.join(sorun) +
-              u'\n      Duzeltme: satir sonlarini CRLF yapin, dosyayi saf ASCII '
-              u'kaydedin. Sessiz atlama bu yuzden olur.', BLOKE)
+              u'\n      The fix: make the line endings CRLF and save the file as pure ASCII. That is where a silent skip comes from.', BLOKE)
 
 
 
@@ -928,13 +896,11 @@ def d15_konsensus_kalintilari(kok, yaz):
     d = os.path.join(kok, 'konsensus_kanonik')
     ix = os.path.join(d, 'INDEKS.tsv')
     if not os.path.isdir(d):
-        ATLANAN.append(u'15 konsensus kalintilari (klasor yok)')
+        ATLANAN.append(u'15 consensus leftovers (there is no such directory)')
         return
     if not os.path.exists(ix):
-        bulgu(u'Kanonik konsensus INDEKSI YOK',
-              u'%s bulunamadi. Indeks olmadan hangi dosyanin gecerli oldugu '
-              u'bilinmez ve olcumler dosya adi sirasina kalir. Uretin: '
-              u'python screening/build_canonical.py --kok .' % ix)
+        bulgu(u'The canonical consensus INDEX IS MISSING',
+              u'%s was not found. Without the index there is no telling which file is valid and the measurements fall back on file name order. Produce it: python screening/build_canonical.py --kok .' % ix)
         return
     gecerli = set()
     for r in _tsv(ix):
@@ -947,11 +913,8 @@ def d15_konsensus_kalintilari(kok, yaz):
     yaz(u'  [15] consensus leftovers: %d in the index, %d in the directory, %d orphaned'
         % (len(gecerli), len(hepsi), len(kalinti)))
     if kalinti:
-        bulgu(u'Kanonik konsensus klasorunde KALINTI dosya',
-              u'%d dosya indekste yok (klasorde %d, gecerli %d). Ornek: %s\n'
-              u'      Panelin yukleyicisi indeks okudugu icin etkilenmiyor, ama '
-              u'konsensus_kanonik/*.fa* diye GLOB yazan her betik ayni kutunun '
-              u'eski surumunu secebilir. Yeni betik yazarken INDEKS.tsv okuyun.'
+        bulgu(u'A LEFTOVER file in the canonical consensus directory',
+              u'%d files are not in the index (%d in the directory, %d valid). An example: %s\n      The panel\'s loader reads the index, so it is unaffected, but any script writing a GLOB like konsensus_kanonik/*.fa* can pick an old version of the same bin. Read INDEKS.tsv when you write a new script.'
               % (len(kalinti), len(hepsi), len(gecerli),
                  ', '.join(sorted(kalinti)[:3])), BILGI)
 
@@ -983,19 +946,18 @@ def d16_uyelik_kaynagi(kok, yaz):
                                timeout=120)
             sec[ad] = p.stdout.decode('utf-8', 'replace').strip()
         except Exception as e:
-            ATLANAN.append(u'16 uyelik kaynagi (%s cagrilamadi: %s)' % (ad, e))
+            ATLANAN.append(u'16 membership source (%s could not be called: %s)' % (ad, e))
     if len(sec) < 2:
-        ATLANAN.append(u'16 uyelik kaynagi (iki betik de okunamadi)')
+        ATLANAN.append(u'16 membership source (neither script could be read)')
         return
     ayni = len(set(v for v in sec.values() if v)) == 1
     yaz(u'  [16] membership source: do P and K read the same file -> %s'
         % ('evet' if ayni else u'NO'))
     if not ayni:
-        bulgu(u'P ile K FARKLI uyelik dosyasi okuyor',
-              u'\n      '.join(u'%s: %s' % (k, v or 'bulunamadi')
+        bulgu(u'P and K read DIFFERENT membership files',
+              u'\n      '.join(u'%s: %s' % (k, v or u'not found')
                                for k, v in sorted(sec.items())) +
-              u'\n      Ayri uyelikle olculen dCq degerleri ayni zeminde '
-              u'degildir ve karsilastirilamaz.', BLOKE)
+              u'\n      dCq values measured with different membership do not sit on the same ground and cannot be compared.', BLOKE)
 
 
 
@@ -1017,7 +979,7 @@ def d17_veritabani_alfabesi(kok, yaz):
     import hashlib as _h
     d = os.path.join(kok, 'REFERANS_DB')
     if not os.path.isdir(d):
-        ATLANAN.append(u'17 veritabani alfabesi (REFERANS_DB yok)')
+        ATLANAN.append(u'17 database alphabet (there is no REFERANS_DB)')
         return
     # indeksi olan FASTA'lar taranan veritabanlaridir; alfabeleri DNA olmali
     rna = []
@@ -1050,20 +1012,17 @@ def d17_veritabani_alfabesi(kok, yaz):
         for e in ('.primerqc.bin', '.nsq'):
             ix = y2 + e
             if os.path.exists(ix) and os.path.getmtime(ix) < os.path.getmtime(y2) - 60:
-                bayat_ix.append(u'%s%s indeksi FASTA\'dan ESKI' % (f, e))
+                bayat_ix.append(u'%s%s the index is OLDER than the FASTA' % (f, e))
     yaz(u'  [17] database alphabet: %d indexed FASTA, %d RNA, %d stale indexes'
         % (bakilan, len(rna), len(bayat_ix)))
     if bayat_ix:
-        bulgu(u'Indeks FASTA\'dan ESKI',
+        bulgu(u'The index is OLDER than the FASTA',
               u'\n      '.join(bayat_ix) +
-              u'\n      Indeks eski veriyi tarar; sonuc sessizce yanlis olur. '
-              u'Yeniden indeksleyin.', BILGI)
+              u'\n      The index scans old data and the result is silently wrong. Reindex it.', BILGI)
     if rna:
-        bulgu(u'Indeksli veritabani RNA alfabesinde',
+        bulgu(u'The indexed database is in the RNA alphabet',
               u'\n      '.join(rna) +
-              u'\n      RNA alfabeli bir indeks DNA sorgularini tutturmaz ve '
-              u'sonuc "0 hedef disi" yani TEMIZ gorunur. U->T cevirip yeniden '
-              u'indeksleyin: bash build_index.sh <dosya>', BLOKE)
+              u'\n      An index in the RNA alphabet matches no DNA query and the result comes out as "0 off target", that is, CLEAN. Convert U to T and reindex: bash build_index.sh <file>', BLOKE)
 
     # "ikiz" iddialari gercekten dogru mu
     ikizler = [('SILVA_138.2_SSURef_NR99.fasta', 'SILVA_SSURef_NR99.fasta'),
@@ -1074,21 +1033,18 @@ def d17_veritabani_alfabesi(kok, yaz):
         if not (os.path.exists(pa) and os.path.exists(pb)):
             continue
         if os.path.getsize(pa) != os.path.getsize(pb):
-            bozuk.append(u'%s / %s: boyutlar farkli' % (a, b))
+            bozuk.append(u'%s / %s: the sizes differ' % (a, b))
             continue
         ha, hb = _h.md5(), _h.md5()
         with io.open(pa, 'rb') as fa, io.open(pb, 'rb') as fb:
             ha.update(fa.read(20000000))
             hb.update(fb.read(20000000))
         if ha.hexdigest() != hb.hexdigest():
-            bozuk.append(u'%s ile %s: boyut ayni ama ICERIK farkli '
-                         u'(ilk 20 MB md5 tutmuyor)' % (a, b))
+            bozuk.append(u'%s and %s: the size is the same but the CONTENT differs (the md5 of the first 20 MB does not match)' % (a, b))
     if bozuk:
-        bulgu(u'"Ikiz" denen dosyalar artik ikiz DEGIL',
+        bulgu(u'The files called "twins" are NOT twins any more',
               u'\n      '.join(bozuk) +
-              u'\n      identity_verification.py bu dosyalari "bayt bayt ayni" diye '
-              u'isaretliyor. Oylamaya girmiyorlar ama not YANLIS; birisi bayragi '
-              u'cevirirse sessiz sifir uretir.', BILGI)
+              u'\n      identity_verification.py marks these files as "identical byte for byte". They do not enter the voting, but the note IS WRONG; if someone flips the flag it produces a silent zero.', BILGI)
 
 
 
@@ -1117,7 +1073,7 @@ def d18_evrensel_kapsam(kok, yaz):
     sl = {(r.get('hedef') or '').strip(): r
           for r in _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))}
     if not p or not sl:
-        ATLANAN.append(u'18 evrensel kapsam (tablo yok)')
+        ATLANAN.append(u'18 universal coverage (there is no table)')
         return
     satir = []
     for r in p:
@@ -1129,19 +1085,15 @@ def d18_evrensel_kapsam(kok, yaz):
         oran = (100.0 * int(m.group(1)) / int(m.group(2))) if m and int(m.group(2)) else None
         satir.append((ad, k, oran))
     if not satir:
-        ATLANAN.append(u'18 evrensel kapsam (evrensel cift bulunamadi)')
+        ATLANAN.append(u'18 universal coverage (no universal pair was found)')
         return
     dusuk = [(a, k, o) for a, k, o in satir if o is not None and o < 90.0]
     yaz(u'  [18] universal coverage: %d pairs | %s'
         % (len(satir), ', '.join(u'%s %s' % (a.split('_')[0][:12], k) for a, k, _o in satir)))
     if dusuk:
-        bulgu(u'Evrensel/kontrol primerinde kapsam %90 altinda',
+        bulgu(u'Coverage below %90 on a universal or control primer',
               u'\n      '.join(u'%s: %s (%%%.0f)' % (a, k, o) for a, k, o in dusuk) +
-              u'\n      Evrensel primerlerde olcu KAPSAMDIR ve projede yazili bir '
-              u'kapsam esigi YOKTUR; buradaki %90 bu denetimin koydugu gecici '
-              u'siniridir, panelin kurali degildir. Kontrol primeri kendi '
-              u'hedeflerini gormuyorsa normallestirme yanlidir. Olcutu yazin ya '
-              u'da bu satirlar icin raporda gerekce verin.', DIKKAT)
+              u'\n      On universal primers the measure is COVERAGE and there is NO written coverage threshold in the project; the %90 here is a temporary bound this audit sets, not the panel\'s rule. If a control primer does not see its own targets the normalisation is biased. Write the criterion down, or give a reason in the report for these rows.', DIKKAT)
 
 
 def d19_uyelik_icerigi(kok, yaz):
@@ -1170,7 +1122,7 @@ def d19_uyelik_icerigi(kok, yaz):
     uy = [x for x in _glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
           if '.yedek' not in x]
     if not uy:
-        ATLANAN.append(u'19 uyelik icerigi (tek protokol uyelik dosyasi yok)')
+        ATLANAN.append(u'19 membership content (there is no single protocol membership file)')
         return
     uy.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))
     kod = (
@@ -1219,10 +1171,10 @@ def d19_uyelik_icerigi(kok, yaz):
         p = subprocess.run([sys.executable, '-c', kod], stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, timeout=600)
     except Exception as e:
-        ATLANAN.append(u'19 uyelik icerigi (%s)' % e)
+        ATLANAN.append(u'19 membership content (%s)' % e)
         return
     if p.returncode != 0:
-        ATLANAN.append(u'19 uyelik icerigi (karsilastirma kosmadi: %s)'
+        ATLANAN.append(u'19 membership content (the comparison did not run: %s)'
                        % p.stderr.decode('utf-8', 'replace').strip()[-200:])
         return
     satirlar = [l for l in p.stdout.decode('utf-8', 'replace').splitlines() if l.strip()]
@@ -1232,17 +1184,12 @@ def d19_uyelik_icerigi(kok, yaz):
         ad, fark = pr[0], pr[1]
         olculen = pr[2] if len(pr) > 2 else ''
         if olculen:
-            bulgu(u'%s: iki uyelik kaynagi ayni kutularda anlasmiyor' % ad,
-                  u'Ayrisan kutu: %s\n      Bunlarin OLCULEN kimligi var (%s), '
-                  u'yani karar verilebilir bir veri duruyor ve iki taraf yine de '
-                  u'farkli sayiyor. Arama bir kumeyi optimize ederken olcum baska '
-                  u'kumeye not veriyor; dCq degerleri ayni zeminde degil.'
+            bulgu(u'%s: the two membership sources disagree on the same bins' % ad,
+                  u'The bins that disagree: %s\n      These have a MEASURED identity (%s), so there is data one can decide on, and the two sides still count them differently. The search optimises one set while the measurement grades another; the dCq values do not sit on the same ground.'
                   % (fark, olculen), BLOKE)
         else:
-            bulgu(u'%s: uyelik ayrisiyor, ayrisan kutularin kimligi OLCULMEMIS' % ad,
-                  u'Ayrisan kutu: %s\n      Bu kutularin olculen kimligi yok; '
-                  u'once kimlikleri olculmeli, uye mi rakip mi ondan sonra '
-                  u'yazilmali. Kraken etiketine gore karar VERILMEZ.' % fark,
+            bulgu(u'%s: the membership disagrees, and the identity of the disagreeing bins HAS NOT BEEN MEASURED' % ad,
+                  u'The bins that disagree: %s\n      These bins have no measured identity; the identities have to be measured first, and only then written down as member or competitor. The decision IS NOT MADE on the Kraken label.' % fark,
                   DIKKAT)
 
 
