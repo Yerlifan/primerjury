@@ -192,8 +192,8 @@ def kendini_sina():
 if __name__ == '__main__':
     h = kendini_sina()
     if h:
-        print('KENDINI SINAMA KALDI:')
+        print(u'THE SELF TEST FAILED:')
         for x in h:
             print('  -', x)
         sys.exit(1)
-    print('orientation.py kendini sinama: GECTI (5/5)  | kanonik yon =', KANONIK_YON)
+    print(u'orientation.py self test: PASSED (5/5)  | the canonical orientation =', KANONIK_YON)

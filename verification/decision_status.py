@@ -167,7 +167,7 @@ def main():
 
     ty = os.path.join(kok, 'toplanti_durumu.tsv')
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Toplanti kararlari x panelin BUGUNKU ciktisi. Uretim %s\n'
+        fh.write(u'# The meeting decisions against the panel\'s output AS IT IS TODAY. Produced %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'karar\tistenen\tistenen_duzey\tpaneldeki_karsiligi\tdurum\t'
                  u'hukum\tdCq\tkapsam\tnot\n')

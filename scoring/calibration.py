@@ -90,7 +90,7 @@ def main():
                            and r['kn_ayni'] and r['kat_ayni']) else 'FARK'
         print('%-52s bek=%-8s got=%-8s  %s' % (h[:52], d['bek_kat'], r['got_kat'], bayrak))
         if bayrak == 'FARK':
-            print('     uye_kume=%s rakip_kume=%s kn=%s kat=%s' % (
+            print(u'     member_set=%s competitor_set=%s kn=%s kat=%s' % (
                 r['uye_kume_ayni'], r['rakip_kume_ayni'], r['kn_ayni'], r['kat_ayni']))
             for f in r['kn_fark']:
                 print('     ', f)

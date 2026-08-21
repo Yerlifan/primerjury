@@ -228,13 +228,13 @@ def secili_mi():
 
 if __name__ == '__main__':
     import sys
-    print(u'mappy calisiyor mu : %s' % (u'EVET' if var_mi() else u'HAYIR'))
+    print(u'is mappy working : %s' % (u'EVET' if var_mi() else u'HAYIR'))
     if not var_mi():
-        print(u'sebep              : %s' % _SEBEP)
+        print(u'reason           : %s' % _SEBEP)
         print(u'install            : pip install mappy')
         sys.exit(1)
     print(u'mappy surumu       : %s' % surum())
-    print(u'HIZALAYICI secili  : %s' % (u'minimap2' if secili_mi() else u'python (varsayilan)'))
+    print(u'ALIGNER selected : %s' % (u'minimap2' if secili_mi() else u'python (varsayilan)'))
 
 
 # -------------------------------------------------------------------------

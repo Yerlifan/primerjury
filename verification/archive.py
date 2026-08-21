@@ -221,7 +221,7 @@ def main():
     print(u'  total size to move: %.1f MB' % (toplam / 1e6))
     print()
     for yol, sebep, gecen in birakilacak:
-        print('  BIRAKILDI  %-56s (kodda geciyor: %s)'
+        print(u'  LEFT       %-56s (it appears in the code: %s)'
               % (yol[:56], ', '.join(gecen[:2])))
     if birakilacak:
         print()
@@ -242,7 +242,7 @@ def main():
     n = 0
     with io.open(mani, 'a', encoding='utf-8', newline='') as fh:
         if yeni_mani:
-            fh.write(u'# Arsive tasinan dosyalar. SILINMEDILER.\n')
+            fh.write(u'# The files moved to the archive. THEY WERE NOT DELETED.\n')
             fh.write(u'# To undo: copy each file back to the path in the "eski_yol" column.\n')
             fh.write(u'tarih\teski_yol\tarsiv_yolu\tboyut_bayt\tsebep\n')
         for yol, sebep in tasinacak:

@@ -70,7 +70,7 @@ def main():
     if not uye_sq:
         sys.exit(u'ERROR: there is no member consensus')
     ref = max(range(len(uye_sq)), key=lambda i: len(uye_sq[i]))
-    print('%s | uye kons %d (ref=%s %d bp) | rakip kons %d | konsensussuz uye %d'
+    print(u'%s | member cons %d (ref=%s %d bp) | competitor cons %d | members with no consensus %d'
           % (g.hedef, len(uye_sq), uye_ad[ref], len(uye_sq[ref]), len(rak_sq), len(eksik_uye)))
 
     uye_hv = motor.tarayici.Havuz(uye_sq)
@@ -127,7 +127,7 @@ def main():
                 fs = motor.find_sites(rak_hv.enc, w, 1, True, tp)
                 n = max(n, len({int(rak_hv.sid[p]) for p, _ in fs if rak_hv.sid[p] >= 0}))
             rakb[w] = n
-    print('  rakip baglanma profili   [%.1f sn]' % (time.time() - t0))
+    print(u'  the competitor binding profile   [%.1f s]' % (time.time() - t0))
 
     if g.sinama_F:
         print('  SINAMA  panel F ileri-baglandi: %s | panel rc(R) geri-baglandi: %s'
@@ -139,7 +139,7 @@ def main():
                    geri={k: {str(a): c for a, c in v.items()} for k, v in geri.items()},
                    rakb=rakb, pencere_n=len(pencere)),
               open(g.cikti, 'w'), default=str)
-    print('  yazildi: %s   [%.1f sn]' % (g.cikti, time.time() - t0))
+    print(u'  written: %s   [%.1f s]' % (g.cikti, time.time() - t0))
     return 0
 
 

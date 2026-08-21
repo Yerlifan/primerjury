@@ -142,7 +142,7 @@ def main():
     kok = os.path.abspath(a.kok)
     # Sinav HER kosuda once gecer. Kural bozuksa sayimlar da bozuktur.
     if sinav() != 0:
-        print('  AD KURALI SINAVI DUSTU - siniflandirma yapilmadi.')
+        print(u'  THE NAME RULE TEST FAILED, no classification was done.')
         return 1
     ham = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_ham')
     if not os.path.isdir(ham):

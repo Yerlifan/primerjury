@@ -191,7 +191,7 @@ def main():
                   % (g[0], g[1], ', '.join('%s(%d)' % (c['hedef'][:22], c['urun'])
                                            for c in uy)))
         print()
-        print('  DEGISECEK CIFTLER:')
+        print(u'  THE PAIRS THAT WILL CHANGE:')
         for c in ciftler:
             if eniyi[c['hedef']] != simdi[c['hedef']]:
                 print('    %-44s %s Ta %s  ->  %s Ta %s'
@@ -200,12 +200,12 @@ def main():
     else:
         print(u'  Under the current Ta constraints no distribution that reduces the clashes')
         print(u'  NOT FOUND (%d attempts). The options are:' % a.deneme)
-        print('    - cakismayi kabul edip RAPORDA gerekcesiyle yazmak')
+        print(u'    - to accept the collision and write it in THE REPORT with its reason')
         print(u'      (qPCR separation is done with the melt curve; the gel is a secondary check)')
         print(u'    - redesign one of the clashing pairs and shift its product length')
     print()
     print(u'  This is a SUGGESTION and was not applied. Changing a plate alters the experimental')
-    print('  degistirir; karari insan verir.')
+    print(u'  it changes; the decision is a person\'s.')
     print('=' * 78)
     return 0
 

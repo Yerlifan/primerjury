@@ -283,7 +283,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                         try:
                             shutil.copyfile(_co + _ek, co + _ek)
                         except OSError as _e:
-                            yaz(u'    UYARI: kanit dosyasi kopyalanamadi (%s): %s'
+                            yaz(u'    WARNING: the evidence file could not be copied (%s): %s'
                                 % (os.path.basename(co + _ek), _e))
             finally:
                 shutil.rmtree(_yerel, ignore_errors=True)

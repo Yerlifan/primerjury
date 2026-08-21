@@ -135,7 +135,7 @@ def testler(a):
          all(abs(E.gc_pct(s) - ref_gc(s)) < 1e-9
              for s in ("GGCC", "ATAT", "ACGTACGT")))
 
-    print("\n3. IUPAC ZINCIR KURALI")
+    print(u'\n3. THE IUPAC STRAND RULE')
     for win, uc, bek in (("STAGCTAGCATCGATCGATC", "F", True),
                          ("STAGCTAGCATCGATCGATC", "R", False),
                          ("TAGCTAGCATCGATCGATCS", "F", False),
@@ -177,7 +177,7 @@ def testler(a):
     sina("kuyrukta tek uyumsuzluk kabul edilir",
          ref_baglanir("ACGTACGTACGTACGTAAGC", "ACGTACGTACGTACGTACGC") == 1)
 
-    print("\n5. URUN GEOMETRISI")
+    print(u'\n5. THE PRODUCT GEOMETRY')
     # Instead of a synthetic position dictionary, a REAL template is built, the primers
     # are cut from that template and the product is formed by hand. The expected value
     # then comes from the sequence itself rather than from the code's own measure.
@@ -250,14 +250,14 @@ def testler(a):
          '.strip().upper()' in open(os.path.join(
              HERE, "dominant_allele_consensus.py"), encoding="utf-8").read())
 
-    print("\n8. AYIRT EDILEMEZLIK OLCUMU")
+    print(u'\n8. THE INDISTINGUISHABILITY MEASUREMENT')
     sina("N hicbir bazla eslesme sayilmaz", not D.baz_kesisir("N", "A"))
     sina("N ile N de eslesmez", not D.baz_kesisir("N", "N"))
     sina("Y ile C kesisir", D.baz_kesisir("Y", "C"))
     sina("Y ile G kesismez", not D.baz_kesisir("Y", "G"))
     sina("A ile A kesisir", D.baz_kesisir("A", "A"))
 
-    print("\n9. HIZALAMA ARKA UCU")
+    print(u'\n9. THE ALIGNMENT BACKEND')
     try:
         H = yukle("H", "alignment.py")
         sina("hizalama arka ucu var", H.ARKA_UC is not None, str(H.ARKA_UC))
@@ -932,7 +932,7 @@ def testler(a):
     else:
         sina("blastn/makeblastdb kurulu", False, "duzey testleri atlandi")
 
-    print("\n17. REFERANS TASARIMINDA RAKIP KUMESI (15)")
+    print(u'\n17. THE COMPETITOR SET IN A REFERENCE DESIGN (15)')
     # 2026-08-01: the Podospora reference design had been made with 29 competitor
     # sequences (one database, 6 records per name). The verification panel of
     # check_taxonomic_level.py held 242 records across 50 species and showed that the
@@ -1015,7 +1015,7 @@ def testler(a):
     shutil.rmtree(g5, ignore_errors=True)
 
     if a.gercek_veri:
-        print("\n13. GERCEK VERI: URETILEN CIFTLERIN GEOMETRISI")
+        print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')
         tsvler = sorted(glob.glob(os.path.join(HERE, a.aday, "*__*.tsv")))
         if not tsvler:
             sina("aday TSV bulundu", False, a.aday)

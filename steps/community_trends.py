@@ -274,10 +274,10 @@ def main():
     print("cins duzeyi barkod: %d, tur duzeyi barkod: %d" % (len(cins), len(tur)))
     eksik = [b for b in sorted(BARKOD_GRUP) if b not in cins]
     if eksik:
-        print("UYARI: cins duzeyinde eksik barkod: %s" % eksik)
+        print(u'WARNING: a barcode missing at genus level: %s' % eksik)
 
     s_tur, s_cins = guvenilirlik_kur(a)
-    print("olculmus dosyalardan supheli tur: %d, supheli cins: %d"
+    print(u'suspect species from the measured files: %d, suspect genera: %d'
           % (len(s_tur), len(s_cins)))
 
     wb = Workbook()
@@ -627,7 +627,7 @@ def main():
     wb.save(a.out)
     print("yazildi: %s" % a.out)
     print("sayfa: %s" % ", ".join(w.title for w in wb.worksheets))
-    print("supheli tur isareti: %d, supheli cins isareti: %d"
+    print(u'suspect species marks: %d, suspect genus marks: %d'
           % (len(s_tur), len(s_cins)))
 
 

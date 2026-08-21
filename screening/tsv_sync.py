@@ -122,7 +122,7 @@ def main():
                     w.writerow(r)
 
     print(u'\nTOTAL differing cells:', toplam_fark)
-    print('\n=== KRITIK: PRIMER DIZISI FARKLARI ===')
+    print(u'\n=== CRITICAL: DIFFERENCES IN THE PRIMER SEQUENCES ===')
     if not kritik:
         print(u'  none')
     for rel, sat, bas, ve, vy in kritik:

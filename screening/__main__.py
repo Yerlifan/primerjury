@@ -196,12 +196,12 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                     yeni_c['arms'] = '%s %s (uye_mm=%s rakip_mm=%s)' % (yon, et, umm, rmm)
                     yeni_c['arms_taban'] = '%s / %s' % (c['F'], c['R'])
                     arms.append(yeni_c)
-        yaz('      uretilen ARMS varyanti: %d  (%s)' % (len(arms), sure(time.time() - tab)))
+        yaz(u'      ARMS variants produced: %d  (%s)' % (len(arms), sure(time.time() - tab)))
         if arms:
             arms = arms[:C.HUNI['arms_ust']]
             ta2 = time.time()
             olculen_arms = numunede_olc(arms, numune, baglam, ta2, yaz)
-            yaz('\n      numunede olculen ARMS varyanti: %d   (%s)'
+            yaz(u'\n      ARMS variants measured in the sample: %d   (%s)'
                 % (len(olculen_arms), sure(time.time() - ta2)))
             olculen += olculen_arms
             olculen.sort(key=puan)
@@ -452,7 +452,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
 
     if a.mod == 'devam':
         liste = [d for d in liste if not kontrol.bitti_mi(d['hedef'])]
-        yaz('\nDEVAM MODU: bitmis hedefler atlaniyor. Kalan: %d' % len(liste))
+        yaz(u'\nCONTINUE MODE: finished targets are skipped. Remaining: %d' % len(liste))
 
     if not liste:
         yaz(u'\nNo target to process. The report is being built from the existing checkpoint files.')
@@ -492,7 +492,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
         tr = time.time()
         try:
             REF.toplu_cikar(istekler, ilerle=ilerR)
-            yaz('\nReferans havuzlari hazir (%s)' % sure(time.time() - tr))
+            yaz(u'\nThe reference pools are ready (%s)' % sure(time.time() - tr))
         except Exception as e:
             yaz(u'\nThe reference pool could not be extracted (%s); the reference step will be skipped.' % e)
 
@@ -603,10 +603,10 @@ def main(argv=None):
         return 0
 
     if not a.sinama_atla and not kendini_sina.calistir(yaz):
-        yaz('\nKENDINI SINAMA BASARISIZ - arama baslatilmadi.')
+        yaz(u'\nTHE SELF TEST FAILED, the search was not started.')
         return 2
     if a.sina:
-        yaz('\nYalniz sinama istendi, arama yapilmadi.')
+        yaz(u'\nOnly the test was asked for, no search was done.')
         return 0
 
     if a.mod == 'panel-olc':

@@ -212,7 +212,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     from . import self_test as _KS
     if not _KS.yon_sinamasi(yaz):
         yaz(u'   THE ORIENTATION TEST FAILED, so consensus generation WAS NOT STARTED.')
-        yaz('   Once calistirin: python screening/build_canonical.py --kok .')
+        yaz(u'   Run this first: python screening/build_canonical.py --kok .')
         return None
     from .hepsi import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'konsensus yeniden uretim')

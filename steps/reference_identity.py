@@ -133,8 +133,7 @@ def main():
             if r.get("ad"):
                 amac[r["ad"]] = (r.get("ic", ""), r.get("taxid", ""))
     if not amac:
-        print("UYARI: hedefler_referans.tsv okunamadi, amaclanan organizma "
-              "bos kalacak: %s" % a.hedefler_ref)
+        print(u'WARNING: hedefler_referans.tsv could not be read, the intended organism will stay empty: %s' % a.hedefler_ref)
 
     fq = collections.defaultdict(list)
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
@@ -197,7 +196,7 @@ def main():
                               amaclanan=ic,
                               olculen=("urun az (%d)" % len(urunler)),
                               ozdeslik="", hizalanan="", uyum="olculemedi"))
-            print("   [%2d] %-34s urun=%-6d konsensus kurulamadi"
+            print(u'   [%2d] %-34s product=%-6d the consensus could not be built'
                   % (i + 1, hedef[:33], len(urunler)))
             continue
         # blastn
@@ -250,7 +249,7 @@ def main():
                           urun_okuma=len(urunler), konsensus_uzunluk=len(kons),
                           amaclanan=ic, olculen=olculen, ozdeslik=ozd,
                           hizalanan=hiz, uyum=uyum))
-        print("   [%2d] %-30s urun=%-6d kons=%-4d  %-28s %%%-6s %s"
+        print(u'   [%2d] %-30s product=%-6d cons=%-4d  %-28s %%%-6s %s'
               % (i + 1, hedef[:29], len(urunler), len(kons), olculen[:27],
                  ozd, uyum))
 

@@ -134,7 +134,7 @@ def main():
     print(u'DELIVERY AUDIT  (an independent re-measurement)')
     print("=" * 72)
     print(u'rows audited : %d' % len(rows))
-    print("kalip dosyasi    : %d" % len(kaliplar))
+    print(u'template files   : %d' % len(kaliplar))
     print("termodinamik     : Na=%.0f Mg=%.1f dNTP=%.1f DNA=%.0f"
           % (a.mv, a.dv, a.dntp, a.dna))
     print()
@@ -163,7 +163,7 @@ def main():
             tumu.append(s)
     farklar = sorted(tm3(s) - tmb(s) for s in tumu)
     kayma = farklar[len(farklar) // 2]
-    print("iki kutuphane arasi medyan kayma: %+.2f C  (tolerans %.2f C)"
+    print(u'the median offset between the two libraries: %+.2f C  (tolerance %.2f C)'
           % (kayma, a.tm_capraz_tol))
 
     for r in rows:

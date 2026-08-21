@@ -184,7 +184,7 @@ def soy_zincirleri(taxidler, yaz):
                     out[aka.text] = (ad, zincir)
             out[tid] = (ad, zincir)
         time.sleep(0.4)
-        yaz(u'  soy zinciri cekildi: %d/%d' % (min(i + 80, len(tl)), len(tl)))
+        yaz(u'  lineages pulled: %d/%d' % (min(i + 80, len(tl)), len(tl)))
     return out
 
 
@@ -220,7 +220,7 @@ def main():
                     p[2].strip() if len(p) > 2 else '')
 
     yaz(u'=' * 78)
-    yaz(u'  DISLAMA HARITASI KAPSAMA DENETIMI   %s' % time.strftime('%Y-%m-%d %H:%M'))
+    yaz(u'  THE COVERAGE AUDIT OF THE EXCLUSION MAP   %s' % time.strftime('%Y-%m-%d %H:%M'))
     yaz(u'=' * 78)
     yaz(u'  exclusion map    : %d targets' % len(H))
     yaz(u'  membership table : %d targets' % len(U))
@@ -340,7 +340,7 @@ def main():
             continue
         if disarida:
             kotu.append((hedef, exc, disarida))
-            yaz(u'%-46s %-9s %-7d KAPSAMIYOR (%d uye disarida)'
+            yaz(u'%-46s %-9s %-7d DOES NOT COVER (%d members left out)'
                 % (hedef[:46], ','.join(exc)[:9], len(uyeler), len(disarida)))
         else:
             yaz(u'%-46s %-9s %-7d ok' % (hedef[:46], ','.join(exc)[:9], len(uyeler)))
@@ -357,7 +357,7 @@ def main():
     else:
         yaz(u'  For every target, the excluded taxon covers ALL of its members.')
     if eksik_uyelik:
-        yaz(u'  UYELIK TABLOSUNDA OLMAYAN (denetlenemedi): %s' % ', '.join(eksik_uyelik))
+        yaz(u'  NOT IN THE MEMBERSHIP TABLE (could not be audited): %s' % ', '.join(eksik_uyelik))
     yaz(u'=' * 78)
     return 1 if (kotu or eksik_uyelik) else 0
 

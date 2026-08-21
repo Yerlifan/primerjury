@@ -250,7 +250,7 @@ def main():
 
     print(u'\nyazildi: %s' % md)
     print(u'         %s' % tsv)
-    print(u'VERDICT: %s' % (u'minimap2 varsayilan YAPILABILIR'
+    print(u'VERDICT: %s' % (u'minimap2 as the default IS POSSIBLE'
                             if gecti else u'MEVCUT MOTORDA KALINIR'))
     print(u'HIZ    : %.1f kat' % hiz)
     return 0

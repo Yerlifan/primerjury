@@ -190,9 +190,9 @@ def secili_mi():
 
 
 if __name__ == '__main__':
-    print(u'blastn calisiyor mu : %s' % (u'EVET' if var_mi() else u'HAYIR'))
+    print(u'is blastn working   : %s' % (u'EVET' if var_mi() else u'HAYIR'))
     if not var_mi():
-        print(u'sebep               : %s' % _SEBEP)
+        print(u'reason              : %s' % _SEBEP)
         sys.exit(1)
     print(u'version             : %s' % surum())
     kok = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

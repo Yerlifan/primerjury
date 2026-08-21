@@ -1139,7 +1139,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                 s['sebep'] = (u'Kapsama %%%d (olcut %%%d) / alan disi %%%s (olcut en cok %%%.0f).'
                               % (int(100 * o['kapsama']), int(100 * EVRENSEL_KAPSAMA_ESIGI),
                                  vir(o['alandisi']), EVRENSEL_ALANDISI_UST))
-            yaz(u'      -> YOL 1: kapsama %s, alan disi %%%s  => %s'
+            yaz(u'      -> ROUTE 1: coverage %s, outside the domain %%%s  => %s'
                 % (o['kapsam_pay'], vir(o['alandisi']), s['gecti']))
 
         else:
@@ -1182,8 +1182,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                            (u'YUKSELDI' if kat > eski else
                             u'DUSTU' if kat < eski else u'DEGISMEDI'))
                     yaz(u'      -> YOL 2: %s' % kanit)
-                    yaz(u'         daraltilmis uyelikle: %s x (eski %s x, %s) - '
-                        u'KOSULSUZ benimsendi' % (vir(kat), vir(eski), yon))
+                    yaz(u'         with the narrowed membership: %s x (previously %s x, %s), adopted UNCONDITIONALLY' % (vir(kat), vir(eski), yon))
                     if dus:
                         s['dusus_notu'] = (
                             u'DIKKAT - BU BIR KAYIP DEGIL, DUZELTMEDIR. Bu satirin '
@@ -1267,7 +1266,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                              sebep=u'Tek omurga penceresinde cozum yoktu; %s bolgesinde '
                                    u'bulundu. Taranan bolge: %d.'
                                    % (en['bolge'], len(t5.get('bolge', []))))
-                    yaz(u'         BULUNDU: %s bolgesi, %s x' % (en['bolge'], vir(e['kat1'])))
+                    yaz(u'         FOUND: the %s region, %s x' % (en['bolge'], vir(e['kat1'])))
                 elif t5.get('bolge'):
                     s['sebep'] += (u' COK LOKUSLU ARAMA: %d bolgenin hepsi tarandi '
                                    u'(%s), hicbirinde esigi gecen aday yok.'
@@ -1306,7 +1305,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                                  sebep=u'Mevcut lokusta taban cok dusuktu; %s bolgesinde '
                                        u'esigi gecen aday bulundu. Taranan bolge: %d.'
                                        % (en['bolge'], len(t5.get('bolge', []))))
-                        yaz(u'         BULUNDU: %s bolgesi, %s x' % (en['bolge'], vir(e['kat1'])))
+                        yaz(u'         FOUND: the %s region, %s x' % (en['bolge'], vir(e['kat1'])))
                     else:
                         s['sebep'] = ((s['sebep'] + u'  ') if s['sebep'] else u'') + (
                             u'BUTUN LOKUSLAR DENENDI: %d bolge tarandi (%s), hicbirinde '

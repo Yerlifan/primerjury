@@ -723,19 +723,19 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'# A row that fails the threshold is NEVER DELETED SILENTLY; the decision is yours.\n')
         fh.write(u'# (tool counts: above threshold %d, below threshold %d, not measurable %d)\n'
                  % (len(gecen), len(kalan), len(olculemeyen)))
-        fh.write(u'# "OLCUTE DUYARLI" isaretli satirlar mm<=1 de gecip mm<=3 te cokuyor - kirilgandir.\n')
+        fh.write(u'# Rows marked "OLCUTE DUYARLI" pass at mm<=1 but collapse at mm<=3, so they are fragile.\n')
         fh.write(u'#\n')
         fh.write(u'# THRESHOLD: %s\n' % _C.esik_metni())
         fh.write(u'# ESIGIN KOKENI: %s\n' % ESIK_KOKENI)
-        fh.write(u'# VERIM UYARISI: %s\n' % ESIK_VERIM_NOTU)
+        fh.write(u'# EFFICIENCY WARNING: %s\n' % ESIK_VERIM_NOTU)
         fh.write(u'#   The agreed criterion is a DIFFERENT quantity: the NUMBER OF CROSS-REACTING SPECIES\n')
-        fh.write(u'#   (CALISMA_KAYDI §1.7, hosgoru 1-2). O yuzden ayri sutunda:\n')
+        fh.write(u'#   (CALISMA_KAYDI 1.7, a tolerance of 1 to 2). So it goes in its own column:\n')
         fh.write(u'#   TOPLANTI_OLCUTU_capraz_kutu = how many competitor bins give >=%%%d product.\n'
                  % int(TOPLANTI_CAPRAZ_TABAN))
         fh.write(u'#   The two criteria DO NOT STAND IN for one another.\n')
         fh.write(u'# dCq_karsiligi: laboratuvarin konustugu birim. dCq = log2(kat),\n')
         fh.write(u'#   %%100 verim varsayimiyla. 10x = 3,32 dongu. Literaturde ozgulluk\n')
-        fh.write(u'#   gecme olcutu dCq >= 3 (NEB). Gercek verim olculunce duzeltilmeli.\n')
+        fh.write(u'#   the passing criterion is dCq >= 3 (NEB). It must be corrected once the real efficiency is measured.\n')
         w = csv.writer(fh, delimiter='\t')
         _kok0 = os.path.dirname(os.path.abspath(CIKTI))
         _kim = _S.kimlik_tablosu(_kok0)
@@ -804,7 +804,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
     # ---------- 3) the protocol plus the report ----------
     yol3 = os.path.join(CIKTI, 'PROTOKOL_VE_RAPOR.md')
     with open(yol3, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Tek protokolle panel olcumu\n\n')
+        fh.write(u'# The panel measurement with a single protocol\n\n')
         fh.write(u'Generated: %s, script version %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
         fh.write(u'## Result\n\n')
         fh.write(u'- Pairs PASSING the threshold (%.0fx): **%d** -> **%d oligos**\n' % (E, len(gecen), 2 * len(gecen)))

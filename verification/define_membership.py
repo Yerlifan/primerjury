@@ -170,7 +170,7 @@ def main():
                       % (a.hedef, ','.join(tx), a.kalip, sinif,
                          time.strftime('%Y-%m-%d')))
             io.open(hy, 'w', encoding='utf-8', newline='').write(metin)
-            print('  acik tanim EKLENDI: screening/hedef_uyelik.tsv')
+            print(u'  an explicit definition WAS ADDED: screening/hedef_uyelik.tsv')
         else:
             print(u'  an explicit definition already exists: screening/hedef_uyelik.tsv')
 
@@ -222,8 +222,7 @@ def main():
             with io.open(py, 'w', encoding='utf-8', newline='') as fh:
                 for r in psat:
                     fh.write(u'\t'.join(r) + u'\n')
-            print('  panel satiri EKLENDI: plaka %s, Ta %s (Tm/GC bos - geometri '
-                  'kosusu olcup yazacak)' % (plaka, ta))
+            print(u'  the panel row WAS ADDED: plate %s, Ta %s (Tm and GC left empty, the geometry run will measure and write them)' % (plaka, ta))
     print('=' * 78)
     return 0
 

@@ -388,7 +388,7 @@ def main():
     ortak = sorted(set(kons) & set(fq))
     print(u'  consensus %d, fastq %d, matched bins %d' % (len(kons), len(fq), len(ortak)))
     eksik = sorted(set(fq) - set(kons))
-    if eksik: print('  UYARI - konsensusu olmayan fastq: %s' % ', '.join(eksik))
+    if eksik: print(u'  WARNING - a fastq with no consensus: %s' % ', '.join(eksik))
     print()
 
     # STEP 1 - the identity matrix of every consensus pair within a class. Only bins in
@@ -570,7 +570,7 @@ def main():
                       rakip=sorted(rak), eklenen=sorted(set(yeni_u) - set(eski)),
                       cikan=sorted(set(eski) - set(yeni_u)), evrensel=False)
     deg = sum(1 for o in UY.values() if o['eklenen'] or o['cikan'])
-    print('        %d hedeften %d tanesinin uyeligi degisti' % (len(UY), deg))
+    print(u'        the membership of %d targets out of %d changed' % (len(UY), deg))
 
     # STEP 4 - every panel pair, in every bin, measured at BOTH mm<=1 (the primary
     # criterion) AND mm<=3 (the robustness criterion). Each bin's fastq is read once and
@@ -605,8 +605,7 @@ def main():
     OL = ck_oku(cko, {})
     if OL.get('_muhur') != _muhur:
         if OL:
-            print('  [4/4] onbellek DIZI muhru tutmuyor (kayitli %s, simdi %s) - '
-                  'bastan olculuyor.' % (OL.get('_muhur') or 'yok', _muhur))
+            print(u'  [4/4] the cache SEQUENCE seal does not hold (recorded %s, now %s), measuring from scratch.' % (OL.get('_muhur') or 'yok', _muhur))
         OL = {'_muhur': _muhur}
     kalan = [k for k in ortak if k not in OL]
     print(u'  [4/4] In-silico PCR: %d pairs x %d bins (%d bins remaining), mm<=1 and mm<=3' % (len(CF), len(ortak), len(kalan)))
@@ -714,23 +713,23 @@ def main():
         fh.write(u'Criterion: discriminating %d-mer, normalised threshold %.2f, member >=%%%.0f, mixed %%%.0f-%.0f.\n'
                  % (K, NORM_ESIK, UYE_ESIK, KARISIK_ESIK, UYE_ESIK))
         fh.write(u'In-silico PCR: <=1 and <=3 mismatches with an EXACT match at the last two 3\' bases, at most %d reads per bin.\n\n' % a.nmax)
-        fh.write('A senaryosu = karisik kutular RAKIP sayilir (guvenli).  B = karisik kutular dislanir.\n\n')
+        fh.write(u'Scenario A = mixed bins count as COMPETITORS (the safe one).  B = mixed bins are excluded.\n\n')
         fh.write(u'| target | old members | new members | mixed | old fold (mm1) | new A | new B | new A (mm3) |\n')
         fh.write('|---|---|---|---|---|---|---|---|\n')
         for d in SON:
             fh.write('| %s | %d | %d | %d | %s | %s | %s | %s |\n' % (
                 d['hedef'], d['eski_n'], d['yeni_n'], d['kar_n'],
                 kat(d['eski_mm1']), kat(d['A_mm1']), kat(d['B_mm1']), kat(d['A_mm3'])))
-        fh.write('\n## Uyeligi degisen hedefler\n\n')
+        fh.write(u'\n## The targets whose membership changed\n\n')
         for d in SON:
             if d['eklenen'] or d['cikan']:
                 fh.write('- **%s**: eklenen `%s` / cikan `%s`\n' % (d['hedef'], d['eklenen'] or '-', d['cikan'] or '-'))
-        fh.write('\n## Kraken etiketi yanlis olan kutular\n\n')
+        fh.write(u'\n## The bins whose Kraken label is wrong\n\n')
         for kb in sorted(IC):
             pay = IC[kb]['pay']; t = kb.split('_')[1]
             srt = sorted(pay.items(), key=lambda x: -x[1])
             if srt and srt[0][1] >= UYE_ESIK and srt[0][0].split('_')[1] != t:
-                fh.write('- `%s` -> okumalarinin %%%.0f i `%s` organizmasina ait\n' % (kb, srt[0][1], srt[0][0]))
+                fh.write(u'- `%s` -> %%%.0f of its reads belong to the organism `%s`\n' % (kb, srt[0][1], srt[0][0]))
         fh.write(u'\n> This script does NOT write to the panel files. Applying the changes is a separate job.\n')
     print()
     print('=' * 70); print(u'  DONE'); print('=' * 70)
