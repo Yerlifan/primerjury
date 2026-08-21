@@ -63,7 +63,7 @@ ORNEKLER = [
 
 
 def kd_yukle(kok):
-    y = os.path.join(kok, 'verification', 'kimlik_dogrulama.py')
+    y = os.path.join(kok, 'verification', 'identity_verification.py')
     if not os.path.exists(y):
         sys.stderr.write('bulunamadi: %s\n' % y)
         sys.exit(2)

@@ -214,7 +214,7 @@ of off-target products.
 ### The full chain
 
 ```bash
-python3 verification/tam_zincir.py --kok . --onayla
+python3 verification/full_chain.py --kok . --onayla
 ```
 
 Ten stages run in dependency order. Order is not arbitrary:
@@ -238,9 +238,9 @@ recorded and the chain continues.
 ### Individual stages
 
 ```bash
-python3 verification/kimlik_dogrulama.py --kok .      # identity verification
-python3 verification/dogrulama_turu.py --kok .        # four-layer specificity
-python3 protocol/tek_protokol_olc.py --kok .          # single-protocol panel measurement
+python3 verification/identity_verification.py --kok .      # identity verification
+python3 verification/specificity_round.py --kok .        # four-layer specificity
+python3 protocol/single_protocol_measure.py --kok .          # single-protocol panel measurement
 python3 cross_check.py --kok .                        # read-only independent audit
 ```
 
@@ -269,7 +269,7 @@ Each exits non-zero on failure and prints what it measured.
 whether the packages actually *import* (side effects included), whether every
 script referenced by another script exists, whether any pre-rename or personal
 name survived, and whether what git ships is enough to run. It exists because
-`screening/motor.py` once passed every parse check and still could not be
+`screening/engine_gateway.py` once passed every parse check and still could not be
 imported — it loads its engine from disk, and those files had not been copied.
 "110 files, 0 errors" was true and useless.
 
@@ -437,7 +437,7 @@ Being honest about what is not yet general:
 - **Target definitions are still study-shaped.** `hedefler.tsv` and
   `hedef_klad.tsv` work, but assume a structure close to the original study
   (amplicon groups, bin naming). Generalising this is the main open work.
-- **`screening/yapilandirma.py` holds every path and constant.** It is meant to
+- **`screening/config.py` holds every path and constant.** It is meant to
   be edited and is genuinely the only place paths are defined — moving it to
   YAML/TOML is planned and should be straightforward.
 - **Layer 2 taxonomic discrimination is reported but does not vote.** The

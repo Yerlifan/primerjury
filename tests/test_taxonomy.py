@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""screening/taksonomi.py'nin KANITI - bes baslik bicimi.
+"""screening/taxonomy.py'nin KANITI - bes baslik bicimi.
 
 NE SINANIYOR
 ------------
@@ -27,7 +27,7 @@ import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
-from screening import taksonomi as T           # noqa: E402
+from screening import taxonomy as T           # noqa: E402
 
 # --- 1) SENTETIK: (ad, baslik, vtb, beklenen_alan, iceride_olmali_klad) -----
 SENTETIK = [

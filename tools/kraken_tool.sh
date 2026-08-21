@@ -243,7 +243,7 @@ ortam_ac() {
 # ---------------------------------------------------------------------------
 # tus_kraken_yol - kraken2'nin COZULMUS tam yolunu makine okunur basar.
 #
-# Neden ayri bir tus: tam_zincir.py (A tusu) eskiden kraken2'yi kendi basina
+# Neden ayri bir tus: full_chain.py (A tusu) eskiden kraken2'yi kendi basina
 # PATH'te ariyordu ve bulamayinca butun Kraken adimlarini atliyordu. Artik
 # aramayi yapmiyor, bu tusu cagirip cevabi buradan aliyor. Arama mantigi TEK
 # YERDE durur; iki ayri yerde iki farkli arama olmaz.
