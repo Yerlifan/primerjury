@@ -346,7 +346,7 @@ def main():
     os.makedirs(CIK, exist_ok=True)
     if a.sifirla:
         for f in glob.glob(os.path.join(CIK, '_ck_*.json')): os.remove(f)
-        print('kontrol noktalari silindi.')
+        print(u'checkpoints deleted.')
 
     KONS = os.path.join(KOK, 'konsensus_kanonik')
     FQ = os.path.join(KOK, 'fastq files')
@@ -364,7 +364,7 @@ def main():
     for p in glob.glob(os.path.join(FQ, '*', '*.fastq')) + glob.glob(os.path.join(FQ, '*', '*.fastq.gz')):
         fq[kutu_adi(p)] = p
     ortak = sorted(set(kons) & set(fq))
-    print('  Konsensus %d, fastq %d, eslesen kutu %d' % (len(kons), len(fq), len(ortak)))
+    print(u'  consensus %d, fastq %d, matched bins %d' % (len(kons), len(fq), len(ortak)))
     eksik = sorted(set(fq) - set(kons))
     if eksik: print('  UYARI - konsensusu olmayan fastq: %s' % ', '.join(eksik))
     print()
@@ -385,7 +385,7 @@ def main():
             for j in range(i + 1, len(v)): ciftler.append((v[i], v[j]))
     yeni = [c for c in ciftler if '%s|%s' % c not in KM]
     if yeni:
-        print('  [1/4] Konsensus kimlik matrisi: %d cift hesaplanacak' % len(yeni))
+        print(u'  [1/4] Consensus identity matrix: %d pairs to compute' % len(yeni))
         t0 = time.time()
         for n, (x, y) in enumerate(yeni, 1):
             KM['%s|%s' % (x, y)] = hw_kimlik(kons[x], kons[y])
@@ -394,7 +394,7 @@ def main():
                 print('        %d/%d  (%.0f sn)' % (n, len(yeni), time.time() - t0), flush=True)
         ck_yaz(ckm, KM)
     else:
-        print('  [1/4] Kimlik matrisi kontrol noktasindan okundu (%d cift)' % len(KM))
+        print(u'  [1/4] Identity matrix read from checkpoint (%d pairs)' % len(KM))
 
     # -----------------------------------------------------------------------
     # ADIM 2 - AYIRT EDICI k-mer kumesi. Bir on grubun k-mer'lerinden DIGER butun
@@ -449,7 +449,7 @@ def main():
             idx = {}
             for i, st in enumerate(ayirt):
                 for x in st: idx[x] = i
-            print('        sinif %-3s: %d grup, ayirt edici kume %s' % (s, len(gruplar), boy))
+            print(u'        class %-3s: %d groups, discriminating set %s' % (s, len(gruplar), boy))
             for kb in hedefler:
                 rs = []
                 with open(fq[kb], 'rt', errors='ignore') as fh:
@@ -477,7 +477,7 @@ def main():
                       ', '.join('%s:%.0f%%' % x for x in sorted(IC[kb]['pay'].items(), key=lambda y: -y[1])[:2]) or '-'),
                       flush=True)
     else:
-        print('  [2/4] Okuma siniflamasi kontrol noktasindan okundu')
+        print(u'  [2/4] Read classification read from checkpoint')
 
     # -----------------------------------------------------------------------
     # ADIM 3 - UYELIGIN YENIDEN KURULMASI.
@@ -489,7 +489,7 @@ def main():
     # Evrensel hedeflerde sinifin tamami uyedir; ayirma yapilmaz.
     # -----------------------------------------------------------------------
     # --- 3. uyelik yeniden turetme
-    print('  [3/4] Uyelik yeniden turetiliyor')
+    print(u'  [3/4] Re-deriving membership')
     uyelik_tsv = os.path.join(KOK, 'screening', 'hedef_uyelik.tsv')
     panel_tsv = os.path.join(KOK, 'primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(uyelik_tsv): sys.exit('HATA: %s yok' % uyelik_tsv)
@@ -582,7 +582,7 @@ def main():
                   'bastan olculuyor.' % (OL.get('_muhur') or 'yok', _muhur))
         OL = {'_muhur': _muhur}
     kalan = [k for k in ortak if k not in OL]
-    print('  [4/4] In-silico PCR: %d cift x %d kutu (kalan %d kutu), mm<=1 ve mm<=3' % (len(CF), len(ortak), len(kalan)))
+    print(u'  [4/4] In-silico PCR: %d pairs x %d bins (%d bins remaining), mm<=1 and mm<=3' % (len(CF), len(ortak), len(kalan)))
     t0 = time.time()
     for n, kb in enumerate(kalan, 1):
         Kt = Kutu(fq[kb], nmax=a.nmax)
@@ -681,13 +681,13 @@ def main():
             w.writerow([kb, s, t, b1[0], b1[1], b2[0], b2[1], yorum])
     p3 = os.path.join(CIK, 'engine_TURETME.md')
     with open(p3, 'w', encoding='utf-8') as fh:
-        fh.write('# Uyeligin olculen kimlikten yeniden turetilmesi\n\n')
+        fh.write(u'# Re-deriving membership from measured identity\n\n')
         fh.write('Uretim: %s\n\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
-        fh.write('Olcut: ayirt edici %d-mer, normalize esik %.2f, uye >=%%%.0f, karisik %%%.0f-%.0f.\n'
+        fh.write(u'Criterion: discriminating %d-mer, normalised threshold %.2f, member >=%%%.0f, mixed %%%.0f-%.0f.\n'
                  % (K, NORM_ESIK, UYE_ESIK, KARISIK_ESIK, UYE_ESIK))
-        fh.write('In-silico PCR: <=1 ve <=3 uyumsuzluk + 3\' son 2 baz TAM, kutu basina en cok %d okuma.\n\n' % a.nmax)
+        fh.write(u'In-silico PCR: <=1 and <=3 mismatches with an EXACT match at the last two 3\' bases, at most %d reads per bin.\n\n' % a.nmax)
         fh.write('A senaryosu = karisik kutular RAKIP sayilir (guvenli).  B = karisik kutular dislanir.\n\n')
-        fh.write('| hedef | eski uye | yeni uye | karisik | eski kat (mm1) | yeni A | yeni B | yeni A (mm3) |\n')
+        fh.write(u'| target | old members | new members | mixed | old fold (mm1) | new A | new B | new A (mm3) |\n')
         fh.write('|---|---|---|---|---|---|---|---|\n')
         for d in SON:
             fh.write('| %s | %d | %d | %d | %s | %s | %s | %s |\n' % (
@@ -703,7 +703,7 @@ def main():
             srt = sorted(pay.items(), key=lambda x: -x[1])
             if srt and srt[0][1] >= UYE_ESIK and srt[0][0].split('_')[1] != t:
                 fh.write('- `%s` -> okumalarinin %%%.0f i `%s` organizmasina ait\n' % (kb, srt[0][1], srt[0][0]))
-        fh.write('\n> Bu betik panel dosyalarina YAZMAZ. Degisiklikleri uygulamak ayri bir istir.\n')
+        fh.write(u'\n> This script does NOT write to the panel files. Applying the changes is a separate job.\n')
     print()
     print('=' * 70); print('  BITTI'); print('=' * 70)
     print('  %s' % p3); print('  %s' % p1); print('  %s' % p2)

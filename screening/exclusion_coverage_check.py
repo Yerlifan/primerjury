@@ -222,8 +222,8 @@ def main():
     yaz(u'=' * 78)
     yaz(u'  DISLAMA HARITASI KAPSAMA DENETIMI   %s' % time.strftime('%Y-%m-%d %H:%M'))
     yaz(u'=' * 78)
-    yaz(u'  dislama haritasi : %d hedef' % len(H))
-    yaz(u'  uyelik tablosu   : %d hedef' % len(U))
+    yaz(u'  exclusion map    : %d targets' % len(H))
+    yaz(u'  membership table : %d targets' % len(U))
 
     # ad eslesmesi: uyelik tablosunun anahtari kisa olabilir (ornek:
     # "Proteolitik_Synergistaceae" <-> "Proteolitik_Synergistaceae (eski ad: ...)").
@@ -253,12 +253,12 @@ def main():
                 ESD[p[0].strip()] = p[1].strip()
     KUT = oku_uye_kutular(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_20260803.tsv'))
     OLC = oku_olculen_kimlik(os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv'))
-    yaz(u'  uye kutu tablosu : %d hedef' % len(KUT))
-    yaz(u'  olculen kimlik   : %d kutu' % len(OLC))
+    yaz(u'  member bin table : %d targets' % len(KUT))
+    yaz(u'  measured identity: %d bins' % len(OLC))
     olculen_yol = bool(KUT and OLC)
     if not olculen_yol:
-        yaz(u'  UYARI: olculen kimlik yolu KAPALI (dosya yok). Kraken taxid\'i ile')
-        yaz(u'  denetlenecek; bu YANLIS ALARM uretebilir.')
+        yaz(u'  WARNING: the measured-identity route is CLOSED (file missing). The check will')
+        yaz(u'  use the Kraken taxid instead, which can produce FALSE ALARMS.')
 
     gerek = set()
     icin = {}
@@ -311,9 +311,7 @@ def main():
         exc = H[hedef]
         if hedef not in icin:
             eksik_uyelik.append(hedef)
-            yaz(u'%-46s %-9s %-7s UYELIK TABLOSUNDA YOK - bu hedefin uye kumesi '
-                u'hic turetilemedi (hukum: UYELIK DOGRULANAMADI). Dislama '
-                u'denetlenemez.' % (hedef[:46], ','.join(exc)[:9], '-'))
+            yaz(u'%-46s %-9s %-7s NOT IN THE MEMBERSHIP TABLE - the member set for this target was never derived (verdict: MEMBERSHIP NOT VERIFIED' % (hedef[:46], ','.join(exc)[:9], '-'))
             continue
         k, uyeler = icin[hedef]
         uyeler = [m for m in uyeler if m and str(m).isdigit()]
@@ -335,7 +333,7 @@ def main():
                 else:
                     disarida.append((m, ad or '?'))
         if bagisik and not disarida:
-            yaz(u'%-46s %-9s %-7d tamam (%d kabul edilmis istisna)'
+            yaz(u'%-46s %-9s %-7d ok (%d accepted exceptions)'
                 % (hedef[:46], ','.join(exc)[:9], len(uyeler), len(bagisik)))
             for m, ad, sb in bagisik:
                 yaz(u'      istisna: taxid %-9s %-24s %s' % (m, ad[:24], sb[:60]))
@@ -345,19 +343,19 @@ def main():
             yaz(u'%-46s %-9s %-7d KAPSAMIYOR (%d uye disarida)'
                 % (hedef[:46], ','.join(exc)[:9], len(uyeler), len(disarida)))
         else:
-            yaz(u'%-46s %-9s %-7d tamam' % (hedef[:46], ','.join(exc)[:9], len(uyeler)))
+            yaz(u'%-46s %-9s %-7d ok' % (hedef[:46], ','.join(exc)[:9], len(uyeler)))
 
     yaz('')
     if kotu:
-        yaz(u'  KAPSAMAYAN HEDEFLER - bu uyeler hedefin KENDISI oldugu halde')
-        yaz(u'  "hedef disi urun" diye sayilir:')
+        yaz(u'  TARGETS WITH INCOMPLETE COVERAGE - these members ARE the target itself')
+        yaz(u'  yet are counted as "off-target product":')
         for hedef, exc, dis in kotu:
             yaz(u'   * %s  (dislanan: %s)' % (hedef, ','.join(exc)))
             for m, ad in dis:
                 zincir_ad = Z.get(m, ('', set()))[0]
                 yaz(u'       disarida: taxid %-9s %s' % (m, zincir_ad or ad))
     else:
-        yaz(u'  Butun hedeflerde dislanan takson uyelerin HEPSINI kapsiyor.')
+        yaz(u'  For every target, the excluded taxon covers ALL of its members.')
     if eksik_uyelik:
         yaz(u'  UYELIK TABLOSUNDA OLMAYAN (denetlenemedi): %s' % ', '.join(eksik_uyelik))
     yaz(u'=' * 78)

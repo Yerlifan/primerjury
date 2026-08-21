@@ -223,7 +223,7 @@ def main():
     yaz(u'=' * 78)
 
     esleme = esleme_kur(kok, yaz)
-    yaz(u'  kutu <-> barkod eslemesi: %d kutu klasoru' % len(esleme))
+    yaz(u'  bin to barcode mapping: %d bin directories' % len(esleme))
     if not esleme:
         yaz(u'  ESLEME KURULAMADI - cikiliyor.')
         return 1
@@ -270,9 +270,9 @@ def main():
                 break
 
     yaz(u'')
-    yaz(u'  PLAN: kapsam hedefi %%%d, asgari okuma %d'
+    yaz(u'  PLAN: coverage target %%%d, minimum reads %d'
         % (int(a.kapsam * 100), a.asgari_okuma))
-    yaz(u'  uretilecek yeni kutu: %d' % len(plan))
+    yaz(u'  new bins to create: %d' % len(plan))
     sinif_say = collections.Counter(x['sinif'] for x in plan)
     for s, n in sorted(sinif_say.items()):
         yaz(u'      %-4s %d' % (s, n))
@@ -355,11 +355,11 @@ def main():
         yaz(u'  %-8s %-12s %d kutu yazildi' % (kutu, bc, len(istenen)))
 
     yaz(u'')
-    yaz(u'  uretilen kutu: %d' % uretilen)
+    yaz(u'  bins created: %d' % uretilen)
     for x in atlanan[:20]:
         yaz(u'  ATLANDI: %s' % x)
-    yaz(u'  Sonraki adim: konsensus uretimi ve kimlik dogrulama zinciri')
-    yaz(u'    verification/full_chain.py -> secenek 6 (konsensus), sonra tek tus G asamasi')
+    yaz(u'  Next step: consensus generation and the identity verification chain')
+    yaz(u'    verification/full_chain.py -> option 6 (consensus), then stage G')
     yaz(u'=' * 78)
     return 0
 

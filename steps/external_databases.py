@@ -457,14 +457,12 @@ def main():
         ev = sum(1 for v in taksonlar.values() if v["evrensel"])
         ad = sum(1 for v in taksonlar.values()
                  if not v["evrensel"] and not (v["beyan"] | v["olculen"]))
-        print("takson adi cozulen hedef: %d (evrensel: %d, adsiz: %d)"
+        print(u'targets whose taxon name resolved: %d (universal: %d, unnamed: %d)'
               % (len(taksonlar), ev, ad))
         if ad:
-            print("   UYARI: adsiz hedeflerde kendi/yabanci ayrimi yapilamaz,"
-                  " urunler 'takson bilinmiyor' sayilir")
+            print(u'   WARNING: own versus foreign cannot be separated for unnamed targets; those products count as \'taxon unknown\'')
     else:
-        print("UYARI: --hedefler/--adlar/--kimlik verilmedi; kendi takson ile"
-              " yabanci takson AYRILMAYACAK, ham urun sayisi yaniltici olur")
+        print(u'WARNING: --targets/--names/--identity were not given, so own taxon and foreign taxon will NOT be separated and raw product counts are reported')
     for sinif, primerler in sorted(sinif_primer.items()):
         dblist = [] if a.yalniz_genis else list(SINIF_DB.get(sinif, []))
         if a.genis or a.yalniz_genis:
@@ -487,10 +485,7 @@ def main():
             if not kap_durum:
                 if kap_uz < a.prod_max:
                     kap_durum = "KAPSAM_YOK"
-                    print("      KAPSAM YOK: %s icinde %s sinifina benzer en uzun "
-                          "bolge %d bp (%.1f%%), aranan urun en fazla %d bp. "
-                          "Bu veritabanindaki 'urun yok' sonucu OZGULLUK KANITI "
-                          "DEGILDIR." % (dbad, sinif, kap_uz, kap_kim, a.prod_max))
+                    print(u'      NO COVERAGE: the longest region in %s resembling class %s is %d bp (%.1f%%), while the product sought is at most %d bp.' % (dbad, sinif, kap_uz, kap_kim, a.prod_max))
                     gecersiz.append((sinif, dbad, kap_uz, kap_kim))
                 else:
                     kap_durum = "KAPSANIYOR"
@@ -657,16 +652,14 @@ def main():
         for sn, db, sb in atlanan:
             print("   %-4s %-34s %s" % (sn, db, sb))
     if gecersiz:
-        print("\nKAPSAM DISI IKILILER (bu satirlardaki 'urun yok' sonucu"
-              " ozgulluk kaniti degildir):")
+        print(u'\nOUT-OF-COVERAGE PAIRS (a \'no product\' result on these rows is not evidence of specificity):')
         for sn, db, uz, kim in gecersiz:
             print("   %-4s %-34s en uzun benzer bolge %5d bp  %%%.1f"
                   % (sn, db, uz, kim))
     temiz = sum(1 for x in sonuc if x["hedef_disi_urun"] == 0)
     temiz_gecerli = sum(1 for x in sonuc if x["hedef_disi_urun"] == 0
                         and x.get("kapsam_durumu") == "KAPSANIYOR")
-    print("kayit: %d, hicbir urun vermeyen: %d"
-          " (bunlarin kapsami dogrulanmis olani: %d)"
+    print(u'records: %d, giving no product at all: %d (of those, with verified coverage: %d)'
           % (len(sonuc), temiz, temiz_gecerli))
 
     # SIRALAMA HAM SAYIYA GORE YAPILMAZ. Gerekcesi hedef_taksonlari()'nin
@@ -676,11 +669,11 @@ def main():
              if x.get("hedef_turu") == "ozgul"
              and x.get("kapsam_durumu") == "KAPSANIYOR"
              and x.get("yabanci_uzak", 0) > 0]
-    print("\nOZGULLUK BULGULARI, UZAK TAKSONA gore siralanmis")
+    print(u'\nSPECIFICITY FINDINGS, ordered by DISTANT TAXON')
     print("(yakin = hedefin soyagacini son iki basamak disinda paylasan,"
           " cogu zaman ayni islevsel grup)")
     if not ozgul:
-        print("   uzak taksonda urun veren kayit yok")
+        print(u'   no record gives a product in a distant taxon')
     for x in sorted(ozgul, key=lambda x: -x["yabanci_uzak"])[:15]:
         print("   %-28s %-3s %-28s uzak=%5d yakin=%5d kendi=%5d"
               % (x["hedef"][:27], x["sinif"], x["veritabani"][:27],
@@ -707,14 +700,14 @@ def main():
     # taksonunda bile; bunlar zaten 18'in alan_karisimi diye isaretledigi
     # ciftlerdir.
     olculebilir = [v for v in oz if v["kendi"] > 0]
-    print("\nkapsanan veritabaniyla olculen OZGUL cift: %d" % len(oz))
-    print("   bunlarin kendi taksonunda urun vererek OLCULEBILIR olani: %d"
+    print(u'\nSPECIFIC pairs measured against a covered database: %d' % len(oz))
+    print(u'   of those, MEASURABLE because they give a product in their own taxon: %d'
           % len(olculebilir))
-    print("   uzak taksonda hic urun vermeyen (gercekten temiz)      : %d"
+    print(u'   giving no product in any distant taxon (genuinely clean)          : %d'
           % sum(1 for v in olculebilir if v["uzak"] == 0))
     inert = [v for v in oz if v["kendi"] == 0]
     if inert:
-        print("   kendi taksonunda bile urun vermeyen (OLCUM GECERSIZ)   : %d"
+        print(u'   giving no product even in their own taxon (MEASUREMENT INVALID)   : %d'
               % len(inert))
 
 
