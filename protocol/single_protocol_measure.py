@@ -296,7 +296,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
 
     yaz('=' * 78)
     yaz('  TEK PROTOKOL - panelin tamami ayni kuralla yeniden olculuyor')
-    yaz('  surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
 
     # --- ciftler -------------------------------------------------------
@@ -405,7 +405,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     yaz('akar, takilmis DEGILDIR; asil olcum bundan sonra baslar ve her cift ayri kaydedilir.')
     nm = N.Numune(list(gerekli.values()), n=okuma_tavani, ilerle=ilerK, otorite=True)
     top_okuma = sum(h.n_okuma for h in nm.havuz.values())
-    yaz('\nHavuzlar hazir: %d kutu, %d okuma  (%s)' % (len(gerekli), top_okuma, sure_metni(time.time() - t0)))
+    yaz(u'\nPools ready: %d bins, %d reads  (%s)' % (len(gerekli), top_okuma, sure_metni(time.time() - t0)))
     tahmin = len(ciftler) * 2 * max(1.0, top_okuma / 20000.0)
     yaz('TAHMINI OLCUM SURESI: ~%s   (kesintiye dayaniklidir, ayni secenekle devam eder)'
         % sure_metni(tahmin))
@@ -668,7 +668,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                         gecti, day1, duyarli, r.get('panel_ayrim', ''),
                         o1.get('rakip_olculen', ''), o1.get('rakip_toplam', ''),
                         kismi, r.get('hata', '')])
-    yaz('  yazildi: %s' % yol)
+    yaz(u'  written: %s' % yol)
 
     # ---------- 1b) KUTU BAZLI HAM SAYILAR (madde 7e) ----------
     # Hicbir okuyucu bugune kadar bir verdikti YENIDEN HESAPLAYAMIYORDU.
@@ -692,7 +692,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                         except (IndexError, TypeError):
                             continue
                         w.writerow([r['hedef'], mm, ad, grup, k, n, vir(yuzde)])
-    yaz('  yazildi: %s' % yolk)
+    yaz(u'  written: %s' % yolk)
 
     # ---------- 2) TEK siparis listesi ----------
     gecen, kalan, olculemeyen = [], [], []
@@ -798,7 +798,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                               vir(g3), vir(hv), capraz,
                               o1.get('uye_kapsam_pay', ''), ek, kk, kn,
                               r.get('uye_n', ''), '; '.join(damga) or '-'])
-    yaz('  yazildi: %s' % yol2)
+    yaz(u'  written: %s' % yol2)
 
     # ---------- 3) protokol + rapor ----------
     yol3 = os.path.join(CIKTI, 'PROTOKOL_VE_RAPOR.md')
@@ -824,7 +824,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
                 d1 + ('' if day1 == 'en kotu tek kutu' else ' (%s)' % day1)))
         fh.write(u'\n## Okuma sirasi\n\n1. Once bu dosya. 2. `SIPARIS_LISTESI.tsv`. '
                  u'3. Ayrinti icin `panel_tek_protokol.tsv`.\n')
-    yaz('  yazildi: %s' % yol3)
+    yaz(u'  written: %s' % yol3)
     yaz('')
     yaz('  ESIGI GECEN: %d cift (%d oligo)   ESIK ALTI: %d   OLCULEMEYEN: %d'
         % (len(gecen), 2 * len(gecen), len(kalan), len(olculemeyen)))
@@ -856,15 +856,15 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BOS CIKTI URETTI - ZINCIR BURADA DURDURULDU' % ad)
+    yaz(u'  STAGE %s PRODUCED EMPTY OUTPUT - THE CHAIN WAS STOPPED HERE' % ad)
     for x in sorun:
         yaz(u'    - %s' % x)
     yaz('')
-    yaz(u'  NEDEN DURDURULDU: sonraki asama bu dosyayi girdi olarak okuyacakti.')
-    yaz(u'  Bos girdiyle devam etmek cokme uretmez, ANLAMSIZ AMA INANDIRICI bir')
-    yaz(u'  ozet uretir - tam da avladigimiz sessiz hata deseni budur.')
-    yaz(u'  Yukaridaki kosu gunlugunu okuyup sebebi giderin, sonra ayni secenegi')
-    yaz(u'  tekrar secin; bitmis isler kontrol noktalarindan atlanacaktir.')
+    yaz(u'  WHY IT STOPPED: the next stage would have read this file as input.')
+    yaz(u'  Continuing with empty input does not crash; it produces a MEANINGLESS BUT')
+    yaz(u'  CONVINCING summary, which is exactly the silent failure we hunt for.')
+    yaz(u'  Read the run log above, fix the cause, then run the same command')
+    yaz(u'  again; finished work is skipped from its checkpoints.')
     yaz('  ' + '!' * 70)
     return 4
 
@@ -885,7 +885,7 @@ def girdi_denetle(yaz, ad, dosyalar):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BASLATILMADI - GIRDI EKSIK' % ad)
+    yaz(u'  STAGE %s WAS NOT STARTED - INPUT MISSING' % ad)
     for x in eksik:
         yaz(u'    - %s' % x)
     yaz('  ' + '!' * 70)

@@ -210,10 +210,10 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     if not _ok:
         yaz('')
         yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
-        yaz('  Sebep: okunacak konsensusler kanonik degil. Ters yonlu bir')
-        yaz('  konsensuste in-silico PCR hicbir uyari vermeden 0 urun dondurur,')
-        yaz('  yani butun kosu sessizce yanlis sonuc uretirdi.')
-        yaz('  Cozum:  python3 screening/build_canonical.py --kok . --yeniden')
+        yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
+        yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
+        yaz(u'  so the whole run would silently produce a wrong result.')
+        yaz(u'  Fix:    python3 screening/build_canonical.py --root . --rerun')
         raise SystemExit(2)
 
     kontrol.hazirla()

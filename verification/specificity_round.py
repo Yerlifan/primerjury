@@ -329,8 +329,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
 
     _klad_yok = [c['hedef'] for c in ciftler if c['hedef'] not in _klad]
     if _klad and _klad_yok:
-        yaz(u'  UYARI: hedef_klad.tsv\'de tanimi olmayan %d hedef - bunlarda '
-            u'taksonomik ayrim YAPILMAZ: %s'
+        yaz(u'  WARNING: %d targets have no entry in hedef_klad.tsv, so NO taxonomic separation is done for them: %s'
             % (len(_klad_yok), ', '.join(_klad_yok)[:160]))
 
     def _siniflandirici(aday_ad, baslik, db_ad):
@@ -351,7 +350,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
                if os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]
         var.sort(key=lambda t: os.path.getsize(os.path.join(kok, 'REFERANS_DB', t[1])))
         kumeler = var[:kume_ust]
-        yaz(u'  (kume-ust=%d: yalniz %s taraniyor - CALISMA kaniti, kapsam degil)'
+        yaz(u'  (cluster-max=%d: scanning only %s. This is evidence that it RUNS, not coverage)'
             % (kume_ust, ', '.join(e for e, _, _ in kumeler)))
     for etiket, dosya, aciklama in kumeler:
         db = os.path.join(kok, 'REFERANS_DB', dosya)
@@ -372,7 +371,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
         dy = os.path.join(kontrol_dizin, 'yerel_%s_%s.pkl'
                           % (''.join(ch if ch.isalnum() else '_' for ch in etiket), imza))
         t0 = time.time()
-        yaz(u'  [%s] taraniyor (%s)...' % (etiket, aciklama))
+        yaz(u'  [%s] scanning (%s)...' % (etiket, aciklama))
 
         def ilerle(pi, kayit, gecen):
             print('     ... parca %d, %d kayit (%s)          '
@@ -419,7 +418,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
                 toplam[h]['siniflandirildi'] = True
             for v in (r.get('vurus') or [])[:20]:
                 toplam[h]['vurus'].append((etiket,) + tuple(v))
-        yaz(u'     bitti (%s): %s' % (sure_metni(time.time() - t0),
+        yaz(u'     done (%s): %s' % (sure_metni(time.time() - t0),
                                       ', '.join('%s=%s' % (h, toplam[h]['kume'][etiket])
                                                 for h in list(toplam)[:4])))
     return toplam
@@ -662,11 +661,10 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
     os.makedirs(ham, exist_ok=True)
     orgs = organizma_listesi(organizma)
     if orgs:
-        yaz(u'  organizma kisiti (%d ayri ORGANISM alani olarak gonderilecek): %s'
+        yaz(u'  organism restriction (sent as %d separate ORGANISM fields): %s'
             % (len(orgs), ' | '.join(orgs)))
     else:
-        yaz(u'  organizma kisiti YOK - tum nt taranacak (genis hedeflerde sonuc '
-            u'tavanina carpma olasiligi yuksek)')
+        yaz(u'  NO organism restriction, the whole of nt will be scanned (broad targets are likely to hit the result cap)')
     # D-13c (2026-08-07, OLCULDU): ciplak 'NOT txidN[Organism]' filtreyi TERSINE
     # CEVIRIR - o taksonu DISLAMAK yerine YALNIZ onu getirir. Olculmus kanit
     # (ayni cift, ayni veritabani, cins dagilimi):
@@ -704,15 +702,14 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             _p = _l.split('\t')
             if len(_p) >= 2 and _p[1].strip():
                 HARITA[_p[0].strip()] = _p[1].strip()
-        yaz(u'  hedef bazli dislama haritasi okundu: %d hedef (%s)'
+        yaz(u'  per-target exclusion map loaded: %d targets (%s)'
             % (len(HARITA), os.path.basename(_hy)))
     ent = ''
     if haric_taxid:
         ent = _ent_of(haric_taxid)
-        yaz(u'  ENTREZ_QUERY (GENEL dislama): %s' % ent)
+        yaz(u'  ENTREZ_QUERY (GLOBAL exclusion): %s' % ent)
     if HARITA:
-        yaz(u'    NOT: "all[filter]" oneki ZORUNLU - onsuz NCBI filtreyi tersine '
-            u'cevirip yalniz o taksonu getirir (olculdu).')
+        yaz(u'    NOTE: the "all[filter]" prefix is MANDATORY. Without it NCBI inverts the filter and returns only that taxon (measured).')
     out = {}
     ilk = True
     for c in ciftler:
@@ -915,38 +912,35 @@ def katman2_elle_girdi(ciftler, cikti, yaz, organizma=''):
     """Kullanicinin Chromium'da Primer-BLAST kosmasi icin hazir girdi + sonuc sablonu."""
     g = os.path.join(cikti, 'NCBI_PRIMER_BLAST_GIRDI.tsv')
     with open(g, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# NCBI Primer-BLAST icin HAZIR GIRDI - dogrudan yapistirilabilir.\n')
+        fh.write(u'# READY-MADE INPUT for NCBI Primer-BLAST, paste it straight in.\n')
         fh.write(u'# Adres: https://www.ncbi.nlm.nih.gov/tools/primer-blast/\n')
-        fh.write(u'# Her satir bir cift. Sayfada su alanlara yapistirin:\n')
+        fh.write(u'# One pair per row. Paste into these fields on the page:\n')
         fh.write(u'#   "Primer Parameters > Forward primer"  <- F sutunu\n')
         fh.write(u'#   "Primer Parameters > Reverse primer"  <- R sutunu\n')
         fh.write(u'#   "Exon/intron selection > PCR product size"  Min/Max <- urun_min/urun_max\n')
         fh.write(u'#   "Primer Pair Specificity Checking Parameters":\n')
-        fh.write(u'#       Database = nt ; Organism = organizma_kisiti sutunu\n')
+        fh.write(u'#       Database = nt ; Organism = the organizma_kisiti column\n')
         fh.write(u'#       Total mismatches = 5 ; 3\' end mismatches = 2\n')
-        fh.write(u'# Sonuclari NCBI_SONUC_SABLONU.tsv icine yazip --ncbi-yukle ile geri verin.\n')
+        fh.write(u'# Write the results into NCBI_SONUC_SABLONU.tsv and load them back with --ncbi-load.\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'F', 'R', 'urun_min', 'urun_max', 'organizma_kisiti', 'not'])
         for c in ciftler:
             w.writerow([c['hedef'], c['F'], c['R'], URUN_ALT, URUN_UST,
                         organizma or '(bos = tum nt)', c['tur']])
-    yaz(u'  yazildi: %s' % g)
+    yaz(u'  written: %s' % g)
 
     s = os.path.join(cikti, 'NCBI_SONUC_SABLONU.tsv')
     with open(s, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# NCBI sonuclarini BURAYA yazin, sonra:\n')
-        fh.write(u'#   verification/full_chain.py -> (D) -> "elle sonuc yukle" ya da\n')
-        fh.write(u'#   python3 verification/specificity_round.py --kok . --ncbi-yukle '
-                 u'DOGRULAMA_SONUC/NCBI_SONUC_SABLONU.tsv\n')
-        fh.write(u'# hedef_disi_urun_sayisi: Primer-BLAST\'in "Products on '
-                 u'potentially unintended templates" altinda saydigi urun sayisi.\n')
-        fh.write(u'# Hic yoksa 0 yazin. Bakmadiysaniz bos birakin (o satir '
-                 u'"NCBI yapilmadi" sayilir).\n')
+        fh.write(u'# Write the NCBI results HERE, then:\n')
+        fh.write(u'#   verification/full_chain.py -> (D) -> "load manual results", or\n')
+        fh.write(u'#   python3 verification/specificity_round.py --root . --ncbi-load DOGRULAMA_SONUC/NCBI_SONUC_SABLONU.tsv\n')
+        fh.write(u'# hedef_disi_urun_sayisi: how many products Primer-BLAST counts under "Products on potentially unintended templates".\n')
+        fh.write(u'# Write 0 if there are none. Leave it empty if you did not look; that row counts as "NCBI not done".\n')
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['hedef', 'hedef_disi_urun_sayisi', 'en_yakin_hedef_disi_organizma', 'notunuz'])
         for c in ciftler:
             w.writerow([c['hedef'], '', '', ''])
-    yaz(u'  yazildi: %s' % s)
+    yaz(u'  written: %s' % s)
     return g, s
 
 
@@ -973,8 +967,7 @@ def ncbi_yukle(yol, yaz=None):
             except ValueError:
                 bozuk.append((r.get('hedef', '?').strip(), n))
     if bozuk and yaz:
-        yaz(u'  UYARI: %d satirda "hedef_disi_urun_sayisi" sayi DEGIL. Bu hedefler '
-            u'icin NCBI katmani OLUSMADI ve hukumde BILINMIYOR gorunecek:' % len(bozuk))
+        yaz(u'  WARNING: "hedef_disi_urun_sayisi" is NOT a number on %d rows. The NCBI layer was NOT built for those targets and the verdict will show BILINMIYOR (unknown):' % len(bozuk))
         for h, n in bozuk:
             yaz(u'    %-40s deger: %r  (tam sayi bekleniyor; hic yoksa 0 yazin, '
                 u'bakmadiysaniz BOS birakin)' % (h[:40], n))
@@ -1302,7 +1295,7 @@ def raporla(cikti, satirlar, yaz):
             fh.write(_L.legend(_L.SUTUN.keys()))
         except Exception:
             pass
-        fh.write(u'# UC OLCUM KATMANI YAN YANA. Ayrilirsa satir CELISKILI - siparis edilemez.\n')
+        fh.write(u'# THE MEASUREMENT LAYERS SIDE BY SIDE. If they disagree the row is CELISKILI (contradictory) and cannot be ordered.\n')
         # A3 (2026-08-21): esik artik PT_VURUS_ESIGI ile degistirilebiliyor.
         # Degistirilebilen bir olcut, hangi degerle kosuldugu YAZILMADIKCA
         # olcumu okunamaz kilar; bu yuzden ciktinin basinda durur.
@@ -1310,10 +1303,10 @@ def raporla(cikti, satirlar, yaz):
                  u'#   gorurse RISKLI oy verir; tek basina hukum vermez, karar\n'
                  u'#   katmanlarin UYUSMASINA baglidir)\n'
                  % (VURUS_ESIGI,
-                    u'  [PT_VURUS_ESIGI ile DEGISTIRILMIS - varsayilan 0]'
-                    if VURUS_ESIGI != 0 else u'  [varsayilan]'))
-        fh.write(u'# 1_NUMUNE OY VERMEZ: sabit TEMIZ uretir, bir olcum degil kabul olcutudur (D-2).\n')
-        fh.write(u'# 2_hedef_disi_urun: beklenen urun boyundan +-%d bp FARKLI vuruslar.\n' % BOY_TOL)
+                    u'  [CHANGED via PT_VURUS_ESIGI, default is 0]'
+                    if VURUS_ESIGI != 0 else u'  [default]'))
+        fh.write(u'# 1_NUMUNE DOES NOT VOTE: it always reads TEMIZ (clean). It is the admission criterion, not a measurement (D-2).\n')
+        fh.write(u'# 2_hedef_disi_urun: hits whose length DIFFERS from the expected product by more than +-%d bp.\n' % BOY_TOL)
         fh.write(u'# A2 (2026-08-21): 2_klad_* sutunlari TAKSONOMIK ayrimdir ve\n'
                  u'#   2_hedef_disi_urun ile AYNI SEYI OLCMEZ. Boy olcutu yaniltici:\n'
                  u'#   D-12\'de olculdu, "hedef disi" sayilan 1.605 amplikonun %95,7\'si\n'
@@ -1373,12 +1366,12 @@ def raporla(cikti, satirlar, yaz):
                         s.get('mfe_olusabilir', ''), s.get('mfe_olusmaz', ''),
                         s['ncbi'], s['ncbi_urun'], s['ncbi_durum'],
                         s.get('kaynak_sayisi', ''), s.get('uyusan', ''), s['karar']])
-    yaz('  yazildi: %s' % t)
+    yaz(u'  written: %s' % t)
 
     celiskili = [s for s in satirlar if s['karar'] == 'CELISKILI']
     c = os.path.join(cikti, 'CELISKILER.md')
     with open(c, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Celiskiler, bu turun en degerli ciktisi\n\n')
+        fh.write(u'# Contradictions, the most valuable output of this round\n\n')
         if not celiskili:
             fh.write(u'Bu kosuda uc katman **hicbir satirda ayrilmadi**.\n\n'
                      u'Bu, "her sey temiz" demek DEGILDIR: NCBI ya da yerel katmani '
@@ -1403,7 +1396,7 @@ def raporla(cikti, satirlar, yaz):
                      u'organizmada oldugu `dogrulama_uc_sutun.tsv` ve `yerel_vuruslar.tsv` '
                      u'dosyalarindan okunup, o organizmanin bu matriste bulunup '
                      u'bulunmadigi karara baglanmalidir.\n\n')
-    yaz('  yazildi: %s' % c)
+    yaz(u'  written: %s' % c)
 
     v = os.path.join(cikti, 'yerel_vuruslar.tsv')
     with open(v, 'w', encoding='utf-8', newline='') as fh:
@@ -1412,7 +1405,7 @@ def raporla(cikti, satirlar, yaz):
         for s in satirlar:
             for vv in (s.get('_vurus') or []):
                 w.writerow([s['hedef']] + list(vv))
-    yaz('  yazildi: %s' % v)
+    yaz(u'  written: %s' % v)
 
     r = os.path.join(cikti, 'DOGRULAMA_RAPORU.md')
     # KATEGORI bazinda say (sayidan arindirilmis anahtar - bkz. C-1 notu).
@@ -1463,14 +1456,14 @@ def raporla(cikti, satirlar, yaz):
                  u'https://www.ncbi.nlm.nih.gov/tools/primer-blast/ sayfasina yapistirin.\n'
                  u'2. Sonuclari `NCBI_SONUC_SABLONU.tsv` icine yazin.\n'
                  u'3. `verification/full_chain.py` -> (D) -> "elle sonuclari yukle" secenegini kosun.\n')
-    yaz('  yazildi: %s' % r)
+    yaz(u'  written: %s' % r)
     yaz('')
     # OZET: dort ana kategori tek satirda, SAYIDAN arindirilmis anahtarlarla.
     sirali = [k for k in KATEGORILER if k in say or k in ANA_KATEGORILER] + \
              sorted(x for x in say if x not in KATEGORILER)
-    yaz(u'  OZET   ' + '   '.join('%s: %d' % (k, say.get(k, 0)) for k in sirali)
-        + '   |   toplam: %d' % sum(say.values()))
-    yaz(u'  AYRINTI:')
+    yaz(u'  SUMMARY   ' + '   '.join('%s: %d' % (k, say.get(k, 0)) for k in sirali)
+        + u'   |   total: %d' % sum(say.values()))
+    yaz(u'  DETAIL:')
     for k in sirali:
         for gerekce, n in sorted(ayrinti.get(k, {}).items(), key=lambda t: -t[1]):
             yaz(u'    %-10s %2d  %s' % (k, n, gerekce))
@@ -1502,15 +1495,15 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BOS CIKTI URETTI - ZINCIR BURADA DURDURULDU' % ad)
+    yaz(u'  STAGE %s PRODUCED EMPTY OUTPUT - THE CHAIN WAS STOPPED HERE' % ad)
     for x in sorun:
         yaz(u'    - %s' % x)
     yaz('')
-    yaz(u'  NEDEN DURDURULDU: sonraki asama bu dosyayi girdi olarak okuyacakti.')
-    yaz(u'  Bos girdiyle devam etmek cokme uretmez, ANLAMSIZ AMA INANDIRICI bir')
-    yaz(u'  ozet uretir - tam da avladigimiz sessiz hata deseni budur.')
-    yaz(u'  Yukaridaki kosu gunlugunu okuyup sebebi giderin, sonra ayni secenegi')
-    yaz(u'  tekrar secin; bitmis isler kontrol noktalarindan atlanacaktir.')
+    yaz(u'  WHY IT STOPPED: the next stage would have read this file as input.')
+    yaz(u'  Continuing with empty input does not crash; it produces a MEANINGLESS BUT')
+    yaz(u'  CONVINCING summary, which is exactly the silent failure we hunt for.')
+    yaz(u'  Read the run log above, fix the cause, then run the same command')
+    yaz(u'  again; finished work is skipped from its checkpoints.')
     yaz('  ' + '!' * 70)
     return 4
 
@@ -1531,7 +1524,7 @@ def girdi_denetle(yaz, ad, dosyalar):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BASLATILMADI - GIRDI EKSIK' % ad)
+    yaz(u'  STAGE %s WAS NOT STARTED - INPUT MISSING' % ad)
     for x in eksik:
         yaz(u'    - %s' % x)
     yaz('  ' + '!' * 70)
@@ -1639,8 +1632,8 @@ def main():
         print(s, flush=True); g.write(s + '\n'); g.flush()
 
     yaz('=' * 78)
-    yaz('  DOGRULAMA TURU - kurtarilan ciftler uc kanit katmaniyla sinaniyor')
-    yaz('  surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  SPECIFICITY ROUND - recovered pairs tested against independent evidence layers')
+    yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
 
     kyol_ = os.path.join(kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv')
@@ -1665,8 +1658,8 @@ def main():
         yaz(u'  Kurtarma turunda esigi gecen YENI/DEGISMIS cift yok - dogrulanacak bir sey yok.')
         return 0
     yaz(u'  kaynak            : %s' % os.path.basename(kyol))
-    yaz(u'  kaynak yolu       : %s' % kyol)
-    yaz(u'  dogrulanacak cift : %d' % len(ciftler))
+    yaz(u'  source path       : %s' % kyol)
+    yaz(u'  pairs to verify   : %d' % len(ciftler))
     if getattr(a, 'tumu', False):
         _sip = sum(1 for c in ciftler if c.get('sipariste'))
         yaz(u'  KIP: --tumu  (paneldeki BUTUN ciftler; siparis listesinde %d, '
@@ -1689,19 +1682,15 @@ def main():
     _hazir = sum(1 for e, d, _a in KUMELER
                  if os.path.exists(os.path.join(KONTROL, 'yerel_%s_%s.pkl'
                                                 % (re.sub(r'\W+', '_', e), _imza))))
-    yaz(u'  KATMAN 2 (yerel): %d kume, %d tanesi kontrol noktasindan gelecek, '
-        u'%d tanesi bastan taranacak.' % (n_kume, _hazir, max(0, n_kume - _hazir)))
-    yaz(u'     (hepsi hazirken olculen sure: ~30 sn; bastan tarama kume basina '
-        u'dakikalar surer)')
-    yaz(u'  KATMAN 3 (MFEprimer): SILVA dahil 6 indeks. SILVA icin 16 ciftin '
-        u'olculen toplam spec suresi ~85 sn + kanit kopyalama ~40 sn.')
+    yaz(u'  LAYER 2 (local): %d sets, %d from checkpoints, %d to be scanned from scratch.' % (n_kume, _hazir, max(0, n_kume - _hazir)))
+    yaz(u'     (measured with everything cached: ~30 s; a fresh scan takes minutes per set)')
+    yaz(u'  LAYER 3 (MFEprimer): 6 indexes including SILVA. Measured for SILVA: 16 pairs took ~85 s of spec time plus ~40 s copying evidence.')
     # KATMAN 4 kapsami: --ncbi-yalniz-siparis verilmisse NCBI yalniz siparis
     # listesindeki ciftlere kosar. Sure beyani da o sayidan hesaplanir.
     _ncbi_ciftler = ([c for c in ciftler if c.get('sipariste')]
                      if getattr(a, 'ncbi_yalniz_siparis', False) else list(ciftler))
     _n4 = len(_ncbi_ciftler)
-    yaz(u'  KATMAN 4 (NCBI): cift basina OLCULEN sure ~75 sn (gonderim + '
-        u'yoklama) + %d sn gonderim arasi bekleme -> %d cift icin ~%s.'
+    yaz(u'  LAYER 4 (NCBI): MEASURED ~75 s per pair (submit plus poll) plus %d s between submissions, so ~%s for %d pairs.'
         % (PB_GONDERIM_ARASI, _n4,
            sure_metni(_n4 * 75 + max(0, _n4 - 1) * PB_GONDERIM_ARASI)))
     if getattr(a, 'ncbi_yalniz_siparis', False):
@@ -1711,10 +1700,10 @@ def main():
         yaz(u'     NCBI sutunu bu satirlarda BILINMIYOR kalir - "temiz" DEGIL.')
         for _d in _dis:
             yaz(u'       - %s' % _d)
-    yaz(u'  Kesintiye dayaniklidir: her kume bitince kaydeder.')
+    yaz(u'  Resumable: state is saved after every set.')
     yaz('')
 
-    yaz(u'--- KATMAN 2: YEREL VERITABANI TARAMASI ---')
+    yaz(u'--- LAYER 2: LOCAL DATABASE SCAN ---')
     yerel = katman1_yerel(kok, ciftler, yaz, KONTROL, a.parc, a.kume_ust)
 
     # --- KATMAN 3: MFEprimer (BAGIMSIZ ARAC) ---

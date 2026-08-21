@@ -211,7 +211,7 @@ def main():
                      % (h, e if e >= 0 else '', y, ad, t,
                         ' | '.join(o[:70] for o in orn)))
     print()
-    print('  yazildi: %s' % cy)
+    print(u'  written: %s' % cy)
     dus = [(h, e, y) for h, e, y, _a, _t, _o in satir if e >= 0 and y < e]
     print('  siki kuralla sayisi DUSEN hedef: %d' % len(dus))
     for h, e, y in sorted(dus, key=lambda x: -(x[1] - x[2]))[:8]:

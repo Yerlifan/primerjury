@@ -76,10 +76,10 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     if not _ok:
         yaz('')
         yaz('  *** GIRDI DOGRULAMASI BASARISIZ - BU ASAMA BASLATILMADI ***')
-        yaz('  Sebep: okunacak konsensusler kanonik degil. Ters yonlu bir')
-        yaz('  konsensuste in-silico PCR hicbir uyari vermeden 0 urun dondurur,')
-        yaz('  yani butun kosu sessizce yanlis sonuc uretirdi.')
-        yaz('  Cozum:  python3 screening/build_canonical.py --kok . --yeniden')
+        yaz(u'  Cause: the consensus sequences to be read are not canonical. On a reverse-oriented')
+        yaz(u'  consensus, in-silico PCR returns 0 products without any warning,')
+        yaz(u'  so the whole run would silently produce a wrong result.')
+        yaz(u'  Fix:    python3 screening/build_canonical.py --root . --rerun')
         raise SystemExit(2)
 
     kontrol.hazirla()
@@ -127,7 +127,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     for k in gerekli.values():
         eski[k['kutu']] = N.KutuEski(k['kutu'], k['yol'], n=(okuma_sayisi or 0))
     top_okuma = sum(h.n_okuma for h in numune.havuz.values())
-    yaz('\nHavuzlar hazir: %d kutu, %d okuma  (%s)'
+    yaz(u'\nPools ready: %d bins, %d reads  (%s)'
         % (len(gerekli), top_okuma, sure(time.time() - t0)))
     tahmin = len(panel) * len(OLCUTLER) * max(1.0, top_okuma / 20000.0)
     yaz('TAHMINI SURE: ~%s  (kesintiye dayaniklidir, kaldigi yerden devam eder)\n'

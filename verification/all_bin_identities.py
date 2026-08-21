@@ -403,7 +403,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
 
     yaz('=' * 78)
     yaz(u'  G - TUM KUTU KIMLIKLERININ BAGIMSIZ DOGRULANMASI')
-    yaz(u'  surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
     yaz(u'  `I` 12 IDDIAYI sinar - supheli olanlari. Bu asama panel olcumlerine')
     yaz(u'  giren BUTUN kutulari sinar: sessiz cogunlugu.')
@@ -526,7 +526,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
             yol = os.path.join(kok, 'REFERANS_DB', dosya)
 
             def ilerle(n, _e=et, _t0=t0):
-                print('     ... %s: %d kayit tarandi (%s)      '
+                print(u'     ... %s: %d records scanned (%s)      '
                       % (_e, n, K.sure_metni(time.time() - _t0)), end='\r', flush=True)
             kls, taranan = toplu_kisa_liste(K, yol, kalan, kl_ust, ilerle)
             bek = BEKLENEN_KAYIT.get(et)
@@ -774,7 +774,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             fh.write(u'#\n# ATLANAN KUTULAR (sessiz atlama yok):\n')
             for k, sebep in atlanan:
                 fh.write(u'# %s\t%s\n' % (k, sebep))
-    yaz('  yazildi: %s' % t)
+    yaz(u'  written: %s' % t)
 
     # ----------------------------------------------------------- MD RAPORU
     degisen = [s for s in sonuc if s['uyusuyor'] == 'HAYIR']
@@ -864,8 +864,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                 fh.write(u'- **Rakibi oldugu hedefler:** %s\n'
                          % (', '.join(s['rakip_hedefler']) or '-'))
                 a = s.get('adlandirma') or {}
-                fh.write(u'\n  | # | en yakin kayit | cins | tur | kimlik | veritabani |\n'
-                         u'  |---|---|---|---|---|---|\n')
+                fh.write(u'\n  | # | nearest record | genus | species | identity | database |\n  |---|---|---|---|---|---|\n')
                 for n_ in (1, 2, 3):
                     it = a.get('isabet%d' % n_)
                     if it:
@@ -874,8 +873,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                                     K.vir(it['kimlik']), it['vtb']))
                 fh.write(u'\n  **Kaynak muhasebesi (%d/%d):**\n\n'
                          % (s['sorgulanan_vtb'], s['toplam_vtb']))
-                fh.write(u'  | veritabani | durum | en iyi isabet | kimlik | kazanan sira |\n'
-                         u'  |---|---|---|---|---|\n')
+                fh.write(u'  | database | status | best hit | identity | winner rank |\n  |---|---|---|---|---|\n')
                 for e, v in s['vtb_detay'].items():
                     fh.write(u'  | %s | %s | %s | %s | %s |\n'
                              % (e, v['durum'], v['en_iyi'] or (v.get('sebep') or '-')[:96],
@@ -889,7 +887,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             for k, sebep in atlanan:
                 fh.write(u'- `%s` - %s\n' % (k, sebep))
             fh.write(u'\n')
-    yaz('  yazildi: %s' % r)
+    yaz(u'  written: %s' % r)
     yaz('')
     yaz(u'  ETKI: %d kutu sinandi | kimligi DEGISEN %d | etkilenen hedef %d '
         u'| uyelik degisen %d | atlanan %d'
