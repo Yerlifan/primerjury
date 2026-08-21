@@ -1,63 +1,71 @@
 # -*- coding: utf-8 -*-
-"""HIZLI TUTARLILIK TESTI (gerileme testi) - zincir kendini yeniden uretiyor mu?
+"""THE QUICK CONSISTENCY TEST (a regression test) - is the chain reproducing itself?
 
-NE OLDUGU VE NE OLMADIGI - IKI CUMLE:
-  Bu test, kodun KENDINI YENIDEN URETTIGINI sinar: ayni motor, on kat sig veriyle
-  ayni sinifi ve ayni siralamayi veriyor mu?
-  Olcumun DOGRU oldugunu SINAMAZ - cunku beklenen degerler de AYNI motorun tam
-  derinlikli kosusundan geliyor; motorun sistematik bir hatasi varsa bu test onu
-  yakalayamaz, yakalayabilecegi sey kod ve yapilandirma kaymasidir.
+WHAT IT IS AND WHAT IT IS NOT, IN TWO SENTENCES:
+  This test checks that the code REPRODUCES ITSELF: does the same engine, on data
+  ten times shallower, give the same class and the same ranking?
+  It DOES NOT TEST that the measurement is CORRECT, because the expected values
+  also come from a full depth run of THE SAME engine; if the engine has a
+  systematic error this test cannot catch it. What it can catch is a drift in the
+  code or the configuration.
 
-Kod incelemesi bir yere kadar gider; bu betik CIKTIYA bakar. Zincirin dort
-asamasini KUCUK ve cevabi BILINEN bir alt kumede kosturur ve sonucu referans
-kosuyla karsilastirir.
+Reading the code takes you only so far; this script looks at THE OUTPUT. It runs
+the chain's four stages on a SMALL subset with a KNOWN answer and compares the
+result against a reference run.
 
-Referans: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (tam derinlik, 3000 okuma).
+The reference: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (full depth, 3000 reads).
 
-NE SINANIR
-  1) Esik ustu olanlar esik ustu, esik alti olanlar esik alti cikiyor mu?
-     (ASIL OLCUT budur - sayinin kendisi degil)
-  2) Siralama korunuyor mu? (Nitrosocosmicus > Metilotrofik > Cloacimonas > M_cinsi)
-  3) Degerler makul bantta mi? (bant asagida gerekcesiyle yazili)
-  4) Sonraki asamalar CIKTI URETIYOR mu? Bos cikti GECMIS SAYILMAZ.
+WHAT IS TESTED
+  1) Do the above-threshold ones still come out above and the below-threshold ones
+     below? (THAT IS THE PRIMARY CRITERION, not the number itself)
+  2) Is the ranking preserved? (Nitrosocosmicus > Metilotrofik > Cloacimonas > M_cinsi)
+  3) Are the values in a reasonable band? (the band is written below with its reasoning)
+  4) Do the later stages PRODUCE OUTPUT? An empty output DOES NOT COUNT AS A PASS.
 
-SUREnin kisa tutulma yolu: okuma tavani 3000 -> 300, hedefler 8 satirla sinirli,
-yol-3 tasarim taramasi kucultulmus. Olcum derinligi dustugu icin sayilar birebir
-tutmaz; nitekim tutmasi da beklenmiyor - bkz. BANT GEREKCESI.
+How the TIME is kept short: the read cap goes 3000 -> 300, the targets are limited
+to 8 rows, and the route 3 design scan is reduced. Because the measurement depth
+drops, the numbers do not match exactly; nor are they expected to, see THE BAND
+REASONING.
+
 """
 
 # -------------------------------------------------------------------------
-# quick_consistency_test.py — zincirin dort asamasini kucuk ve cevabi bilinen
-# bir alt kumede kosturup kodun kendini yeniden urettigini sinar (gerileme testi).
+# quick_consistency_test.py runs the chain's four stages on a small subset with a
+# known answer and tests that the code reproduces itself (a regression test).
 #
-# GİRDİ  : proje kokundeki dort betik ve olcum kaynaklari; bunlar HIZLI_TEST/
-#          altina sembolik baglarla baglanir (screening, protocol,
-#          verification, REFERANS_DB, konsensus_kanonik, primer_final, "fastq files",
-#          engine ve uyelik_yeniden_turetme_uyelik_*.tsv). Beklenen
-#          degerler bu dosyadaki BEKLENEN_UST / BEKLENEN_ALT / BEKLENEN_YENI
-#          sabitlerinden gelir; kaynaklari tam derinlikli referans kosusudur.
-# ÇIKTI  : HIZLI_TEST/HIZLI_TEST_RAPORU.md ve HIZLI_TEST/test_gunlugu.txt;
-#          ayrica asamalarin kendi ciktilari HIZLI_TEST/ altinda ayri durur -
-#          gercek sonuc klasorlerine DOKUNULMAZ.
-# ÇAĞRAN : verification/full_chain.py -> H tusu
-#          (bat icinde: wsl -e python3 "verification/quick_consistency_test.py" --kok .)
+# INPUT  : the four scripts in the project root and the measurement sources; those
+#          are linked symbolically under HIZLI_TEST/ (screening, protocol,
+#          verification, REFERANS_DB, konsensus_kanonik, primer_final,
+#          "fastq files", engine and uyelik_yeniden_turetme_uyelik_*.tsv). The
+#          expected values come from the BEKLENEN_UST / BEKLENEN_ALT /
+#          BEKLENEN_YENI constants in this file, whose source is a full depth
+#          reference run.
+# OUTPUT : HIZLI_TEST/HIZLI_TEST_RAPORU.md and HIZLI_TEST/test_gunlugu.txt; the
+#          stages' own outputs also stay separately under HIZLI_TEST/, and the real
+#          result directories ARE NOT TOUCHED.
+# CALLED BY: verification/full_chain.py -> key H
+#          (python3 verification/quick_consistency_test.py --root .)
 #
-# NE OLDUGU  : kodun ve yapilandirmanin kaymadigini gosterir.
-# NE OLMADIGI: olcumun DOGRU oldugunu gostermez - beklenen degerler de ayni
-#              motorun kosusundan geliyor, motorun sistematik hatasi bu testte
-#              gorunmez. Bagimsiz teyit MFEprimer katmaninin isidir.
+# WHAT IT IS     : it shows that the code and the configuration have not drifted.
+# WHAT IT IS NOT : it does not show that the measurement is CORRECT. The expected
+#                  values come from a run of the same engine, so a systematic error
+#                  in that engine is invisible to this test. Independent
+#                  confirmation is the job of the MFEprimer layer.
 # -------------------------------------------------------------------------
 import io, os, sys, csv, json, time, subprocess, argparse
 
 VERSIYON = '1.0 (2026-08-03)'
 OKUMA = 300
-# ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
-# Kat karsiligi 2 ** ESIK_DCQ = 8,00. Sabit sayi GOMULMEZ; dCq degisirse
-# tek yerden degisir. Gerekce ve verim uyarisi o dosyada yazili.
+# THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
+# Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
+# changes it changes in one place. The reasoning and the efficiency warning are
+# written in that file.
 def _esik_yukle():
-    """Esigi TEK KAYNAKTAN okur: screening/config.py.
-    verification/ ile screening/ kardes klasorler oldugu icin kok buradan
-    turetilir; betik hangi calisma dizininden cagrilirsa cagrilsin bulur."""
+    """Reads the threshold from ONE SOURCE: screening/config.py.
+        Since verification/ and screening/ are sibling directories the root is derived
+        from here, so the script finds it whatever working directory it is called from.
+
+    """
     import os as _o, sys as _s
     _kok = _o.path.dirname(_o.path.dirname(_o.path.abspath(__file__)))
     if _kok not in _s.path:
@@ -68,19 +76,21 @@ def _esik_yukle():
 _C = _esik_yukle()
 ESIK = _C.AYRIM_ESIK
 
-# --- referans degerler ---------------------------------------------------
-# 2026-08-10 DUZELTME. Bu sayilar KODA GOMULU sabitlerdi ve hangi PRIMER
-# CIFTINDEN olculdukleri hicbir yerde yazmiyordu. Bugun Bacteroidales cifti
-# degistirildi (F: GAAGCTAGGATTTGGTTGCTGTG -> GCGTTATCCGGATTTATTGGGTTT) ve
-# test eski cifte ait 0,74x'i yeni ciftin 14,23x'iyle karsilastirip "ZINCIR
-# TUTARSIZ" dedi. Zincir tutarsiz DEGILDI; referans bayatti.
+# --- the reference values -----------------------------------------------
+# THE 2026-08-10 FIX. These numbers were constants EMBEDDED IN THE CODE and nowhere
+# said WHICH PRIMER PAIR they had been measured from. Today the Bacteroidales pair
+# was changed (F: GAAGCTAGGATTTGGTTGCTGTG -> GCGTTATCCGGATTTATTGGGTTT) and the test
+# compared the old pair's 0.74x against the new pair's 14.23x and said "THE CHAIN IS
+# INCONSISTENT". The chain WAS NOT inconsistent; the reference was stale.
 #
-# Artik referanslar HIZLI_TEST/referans_degerler.tsv dosyasindan okunur ve her
-# satirda o olcumun yapildigi F/R DIZISI yazar. Test sirasinda cift degismisse
-# karsilastirma YAPILMAZ - "referans gecersiz, cift degisti" denir ve zincir
-# durdurulmaz. Sessizce dogru sayilmaz, sessizce yanlis da sayilmaz.
+# The references are now read from HIZLI_TEST/referans_degerler.tsv, and every row
+# carries the F/R SEQUENCE that measurement was made with. If the pair has changed
+# by the time of the test, NO COMPARISON IS MADE; it says "the reference is invalid,
+# the pair changed" and the chain is not stopped. It is not silently counted correct
+# and not silently counted wrong.
 #
-# Dosya yoksa asagidaki eski sabitler kullanilir ama rapor bunu acikca yazar.
+# If the file is missing, the old constants below are used, and the report says so
+# openly.
 REFERANS_DOSYASI = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 os.pardir, 'HIZLI_TEST', 'referans_degerler.tsv')
 CIKIS_TUTARSIZ = 6      # gercek gerileme - uzun kosuya GIRILMEZ
@@ -88,7 +98,7 @@ CIKIS_REFERANS_BAYAT = 7  # referans karsilastirilamaz - zincir devam edebilir
 
 
 def _referans_yukle():
-    """hedef -> (referans_x, F, R). Dosya yoksa bos doner."""
+    """target -> (reference_x, F, R). Returns empty if the file is missing."""
     out = {}
     y = os.path.abspath(REFERANS_DOSYASI)
     if not os.path.exists(y):
@@ -128,10 +138,10 @@ BEKLENEN_ALT = [
 BEKLENEN_YENI = [('Petriella_cinsi', 11.03)]
 
 BANT_ALT, BANT_UST = 0.5, 2.0
-# Esige COK YAKIN referans degerleri (< 15x) dusuk derinlikte esigin obur
-# tarafina gecebilir ve bu ZINCIR HATASI DEGILDIR: projenin kendi olcumu
-# Petriella LSU cifti icin tam derinlikte 11,03x, 300 okumada 8,93x diyor.
-# Bu satirlarda sinif degisimi UYARI uretir; bant disina cikarsa HATA olur.
+# A reference value VERY CLOSE to the threshold (< 15x) can cross to the other side
+# at a shallow depth, and THAT IS NOT A CHAIN ERROR: the project's own measurement
+# gives 11.03x at full depth and 8.93x at 300 reads for the Petriella LSU pair.
+# On these rows a class change produces a WARNING; going outside the band is an ERROR.
 SINIRDA_UST = ESIK * 1.5
 BANT_GEREKCESI = u"""
 BANT GEREKCESI - neden 0,5x - 2,0x
@@ -190,9 +200,8 @@ def tsv_oku(yol):
             (s for s in fh if s.strip() and not s.startswith('#')), delimiter='\t'))
 
 
-# Bir asamayi alt surec olarak kosar ve zaman tavani uygular. Zaman asimi
-# "cikis kodu yok" olarak dondurulur - takilan bir asama testi sonsuza kadar
-# bekletmesin diye.
+# It runs a stage as a subprocess and applies a time cap. A timeout comes back as
+# "no exit code", so that a stuck stage cannot keep the test waiting forever.
 def kos(yaz, ad, arg, tavan_sn):
     t0 = time.time()
     yaz(u'  > %s starting...' % ad)
@@ -206,26 +215,28 @@ def kos(yaz, ad, arg, tavan_sn):
     return rc, ciktisi
 
 
-# ---------------------------------------------------------------------------
-# P asamasini SIG derinlikte (300 okuma, tam kosuda 3000) ve yalniz sekiz sinama
-# satirinda kosar, sonra ucunu birden denetler:
-#   1) SINIF korunuyor mu - esik ustu satir esik ustu, esik alti satir esik alti
-#      cikiyor mu. ASIL OLCUT budur.
-#   2) SIRALAMA korunuyor mu - esik ustu dort satirin buyukluk sirasi bozuldu mu.
-#   3) Degerler 0,5x - 2,0x bandinda mi (bant disi ama sinifi korunan satir
-#      yalnizca UYARI uretir, testi dusurmez).
+# -------------------------------------------------------------------------
+# It runs stage P at a SHALLOW depth (300 reads, 3000 on a full run) and only on the
+# eight test rows, then checks three things at once:
+#   1) Is the CLASS preserved: does an above-threshold row still come out above and
+#      a below-threshold row still below. THAT IS THE PRIMARY CRITERION.
+#   2) Is the RANKING preserved: has the order of magnitude of the four
+#      above-threshold rows been disturbed.
+#   3) Are the values inside the 0.5x - 2.0x band (a row outside the band whose
+#      class is preserved produces only a WARNING and does not fail the test).
 #
-# SAYILAR NEDEN BIREBIR TUTMAZ: ayrim kati = (uye Wilson ALT siniri) / (rakip
-# Wilson UST siniri). Wilson araliginin genisligi okuma sayisiyla daralir;
-# derinlik dusurulunce uye alt siniri DUSER, rakip ust siniri YUKSELIR ve iki
-# etki de orani kuculrur. Yani testte cikan sayinin referanstan dusuk olmasi
-# beklenen davranistir, hata degil.
+# WHY THE NUMBERS DO NOT MATCH EXACTLY: the discrimination ratio = (the member
+# Wilson LOWER bound) / (the competitor Wilson UPPER bound). The width of the Wilson
+# interval narrows with the read count; when the depth is lowered the member lower
+# bound FALLS and the competitor upper bound RISES, and both effects shrink the
+# ratio. So the number in the test coming out lower than the reference is the
+# expected behaviour, not an error.
 #
-# Referans degeri 15x'in (SINIRDA_UST) altinda olan satirlar sig derinlikte
-# esigin obur tarafina gecebilir; oran bantta kaldigi surece bu UYARI sayilir,
-# HATA sayilmaz. Olculmus ornek: Petriella LSU cifti tam derinlikte 11,03x,
-# 300 okumada 8,93x.
-# ---------------------------------------------------------------------------
+# Rows whose reference value is below 15x (SINIRDA_UST) can cross to the other side
+# of the threshold at a shallow depth; as long as the ratio stays inside the band
+# that counts as a WARNING and NOT an ERROR. A measured example: the Petriella LSU
+# pair is 11.03x at full depth and 8.93x at 300 reads.
+# -------------------------------------------------------------------------
 def calistir(kok, hizli_kok, tavan_dk, yaz):
     hedefler = ([h for h, _ in BEKLENEN_UST] + [h for h, _ in BEKLENEN_ALT]
                 + [h for h, _ in BEKLENEN_YENI])
@@ -263,26 +274,25 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
                                ('yeni cift', BEKLENEN_YENI, True)):
         for ad, ref in bekl:
             h, v = bul(ad)
-            # Referans dosyasi varsa dosya kazanir; sabit yalniz yedektir.
+            # If the reference file exists, the file wins; the constant is only a fallback.
             _rf = None
             for _k, _val in REFERANS.items():
                 if ad.lower() in _k.lower() or _k.lower() in ad.lower():
                     ref, _rf = _val[0], _val
                     break
-            # BEKLENEN SINIF da referanstan gelir. Hedefin hangi sabit
-            # listede (UST/ALT) yazildigi da bayatlayan bir bilgidir:
-            # Bacteroidales sabitlerde "esik alti" yaziyordu, yeni ciftle
-            # tam derinlikte 37,23x yani esik USTU. Sinifi listeye degil
-            # olcume sorarak bu tuzak kapatildi.
+            # THE EXPECTED CLASS also comes from the reference. Which constant list
+            # (UST/ALT) a target was written into is itself a piece of information that
+            # goes stale: Bacteroidales said "below threshold" in the constants, while
+            # with the new pair it is 37.23x at full depth, that is, ABOVE. Asking the
+            # measurement rather than the list closed that trap.
             #
-            # DIKKAT: ust_mu DIS dongunun degiskeni. Ona atama yapmak, ayni
-            # gruptaki SONRAKI hedefleri de etkiler ve referansi olmayan bir
-            # hedef, kendinden onceki hedefin sinifiyla degerlendirilir.
-            # Bu yuzden yerel bir degisken kullanilir (2026-08-10, yazarken
-            # yakalandi; kosmadan once duzeltildi).
+            # CAUTION: ust_mu is the OUTER loop's variable. Assigning to it affects the
+            # LATER targets in the same group too, and a target with no reference would
+            # be evaluated with the class of the target before it. So a local variable
+            # is used (2026-08-10, caught while writing; fixed before it ran).
             if _rf and v is not None:
-                # CIFT DEGISTI MI? Degistiyse eski olcumle karsilastirmak
-                # anlamsizdir; sessizce "tutarsiz" demek YANLIS olur.
+                # HAS THE PAIR CHANGED? If it has, comparing against the old measurement
+                # is meaningless, and saying "inconsistent" silently would be WRONG.
                 _cf = (v.get('F') or '').upper()
                 _cr = (v.get('R') or '').upper()
                 if _rf[1] and _rf[2] and (_cf, _cr) != (_rf[1], _rf[2]):
@@ -347,24 +357,25 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
     return sonuc
 
 
-# ---------------------------------------------------------------------------
-# K, D ve I asamalarini kucultulmus ayarlarla kosar. Burada olcumun DOGRULUGU
-# degil, asamanin CALISIP SATIR URETTIGI sinanir - bos cikti gecmis sayilmaz.
+# -------------------------------------------------------------------------
+# It runs stages K, D and I with reduced settings. What is tested here is not the
+# CORRECTNESS of the measurement but that the stage RUNS AND PRODUCES ROWS; an empty
+# output does not count as a pass.
 #
-# ARDISIK COKUS AYRIMI: K hicbir cifti kurtarmadiysa D'nin dogrulayacagi bir sey
-# yoktur ve D'nin bos kalmasi D'nin hatasi DEGILDIR. Bu durumda D, sentetik tek
-# satirlik bir girdiyle AYRI bir kokte kosturularak kendi basina sinanir; boylece
-# "D calismiyor" ile "D'ye is dusmedi" birbirine karismaz.
-# ---------------------------------------------------------------------------
+# TELLING A CASCADED FAILURE APART: if K recovered no pair, there is nothing for D
+# to verify and D coming out empty IS NOT D's fault. In that case D is run in A
+# SEPARATE root with a synthetic single row input and tested on its own, so that "D
+# does not work" and "D had nothing to do" are never confused.
+# -------------------------------------------------------------------------
 def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
-    """K, D, I gercekten CIKTI URETIYOR mu? Bos cikti GECMIS SAYILMAZ."""
+    """Do K, D and I really PRODUCE OUTPUT? An empty output DOES NOT COUNT AS A PASS."""
     py = sys.executable
 
     rc, _ = kos(yaz, 'K (verification)',
                 [py, os.path.join(kok, 'verification', 'recovery_round.py'),
                  '--kok', hizli_kok, '--okuma', str(OKUMA),
-                 # Test KAPSAMI dar tutulur: amac dogruluk degil, "asama calisiyor
-                 # ve satir uretiyor" kaniti. Tam kosuda bu tavanlar kalkar.
+                 # The test's SCOPE is kept narrow: the aim is not correctness but evidence
+                 # that "the stage runs and produces rows". On a full run these caps come off.
                  '--tarama-ust', '40', '--aday-ust', '5', '--arms-ust', '0',
                  '--panelsiz-atla'],
                 tavan_dk * 60)
@@ -384,9 +395,9 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
     sonuc['asama']['D'] = dict(rc=rc, satir=len(Dd))
     if len(Dd) < 1 and len(K) >= 1 and not [r for r in K
                                             if (r.get('esigi_gecti_mi') or '').startswith('EVET')]:
-        # K kostu ama HICBIR sey kurtarmadi -> D'nin dogrulayacagi cift yok.
-        # Bu D'nin hatasi degil. Yine de D'nin CALISTIGINI kanitlamak gerekir:
-        # sentetik tek satirlik bir girdiyle ayri bir kokte kosturulur.
+        # K ran but recovered NOTHING -> there is no pair for D to verify.
+        # That is not D's fault. Even so, D HAS TO BE SHOWN TO WORK: it is run in a
+        # separate root with a synthetic single row input.
         yaz(u'    D: empty because no pair was recovered, testing it ON ITS OWN...')
         oz = os.path.join(hizli_kok, 'D_KENDI_SINAMASI')
         os.makedirs(os.path.join(oz, 'KURTARMA_SONUC'), exist_ok=True)
@@ -427,8 +438,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
             sonuc['hata'].append(u'D asamasi sentetik girdiyle de satir uretmedi.')
     if len(Dd) < 1:
         if rc == 7 or len(K) < 1:
-            # ARDISIK COKUS: K satir uretmediyse D'nin girdisi zaten bos.
-            # Ayri bir hata olarak sayilmaz, K'nin hatasina baglanir.
+            # A CASCADED FAILURE: if K produced no rows, D's input is empty anyway.
+            # It is not counted as a separate error but attributed to K's.
             sonuc['uyari'].append(
                 u'D asamasi kosmadi cunku K hic satir uretmedi (ardisik cokus). '
                 u'Bu D\'nin hatasi degildir; K duzeltilince D de kosar.')
@@ -436,9 +447,9 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         else:
             sonuc['hata'].append(u'D asamasi HIC satir uretmedi.')
     else:
-        # ZORUNLU katmanlar: bizim iki olcumumuz. MFEprimer ve NCBI testte
-        # BILEREK atlanir (--mfe-yok, --ncbi elle: ag yok) - eksik olmalari
-        # zincir hatasi degildir, uyari olarak raporlanir.
+        # The REQUIRED layers: our two measurements. MFEprimer and NCBI are
+        # DELIBERATELY skipped in the test (--mfe-yok, --ncbi elle: there is no
+        # network). Their being missing is not a chain error and is reported as a warning.
         eksik_sutun, yok_sutun, takma_ad, istege_bagli = katman_denetimi(Dd, sonuc)
         yaz(u'    D: %d rows | are the two mandatory sources filled: %s | skipped in the test: %s'
             % (len(Dd), u'NO' if (eksik_sutun or yok_sutun) else 'evet',
@@ -460,30 +471,37 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 
 
 
-# ===========================================================================
-# 2026-08-09 DUZELTMESI - H KAPISININ YANLIS ALARMI
-# ---------------------------------------------------------------------------
-# BELIRTI : H asamasi cikis kodu 6 ile dusuyor ve
-#           "D asamasinda ZORUNLU katmanlar doldurulmadi: 1. kaynak
-#            (numune olcumu)" diyordu.
-# OLCUM   : HIZLI_TEST/D_KENDI_SINAMASI/DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv
-#           okundu. Katman BOS DEGIL: sutunun degeri 'TEMIZ'. Ama sutunun ADI
-#           '1_NUMUNE' degil, '1_NUMUNE_oy_vermez'. D asamasi 2026-08-06'daki
-#           D-2 duzeltmesinde sutunu yeniden adlandirmis (specificity_round.py
-#           satir 1053), kapi eski adi ariyor; r.get('1_NUMUNE') None donunce
-#           kapi bunu "doldurulmadi" sayiyordu.
-#           Yani sebep TEST KIPI DEGIL, SEMA KAYMASIDIR. '2_YEREL_DB' adi
-#           degismedigi icin o katman gecmis, hata yalniz 1. katmanda cikmisti.
-# DUZELTME: sutun once tam adiyla, bulunamazsa '<ad>_' onekiyle aranir.
-#           - sutun var ve dolu            -> gecer (gerekirse sema notu)
-#           - sutun var ama BUTUN satirlar bos -> HATA (kapi calismaya devam eder)
-#           - sutun HIC yok                -> AYRI HATA (sema kaymasi); sessizce
-#                                             gecmez, cunku "yok" ile "bos"un
-#                                             ayni sayilmasi bu hatanin kendisiydi
-#           MFEprimer ve NCBI katmanlari ZATEN uyariydi, oyle birakildi: test
-#           --mfe-yok ve agsiz '--ncbi elle' ile kostugu icin onlarin bos olmasi
-#           bilerek yaratilan bosluktur.
-# ===========================================================================
+# =========================================================================
+# THE 2026-08-09 FIX - A FALSE ALARM FROM THE H GATE
+# -------------------------------------------------------------------------
+# THE SYMPTOM : stage H was failing with exit code 6 and saying
+#           "the REQUIRED layers were not filled in stage D: source 1
+#            (the sample measurement)".
+# THE MEASUREMENT: HIZLI_TEST/D_KENDI_SINAMASI/DOGRULAMA_SONUC/
+#           dogrulama_uc_sutun.tsv was read. The layer IS NOT EMPTY; the column's
+#           value is 'TEMIZ'. But the column is not named '1_NUMUNE', it is named
+#           '1_NUMUNE_oy_vermez'. Stage D renamed the column in the D-2 fix of
+#           2026-08-06 (specificity_round.py line 1053) and the gate was looking
+#           for the old name; r.get('1_NUMUNE') returned None and the gate counted
+#           that as "not filled".
+#           So the cause was NOT THE TEST MODE but A SCHEMA DRIFT. Because the name
+#           '2_YEREL_DB' had not changed, that layer passed and the error appeared
+#           only on layer 1.
+# THE FIX : the column is looked up by its full name first, and if that fails, with
+#           an '<name>_' prefix.
+#           - the column exists and is filled     -> it passes (with a schema note
+#                                                    where needed)
+#           - the column exists but EVERY row is empty -> AN ERROR (the gate keeps
+#                                                    working)
+#           - the column DOES NOT EXIST AT ALL    -> A SEPARATE ERROR (schema drift);
+#                                                    it does not pass silently,
+#                                                    because treating "absent" and
+#                                                    "empty" as the same thing was
+#                                                    the bug itself
+#           The MFEprimer and NCBI layers were ALREADY warnings and were left that
+#           way: because the test runs with --mfe-yok and with '--ncbi elle' and no
+#           network, their being empty is a gap created deliberately.
+# =========================================================================
 ZORUNLU_KATMAN = (('1_NUMUNE', u'1. kaynak (numune olcumu)'),
                   ('2_YEREL_DB', u'2. kaynak (yerel veritabani)'))
 ISTEGE_BAGLI_KATMAN = (('3_MFEPRIMER', u'3. kaynak (MFEprimer)'),
@@ -491,10 +509,12 @@ ISTEGE_BAGLI_KATMAN = (('3_MFEPRIMER', u'3. kaynak (MFEprimer)'),
 
 
 def sutun_coz(satirlar, ad):
-    """Sutunu tam ad, sonra '<ad>_' onegiyle cozer.
+    """Resolves the column by its full name, then with an '<name>_' prefix.
 
-    Doner: (cozulen_ad_or_None, dolu_mu). cozulen_ad None ise sutun HIC yok;
-    bu 'bos' ile ayni sey DEGILDIR ve ayri raporlanir.
+        Returns: (resolved_name_or_None, is_filled). If resolved_name is None the column
+        IS NOT THERE AT ALL; that IS NOT the same thing as 'empty' and is reported
+        separately.
+
     """
     if not satirlar:
         return None, False
@@ -510,9 +530,10 @@ def sutun_coz(satirlar, ad):
 
 
 def katman_denetimi(Dd, sonuc):
-    """D ciktisindaki katmanlari denetler, sonuc['hata'/'uyari']'yi doldurur.
+    """Checks the layers in D's output and fills in sonuc['hata'/'uyari'].
 
-    Doner: (eksik_sutun, yok_sutun, takma_ad, istege_bagli)
+        Returns: (missing_column, absent_column, alias, optional)
+
     """
     eksik_sutun, yok_sutun, takma_ad = [], [], []
     for sut, ad in ZORUNLU_KATMAN:
@@ -553,8 +574,9 @@ def katman_denetimi(Dd, sonuc):
     return eksik_sutun, yok_sutun, takma_ad, istege_bagli
 
 
-# Karar tek bir sarta baglanir: hata listesi bos mu. Uyarilar testi dusurmez.
-# Cikis kodu 6 = ZINCIR TUTARSIZ; tam kosuya girmeden once giderilmesi gerekir.
+# The decision rests on one condition: is the error list empty. Warnings do not fail
+# the test.
+# Exit code 6 = THE CHAIN IS INCONSISTENT; it must be resolved before a full run.
 def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     guvenilir = not sonuc['hata']
     yol = os.path.join(hizli_kok, 'HIZLI_TEST_RAPORU.md')
@@ -565,12 +587,13 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
         if guvenilir:
             fh.write(u'# CHAIN CONSISTENT (against its own reference): the full run can be started\n\n')
             fh.write(u'> **This is not a CORRECTNESS test.** The expected values also come from a full-depth run of the same engine;')
-            # 2026-08-06 DUZELTMESI - temiz kosuda yakalandi: bu cumle KOSULSUZ
-            # yazildigi icin "butun satirlar sinifini korudu" diyordu, oysa ayni
-            # raporun tablosunda Petriella_cinsi satirinda "sinif korundu mu:
-            # HAYIR" yaziyordu. Karar (TUTARLI) dogruydu - esik SINIRINDAKI
-            # satirin dusuk derinlikte taraf degistirmesi bilerek uyari sayilir -
-            # ama ozet cumlesi tabloyla CELISIYORDU. Artik sayilarak yazilir.
+            # THE 2026-08-06 FIX - caught on a clean run: because this sentence was
+            # written UNCONDITIONALLY it said "every row preserved its class", while the
+            # table in the same report said "class preserved: HAYIR" on the
+            # Petriella_cinsi row. The decision (TUTARLI) was right - a row ON THE
+            # THRESHOLD BOUNDARY changing sides at a shallow depth is deliberately
+            # counted as a warning - but the summary sentence CONTRADICTED the table.
+            # It is now written from the count.
             _bozan = [s['hedef'] for s in sonuc['satir'] if not s.get('sinif_ok')]
             if _bozan:
                 fh.write(u'The ranking held and all four stages produced non-empty output. %d of the %d rows tested kept their class'
@@ -638,9 +661,9 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     return CIKIS_REFERANS_BAYAT if sonuc.get('referans_bayat') else 0
 
 
-# HIZLI_TEST/ gecici bir koktur: kaynak klasorler sembolik bagla baglanir,
-# ciktilar ayri kalir. Boylece test, gercek sonuc klasorlerindeki uzun kosu
-# sonuclarini EZMEZ.
+# HIZLI_TEST/ is a temporary root: the source directories are linked
+# symbolically and the outputs stay separate. That way the test DOES NOT
+# OVERWRITE the long run results in the real output directories.
 def main():
     p = argparse.ArgumentParser(description='Zincirin hizli dogruluk testi')
     p.add_argument('--root', '--kok', dest='kok', default='.')
