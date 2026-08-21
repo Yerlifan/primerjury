@@ -153,7 +153,7 @@ def main():
         fh.write(u'| not testable | %d |\n\n' % len(dusen))
         if kirli:
             fh.write(u'## Pairs with a named off-target product\n\n')
-            fh.write(u'| hedef | adlı | adsız | toplam | örnek başlık |\n|---|---|---|---|---|\n')
+            fh.write(u'| target | named | unnamed | total | example header |\n|---|---|---|---|---|\n')
             for k in sorted(kirli, key=lambda x: -(sonuc[x].get('hedef_disi') or 0)):
                 v = sonuc[k]
                 fh.write(u'| %s | %s | %s | %s | %s |\n'
@@ -161,7 +161,7 @@ def main():
                             v.get('ncbi_toplam_urun'), (v.get('ncbi_ornek') or '')[:110]))
             fh.write(u'\n')
         if dusen:
-            fh.write(u'## Sınanamayanlar ve sebebi\n\n')
+            fh.write(u'## Could not be tested, and why\n\n')
             for k in sorted(dusen):
                 fh.write(u'- **%s** — %s\n' % (k, (sonuc[k].get('not_') or '')[:300]))
             fh.write(u'\n')

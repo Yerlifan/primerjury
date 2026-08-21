@@ -104,7 +104,7 @@ def main():
             kutular[et] = (m.group(1), m.group(2), oku_fasta(p))
     if not kutular:
         sys.exit("konsensus bulunamadi: %s" % a.kons)
-    print("kutu: %d" % len(kutular))
+    print(u'bins: %d' % len(kutular))
 
     calisma = tempfile.mkdtemp(prefix="kimlik_")
     # sinif basina tek blastn cagrisi
@@ -121,7 +121,7 @@ def main():
                 break
             fna = os.path.join(a.db, dbad)
             if not os.path.exists(fna):
-                print("   veritabani yok: %s" % dbad)
+                print(u'no such database: %s' % dbad)
                 continue
             db = db_hazirla(fna, calisma)
             if not db:
@@ -133,7 +133,7 @@ def main():
                  "-max_target_seqs", "5",
                  "-evalue", "1e-20", "-num_threads", str(a.is_parcacigi),
                  "-out", cikti], capture_output=True, text=True)
-            print("   blastn %-3s x %-20s (%d kutu)" % (sinif, dbad, len(kalan)))
+            print(u'   blastn %-3s x %-20s (%d bins)' % (sinif, dbad, len(kalan)))
             if r.returncode != 0:
                 print("      HATA: %s" % r.stderr.strip()[:160])
                 continue
@@ -235,7 +235,7 @@ def main():
         w.writeheader(); w.writerows(sonuc)
     print("\nyazildi: %s" % a.out)
     say_uyum = collections.Counter(x["uyum"] for x in sonuc)
-    print("hedef: %d" % len(sonuc))
+    print(u'targets: %d' % len(sonuc))
     for k in ("tur_uyusuyor", "cins_uyusuyor_tur_farkli", "CINS_FARKLI",
               "YAKIN_AKRABA_YOK", "vurus_yok"):
         if say_uyum.get(k):

@@ -162,7 +162,7 @@ def main():
         b['uye_kutu'] = [k for k in kut if sec(k) and uye_mi(k)]
         b['rakip_kutu'] = [k for k in kut if sec(k) and rak_mi(k)
                            and not uye_mi(k)]
-        print('ELLE UYELIK: uye %d kutu, rakip %d kutu'
+        print(u'MANUAL MEMBERSHIP: %d member bins, %d competitor bins'
               % (len(b['uye_kutu']), len(b['rakip_kutu'])), flush=True)
     uye_k = [k for k in kons if k['kutu'] in {x['kutu'] for x in b['uye_kutu']}]
     rak_k = [k for k in kons if k['kutu'] in {x['kutu'] for x in b['rakip_kutu']}]
@@ -270,7 +270,7 @@ def main():
                          taban='panel', sig_kat=None, kapsam='', arms='MEVCUT'))
     yap = [q for q in genis if [q['F'], q['R'], q['arms']] not in
            [[z['F'], z['R'], z['arms']] for z in D['derin']]]
-    print('derin olculecek %d (toplam %d)' % (len(yap), len(genis)), flush=True)
+    print(u'%d to be measured at full depth (of %d)' % (len(yap), len(genis)), flush=True)
     nm = N.Numune(b['uye_kutu'] + b['rakip_kutu'], n=a.derin, otorite=True)
     ger = gerekli_dcq(a.R or D.get('R') or 0)
     for q in yap:
@@ -294,7 +294,7 @@ def main():
     D['derin'].sort(key=lambda z: -(z['dCq'] if z['dCq'] is not None else -99))
     json.dump(D, open(dur, 'w', encoding='utf-8'), ensure_ascii=False)
     for z in D['derin'][:12]:
-        print('  dCq %6s  kat %8s  kapsam %-6s urun %3s %-14s %s' % (
+        print(u'  dCq %6s  fold %8s  coverage %-6s product %3s %-14s %s' % (
             ('%.2f' % z['dCq']) if z['dCq'] is not None else '-',
             ('%.2f' % z['kat']) if z['kat'] is not None else '-',
             z['kapsam'], z['urun'], z['arms'] or '-', z['F'] + '/' + z['R']))

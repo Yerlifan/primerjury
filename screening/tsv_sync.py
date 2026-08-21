@@ -91,12 +91,12 @@ def main():
     for sayfa, rel in ESLEME:
         yol = os.path.join(a.kok, rel)
         if sayfa not in wb.sheetnames:
-            print('SAYFA YOK, atlandi:', sayfa)
+            print(u'NO SHEET, skipped:', sayfa)
             continue
         yeni = sayfa_satirlari(wb[sayfa])
         eski = tsv_satirlari(yol)
         if eski is None:
-            print('%-26s TSV YOK -> uretilecek (%d satir)' % (sayfa, len(yeni)))
+            print(u'%-26s NO TSV -> will be generated (%d rows)' % (sayfa, len(yeni)))
             toplam_fark += len(yeni)
         else:
             dx = dizi_sutunlari(yeni[0] if yeni else [])
@@ -124,13 +124,13 @@ def main():
     print('\nTOPLAM farkli hucre:', toplam_fark)
     print('\n=== KRITIK: PRIMER DIZISI FARKLARI ===')
     if not kritik:
-        print('  yok')
+        print(u'  none')
     for rel, sat, bas, ve, vy in kritik:
-        print('  %s satir %d | %s' % (os.path.basename(rel), sat, bas))
+        print(u'  %s row %d | %s' % (os.path.basename(rel), sat, bas))
         print('     TSV (eski) : %s  (%d nt)' % (ve, len(ve)))
         print('     PANEL(dogru): %s  (%d nt)' % (vy, len(vy)))
-    print('\n%s' % ('YAZILDI - TSV\'ler panelden yeniden uretildi.' if a.yaz
-                    else 'YALNIZ RAPOR. Uretmek icin --yaz ekleyin.'))
+    print('\n%s' % (u'WRITTEN - the TSVs were regenerated from the panel.' if a.yaz
+                    else u'REPORT ONLY. Add --yaz to generate them.'))
 
 
 if __name__ == '__main__':

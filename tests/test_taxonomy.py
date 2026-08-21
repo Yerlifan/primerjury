@@ -151,7 +151,7 @@ def bolum3(ornek):
     """GERCEK dosyalar: cozulemeyen baslik orani olculur."""
     refdb = os.path.join(KOK, 'REFERANS_DB')
     if not os.path.isdir(refdb):
-        print('\n(REFERANS_DB yok - gercek dosya bolumu atlandi)')
+        print(u'\n(REFERANS_DB is absent, so the real file section was skipped)')
         return True
     print()
     print('=== 3) GERCEK DOSYALAR (ilk %d baslik) ===' % ornek)
@@ -168,7 +168,7 @@ def bolum3(ornek):
     for d in dosyalar:
         y = os.path.join(refdb, d)
         if not os.path.exists(y):
-            print('%-40s | (dosya yok)' % d)
+            print(u'%-40s | (no such file)' % d)
             continue
         say = {}
         n = 0

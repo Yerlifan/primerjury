@@ -90,12 +90,12 @@ def main():
                 gcF=mF['gc'], gcR=mR['gc'], rak_min=rmin,
                 rak_top=rakb.get(wf, 0) + rakb.get(wr, 0),
                 ideal_ceza=0 if IDEAL[0] <= urun <= IDEAL[1] else (1 if urun <= 250 else 2))
-    print('  aday cift: %d   [%.1f sn]' % (len(ciftler), time.time() - t0))
+    print(u'  candidate pairs: %d   [%.1f s]' % (len(ciftler), time.time() - t0))
     if not ciftler:
         json.dump(dict(hedef=D['hedef'], uye_ad=D['uye_ad'], rak_ad=D['rak_ad'],
                        pencere_n=D['pencere_n'], aday_cift_n=0, kisa=[], arms=[]),
                   open(g.cikti, 'w'), default=str)
-        print('  UYARI: cift uretilemedi'); return 0
+        print(u'  WARNING: no pair could be produced'); return 0
 
     sirali = sorted(ciftler.values(),
                     key=lambda x: (-x['ortak_kons'], x['rak_min'], x['rak_top'],
@@ -143,10 +143,10 @@ def main():
     json.dump(dict(hedef=D['hedef'], uye_ad=D['uye_ad'], rak_ad=D['rak_ad'],
                    pencere_n=D['pencere_n'], aday_cift_n=len(ciftler),
                    kisa=kisa, arms=arms, kontrol=kontrol), open(g.cikti, 'w'), default=str)
-    print('  kontrol ornegi (siralamanin geri kalanindan rastgele): %d' % len(kontrol))
+    print(u'  control sample (drawn at random from the rest of the ranking): %d' % len(kontrol))
     print('  kisa %d + ARMS %d -> %s' % (len(kisa), len(arms), g.cikti))
     for c in kisa[:4]:
-        print('    ortak_kons=%d/%d rak_min=%d urun=%d  %s / %s'
+        print(u'    shared_cons=%d/%d comp_min=%d product=%d  %s / %s'
               % (c['ortak_kons'], UYE_N, c['rak_min'], c['urun'], c['F'], c['R']))
     return 0
 
