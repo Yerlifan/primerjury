@@ -21,21 +21,22 @@ import sys,pickle,numpy as np
 sys.path.insert(0,'/tmp/wk2/engine'); sys.path.insert(0,'/tmp/wk2/is')
 import ispcr
 
-# ---------------------------------------------------------------------------
-# urunler — havuzdaki hangi okumalarda F+R ciftinin urun verdigini bulur.
+# -------------------------------------------------------------------------
+# urunler - finds in which reads of the pool the F+R pair gives a product.
 #
-# OLCUT (ispcr.amplify ile birebir):
-#   - F ileri yonde baglanir (hv.bul; 3' son 2 baz TAM, uyumsuzluk <= mm)
-#   - R'nin kendisi degil TERS TUMLEYENI aranir (hv.bul5). Motor yalniz arti
-#     ipligi taradigi icin, rc(R)'nin arti iplikte bulunmasi R'nin gercekte
-#     karsi iplige bagliandigi anlamina gelir. bul5, R'nin 3' son 2 bazina
-#     karsilik gelen rc(R)'nin ILK 2 bazinin tam tutmasini sart kosar.
-#   - Urun boyu penceresi lo..hi. Varsayilan (70, 250) qPCR kisitindan gelir:
-#     yapilandirmada URUN_IDEAL 60-150, URUN_KABUL 150-250 bp'dir.
-#   - seg >= f + len(F): R'nin baglanma yeri F'nin SAGINDA ve F ile ORTUSMEDEN
-#     olmali; iki primer birbirine bakmali. Aksi halde ayni bolgeye binmis iki
-#     baglanma sahte urun uretirdi.
-# ---------------------------------------------------------------------------
+# THE CRITERION (exactly ispcr.amplify's):
+#   - F binds in the forward direction (hv.bul; the last 2 bases at the 3' end EXACT,
+#     mismatches <= mm)
+#   - not R itself but its REVERSE COMPLEMENT is searched for (hv.bul5). Since the
+#     engine scans only the plus strand, finding rc(R) on the plus strand means R
+#     really binds the opposite strand. bul5 requires the FIRST 2 bases of rc(R),
+#     which correspond to R's last 2 bases at the 3' end, to match exactly.
+#   - The product length window lo..hi. The default (70, 250) comes from the qPCR
+#     constraint: in the configuration URUN_IDEAL is 60-150 and URUN_KABUL 150-250 bp.
+#   - seg >= f + len(F): R's binding site must lie to the RIGHT of F and NOT OVERLAP
+#     it; the two primers must face one another. Otherwise two bindings sitting on the
+#     same region would produce a false product.
+# -------------------------------------------------------------------------
 def urunler(hv,F,R,lo=70,hi=250,mm=1):
     fs=hv.bul(F,mm)
     # If F binds nowhere there can be no product - an early exit with an empty mask.
