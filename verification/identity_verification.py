@@ -48,167 +48,136 @@ UNNAMED RECORDS CANNOT BECOME A NAME
 
     Writes to KIMLIK_SONUC/ only. Never touches panel files.
 
---- ozgun aciklama ---
-KIMLIK DOGRULAMA TURU - raporlanan kimlik iddialarini BAGIMSIZ olarak sinar.
-
-YONTEM NEDEN FARKLI
--------------------
-Bu tur, iddialari ureten yontemlerin HICBIRINI tekrar etmez:
-
-  * Kraken2      : k-mer + taksonomi agacinda en kucuk ortak ata (LCA).
-                   Bu betik taksonomi agacini HIC kullanmaz.
-  * 1. turumuz   : sinif ici konsensus hizalamasi + ayirt edici 21-mer.
-                   Bu betik konsensusleri BIRBIRIYLE degil, DIS REFERANS
-                   veritabanlarindaki adlandirilmis kayitlarla kiyaslar.
-  * 2. turumuz   : in-silico PCR (primer tabanli).
-                   Bu betikte primer yok.
-
-Bu turun yontemi: TOHUM + HIZALAMA (BLAST mantigi, taksonomisiz).
-  1) Sorgu konsensustan k-mer tohumlari cikarilir, veritabani akis halinde
-     taranir ve tohum sayisina gore kisa liste yapilir.
-  2) Kisa listedeki her kayitla TAM HIZALAMA yapilir (Levenshtein DP, infix).
-  3) Kimlik IKI KEZ olculur:
-       - tam ortusme uzerinden
-       - AYIRT EDICI PENCERE uzerinden: en iyi N referans kaydin BIRBIRINDEN
-         AYRILDIGI kolonlar. Korunmus bolgeler (18S, 5.8S, LSU cekirdegi)
-         boylece disarida kalir - iddia tam da o korunmus bolgelerden gelen
-         sahte yuksek kimlige dayaniyorsa burada gorunur.
-  4) BIRDEN FAZLA veritabaninin UYUSMASI SARTTIR. Tek veritabanindan gelen
-     sonuc "DOGRULANDI" sayilmaz, en fazla "DOGRULANAMADI (tek kaynak)" olur.
-
-HUKUM
-  DOGRULANDI      : >=2 bagimsiz veritabani iddiayi destekliyor
-  DUZELTILMELI    : >=2 bagimsiz veritabani BASKA bir sonucta birlesiyor
-                    (dogru ifade yazilir - kullanici degerlendiriciye duzeltme atacak)
-  DOGRULANAMADI   : kanit yetersiz, celiskili ya da tek kaynakli
-
-Uydurma teyit URETILMEZ. Kanit yetersizse DOGRULANAMADI yazilir.
-Panel dosyalarina YAZMAZ; KIMLIK_SONUC/ altina yazar.
 """
 
 # -------------------------------------------------------------------------
-# identity_verification.py, raporlanan kimlik iddialarini dis referans
-# veritabanlarina karsi TOHUM + HIZALAMA ile bagimsiz olarak sinar.
+# identity_verification.py tests the reported identity claims independently
+# against external reference databases, with SEEDING plus ALIGNMENT.
 #
-# GİRDİ  : REFERANS_DB/ altindaki yerel FASTA kumeleri (VTB listesi; ikiz ve
-#          altkume olanlar oylamadan cikarilmistir),
-#          konsensus_kanonik/ (screening.targets.konsensusler ile),
-#          NCBI nt (ag uzerinden ayri katman) ve elle doldurulmus
+# INPUT  : the local FASTA sets under REFERANS_DB/ (the VTB list; twins and
+#          subsets have been taken out of the vote),
+#          konsensus_kanonik/ (through screening.targets.konsensusler),
+#          NCBI nt (a separate layer, over the network) and the hand filled
 #          KIMLIK_SONUC/nt_elle/NT_SONUC_SABLONU.tsv.
-# ÇIKTI  : KIMLIK_SONUC/kimlik_iddialari.tsv (asil tablo),
+# OUTPUT : KIMLIK_SONUC/kimlik_iddialari.tsv (the main table),
 #          KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md,
 #          KIMLIK_SONUC/VERITABANI_ENVANTERI.md,
 #          KIMLIK_SONUC/LITERATUR_ELLE_KONTROL.tsv,
 #          KIMLIK_SONUC/nt_ham/, nt_elle/, kontrol/ .
-#          Panel dosyalarina YAZMAZ.
-# ÇAĞRAN : verification/full_chain.py -> I tusu
-#          (bat icinde: wsl -e python3 "verification/identity_verification.py" --kok .)
-#          Bu dosyanin fonksiyonlari ayrica G asamasi (all_bin_identities.py) ve
-#          E asamasi (access_check.py) tarafindan modul olarak cagrilir.
+#          It WRITES NOTHING into the panel files.
+# CALLED BY: verification/full_chain.py -> key I
+#          (python3 verification/identity_verification.py --root .)
+#          This file's functions are also imported as a module by stage G
+#          (all_bin_identities.py) and stage E (access_check.py).
 #
-# UC KURAL, hepsi asagida kodda isaretli:
-#   1) KISA LISTE 500'DUR ve HEPSI hizalanir - kesme noktasi baglayici degildir.
-#   2) Bir iddia DOGRULANDI sayilmak icin EN AZ IKI bagimsiz veritabani uyusmali.
-#   3) Kimlik ayrica AYIRT EDICI PENCEREDE olculur - korunmus bolgeler disarida.
+# THREE RULES, each marked in the code below:
+#   1) THE SHORT LIST IS 500 and ALL of it is aligned, so the cut off is not binding.
+#   2) A claim counts as VERIFIED only when AT LEAST TWO independent databases agree.
+#   3) Identity is also measured in a DISCRIMINATING WINDOW, with the conserved
+#      regions left out.
 # -------------------------------------------------------------------------
 import os, sys, csv, json, time, re, argparse
 
 VERSIYON = '1.1 (2026-08-04)'
 
-# --------------------------------------------------------------- AYAR IMZASI
-# Kontrol noktasi (checkpoint) anahtarina KARISTIRILIR. Kisa liste boyu ya da
-# siralama/secim mantigi degistiginde bu satiri artirin: eski kosulardan kalmis
-# vtb_*.json dosyalari boylece OTOMATIK gecersiz olur ve sessizce eski (kucuk
-# listeyle uretilmis) sonucu geri vermezler.
+# --------------------------------------------------- THE SETTINGS SIGNATURE
+# This is MIXED INTO the checkpoint key. Raise this line whenever the short list
+# size or the ranking and selection logic changes: vtb_*.json files left over from
+# older runs then become invalid AUTOMATICALLY, instead of silently handing back
+# the old result produced with the smaller list.
 AYAR_IMZASI = 'idfbm25-kl500-v3'
 
-K_TOHUM = 16            # tohum uzunlugu
+K_TOHUM = 16            # seed length
 
-# --------------------------------------------------- SIRALAMA OLCUTU (2026-08-05)
-# ESKI OLCUT: skor = "sorgunun kac ayri tohumu bu kayitta geciyor" (duz sayim).
-# Iki yonden birden bozuluyordu ve ikisi de veritabani buyudukce kotulesiyordu:
+# ------------------------------------------- THE RANKING CRITERION (2026-08-05)
+# THE OLD CRITERION: score = "how many distinct seeds of the query occur in this
+# record" (a flat count). It broke in two ways at once, and both got worse as the
+# database grew:
 #
-#   (a) KORUNMUS BOLGE GURULTUSU. 18S/5.8S/LSU cekirdeginden gelen tohumlar
-#       veritabaninin neredeyse tamaminda geciyor (olculdu: bir tohum 2 069 188
-#       kayitin 1 612 663'unde). Bu tohumlar hicbir sey ayirt etmiyor ama duz
-#       sayimda gercek akrabalik kaniti olan nadir tohumla AYNI agirligi aliyor.
-#   (b) UZUNLUK YANLILIGI - ASIL SEBEP BUYDU. Skor bir TOPLAM oldugu icin uzun
-#       kayit her zaman kazaniyor. Hedef kayit AY882347 UNITE'de 484 bp; sorgunun
-#       ancak 19 tohumunu tutabiliyor. Onun yerine ilk siralara oturan kayitlar
-#       892-2000 bp uzunlugunda ve 34-59 tohum tutuyor. Kisa ve TAM eslesen kayit,
-#       yalnizca KISA oldugu icin gomuluyor.
+#   (a) CONSERVED REGION NOISE. Seeds coming from the 18S/5.8S/LSU core occur in
+#       almost the whole database (measured: one seed occurred in 1 612 663 of
+#       2 069 188 records). Those seeds discriminate nothing, yet under a flat
+#       count they carry the SAME weight as a rare seed that is real evidence of
+#       relatedness.
+#   (b) LENGTH BIAS - THIS WAS THE REAL CAUSE. Because the score is a SUM, the
+#       longer record always wins. The target record AY882347 is 484 bp in UNITE
+#       and can hold only 19 of the query's seeds. The records that take the top
+#       places instead are 892-2000 bp and hold 34-59 seeds. A short record that
+#       matches EXACTLY gets buried purely for being SHORT.
 #
-# YENI OLCUT = ters frekans agirligi + BM25 uzunluk normalizasyonu:
+# THE NEW CRITERION = inverse frequency weighting plus BM25 length normalisation:
 #
-#       skor(kayit) = SUM_{tutan tohumlar} ln(N / (1 + df(tohum)))
-#                     ----------------------------------------------
-#                          1 - b + b * uzunluk(kayit) / ORT_UZUNLUK
+#       score(record) = SUM_{matching seeds} ln(N / (1 + df(seed)))
+#                       ----------------------------------------------
+#                          1 - b + b * length(record) / MEAN_LENGTH
 #
-#   df(tohum) : o tohumun KAC KAYITTA gectigi (ayni akista bedavaya sayilir)
-#   N         : taranan kayit sayisi,  b = BM25_B = 0,75,  ORT = ortalama uzunluk
+#   df(seed) : IN HOW MANY RECORDS that seed occurs (counted free in the same pass)
+#   N        : the number of records scanned,  b = BM25_B = 0.75,  MEAN = mean length
 #
-# OLCULDU (AY882347 kaydinin sirasi, hepsi TAM veritabani taramasi):
-#   UNITE ITS (2 069 188 kayit)   F2-1_101201    1869 -> 19      (yalniz idf: 1320)
-#                                 F2-1_2034170   2037 -> 18
-#                                 F1-4_101201     136 -> 17
-#                                 F1-4_2093779    162 -> 18
-#                                 F1-4_2093780    153 -> 17
-#                                 F1-2_101201     189 -> 30
-#                                 F1-1_2093779    225 -> 35
-#   SILVA LSU Parc (1 312 521)    F2-1_101201    6794 ->  2
-#                                 F2-1_2034170   5749 ->  3
-#   RefSeq ref_all2 (65 358)      F2-1_101201    1320 ->  1
-#   RefSeq mantar ITS (20 394)    yedi sorguda da 1 -> 1  (BOZULMA YOK)
+# MEASURED (the rank of record AY882347, all against a FULL database scan):
+#   UNITE ITS (2 069 188 records)  F2-1_101201    1869 -> 19      (idf alone: 1320)
+#                                  F2-1_2034170   2037 -> 18
+#                                  F1-4_101201     136 -> 17
+#                                  F1-4_2093779    162 -> 18
+#                                  F1-4_2093780    153 -> 17
+#                                  F1-2_101201     189 -> 30
+#                                  F1-1_2093779    225 -> 35
+#   SILVA LSU Parc (1 312 521)     F2-1_101201    6794 ->  2
+#                                  F2-1_2034170   5749 ->  3
+#   RefSeq ref_all2 (65 358)       F2-1_101201    1320 ->  1
+#   RefSeq fungal ITS (20 394)     1 -> 1 in all seven queries  (NO DEGRADATION)
 #
-# Yalniz ters frekans YETMEDI (1869 -> 1320). Uzunluk normalizasyonu sart;
-# ikisi birlikte calisiyor. Ayrinti: SIRALAMA_COZUMU.md.
-BM25_B = 0.75           # BM25 uzunluk normalizasyon katsayisi (0 = normalizasyon yok)
-ADAY_HAVUZU = 3000      # akis sirasinda tutulan aday sayisi; idf ile yeniden
-                        # siralanip ilk KISA_LISTE tanesi hizalamaya gider.
-                        # Olculen en kotu on-siralama sirasi 45 -> 66x pay var.
+# Inverse frequency ALONE WAS NOT ENOUGH (1869 -> 1320). Length normalisation is
+# required; the two work together. Detail: SIRALAMA_COZUMU.md.
+BM25_B = 0.75           # the BM25 length normalisation coefficient (0 = no normalisation)
+ADAY_HAVUZU = 3000      # candidates kept during the pass; re-ranked with idf
+                        # ranked, and the first KISA_LISTE of them go to alignment.
+                        # The worst measured pre-ranking position is 45, so there is 66x of headroom.
 
-# KISA LISTE BOYU - 2026-08-04, ikinci duzeltme.
+# THE SHORT LIST SIZE - 2026-08-04, the second correction.
 #
-# SORUN (olculdu): kisa liste TOHUM SAYISINA gore siralanip kesiliyor, ama
-# karari HIZALAMA KIMLIGI veriyor. Iki olcut farkli oldugu icin gercek en iyi
-# eslesme listeye hic giremeyebiliyor:
-#   * F2-1_101201: liste Parascedosporium putredinis'i (%98,16) en iyi gosterdi;
-#     ayni veritabaninda Petriella guttulata %99,65 vardi.
-#   * SILVA LSU NR99, %8 bozulmus sorgu: hedef kaydin 47 tohumu SAG oldugu halde
-#     ilk 60'a giremedi - ayni korunmus bolgeleri paylasan binlerce kayitla
-#     yarisiyordu.
-# "Beklenen taksonu garanti et" yamasi bu hatayi ancak NE ARADIGIMIZI BILDIGIMIZDE
-# kapatir; kimlik sorusunda bilmiyoruz.
+# THE PROBLEM (measured): the short list was ranked and cut by SEED COUNT, but the
+# decision is made by ALIGNMENT IDENTITY. Because the two criteria differ, the real
+# best match could fail to enter the list at all:
+#   * F2-1_101201: the list showed Parascedosporium putredinis as best (98.16%),
+#     while the same database held Petriella guttulata at 99.65%.
+#   * SILVA LSU NR99, a query degraded by 8%: 47 of the target record's seeds were
+#     intact and it still did not reach the first 60, because it was competing with
+#     thousands of records sharing the same conserved regions.
+# The "guarantee the expected taxon" patch only closes that hole WHEN WE ALREADY
+# KNOW WHAT WE ARE LOOKING FOR, and in an identity question we do not.
 #
-# COZUM: kesme noktasini BAGLAYICI OLMAKTAN CIKAR. Liste 60 -> 500 buyutuldu ve
-# 500 adayin HEPSI hizalaniyor; karar tamamen hizalamaya birakildi.
-# Maliyet: vektorlestirilmis hizalayici 1,5 kb icin ~0,02 sn -> 500 aday ~10 sn
-# (kisa liste asamasinin veritabani akisi zaten dakikalar suruyor, yani hizalama
-# maliyeti toplamin kucuk bir parcasi).
+# THE FIX: make the cut off NON-BINDING. The list went 60 -> 500 and ALL 500
+# candidates are aligned; the decision is left entirely to alignment.
+# The cost: the vectorised aligner takes ~0.02 s for 1.5 kb, so 500 candidates take
+# ~10 s (the database pass of the short list stage already takes minutes, so the
+# alignment cost is a small part of the total).
 #
-# OZ-KALIBRASYON: her sorguda KAZANAN isabetin kisa listedeki tohum sirasi
-# kaydedilir (bkz. kazanan_sira). Kazananlar hep ilk 100'den geliyorsa kesme
-# noktasi baglayici degildir ve bunu AYRI BIR OLCUM YAPMADAN kanitlariz.
-# 2026-08-05 (sabah): 500 -> 1000. Oz-kalibrasyon 500'un BAGLAYICI oldugunu
-# gosterdi (118 sorgunun 13'unde kazanan 400. siranin otesinden geldi; en yuksek
-# kazanan sira 4171). 1000 bunun bir kismini kurtardi ama 4171'i KURTARMADI.
+# SELF CALIBRATION: for every query the seed rank of the WINNING hit inside the
+# short list is recorded (see kazanan_sira). If the winners always come from the
+# first 100, the cut off is not binding, and we prove that WITHOUT A SEPARATE
+# MEASUREMENT.
+# 2026-08-05 (morning): 500 -> 1000. Self calibration showed 500 WAS BINDING (in 13
+# of 118 queries the winner came from beyond position 400; the highest winning rank
+# was 4171). 1000 recovered part of that but DID NOT RECOVER 4171.
 #
-# 2026-08-05 (aksam): 1000 -> 500 GERI. Listeyi buyutmek sorunun kendisini
-# cozmuyordu, yalnizca daha derin kaziyordu. Sorun SIRALAMA OLCUTUNDEYDI (yukari
-# bakin: ters frekans + uzunluk normalizasyonu). Yeni olcutle olculen en kotu
-# kazanan sirasi 35'tir; 500 bunun 14 katidir ve I/G asamalarinin suresini
-# yariya indirir. Buyutmek artik gereksiz.
-KISA_LISTE = 500        # her veritabanindan tam hizalanacak kayit sayisi
-SIRA_UYARI_ESIGI = 200  # kazanan bunun otesinden geldiyse olcut yine bozuluyor demektir
-SIRA_GUVENLI_BOLGE = 50   # kazananlar bunun icinde kaliyorsa kesme baglayici degil
-GARANTI_UST = 40        # "beklenen takson garantisi" ile alinacak azami kayit
-AYIRT_EDICI_UST = 8     # ayirt edici pencere icin kullanilacak en iyi kayit sayisi
-UYUM_TOLERANS = 1.0     # iddia edilen yuzde ile olculen arasindaki kabul edilir fark
+# 2026-08-05 (evening): 1000 -> 500 AGAIN. Growing the list did not solve the
+# problem, it only dug deeper. The problem was IN THE RANKING CRITERION (see "THE
+# RANKING CRITERION" above: conserved region noise plus length bias). Under the new
+# criterion the worst measured winning rank is 35; 500 is 14 times that and it
+# halves the running time of stages I and G. Growing it is no longer necessary.
+KISA_LISTE = 500        # how many records from each database are fully aligned
+SIRA_UYARI_ESIGI = 200  # if the winner comes from beyond this, the criterion is still broken
+SIRA_GUVENLI_BOLGE = 50   # if the winners stay inside this, the cut off is not binding
+GARANTI_UST = 40        # the most records taken through the "expected taxon guarantee"
+AYIRT_EDICI_UST = 8     # how many best records the discriminating window uses
+UYUM_TOLERANS = 1.0     # the acceptable gap between the claimed percentage and the measured one
 
-# (etiket, dosya, tur, kimlik_asamasinda_kullan, not)
-# KIMLIK asamasi icin kural: TEKRARSIZLASTIRILMIS kume YETMEZ. NR99 gibi kumeler
-# nadir cinsleri tumden siler - olculdu: SILVA LSURef NR99'da Petriella kaydi
-# SIFIR, ayni surumun Parc kumesinde 82. Kimlik sorusunda Parc SART.
+# (label, file, type, use_in_identity_stage, note)
+# The rule for the IDENTITY stage: a DEREPLICATED set IS NOT ENOUGH. Sets such as
+# NR99 delete rare genera outright. Measured: SILVA LSURef NR99 holds ZERO
+# Petriella records, while the Parc set of the same release holds 82. For an
+# identity question, Parc is REQUIRED.
 VTB = [
     ('SILVA SSU NR99',     'SILVA_138.2_SSURef_NR99.fasta', 'SSU',    True,
      u'510 495 kayit; SSU tekrarsizlastirilmis'),
@@ -240,16 +209,16 @@ VTB = [
      u'sayilmasin diye kimlik oylamasindan cikarildi (bagimsiz kaynak degil)'),
 ]
 
-# NCBI nt AYRI bir katmandir (yerel dosya degil, ag uzerinden).
+# NCBI nt is a SEPARATE layer (not a local file, it goes over the network).
 NT_ETIKET = 'NCBI nt'
 
-# --------------------------------------------------------------- IDDIALAR
-# tip: 'kimlik'  -> kutu ile adlandirilmis takson arasindaki kimlik iddiasi
-#      'kutu2'   -> iki kutunun birbirine kimligi
-#      'dagilim' -> bir organizmanin birden cok kutuya dagildigi iddiasi
-#      'adsiz'   -> "adlandirilamiyor / ad verilemez" iddiasi
-#      'ayrilmaz'-> iki turun birbirinden ayrilamadigi iddiasi
-#      'gecici'  -> "bu sinifta kimlik ayrimi yapilamiyor" iddiasi
+# --------------------------------------------------------------- THE CLAIMS
+# type: 'kimlik'  -> an identity claim between a bin and a named taxon
+#       'kutu2'   -> the identity of two bins to one another
+#       'dagilim' -> a claim that one organism is spread over several bins
+#       'adsiz'   -> a "cannot be named" claim
+#       'ayrilmaz'-> a claim that two species cannot be told apart
+#       'gecici'  -> a "identity cannot be separated in this class" claim
 IDDIALAR = [
  dict(no=1, oncelik=2, tip='kimlik', kutu=['F2-1_101201'], sinif='F2',
       beklenen_cins='Petriella', beklenen_yuzde=None,
@@ -263,17 +232,17 @@ IDDIALAR = [
             'F2-1_2034170','F2-4_2034170','F2-1_500148','F2-2_500148','F2-4_500148'],
       supheli=['F2-1_2034170','F2-4_2034170','F2-1_500148','F2-2_500148','F2-4_500148'],
       beklenen_alt=76.0, beklenen_ust=86.0,
-      # 2026-08-06 DUZELTMESI: metin "dokuz kutu" diyordu ve bu sayi hicbir
-      # olcumden gelmiyordu - iddianin kendi kutu listesinin uzunluguydu.
-      # G asamasi 96 kutunun HEPSINI bagimsiz taradi ve sunu olctu:
-      #   * bu iddianin dokuz kutusundan SEKIZI Petriella cikti,
-      #   * dokuzuncusu (F2-4_500148) CIKMADI - adlandirilamayan soy, en yakin
-      #     kayit Lomentospora prolifica %83,68; iddianin kendi kanit satirinda
-      #     da zaten %52,21 ile ayrisiyordu,
-      #   * buna karsilik iddianin saymadigi DORT F1 kutusu (F1-2_101201,
-      #     F1-4_101201, F1-4_2093779, F1-4_2093780) da Petriella cikti.
-      # Toplam 12 kutu. Metin artik olculen sayiyi yaziyor; rapora giren
-      # belgede "dokuz" ile kanit arasindaki celiski kalmasin.
+      # THE 2026-08-06 CORRECTION: the text said "nine bins" and that number came from
+      # no measurement; it was the length of the claim's own bin list.
+      # Stage G scanned ALL 96 bins independently and measured this:
+      #   * EIGHT of this claim's nine bins came out Petriella,
+      #   * the ninth (F2-4_500148) DID NOT. It is an unnameable lineage whose nearest
+      #     record is Lomentospora prolifica at 83.68%; the claim's own evidence row
+      #     already had it diverging at 52.21%,
+      #   * against that, FOUR F1 bins the claim did not count (F1-2_101201,
+      #     F1-4_101201, F1-4_2093779, F1-4_2093780) also came out Petriella.
+      # Twelve bins in total. The text now carries the measured number, so that no
+      # contradiction between "nine" and the evidence reaches the report.
       metin=u'Petriella numunede 12 kutuya dagilmis (bu iddianin dokuz '
             u'kutusundan sekizi + dort F1 kutusu; F2-4_500148 Petriella '
             u'DEGIL); Kraken\'in T. breve ve M. brunneum dedigi kutularin '
@@ -299,8 +268,8 @@ IDDIALAR = [
       metin=u'taxid 2209 kutusu M. soligelidi %99,93 / M. mazei %99,85, ikisi ayrilmiyor'),
  dict(no=9, oncelik=2, tip='cins_duzeyi', kutu=['F2-1_101201'], beklenen_cins='Petriella',
       metin=u'Petriella cins duzeyinde kalmali, tur adi verilemez, cf. setifera'),
- # --- K asamasinin "HETEROJEN" dedigi hedefler: karar verebilmek icin
- # kutu kimliklerinin DIS REFERANSLA sinanmasi sart. K bunu yapamaz, I yapar.
+ # --- The targets stage K calls "HETEROJEN": to decide anything, the bin
+ # identities have to be tested AGAINST AN EXTERNAL REFERENCE. K cannot do that; I can.
  dict(no=11, oncelik=1, tip='kimlik', kutu=['B-4_285070'], sinif='B',
       beklenen_cins='Petrimonas',
       metin=u'Petrimonas hedefinin uye kutulari ayni organizma mi? '
@@ -320,18 +289,18 @@ IDDIALAR = [
 ]
 
 
-# --------------------------------------------------------------- temel
+# --------------------------------------------------------------- basics
 _C = str.maketrans('ACGTUNacgtun', 'TGCAANtgcaan')
 
 
-# Ters tumleyen. Sorgu her iki yonde de aranir: referans kayitlarin yonu kume
-# kume degisir, tek yon aranirsa yarisi kacar.
+# Reverse complement. The query is searched in both directions: the orientation of
+# reference records varies from set to set, and searching one direction loses half.
 def rc(s):
     return s.translate(_C)[::-1]
 
 
-# ACGT disindaki her sey N'e cevrilir (U -> T). N'ler hizalamada daima uyumsuz
-# sayilir, yani belirsiz baz asla lehte yorumlanmaz.
+# Everything outside ACGT becomes N (U -> T). Ns always count as a mismatch in the
+# alignment, so an ambiguous base is never read in the candidate's favour.
 def temizle(s):
     return re.sub(r'[^ACGT]', 'N', s.upper().replace('U', 'T'))
 
@@ -342,8 +311,8 @@ def sure_metni(sn):
         if sn < 5400 else ('%.1f saat' % (sn / 3600.0))
 
 
-# Turkce ondalik ayraci. None ve sayiya cevrilemeyen degerler "-" olur; rapor
-# icinde "0" ile "olculmedi" birbirine karismasin diye.
+# The decimal separator. None and values that cannot be converted become "-", so
+# that "0" and "not measured" are never confused inside a report.
 def vir(x, b=2):
     if x is None:
         return '-'
@@ -368,21 +337,24 @@ def enc(s):
 
 
 # -------------------------------------------------------------------------
-# INFIX (HW) LEVENSHTEIN - KARARI VEREN OLCU.
+# INFIX (HW) LEVENSHTEIN - THE MEASURE THAT MAKES THE DECISION.
 #
-# Kisa sorgu uzun hedefin ICINE hizalanir, yani hedefin basinda ve sonunda kalan
-# fazlalik cezalandirilmaz. Referans kayitlar cok farkli uzunluklarda gelir (kimi
-# tam operon, kimi tek lokus); global hizalama bu uzunluk farkini uyumsuzluk gibi
-# sayar ve dogru kaydi eler.
+# The short query is aligned INSIDE the long target, so the overhang left at the
+# start and the end of the target is not penalised. Reference records come in very
+# different lengths (some a full operon, some a single locus); global alignment
+# counts that length difference as mismatch and rules the right record out.
 #
-# BU FONKSIYON KARARI VERIR, tohum sayisi vermez. Tohum siralamasi yalnizca ADAY
-# TOPLAMA olcutudur; kisa listedeki 500 adayin HEPSI buradan gecirilir ve en iyi
-# isabet hizalama kimligine gore secilir. Iki olcutun ayri olmasi 60'lik liste
-# doneminde gercek en iyi eslesmelerin kacirilmasina yol acmisti.
+# THIS FUNCTION MAKES THE DECISION, not the seed count. Seed ranking is only the
+# criterion for COLLECTING CANDIDATES; ALL 500 candidates in the short list are put
+# through here and the best hit is chosen by alignment identity. The two criteria
+# being separate is what caused the real best matches to be missed back when the
+# list was 60.
 # -------------------------------------------------------------------------
 def hizala(q, t):
-    """Infix (HW) Levenshtein: kisa sorguyu uzun hedefin ICINE hizalar.
-    Donen: (yuzde_kimlik, uzaklik). numpy ile satir satir DP."""
+    """Infix (HW) Levenshtein: aligns the short query INSIDE the long target.
+        Returns: (percent_identity, distance). Row by row DP with numpy.
+
+    """
     import numpy as np
     if not q or not t:
         return (0.0, len(q or t or ' '))
@@ -392,11 +364,11 @@ def hizala(q, t):
         simdi = np.empty_like(onceki)
         simdi[0] = i + 1
         farkli = (T != Q[i]) | (T == 4) | (Q[i] == 4)
-        # Sol komsu bagimliligi (ekleme) VEKTORLESTIRILDI:
-        #   simdi[j] = min(aday[j], simdi[j-1]+1)
-        # a[j] = simdi[j]-j konursa a[j] = min(aday[j]-j, a[j-1]) olur, yani
-        # kosan minimum. np.minimum.accumulate ile tek gecis. Python ic dongusu
-        # kaldirildi: 1,5 kb x 1,5 kb hizalama dakikalardan saniyelere iner.
+        # The left neighbour dependency (insertion) is VECTORISED:
+        #   now[j] = min(cand[j], now[j-1]+1)
+        # Setting a[j] = now[j]-j gives a[j] = min(cand[j]-j, a[j-1]), which is a running
+        # minimum, so np.minimum.accumulate does it in one pass. The Python inner loop is
+        # gone: a 1.5 kb x 1.5 kb alignment drops from minutes to seconds.
         aday = np.minimum(onceki[:-1] + farkli, onceki[1:] + 1)
         aday = np.concatenate(([i + 1], aday))
         idx = np.arange(len(aday))
@@ -407,15 +379,18 @@ def hizala(q, t):
 
 
 def fasta_akisi(yol):
-    """(baslik, dizi) uretir. Bellege sigmayan dosyalar icin akis.
+    """Yields (header, sequence). A stream, for files that do not fit in memory.
 
-    TAVAN YOKTUR - dosyanin SONUNA kadar okur. (Eskiden kullanilmayan bir
-    'parca=200000' parametresi vardi; hicbir yerde ise yaramiyordu ama tavan
-    varmis izlenimi veriyordu, o yuzden kaldirildi. Erisim testinde gercek bir
-    tavan sorunu yasanmisti: ilk kosu 120 001 kayitta kesiyordu ve SILVA SSU
-    NR99 -510 495-, LSU Parc -1 312 521-, UNITE ITS -2 069 189- fiilen budanmis
-    halde taraniyordu. Kimlik asamasinda o hata YOK; taranan kayit sayisi her
-    satirda basilir ve beklenen kayit sayisiyla karsilastirilir.)"""
+        THERE IS NO CAP; it reads to the END of the file. (There used to be an
+        unused 'parca=200000' parameter. It did nothing anywhere, but it gave the
+        impression that a cap existed, so it was removed. A real cap problem did
+        happen in the access test: the first run cut off at 120 001 records, and
+        SILVA SSU NR99 (510 495), LSU Parc (1 312 521) and UNITE ITS (2 069 189)
+        were effectively being scanned truncated. The identity stage does NOT have
+        that bug; the number of records scanned is printed on every line and
+        compared against the expected record count.)
+
+    """
     bas, par = None, []
     with open(yol, encoding='utf-8', errors='ignore') as fh:
         for satir in fh:
@@ -429,26 +404,27 @@ def fasta_akisi(yol):
         yield bas, temizle(''.join(par))
 
 
-# TOHUM ADIMI - olculerek secildi (2026-08-04).
-# Kisa liste asamasi butun veritabani akisini tarar ve maliyeti TOHUM SAYISI ile
-# dogru orantilidir. Olculdu (SILVA LSU Parc, 2,1 GB / 1,31 M kayit):
-#   adim= 7 -> 410 tohum -> ~21 dakika
-#   adim=25 -> 116 tohum -> ~ 6 dakika   <- SECILEN
-#   adim=60 ->  48 tohum -> ~ 3 dakika
-# Kisa listenin bozulup bozulmadigi sinandi: adim=25'te ilk 25'in 23/25 ve 17/25'i
-# ayni kaldi ve HER IKI SINAMADA DA EN IYI ISABET AYNI CIKTI. Butun hukumler
-# isabet[0]'a dayandigi icin adim=25 guvenli; adim=60 daha cok kayip veriyor.
+# THE SEED STEP - chosen by measurement (2026-08-04).
+# The short list stage scans the whole database pass, and its cost is proportional
+# to THE SEED COUNT. Measured (SILVA LSU Parc, 2.1 GB / 1.31 M records):
+#   step= 7 -> 410 seeds -> ~21 minutes
+#   step=25 -> 116 seeds -> ~ 6 minutes   <- CHOSEN
+#   step=60 ->  48 seeds -> ~ 3 minutes
+# Whether the short list degrades was tested: at step=25, 23/25 and 17/25 of the
+# first 25 stayed the same, and THE BEST HIT CAME OUT THE SAME IN BOTH TESTS. Since
+# every verdict rests on hit[0], step=25 is safe; step=60 loses more.
 def tohumlar(q, k=K_TOHUM, adim=25):
     return {q[i:i + k] for i in range(0, max(1, len(q) - k + 1), adim) if 'N' not in q[i:i + k]}
 
 
 # -------------------------------------------------------------------------
-# ORTALAMA KAYIT UZUNLUGU - BM25 normalizasyonunun paydasi
+# THE MEAN RECORD LENGTH - the denominator of the BM25 normalisation
 #
-# Normalizasyon L/ORT'ye dayandigi icin ORT AKIS BASLAMADAN bilinmelidir:
-# yoksa dosyanin ilk kayitlari yanlis puanlanir ve aday havuzundan yanlis elenir
-# (kosan ortalama ile denendi, ilk %5'te sira oynuyor). Bir kez hesaplanir ve
-# veritabaninin yanina .ortuz dosyasina yazilir; sonraki kosular okur.
+# Because the normalisation rests on L/MEAN, the MEAN has to be known BEFORE THE
+# PASS STARTS: otherwise the first records in the file are scored wrongly and are
+# dropped from the candidate pool for the wrong reason (tried with a running mean;
+# the ranking moves in the first 5%). It is computed once and written to a .ortuz
+# file beside the database; later runs read it.
 # -------------------------------------------------------------------------
 def ortalama_uzunluk(yol):
     yan = yol + '.ortuz'
@@ -463,11 +439,12 @@ def ortalama_uzunluk(yol):
     t = 0
     fai = yol + '.fai'
     if os.path.exists(fai):                  # samtools indeksi varsa bedava
-        # A6 DUZELTMESI (2026-08-21): bozuk satir eskiden sessizce atlaniyor ama
-        # t/n birikimi suruyordu, yani ortalama KISMI veriden hesaplaniyordu.
-        # Bu deger kisa liste puanlamasina girer. Bozuk satir varsa .fai'ye hic
-        # guvenilmez: indeks tutarsizsa TAMAMI atilir ve asagidaki tam tarama
-        # kolu devreye girer. Sessiz kismi olcum yerine gorunur tam olcum.
+        # THE A6 CORRECTION (2026-08-21): a malformed line used to be skipped silently
+        # while the t/n accumulation carried on, so the mean was computed from PARTIAL
+        # data. That value feeds the short list scoring. If there is a malformed line the
+        # .fai is not trusted at all: an inconsistent index is thrown away entirely and the
+        # full scan branch below takes over. A visible full measurement instead of a silent
+        # partial one.
         fai_bozuk = 0
         for satir in open(fai, encoding='utf-8', errors='ignore'):
             p = satir.split('\t')
@@ -519,37 +496,43 @@ class _TersBaslik(object):
 
 
 # -------------------------------------------------------------------------
-# KISA LISTE - IKI ASAMALI SECIM
+# THE SHORT LIST - SELECTION IN TWO STAGES
 #
-# Liste eskiden 60'ti, sonra 500, sonra 1000 yapildi. Buyutmek sorunu cozmedi:
-# olculen bir vakada gercek akraba (AY882347) UNITE ITS'te 1869. siradaydi ve
-# hicbir makul liste boyu onu yakalayamazdi. Sorun liste BOYUNDA degil,
-# SIRALAMA OLCUTUNDEYDI (gerekce icin dosyanin basindaki "SIRALAMA OLCUTU"
-# bolumune bakin: korunmus bolge gurultusu + uzunluk yanliligi).
+# The list used to be 60, then 500, then 1000. Growing it did not solve the
+# problem: in one measured case the real relative (AY882347) sat at position 1869
+# in UNITE ITS, and no reasonable list size would have caught it. The problem was
+# not the list SIZE but the RANKING CRITERION (for the reasoning see the "THE
+# RANKING CRITERION" section at the top of this file: conserved region noise plus
+# length bias).
 #
-# Simdi tek akista iki asama var:
-#   1) ON ELEME - uzunluga gore normalize edilmis HAM tohum sayisi ile en iyi
-#      ADAY_HAVUZU (3000) kayit tutulur. Bu asamada df henuz bilinmez; ama ayni
-#      akista her tohumun kac kayitta gectigi BEDAVAYA sayilir.
-#   2) YENIDEN SIRALAMA - akis bitince gercek df'lerden idf hesaplanir, 3000
-#      aday idf+BM25 skoruyla yeniden siralanir, ilk 'ust' tanesi hizalamaya
-#      gider. Olculen en kotu on-eleme sirasi 45'tir; havuz 3000 oldugu icin
-#      on-eleme kesmesi baglayici DEGILDIR.
+# There are now two stages inside one pass:
+#   1) PRE-FILTER - the best ADAY_HAVUZU (3000) records are kept by RAW seed count
+#      normalised for length. At this stage df is not yet known; but in the same
+#      pass, how many records each seed occurs in is counted FOR FREE.
+#   2) RE-RANKING - once the pass ends, idf is computed from the real df values,
+#      the 3000 candidates are re-ranked by the idf+BM25 score, and the first
+#      'ust' of them go to alignment. The worst measured pre-filter position is 45,
+#      and since the pool is 3000, the pre-filter cut off is NOT binding.
 #
-# "Beklenen takson garantisi" (garanti parametresi) yamasi yerinde kalir ama
-# ARTIK GEREKMIYOR: olculen yedi sorguda da kazanan tohumla listeye giriyor.
-# Yama ile giren bir kaydin normal siralamada kacinci olacagi yine hesaplanir;
-# kazanan yamayla geldiyse rapor UYARI basar.
+# The "expected taxon guarantee" patch (the garanti parameter) stays where it is,
+# but IT IS NO LONGER NEEDED: in all seven measured queries the winner enters the
+# list on its seeds. Where a record entered through the patch, its position under
+# normal ranking is still computed, and if the winner came in through the patch the
+# report prints a WARNING.
 # -------------------------------------------------------------------------
 def kisa_liste(yol, q, ust=KISA_LISTE, ilerle=None, garanti=(), havuz=None,
                suzgec=None):
-    """En umutlu kayitlari sec (BLAST'in tohumlama adimi), idf + BM25 ile.
+    """Pick the most promising records (BLAST's seeding step), with idf plus BM25.
 
-    Donen: [dict(tohum, skor, baslik, dizi, sira, kaynak), ...]
-      tohum  : kac ayri sorgu tohumu bu kayitta gecti (ham sayi, bilgi amacli)
-      skor   : idf agirlikli, uzunluga gore normalize edilmis siralama skoru
-      sira   : SON siralamadaki yer (1 = en iyi). Kazananin bu sayisi kaydedilir.
-      kaynak : 'tohum' -> olcutun icinden geldi | 'garanti' -> takson yamasiyla
+        Returns: [dict(tohum, skor, baslik, dizi, sira, kaynak), ...]
+          tohum  : how many distinct query seeds occurred in this record
+                   (the raw count, for information)
+          skor   : the idf weighted, length normalised ranking score
+          sira   : the place in the FINAL ranking (1 = best). The winner's value
+                   is what gets recorded.
+          kaynak : 'tohum' -> it came in on the criterion | 'garanti' -> through
+                   the taxon patch
+
     """
     import heapq, math
     th_l = sorted(tohumlar(q) | tohumlar(rc(q)))
@@ -557,9 +540,9 @@ def kisa_liste(yol, q, ust=KISA_LISTE, ilerle=None, garanti=(), havuz=None,
         return []
     nt = len(th_l)
     ORT = ortalama_uzunluk(yol)
-    # ust=0 ESKI ANLAMINI KORUR: kesme yok, tohum tutan HER kayit hizalanir.
-    # O durumda on eleme havuzu da sinirsiz olmali, yoksa "kesme yok" sessizce
-    # "3000'de kes"e donerdi.
+    # ust=0 KEEPS ITS OLD MEANING: no cut, EVERY record holding a seed is aligned.
+    # In that case the pre-filter pool must also be unlimited, otherwise "no cut"
+    # would quietly turn into "cut at 3000".
     havuz = None if not ust else max(int(havuz or ADAY_HAVUZU), ust * 3, 500)
     df = [0] * nt
     N = 0
@@ -575,62 +558,64 @@ def kisa_liste(yol, q, ust=KISA_LISTE, ilerle=None, garanti=(), havuz=None,
         L = len(diz)
         if L < 100:
             continue
-        # SUZGEC (istege bagli, varsayilan YOK - eski davranis birebir korunur).
-        # 2026-08-11: kisa listenin 500 slotunun neredeyse tamami adlandirilmamis
-        # cevre klonuyla doluyordu ve "en yakin adlandirilmis tur" sutunu bos
-        # kaliyordu. Suzgec verilirse liste yalniz ADLI kayitlarla dolar; sure
-        # ayni kalir cunku tarama zaten butun dosyayi okuyor, degisen sey
-        # hangi kayitlarin yigina alindigi.
+        # THE FILTER (optional, off by default, so the old behaviour is preserved exactly).
+        # 2026-08-11: nearly all 500 slots of the short list were filling with unnamed
+        # environmental clones, and the "nearest named species" column was coming out
+        # empty. With the filter on, the list fills only with NAMED records; the running
+        # time is unchanged because the scan already reads the whole file. What changes is
+        # which records go onto the heap.
         if suzgec is not None and not suzgec(bas):
             continue
         N += 1
-        # K-6 DUZELTMESI (2026-08-03): eskiden sayac 3'te duruyordu ve skor
-        # herkeste doyuyordu. Gercek tohum kumesi kullaniliyor.
+        # THE K-6 CORRECTION (2026-08-03): the counter used to stop at 3, so the score
+        # saturated for everything. The real seed set is used now.
         tut = frozenset(i for i in range(nt) if th_l[i] in diz)
         if not tut:
             continue
         for i in tut:
-            df[i] += 1             # TERS FREKANS: ayni akista bedavaya sayilir
+            df[i] += 1             # INVERSE FREQUENCY: counted free in the same pass
         norm = 1.0 - BM25_B + BM25_B * L / ORT
         if gar and any(g in bas.lower() for g in gar):
             zorunlu.append((tut, bas, diz, norm))
             continue
-        on = len(tut) / norm       # ON ELEME: uzunluga gore normalize ham sayim
+        on = len(tut) / norm       # PRE-FILTER: the raw count normalised for length
         if havuz is None or len(yigin) < havuz:
             heapq.heappush(yigin, (on, _TersBaslik(bas), n, bas, diz, tut, norm))
         elif on > yigin[0][0]:
             heapq.heapreplace(yigin, (on, _TersBaslik(bas), n, bas, diz, tut, norm))
-    kisa_liste.son_taranan = n      # KAC KAYIT OKUNDU - cikti bunu yazar
+    kisa_liste.son_taranan = n      # HOW MANY RECORDS WERE READ - the output prints this
 
-    # --- ASAMA 2: gercek df -> idf -> yeniden siralama ---
+    # --- STAGE 2: real df -> idf -> re-ranking ---
     idf = [math.log(max(N, 2) / (1.0 + d)) for d in df]
 
     def _skor(tut, norm):
         return sum(idf[i] for i in tut) / norm
 
     aday = [(_skor(t, nr), b, d, len(t)) for (_o, _tb, _n, b, d, t, nr) in yigin]
-    # SIRALAMA OLCUTU ACIKCA YAZILDI: skor AZALAN, esitlikte baslik ARTAN.
-    # Tie-break sabitlenmeseydi esit skorlu kayitlarda dosya sirasi / heap ic
-    # yapisi karar verirdi. Toplu tarayici (all_bin_identities.py) ayni
-    # siralamayi uretebilsin diye SART.
+    # THE RANKING CRITERION IS WRITTEN OUT EXPLICITLY: score DESCENDING, header
+    # ASCENDING on a tie. Without a fixed tie-break, file order or the internal shape
+    # of the heap would decide between equally scored records. This is REQUIRED so that
+    # the bulk scanner (all_bin_identities.py) can reproduce the same ranking.
     aday.sort(key=lambda x: (-x[0], x[1]))
     kesme = len(aday) if not ust else ust
     kl = [dict(tohum=int(a[3]), skor=round(a[0], 4), baslik=a[1], dizi=a[2],
                sira=i, kaynak='tohum')
           for i, a in enumerate(aday[:kesme], 1)]
 
-    # Garanti kayitlari: normal siralamada NEREYE dusecekti?
+    # The guaranteed records: WHERE would they have landed under normal ranking?
     #
-    # 2026-08-06 DUZELTMESI - temiz kosuda yakalandi. Garanti dizgisiyle eslesen
-    # kayitlar skordan BAGIMSIZ olarak ayri torbaya alindigi icin, listeye kendi
-    # gucuyle GIRECEK olanlar bile 'garanti' damgasi aliyordu. Sonuc: yeni
-    # siralama olcutu sorunu cozdukten sonra bile rapor 12 iddianin 9'unda
-    # "KAZANAN yamayla girdi, karar yamaya BAGIMLI" uyarisi basiyordu - oysa ayni
-    # satirda "tohum siralamasinda 1. olurdu" yaziyordu. Uyari kendi kendini
-    # curutuyordu ve gercek yama bagimliligini gorunmez kiliyordu.
-    # Artik olcut sudur: sanal sira kesmenin ICINDEYSE kayit zaten listeye
-    # girecekti, kaynak 'tohum' yazilir ve uyari BASILMAZ. Yalnizca kesmenin
-    # DISINDAN gelenler 'garanti' sayilir - yamanin gercekten gerektigi yer odur.
+    # THE 2026-08-06 CORRECTION - caught on a clean run. Because records matching the
+    # guarantee string were put in a separate bag INDEPENDENTLY of their score, even
+    # the ones that would have ENTERED the list on their own merit were stamped
+    # 'garanti'. The result: even after the new ranking criterion had solved the
+    # problem, the report printed "THE WINNER came in through the patch, the decision
+    # DEPENDS on the patch" for 9 of 12 claims, while the same row said "it would have
+    # been 1st under seed ranking". The warning refuted itself and hid the real cases
+    # of patch dependence.
+    # The criterion is now this: if the virtual rank falls INSIDE the cut, the record
+    # was going to enter the list anyway, the source is written as 'tohum' and NO
+    # warning is printed. Only records coming from OUTSIDE the cut count as 'garanti',
+    # and that is where the patch is genuinely needed.
     for tut, b, d, nr in zorunlu[:GARANTI_UST]:
         s = _skor(tut, nr)
         sanal = 1 + sum(1 for a in aday if a[0] > s)
@@ -642,31 +627,35 @@ def kisa_liste(yol, q, ust=KISA_LISTE, ilerle=None, garanti=(), havuz=None,
 
 
 # -------------------------------------------------------------------------
-# AYIRT EDICI PENCERE - KORUNMUS BOLGELER NEDEN DISARIDA BIRAKILIYOR
+# THE DISCRIMINATING WINDOW - WHY THE CONSERVED REGIONS ARE LEFT OUT
 #
-# 18S, 5.8S ve LSU cekirdegi gibi korunmus bolgeler butun kayitlarda neredeyse
-# aynidir. Tam ortusme uzerinden olculen kimligin buyuk kismi oradan gelir ve
-# birbirinden apayri iki organizma bile yuksek yuzde verir. Yani SAHTE YUKSEK
-# KIMLIK tam olarak korunmus bolgelerden dogar.
+# Conserved regions such as 18S, 5.8S and the LSU core are nearly identical across
+# every record. Most of an identity measured over the full overlap comes from
+# there, and even two completely unrelated organisms give a high percentage. In
+# other words a FALSELY HIGH IDENTITY is born exactly in the conserved regions.
 #
-# Bu fonksiyon en iyi N referans kaydin BIRBIRINDEN AYRILDIGI pencereyi arar:
-# sorgunun 120 bazlik pencereleri, referanslarin o penceredeki kimlik DAGILIMINA
-# gore puanlanir ve yayilimi en buyuk olan secilir. Korunmus bolgede yayilim
-# sifira yakindir, o yuzden kendiliginden elenir.
+# This function looks for the window where the best N reference records DIFFER
+# FROM ONE ANOTHER: the query's 120 base windows are scored by the DISTRIBUTION of
+# reference identities in that window, and the one with the widest spread is
+# chosen. In a conserved region the spread is near zero, so it is ruled out by
+# itself.
 #
-# Sonuc iki sayiyi yan yana koyar: tam ortusme kimligi ve ayirt edici penceredeki
-# kimlik. Bir iddia korunmus bolgeden gelen yuksek yuzdeye dayaniyorsa ikisi
-# ARASINDAKI FARK bunu gorunur kilar.
+# The result puts two numbers side by side: the full overlap identity and the
+# identity in the discriminating window. If a claim rests on a high percentage
+# coming out of a conserved region, THE GAP BETWEEN THEM makes that visible.
 # -------------------------------------------------------------------------
 def ayirt_edici_pencere(kayitlar, q):
-    """En iyi N referans kaydin BIRBIRINDEN ayrildigi bolgeyi bul.
+    """Find the region where the best N reference records DIFFER from one another.
 
-    Korunmus bolgeler (18S, 5.8S, LSU cekirdegi) butun kayitlarda ayni oldugu
-    icin ayrimda ISE YARAMAZ; iddia oradan gelen yuksek kimlige dayaniyorsa
-    tam ortusme yuksek, ayirt edici pencere DUSUK cikar. Fark buradan gorunur.
+        Conserved regions (18S, 5.8S, the LSU core) are the same in every record and
+        are therefore USELESS for discrimination. If a claim rests on a high identity
+        coming from there, the full overlap comes out high and the discriminating
+        window comes out LOW. That gap is what makes it visible.
 
-    Basit ve saglam yaklasim: sorgunun 120 bazlik pencerelerini, referanslarin
-    kendi aralarindaki kimlik DAGILIMINA gore puanlar; en cok ayrisan pencere secilir.
+        The approach is simple and robust: the query's 120 base windows are scored by
+        the DISTRIBUTION of identities among the references themselves, and the most
+        divergent window is chosen.
+
     """
     kayitlar = [k for k in kayitlar if k.get('dizi')][:AYIRT_EDICI_UST]
     if len(kayitlar) < 2:
@@ -685,9 +674,11 @@ def ayirt_edici_pencere(kayitlar, q):
 
 
 def kp_yolu(kontrol, etiket, kutu_diz, garanti, kl_ust):
-    """Kontrol noktasi dosya yolu. TEK KAYNAK: hem I asamasi (vtb_tarama) hem de
-    G asamasi (all_bin_identities.py) bunu kullanir, boylece AYNI KUTU IKI KEZ
-    TARANMAZ - onbellek iki asama arasinda paylasilir."""
+    """The checkpoint file path. A SINGLE SOURCE: both stage I (vtb_tarama) and stage G
+        (all_bin_identities.py) use it, so THE SAME BIN IS NEVER SCANNED TWICE; the
+        cache is shared between the two stages.
+
+    """
     import hashlib
     imza = hashlib.md5(kutu_diz.encode('utf-8')).hexdigest()[:10]
     g_im = hashlib.md5(('|'.join(sorted(garanti or ()))).encode('utf-8')).hexdigest()[:6]
@@ -696,11 +687,12 @@ def kp_yolu(kontrol, etiket, kutu_diz, garanti, kl_ust):
 
 
 def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
-    """KISA LISTE -> tam hizalama -> isabetler + oz-kalibrasyon. TEK KAYNAK.
+    """SHORT LIST -> full alignment -> hits plus self calibration. A SINGLE SOURCE.
 
-    vtb_tarama (tek sorgu, veritabani basina bir akis) ve toplu tarayici
-    (tek akista butun sorgular) BU AYNI fonksiyonu cagirir. Karar mantigi tek
-    yerde durur; iki yol ayni girdide ayni hukmu vermek ZORUNDA.
+        vtb_tarama (one query, one pass per database) and the bulk scanner (every
+        query in one pass) call THIS SAME function. The decision logic lives in one
+        place; the two routes MUST give the same verdict on the same input.
+
     """
     t0 = t0 if t0 is not None else time.time()
     t_hiz = time.time()
@@ -744,23 +736,25 @@ def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
 
 def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KISA_LISTE,
                suzgec=None, kp_ek=''):
-    """Tek veritabaninda: kisa liste -> TAMAMININ tam hizalanmasi -> en iyi isabetler.
+    """In one database: short list -> a full alignment of ALL OF IT -> the best hits.
 
-    Kisa listedeki HER aday hizalanir (500 aday ~10 sn). Karar tamamen
-    hizalamaya birakilmistir; tohum siralamasi yalnizca ADAY TOPLAMA olcutudur.
-    Kazananin tohum sirasi kaydedilir - kesme noktasinin baglayici olup
-    olmadiginin kanit tir.
+        EVERY candidate in the short list is aligned (500 candidates take ~10 s). The
+        decision is left entirely to alignment; seed ranking is only the criterion
+        for COLLECTING CANDIDATES. The winner's seed rank is recorded, and that is
+        the evidence for whether the cut off is binding.
+
     """
     yol = os.path.join(kok, 'REFERANS_DB', dosya)
     if not os.path.exists(yol):
         return dict(durum='dosya yok')
-    # KARARLI anahtar: Python'un hash() fonksiyonu her SURECTE farkli deger
-    # uretir (PYTHONHASHSEED rastgele), o yuzden kontrol noktasi hicbir zaman
-    # tutmuyordu. md5 sureclerden bagimsizdir.
-    # AYAR IMZASI + KISA LISTE BOYU anahtara katilir: 60'lik listeyle uretilmis
-    # eski vtb_*.json dosyalari boylece gecersiz olur ve sessizce geri gelmez.
-    # SUZGECLI tarama farkli bir sonuctur; ayni anahtari kullanirsa
-    # suzgecsiz eski sonuc geri doner. kp_ek anahtari ayirir.
+    # A STABLE key: Python's hash() gives a different value in every PROCESS
+    # (PYTHONHASHSEED is random), so the checkpoint never matched. md5 is independent
+    # of the process.
+    # THE SETTINGS SIGNATURE and THE SHORT LIST SIZE both go into the key, so old
+    # vtb_*.json files produced with the 60 item list become invalid and do not come
+    # back silently.
+    # A FILTERED scan is a different result; if it used the same key the old unfiltered
+    # result would come back. The kp_ek key separates them.
     kp = kp_yolu(kontrol, etiket + kp_ek, kutu_diz, garanti, kl_ust)
     if os.path.exists(kp):
         try:
@@ -791,8 +785,9 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
     return res
 
 
-# Cins adi referans BASLIGINDAN cikarilir. Taksonomi agaci bilerek KULLANILMAZ:
-# Kraken2 zaten k-mer + agacta LCA yapiyor ve bu tur onu tekrar etmemek icin var.
+# The genus name is taken FROM THE REFERENCE HEADER. The taxonomy tree is
+# deliberately NOT USED: Kraken2 already does k-mer plus LCA on the tree, and this
+# route exists precisely so as not to repeat it.
 def cins_cek(baslik):
     """Referans basligindan cins adini cikar (taksonomi agaci KULLANILMAZ)."""
     b = baslik
@@ -810,8 +805,10 @@ def cins_cek(baslik):
 
 # --------------------------------------------------------------- envanter
 def envanter_yaz(kok, CIKTI, yaz):
-    """REFERANS_DB altindaki BUTUN kumeleri sayar ve hangisinin nerede
-    kullanildigini yazar. Kullanilmayan her kume icin SEBEP zorunludur."""
+    """Counts EVERY set under REFERANS_DB and writes down where each one is used.
+        For every set that is not used, A REASON IS REQUIRED.
+
+    """
     import glob
     yol = os.path.join(CIKTI, 'VERITABANI_ENVANTERI.md')
     bilinen = {d: (e, kullan, n) for e, d, _t, kullan, n in VTB}
@@ -851,10 +848,11 @@ NT_URL = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
 
 def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
-    """NCBI nt'ye karsi BLAST - URL API (CMD=Put/Get). blastn -remote KULLANILMAZ.
+    """BLAST against NCBI nt over the URL API (CMD=Put/Get). blastn -remote IS NOT USED.
 
-    Basarisiz olursa SESSIZCE ATLAMAZ: elle sorgulama icin hazir girdi uretir
-    ve iddia "nt katmani tamamlanmadi" olarak isaretlenir.
+        On failure it DOES NOT SKIP SILENTLY: it produces a ready input for a manual
+        query and the claim is marked "the nt layer did not complete".
+
     """
     import urllib.request, urllib.parse
     ham = os.path.join(CIKTI, 'nt_ham')
@@ -913,7 +911,10 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
 
 
 def elle_nt_girdi(kutu, q, CIKTI, yaz):
-    """Aga cikilamiyorsa: elle BLAST icin hazir sorgu dosyasi + sonuc sablonu."""
+    """If the network cannot be reached: a ready query file for a manual BLAST, plus a
+        result template.
+
+    """
     d = os.path.join(CIKTI, 'nt_elle')
     os.makedirs(d, exist_ok=True)
     fa = os.path.join(d, '%s.fasta' % re.sub(r'\W+', '_', kutu))
@@ -935,8 +936,8 @@ def elle_nt_girdi(kutu, q, CIKTI, yaz):
                 girdi=fa, sablon=sab)
 
 
-# Elle doldurulmus NT_SONUC_SABLONU.tsv okur. Bos birakilan satir "yapilmadi"
-# sayilir; sifir ile bos ayni sey degildir.
+# Reads the hand filled NT_SONUC_SABLONU.tsv. A row left empty counts as "not
+# done"; zero and empty are not the same thing.
 def nt_yukle(yol):
     out = {}
     if not yol or not os.path.exists(yol):
@@ -955,46 +956,49 @@ def nt_yukle(yol):
     return out
 
 
-# --------------------------------------------------------------- ADLANDIRMA
-# ELDE ISIM OLMASI ile KIMLIK IDDIA ETMEK ayri seylerdir. Bu bolum ikisini
-# birbirine karistirmadan raporlar: kimliklendiremedigimiz kutuda bile "en yakin
-# kayit sudur, su yuzdeyle" diyebilmek icin.
+# --------------------------------------------------------------- NAMING
+# HAVING A NAME and CLAIMING AN IDENTITY are two different things. This section
+# reports both without confusing them, so that even for a bin we cannot identify we
+# can still say "the nearest record is this one, at this percentage".
 #
-# Tur/cins esikleri lokusa gore degisir - tek bir sayi kullanmak yaniltici olur:
+# The species and genus thresholds vary by locus, and using a single number would
+# be misleading:
 TUR_ESIGI = {'SSU': 98.7, 'LSU': 98.7, 'ITS': 98.5, 'OPERON': 98.7, 'KARISIK': 98.7}
 CINS_ESIGI = {'SSU': 94.5, 'LSU': 94.5, 'ITS': 90.0, 'OPERON': 94.5, 'KARISIK': 94.5}
-AYRIM_PAYI = 0.5     # en iyi ile ikinci arasindaki fark bundan kucukse "cf."
+AYRIM_PAYI = 0.5     # if the gap between the best and the second is under this, use "cf."
 
 
-# ---------------------------------------------------------------------------
-# ADSIZ CEVRE KAYITLARI - 2026-08-21 HATA DUZELTMESI
+# -------------------------------------------------------------------------
+# UNNAMED ENVIRONMENTAL RECORDS - THE 2026-08-21 BUG FIX
 #
-# NCBI nt ve benzeri kumeler "adlandirilmamis" kayitlarla doludur:
+# NCBI nt and sets like it are full of "unnamed" records:
 #     KJ734864.1 Uncultured prokaryote clone D5 16S ribosomal RNA gene
 #     KJ957653.1 Uncultured bacterium clone 4B-11 16S ribosomal RNA gene
 #     GQ503828.1 Bacterium enrichment culture clone R4-53B 16S ribosomal RNA
 #
-# ad_coz'un ikinci duzenli ifadesi ( \b[A-Z][a-z]{3,}\s+[a-z]{3,}\b ) bunlari
-# ikili ad saniyordu. OLCULDU (bu duzeltmeden once, gercek ciktilar):
-#     'Uncultured prokaryote clone D5...'  -> cins='Uncultured', tur='Uncultured prokaryote'
-#     'Bacterium enrichment culture...'    -> cins='Bacterium',  tur='Bacterium enrichment'
-# Kimlik %99 oldugu icin savunulabilir_duzey() bunu TUR duzeyinde bir ad sayiyor
-# ve iddia DOGRULANDI damgasi aliyordu. Yani CEVAPSIZLIK, onaylanmis kimlik
-# gibi raporlaniyordu. KIMLIK_SONUC/kimlik_iddialari.tsv'de bunun dort ornegi
-# vardi ("Uncultured prokaryote", "Uncultured bacterium" x2, "Bacterium enrichment").
+# ad_coz's second regular expression ( \b[A-Z][a-z]{3,}\s+[a-z]{3,}\b ) was taking
+# these for binomials. MEASURED (before this fix, from the real output):
+#     'Uncultured prokaryote clone D5...'  -> genus='Uncultured', species='Uncultured prokaryote'
+#     'Bacterium enrichment culture...'    -> genus='Bacterium',  species='Bacterium enrichment'
+# Because the identity was 99%, savunulabilir_duzey() counted that as a name at
+# SPECIES level and the claim was stamped VERIFIED. In other words THE ABSENCE OF
+# AN ANSWER was being reported as a confirmed identity. There were four instances
+# of it in KIMLIK_SONUC/kimlik_iddialari.tsv ("Uncultured prokaryote", "Uncultured
+# bacterium" twice, and "Bacterium enrichment").
 #
-# Bu tuzak projede ZATEN BILINIYORDU ve iki ayri yerde suzuluyordu:
+# This trap was ALREADY KNOWN in the project and was filtered in two other places:
 #     screening/exclusion_coverage_check.py:103
 #     screening/order_classes.py:200
-# ve verification/ncbi_layer.py docstring'i adsiz klonlarin dislama suzgecine
-# takilmadigini ayrica belgeliyor. Adlandirmanin TEK sorumlusu olan bu modulde
-# yoktu; eklendi.
+# and the docstring of verification/ncbi_layer.py separately documents that unnamed
+# clones do not get caught by the exclusion filter. The one module actually
+# RESPONSIBLE for naming did not have it; it was added.
 #
-# ONEMLI: adsiz bir isabet DEGERSIZ DEGILDIR. "Kutunuz cevre klonlariyla %99
-# eslesiyor" bilgi tasir. Yalnizca AD olamaz ve TUR duzeyi iddiasi kuramaz.
-# Bu yuzden isabet atilmaz; adi cozulemez sayilir ve duzey 'ADLANDIRILAMIYOR'
-# olur. Modulun 'adsiz' iddia tipi (satir ~200) zaten bu kavrami tasiyordu.
-# ---------------------------------------------------------------------------
+# IMPORTANT: an unnamed hit IS NOT WORTHLESS. "Your bin matches environmental
+# clones at 99%" carries information. It simply cannot be A NAME and cannot found a
+# species level claim. So the hit is not discarded; its name counts as unresolved
+# and the level becomes 'ADLANDIRILAMIYOR'. The module's 'adsiz' claim type
+# (around line 200) already carried this idea.
+# -------------------------------------------------------------------------
 ADSIZ_JETONLARI = (
     'uncultured', 'unclassified', 'unidentified', 'environmental',
     'metagenome', 'enrichment', 'bacterium', 'prokaryote', 'archaeon',
@@ -1004,31 +1008,36 @@ ADSIZ_JETONLARI = (
 
 
 def adsiz_mi(ad):
-    """Bu dizge bir TAKSON ADI mi, yoksa adlandirilmamis bir kaydin tarifi mi?
+    """Is this string A TAXON NAME, or the description of an unnamed record?
 
-    'Petrimonas sulfuriphila' -> False   (gercek ad)
-    'Uncultured bacterium'    -> True    (ad degil, tarif)
-    'Bacterium enrichment'    -> True
+        'Petrimonas sulfuriphila' -> False   (a real name)
+        'Uncultured bacterium'    -> True    (a description, not a name)
+        'Bacterium enrichment'    -> True
+
     """
     if not ad:
         return True
     k = [x for x in re.split(r'[^A-Za-z]+', ad) if x]
     if not k:
         return True
-    # Ilk kelime (cins yerinde duran sozcuk) adsiz jetonuysa bu bir ad degildir.
+    # If the first word (the one sitting where a genus would) is an unnamed token, this
+    # is not a name.
     if k[0].lower() in ADSIZ_JETONLARI:
         return True
-    # 'Bacterium enrichment' gibi: ikinci kelime de tur epiteti degil, tarif.
+    # Like 'Bacterium enrichment': the second word is a description, not a species epithet.
     if len(k) > 1 and k[1].lower() in ADSIZ_JETONLARI:
         return True
     return False
 
 
 def ad_coz(baslik):
-    """Referans basligindan (cins, tur, tam_ad) cikar. Taksonomi agaci KULLANILMAZ.
+    """Extract (genus, species, full_name) from a reference header. The taxonomy tree
+        IS NOT USED.
 
-    Adlandirilmamis cevre kaydi ise (cins, tur) = (None, None) doner; tam_ad
-    yine doner cunku "en yakin kayit" olarak gosterilmesi gerekir.
+        For an unnamed environmental record it returns (genus, species) = (None,
+        None); full_name still comes back, because it has to be shown as "the
+        nearest record".
+
     """
     b = (baslik or '').strip()
     tam = b[:120]
@@ -1049,25 +1058,27 @@ def ad_coz(baslik):
     return None, None, tam
 
 
-# ---------------------------------------------------------------------------
-# ELDE ISIM OLMASI ile KIMLIK IDDIA ETMEK AYRI SEYLERDIR.
-# Bu fonksiyon en iyi uc isabetten NEYIN savunulabilecegini cikarir: tur adi mi,
-# "cf." mi, yalniz cins mi, yoksa ad hic verilemez mi. Esikler lokusa gore
-# degisir (ITS'te tur ayrimi 16S'ten farkli calisir), tek bir sayi yaniltici
-# olurdu. En iyi ile ikinci arasindaki fark AYRIM_PAYI'ndan kucukse tur atamasi
-# savunulamaz ve "cf." kullanilir.
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# HAVING A NAME AND CLAIMING AN IDENTITY ARE TWO DIFFERENT THINGS.
+# This function works out what can be DEFENDED from the best three hits: a species
+# name, a "cf.", a genus only, or no name at all. The thresholds vary by locus
+# (species separation works differently in ITS than in 16S), and one single number
+# would be misleading. If the gap between the best and the second is smaller than
+# AYRIM_PAYI, a species assignment cannot be defended and "cf." is used.
+# -------------------------------------------------------------------------
 def savunulabilir_duzey(isabetler, lokus='SSU'):
-    """En iyi uc isabetten SAVUNULABILIR taksonomik duzeyi cikar.
+    """Work out the DEFENSIBLE taxonomic level from the best three hits.
 
-    Donen: dict(duzey, onerilen_ad, gerekce, en_iyi, ikinci, ucuncu)
+        Returns: dict(duzey, onerilen_ad, gerekce, en_iyi, ikinci, ucuncu)
 
-    Kural - dürüst adlandirma:
-      * kimlik >= tur esigi VE ikinciyle arada acik fark    -> TUR adi
-      * kimlik >= tur esigi AMA ikinci baska bir tur, yakin -> "cf." (tur belirsiz)
-      * tur esigi alti, cins esigi ustu                     -> CINS duzeyi
-      * cins esigi alti                                     -> AILE/ustu; ad VERILMEZ,
-                                                               yalniz "en yakin kayit"
+        The rule, honest naming:
+          * identity >= species threshold AND a clear gap to the second -> a SPECIES name
+          * identity >= species threshold BUT the second is another species,
+            and close                                                   -> "cf." (species uncertain)
+          * below the species threshold, above the genus threshold      -> GENUS level
+          * below the genus threshold                                   -> FAMILY or above;
+            NO name is given, only "the nearest record"
+
     """
     say = [i for i in (isabetler or []) if isinstance(i.get('kimlik'), (int, float))]
     if not say:
@@ -1087,13 +1098,13 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
         _c3, _t3, tam3 = ad_coz(say[2]['baslik'])
     te = TUR_ESIGI.get(lokus, 98.7); ce = CINS_ESIGI.get(lokus, 94.5)
 
-    # 2026-08-21: EN IYI ISABET ADSIZ ISE, KIMLIK YUZDESI NE OLURSA OLSUN AD
-    # VERILEMEZ. Bu ayri bir daldir cunku asagidaki "ad verilemez" dali gerekce
-    # olarak "kimlik cins esiginin altinda" yaziyor - burada durum tam tersidir:
-    # kimlik %99 olabilir ama eslesilen KAYDIN KENDISI adlandirilmamistir.
-    # Yanlis gerekce, dogru hukumden daha tehlikelidir: okuyan kisi "demek ki
-    # daha iyi bir referans bulunursa ad cikar" diye dusunur, oysa sorun
-    # referansin YAKINLIGINDA degil, ADSIZLIGINDADIR.
+    # 2026-08-21: IF THE BEST HIT IS UNNAMED, NO NAME CAN BE GIVEN WHATEVER THE
+    # IDENTITY PERCENTAGE IS. This is a separate branch, because the "no name can be
+    # given" branch below states the reason as "the identity is below the genus
+    # threshold", and here the situation is the exact opposite: the identity may be
+    # 99% while THE MATCHED RECORD ITSELF is unnamed. A wrong reason is more dangerous
+    # than a wrong verdict: the reader concludes "so a better reference would produce a
+    # name", when the problem is not the reference's CLOSENESS but its NAMELESSNESS.
     if not t1 and not c1:
         return dict(duzey='ADLANDIRILAMIYOR (referans adsiz)',
                     onerilen_ad=u'adlandirilamayan soy - EN YAKIN KAYIT: %s (%%%s)'
@@ -1137,15 +1148,15 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
                 en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
 
 
-# ---------------------------------------------------------------------------
-# ADLANDIRMANIN TEK KAYNAGI (2026-08-21).
+# -------------------------------------------------------------------------
+# THE SINGLE SOURCE OF NAMING (2026-08-21).
 #
-# Bu blok eskiden ana dongunun icinde duruyordu. Ayri bir fonksiyona alindi
-# cunku artik IKI yerden cagriliyor: taze kosu ve kontrol noktasindan YENIDEN
-# TURETME. Iki kopya olsaydi zamanla ayrisirlardi - bu kod tabaninda ayni
-# kontrolun iki ayri surumunun celismesi zaten iki kez olculmustu
-# (capraz_kontrol D9 / yon_kod_taramasi, ve _kayit_coz / taksonomi).
-# ---------------------------------------------------------------------------
+# This block used to sit inside the main loop. It was pulled into a function of its
+# own because it is now called from TWO places: a fresh run, and RE-DERIVATION from
+# a checkpoint. Two copies would drift apart over time, and in this code base two
+# versions of the same check contradicting one another has already been measured
+# twice (cross_check D9 / orientation_code_scan, and _kayit_coz / taxonomy).
+# -------------------------------------------------------------------------
 def adlandirmayi_turet(bulgular):
     """Ham isabetlerden adlandirmayi uretir. Doner: (adlandirma_dict, lokus)"""
     lokus_tab = {e: t for e, _d, t, _k, _n in VTB}
@@ -1160,17 +1171,17 @@ def adlandirmayi_turet(bulgular):
     lokus = sayisal[0]['_lokus'] if sayisal else 'SSU'
     adl = savunulabilir_duzey(sayisal or havuz, lokus)
 
-    # EN YAKIN BES ORGANIZMA (2026-08-21, eskiden uctu).
+    # THE FIVE NEAREST ORGANISMS (2026-08-21, three before).
     #
-    # ORGANIZMA bazinda TEKILLESTIRILIR, kayit bazinda degil. Gerekce: havuzda
-    # 13 veritabanindan isabet var ve ayni tur cogu kumede bulunur.
-    # Tekillestirilmezse "en yakin bes" kolayca AYNI organizmanin bes kaydi
-    # olur ve okuyan kisi hicbir sey ogrenmez. Sorunun amaci "baska neler
-    # yakin" oldugu icin ayrim ORGANIZMADA olmalidir.
+    # The deduplication is by ORGANISM, not by record. The reason: the pool holds hits
+    # from 13 databases and the same species appears in most sets. Without
+    # deduplication the "nearest five" easily becomes five records of THE SAME
+    # organism, and the reader learns nothing. Since the point of the question is
+    # "what else is close", the distinction has to be at the ORGANISM.
     #
-    # Adsiz kayitlar (uncultured/enrichment) ad uretmedigi icin tam baslikla
-    # ayrilir. Her organizma icin EN YUKSEK kimlikli kayit tutulur (liste
-    # zaten kimlige gore sirali oldugundan ilk gorulen odur).
+    # Unnamed records (uncultured/enrichment) produce no name, so they are separated by
+    # their full header. For each organism the record with the HIGHEST identity is kept
+    # (the list is already sorted by identity, so that is the first one seen).
     gorulen = set()
     sira = 0
     for h_ in sayisal:
@@ -1190,19 +1201,22 @@ def adlandirmayi_turet(bulgular):
 
 
 def _en_yakin_etiket(isabet):
-    """En yakin organizma listesinde gosterilecek etiket.
+    """The label to show in the nearest organism list.
 
-    UC DURUM AYRI AYRI GOSTERILIR - ikisini karistirmak yaniltir:
+        THREE CASES ARE SHOWN SEPARATELY; confusing two of them misleads:
 
-      1) Tur/cins adi cozuldu            -> adi yazilir
-      2) Taksonomi VAR ama tur ikilisi yok -> EN DERIN taksonomik jeton yazilir
-         (ornegin 'Dysgonomonadaceae'). Bu kayit adlandirilmamis DEGILDIR;
-         yalnizca tur duzeyine inilmemistir. Ona 'adsiz' demek, SILVA'nin
-         siniflandirilmis bir kaydini cevre klonuyla ayni kefeye koyar.
-      3) Taksonomi de YOK (cevre klonu)  -> kaydin tanimi, 'adsiz:' onekiyle
+          1) A species or genus name was resolved  -> the name is written
+          2) There IS taxonomy but no binomial     -> the DEEPEST taxonomic token is
+             written (for example 'Dysgonomonadaceae'). Such a record is NOT unnamed;
+             it simply has not been taken down to species level. Calling it 'unnamed'
+             would put a classified SILVA record in the same bucket as an
+             environmental clone.
+          3) There is NO taxonomy either (an environmental clone) -> the record's
+             description, with an 'adsiz:' prefix
 
-    Bos bir '-' basmak en kotu secenektir: okuyan kisi neyle eslesildigini
-    goremez ve %99'luk bir satiri sessizce ciddiye alir.
+        Printing a bare '-' is the worst option: the reader cannot see what was
+        matched and quietly takes a 99% row seriously.
+
     """
     if not isabet:
         return '?'
@@ -1213,8 +1227,8 @@ def _en_yakin_etiket(isabet):
     tam = (isabet.get('tam_ad') or '').strip()
     if not tam:
         return '?'
-    # Taksonomi tasiyor mu? screening/taxonomy.py ile cozulur - bes ayri
-    # baslik bicimini (SILVA/UNITE/PR2/ROD/RefSeq) bilen TEK yer orasidir.
+    # Does it carry taxonomy? Resolved through screening/taxonomy.py, the ONE place
+    # that knows all five header formats (SILVA/UNITE/PR2/ROD/RefSeq).
     try:
         import sys as _s, os as _o
         _kok = _o.path.dirname(_o.path.dirname(_o.path.abspath(__file__)))
@@ -1234,15 +1248,16 @@ def _en_yakin_etiket(isabet):
 
 
 def _yeniden_turet(kayit, idd):
-    """Kontrol noktasindaki HAM olcumden hukmu yeniden turetir.
+    """Re-derive the verdict from the RAW measurement in the checkpoint.
 
-    Tarama tekrarlanmaz (saatler surerdi); yalnizca saniyeler suren turetme
-    yeniden yapilir. Boylece adlandirma mantigindaki bir duzeltme, pahali
-    taramayi yeniden kosmadan yururluge girer.
+        The scan is not repeated (it would take hours); only the derivation, which
+        takes seconds, is redone. A fix to the naming logic therefore takes effect
+        without re-running the expensive scan.
 
-    Yeniden turetilen: adlandirma (savunulabilir duzey, onerilen ad, en yakin
-    bes organizma). Onbellekten korunan: hukum, literatur, kalibrasyon,
-    vtb_detay - bunlar taramanin kendi ciktilaridir.
+        Re-derived: the naming (defensible level, suggested name, the five nearest
+        organisms). Kept from the cache: the verdict, the literature check, the
+        calibration and vtb_detay, which are outputs of the scan itself.
+
     """
     ham = kayit.get('bulgular') or {}
     try:
@@ -1252,8 +1267,8 @@ def _yeniden_turet(kayit, idd):
         yeni['_turetme'] = 'yeniden (ham olcum onbellekten)'
         return yeni
     except Exception as e:
-        # Turetme basarisizsa ESKI kayit AYNEN donmez; isaretlenir ki
-        # rapor "bu satir eski mantikla uretildi" diyebilsin.
+        # If the re-derivation fails, the OLD record is not returned unchanged; it is
+        # flagged, so the report can say "this row was produced by the old logic".
         yeni = dict(kayit)
         yeni['_turetme'] = 'BASARISIZ (%s) - eski adlandirma kullanildi' % type(e).__name__
         return yeni
@@ -1261,37 +1276,40 @@ def _yeniden_turet(kayit, idd):
 
 # --------------------------------------------------------------- hukum
 def _say(liste):
-    """Sayisal olanlari ayikla. NCBI nt katmani kimlik=None dondurebiliyor
-    (URL API metin ciktisindan yuzde ayristirilamadigi durum); None ile
-    karsilastirma TypeError verir. Sayisal karsilastirmaya girmeden once
-    HER ZAMAN bu suzgecten gecirilir."""
+    """Keep the numeric ones. The NCBI nt layer can return identity=None (when the
+        percentage cannot be parsed out of the URL API's text output), and comparing
+        against None raises TypeError. Everything goes through this filter BEFORE any
+        numeric comparison.
+
+    """
     return [x for x in liste if isinstance(x, (int, float))]
 
 
 # -------------------------------------------------------------------------
-# EN AZ IKI BAGIMSIZ VERITABANI SARTI - NEDEN VAR
+# THE AT-LEAST-TWO-INDEPENDENT-DATABASES RULE - WHY IT EXISTS
 #
-# Tek bir veritabaninin en iyi isabeti kimlik iddiasi icin YETMEZ. Her kume kendi
-# yanliligini tasir: tekrarsizlastirilmis kumeler nadir cinsleri siler (olculdu:
-# SILVA LSURef NR99 icinde Petriella kaydi 0, ayni surumun Parc kumesinde 82),
-# bir digeri ayni kaydi eskimis bir adla tasiyor olabilir. Tek kaynaga dayanan bir
-# hukum, o kaynagin hatasini KIMLIK diye raporlardi.
+# The best hit of a single database IS NOT ENOUGH for an identity claim. Every set
+# carries its own bias: dereplicated sets delete rare genera (measured: SILVA
+# LSURef NR99 holds 0 Petriella records while the Parc set of the same release
+# holds 82), and another set may carry the same record under an outdated name. A
+# verdict resting on one source would report that source's mistake as AN IDENTITY.
 #
-# Bu yuzden ilk kontrol sayidir: sonuc veren veritabani ikiden azsa hicbir iddia
-# DOGRULANDI cikamaz. Sonra oylar sayilir - >=2 veritabani iddiayi destekliyorsa
-# DOGRULANDI, >=2 veritabani BASKA bir cevapta birlesiyorsa DUZELTILMELI ve dogru
-# ifade yazilir, hicbir iki tanesi birlesmiyorsa DOGRULANAMADI.
+# So the first check is a count: if fewer than two databases returned a result, no
+# claim can come out VERIFIED. Then the votes are counted. If >=2 databases support
+# the claim it is VERIFIED; if >=2 databases agree on a DIFFERENT answer it is
+# CORRECTION NEEDED and the right wording is written; if no two agree it is
+# NOT VERIFIED.
 #
-# UYDURMA TEYIT URETILMEZ. Kanit yetersizse "DOGRULANAMADI" yazilir; bosluk,
-# olumlu bir cevaba yuvarlanmaz. Bagimsizlik da denetlenir: VTB listesinde bayt
-# bayt ikiz olan ve baska bir kumenin altkumesi olan dosyalar oylamadan
-# cikarilmistir, yoksa ayni kayit iki kez oy verirdi.
+# NO CONFIRMATION IS INVENTED. Where the evidence is insufficient it says NOT
+# VERIFIED; a gap is never rounded up to a positive answer. Independence is
+# enforced too: files in the VTB list that are byte for byte twins, or subsets of
+# another set, have been taken out of the vote, or the same record would vote twice.
 #
-# NCBI nt katmani tamamlanmadiysa hukum DOGRULANAMADI'ya cekilir (bkz. calistir):
-# eksik katman sessizce atlanmaz.
+# If the NCBI nt layer did not complete, the verdict is pulled down to NOT VERIFIED
+# (see calistir): a missing layer is never skipped silently.
 # -------------------------------------------------------------------------
 def hukum_ver(idd, bulgular, kons):
-    """bulgular: {vtb_etiketi: sonuc}. Donen: (hukum, kanit, dogru_ifade)"""
+    """bulgular: {database_label: result}. Returns: (verdict, evidence, correct_wording)"""
     calisan = {k: v for k, v in bulgular.items()
                if str(v.get('durum', '')).startswith('TAMAM') and v.get('isabet')}
     if len(calisan) < 2:
@@ -1456,26 +1474,27 @@ def hukum_ver(idd, bulgular, kons):
     return ('DOGRULANAMADI', u'bilinmeyen iddia tipi', '')
 
 
-# --------------------------------------------------------------- surucu
+# --------------------------------------------------------------- driver
 # -------------------------------------------------------------------------
-# SURUCU. Iddia iddia calisir; her iddia icin sira sabittir:
-#   konsensus al -> her veritabaninda kisa liste + tam hizalama -> NCBI nt katmani
-#   -> hukum_ver -> adlandirma (savunulabilir duzey + en iyi uc isabet) ->
-#   literatur kontrolu -> oz-kalibrasyon -> diske yaz.
+# THE DRIVER. It works claim by claim, and for each claim the order is fixed:
+#   take the consensus -> short list plus full alignment in every database -> the
+#   NCBI nt layer -> hukum_ver -> naming (defensible level plus the best three
+#   hits) -> literature check -> self calibration -> write to disk.
 #
-# KONTROL NOKTALARI IKI DUZEYLIDIR ve ikisi de AYAR_IMZASI ile kisa liste boyunu
-# anahtara katar. Katmasaydi: veritabani duzeyi onbellek gecersiz kilinsa bile
-# iddia duzeyi dosya bulunur, iddia tumden atlanir ve 60'lik listeyle uretilmis
-# eski hukum sessizce geri gelirdi.
+# THE CHECKPOINTS ARE TWO LEVELS DEEP and both mix AYAR_IMZASI and the short list
+# size into the key. Without that: even when the database level cache was
+# invalidated, the claim level file would still be found, the claim would be
+# skipped entirely, and the old verdict produced with the 60 item list would come
+# back silently.
 #
-# NCBI nt onbellegi BILEREK bu muhrun disindadir (ag uzerinden gelir, kisa liste
-# boyuyla ilgisi yoktur, bosa yeniden sorgulanmasin). Buna karsilik AG HATASI
-# SONUC DEGILDIR ve onbelleklenmez: tek bir Wi-Fi kesintisi butun iddialari kalici
-# olarak zehirliyordu.
+# The NCBI nt cache is DELIBERATELY outside that seal (it comes over the network,
+# it has nothing to do with the short list size, and it should not be re-queried
+# for nothing). Against that, A NETWORK ERROR IS NOT A RESULT and is not cached: a
+# single Wi-Fi dropout was poisoning every claim permanently.
 #
-# OZ-KALIBRASYON: her sorguda kazanan isabetin kisa listedeki tohum sirasi
-# kaydedilir. Kesme noktasinin baglayici olup olmadigi boylece AYRI BIR OLCUM
-# GEREKTIRMEZ - kanit kosunun kendisinden cikar.
+# SELF CALIBRATION: for every query, the seed rank of the winning hit inside the
+# short list is recorded. Whether the cut off is binding therefore NEEDS NO
+# SEPARATE MEASUREMENT; the evidence comes out of the run itself.
 # -------------------------------------------------------------------------
 def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
              lit_kip='oto', kl_ust=KISA_LISTE):
@@ -1524,17 +1543,17 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                     or (not yalniz.isdigit() and yalniz.lower() in i['metin'].lower())]
     yaz(u'  claims to test            : %d  (in priority order)' % len(iddialar))
     kutu_say = len({k for i in iddialar for k in (i.get('kutu') or []) + (i.get('karsi') or [])})
-    # --- SURE TAHMINI: tarama + HIZALAMA ayri ayri ---
-    # Hizalama maliyeti olculerek uyduruldu (bu betigin kendi hizalayicisiyla):
-    #     t ~= 6,7e-6 * kisa + 4,11e-9 * kisa * uzun     [saniye]
-    # Olculen / model: 600x600 0,0050/0,0055 | 1500x1500 0,0187/0,0193 |
-    #                  1500x3500 0,0310/0,0316 | 4000x4000 0,0917/0,0926
+    # --- TIME ESTIMATE: the scan and the ALIGNMENT, separately ---
+    # The alignment cost was fitted from measurement (with this script's own aligner):
+    #     t ~= 6.7e-6 * short + 4.11e-9 * short * long     [seconds]
+    # Measured / model: 600x600 0.0050/0.0055 | 1500x1500 0.0187/0.0193 |
+    #                   1500x3500 0.0310/0.0316 | 4000x4000 0.0917/0.0926
     _kutular = {k for i in iddialar for k in (i.get('kutu') or []) + (i.get('karsi') or [])}
     _uz = [min(len(kons[k]), 4000) for k in _kutular if k in kons] or [1500]
     _oq = sum(_uz) / float(len(_uz))
     _ref = 2000.0                      # tipik referans kayit uzunlugu (SSU/LSU karisik)
     _bir = 6.7e-6 * min(_oq, _ref) + 4.11e-9 * min(_oq, _ref) * max(_oq, _ref)
-    _hiz_cift = _bir * kl_ust          # bir kutu-veritabani ciftinin hizalama suresi
+    _hiz_cift = _bir * kl_ust          # the alignment time of one bin and database pair
     _tara_cift = 420                   # akis taramasi (degismedi)
     _cift = kutu_say * len(var)
     yaz(u'  ESTIMATED TIME: ~%s  (%d bins x %d databases = %d pairs; each pair streams'
@@ -1557,29 +1576,30 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     sonuc = []
     tb = time.time()
     for n, idd in enumerate(iddialar, 1):
-        # IDDIA DUZEYI KONTROL NOKTASI de ayar imzasini tasir. Tasimasaydi:
-        # vtb_*.json gecersiz kilinsa bile iddia_01.json bulunur, iddia
-        # TUMDEN atlanir ve 60'lik listeyle uretilmis eski hukum sessizce geri
-        # gelirdi. (NCBI nt onbellegi -nt_*.json- BILEREK haric tutuldu: o ag
-        # uzerinden gelir, kisa liste boyuyla ilgisi yok, bosa yeniden
-        # sorgulanmasin.)
+        # THE CLAIM LEVEL CHECKPOINT carries the settings signature too. Without it:
+        # even with vtb_*.json invalidated, iddia_01.json would be found, the claim
+        # would be skipped ENTIRELY, and the old verdict produced with the 60 item
+        # list would come back silently. (The NCBI nt cache, nt_*.json, is
+        # DELIBERATELY excluded: it comes over the network, has nothing to do with
+        # the short list size, and should not be re-queried for nothing.)
         # -------------------------------------------------------------------
-        # 2026-08-21 MIMARI DUZELTMESI: OLCUM ile HUKUM ayni onbellekte
-        # tutulmamalidir.
+        # THE 2026-08-21 ARCHITECTURAL FIX: MEASUREMENT and VERDICT must not be
+        # held in the same cache.
         #
-        # Bulunan hata: bu kontrol noktasi iddianin TUMUNU sakliyordu -
-        # 'adlandirma' ve 'hukum' dahil. AYAR_IMZASI ise yalnizca TARAMA
-        # parametrelerini muhurluyor. Sonuc: adlandirma mantigi duzeltildiginde
-        # yeniden kosu "onceki kosudan alindi" deyip ESKI HUKMU geri veriyordu.
-        # Olculdu - adsiz kayit duzeltmesi uygulandiktan sonra kosulan turda
-        # 12 iddianin 12'si de degismedi, cunku duzeltilmis kod HIC CALISMADI.
+        # The bug found: this checkpoint stored the WHOLE claim, 'adlandirma' and
+        # 'hukum' included. AYAR_IMZASI, meanwhile, seals only the SCAN
+        # parameters. The result: when the naming logic was fixed, a re-run said
+        # "taken from the previous run" and handed back THE OLD VERDICT.
+        # Measured: in the round run right after the unnamed record fix, 12 of 12
+        # claims were unchanged, because the corrected code NEVER RAN AT ALL.
         #
-        # Dogrusu: pahali olan TARAMADIR (saatler); adlandirma ve hukum
-        # saniyeler suren TURETMELERDIR. Turetme her kosuda YENIDEN yapilmali.
-        # Bunun icin kontrol noktasi HAM ISABETLERI ('bulgular') tasimalidir.
+        # The right shape: what is expensive is THE SCAN (hours); naming and the
+        # verdict are DERIVATIONS taking seconds. A derivation should be redone on
+        # every run, and for that the checkpoint has to carry THE RAW HITS
+        # ('bulgular').
         #
-        # Eski bicimli kontrol noktalari ham isabet TASIMAZ; onlar yeniden
-        # turetilemez ve GECERSIZ sayilir. Sessizce eski hukum donmez.
+        # Old format checkpoints DO NOT carry raw hits; they cannot be re-derived
+        # and count as INVALID. The old verdict never comes back silently.
         kp = os.path.join(KONTROL, 'iddia_%02d_%s_kl%d.json'
                           % (idd['no'], AYAR_IMZASI, kl_ust))
         if os.path.exists(kp):
@@ -1588,7 +1608,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             except Exception:
                 _kayit = None
             if _kayit is not None and _kayit.get('_ham_isabet_var'):
-                # Ham olcum var: TARAMA atlanir, HUKUM yeniden turetilir.
+                # There is a raw measurement: the SCAN is skipped, the VERDICT is re-derived.
                 sonuc.append(_yeniden_turet(_kayit, idd))
                 yaz(u'[%2d/%2d] claim %d  (scan from cache, verdict RE-DERIVED)'
                     % (n, len(iddialar), idd['no']))
@@ -1603,7 +1623,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
 
         bulgular = {}
         if idd['tip'] == 'gecici':
-            kutular = []          # yontem beyani - veritabani taramasi gerektirmez
+            kutular = []          # a statement of method; it needs no database scan
         else:
             kutular = (idd.get('kutu') or [])[:1] + (idd.get('karsi') or [])[:1]
         for kutu in kutular:
@@ -1639,14 +1659,14 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                         bulgular[NT_ETIKET] = onbellek
                         yaz(u'     NCBI nt: taken from the previous run')
                     else:
-                        # O-3: ag hatasi SONUC DEGILDIR - onbelleklenmez, her
-                        # kosuda yeniden denenir. Yoksa tek Wi-Fi kesintisi
-                        # butun iddialari kalici olarak zehirliyordu.
+                        # O-3: a network error IS NOT A RESULT. It is not cached and is
+                        # retried on every run. Otherwise a single Wi-Fi dropout poisoned
+                        # every claim permanently.
                         bulgular[NT_ETIKET] = nt_katmani(kutu, q, CIKTI, yaz, nt_kip)
                         if str(bulgular[NT_ETIKET].get('durum', '')).startswith('TAMAM'):
                             json.dump(bulgular[NT_ETIKET], open(ntk, 'w', encoding='utf-8'),
                                       ensure_ascii=False, default=str)
-            break     # ilk kutu yeter; digerleri dogrudan hizalamayla kiyaslanir
+            break     # the first bin is enough; the rest are compared by alignment directly
 
         h, kanit, duzeltme = hukum_ver(idd, bulgular, kons)
         nt = bulgular.get(NT_ETIKET)
@@ -1660,11 +1680,11 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                      u'dosyasini BLAST edip NT_SONUC_SABLONU.tsv icine yazin, '
                      u'sonra --nt-yukle ile geri verin.'
                      % ((nt or {}).get('durum', 'kosulmadi')))
-        # --- ADLANDIRMA: butun veritabanlarinin isabetlerini birlestir,
-        # en iyi besi ve savunulabilir taksonomik duzeyi cikar (kisa listeler
-        # zaten elimizde, yeniden tarama YOK).
+        # --- NAMING: merge the hits from every database, take the best five
+        # and the defensible taxonomic level (the short lists are already in
+        # hand, so there is NO re-scan).
         adl, lokus = adlandirmayi_turet(bulgular)
-        # --- LITERATUR KONTROLU (ZORUNLU ADIM) ---
+        # --- THE LITERATURE CHECK (A REQUIRED STEP) ---
         try:
             import importlib.util as _lu
             _lp = _lu.spec_from_file_location(
@@ -1697,10 +1717,10 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                                  taranan_kayit=v.get('taranan_kayit'))
             else:
                 detay[et] = dict(durum=v.get('durum', '?'), en_iyi='', kimlik=None)
-        # --- OZ KALIBRASYON OZETI (iddia duzeyinde) ---
-        # Kacirma oranini AYRICA OLCMEYE GEREK YOK: veri kosunun kendisinden
-        # cikiyor. Kazananlar hep ilk 100'den geliyorsa kesme noktasi baglayici
-        # degildir; 400'un ustune cikan varsa 500 de yetmiyor olabilir.
+        # --- THE SELF CALIBRATION SUMMARY (at claim level) ---
+        # The miss rate NEEDS NO SEPARATE MEASUREMENT: the data comes out of the
+        # run itself. If the winners always come from the first 100 the cut off is
+        # not binding; if any go past 400, even 500 may not be enough.
         _sr = [(e, v.get('kazanan_sira'), v.get('kazanan_kaynak'))
                for e, v in bulgular.items()
                if str(v.get('durum', '')).startswith('TAMAM')
@@ -1726,11 +1746,11 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                  vtb=list(bulgular.keys()),
                  ayirt_edici={e: v.get('ayirt_edici') for e, v in bulgular.items()
                               if v.get('durum') == 'TAMAM'})
-        # HAM OLCUM KONTROL NOKTASINA YAZILIR (2026-08-21).
-        # Boylece adlandirma/hukum mantigi degistiginde tarama YENIDEN
-        # KOSULMADAN turetme tazelenebilir. Yalniz turetme icin gereken alanlar
-        # saklanir (durum + ilk 5 isabet); butun kisa liste saklanmaz, dosya
-        # gereksiz sismesin.
+        # THE RAW MEASUREMENT IS WRITTEN TO THE CHECKPOINT (2026-08-21).
+        # That way, when the naming or verdict logic changes, the derivation can be
+        # refreshed WITHOUT RE-RUNNING the scan. Only the fields the derivation needs
+        # are stored (the status plus the first 5 hits); the whole short list is not
+        # kept, so the file does not swell for nothing.
         r['bulgular'] = {
             e: dict(durum=v.get('durum'),
                     isabet=[{k: i.get(k) for k in ('baslik', 'kimlik', 'hiz_uzunluk')}
@@ -1753,18 +1773,19 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     return rc
 
 
-# ---------------------------------------------------------------------------
-# Uc cikti: iddia basina tek satirlik TSV, elle literatur kontrol listesi ve
-# markdown rapor.
+# -------------------------------------------------------------------------
+# Three outputs: a one line TSV per claim, a manual literature check list and a
+# markdown report.
 #
-# Raporda "kisa liste oz-kalibrasyonu" bolumu ayri durur: kazananlarin hepsi ilk
-# 100 icinden geldiyse kesme noktasi baglayici DEGILDIR ve bu acikca yazilir;
-# 400'un otesinden gelen varsa 500 de yetmiyor olabilir ve --kisa-liste degerinin
-# buyutulmesi onerilir. Boylece liste boyunun yeterliligi her kosuda kendini
-# kanitlar ya da kendini curutur.
+# The "short list self calibration" section stands apart in the report: if every
+# winner came from inside the first 100 the cut off is NOT binding and that is said
+# openly; if any came from past 400 then 500 may not be enough either and raising
+# --kisa-liste is suggested. The adequacy of the list size therefore proves or
+# refutes itself on every run.
 #
-# DUZELTILMELI satirlari raporun BASINDA durur: rapora girecek olan onlardir.
-# ---------------------------------------------------------------------------
+# The CORRECTION NEEDED rows stand at the TOP of the report: those are the ones
+# that will reach the write-up.
+# -------------------------------------------------------------------------
 def raporla(CIKTI, sonuc, var, yaz):
     t = os.path.join(CIKTI, 'kimlik_iddialari.tsv')
     with open(t, 'w', encoding='utf-8', newline='') as fh:
@@ -1837,12 +1858,12 @@ def raporla(CIKTI, sonuc, var, yaz):
                         vir(_i(4, 'kimlik', None)), _i(4, 'vtb', '-'),
                         _i(5, 'tam_ad', '-'), _i(5, 'tur', '-'),
                         vir(_i(5, 'kimlik', None)), _i(5, 'vtb', '-'),
-                        # Tek hucrede okunabilir ozet: sirali, kimlik yuzdesiyle.
-                        # ADSIZ kayitta tur/cins '-' olarak saklanir. '-' BOS
-                        # sayilmazsa satir "- %99,00" diye cikar ve okuyana
-                        # hicbir sey soylemez - oysa asil merak edilen NEYLE
-                        # eslestigidir. Bu yuzden '-' bos kabul edilip tam
-                        # basliga dusulur ve adsiz oldugu ACIKCA yazilir.
+                        # A readable summary in one cell: ordered, with the identity percentage.
+                        # For an UNNAMED record the species and genus are stored as '-'. If '-' is
+                        # not treated as EMPTY the row comes out as "- 99.00%" and tells the reader
+                        # nothing, when what they actually want to know is WHAT IT MATCHED. So '-'
+                        # is taken as empty, the code falls back to the full header, and the fact
+                        # that it is unnamed is written OPENLY.
                         ' | '.join(
                             '%d) %s %%%s [%s]'
                             % (n_, _en_yakin_etiket(a.get('isabet%d' % n_)),
@@ -1993,11 +2014,13 @@ def raporla(CIKTI, sonuc, var, yaz):
 
 # --------------------------------------------------------------- guvenlik agi
 def cikti_denetle(yaz, ad, dosyalar, asgari=1):
-    """Asama bittiginde KENDI ciktisini denetler.
+    """When the stage ends, it audits ITS OWN output.
 
-    Beklenen satir sayisi sifirsa ya da dosya hic yoksa SESSIZCE DEVAM ETMEZ:
-    acik Turkce hata basar ve sifirdan farkli kod dondurur. Gece boyunca bos
-    sonuc uretip sabah "hicbir sey bulunamadi" dememesi icin.
+        If the expected row count is zero, or the file is missing entirely, it DOES
+        NOT CARRY ON SILENTLY: it prints a clear error and returns a non-zero code.
+        This is so that it cannot produce an empty result overnight and then say
+        "nothing was found" in the morning.
+
     """
     sorun = []
     for yol, etiket in dosyalar:
@@ -2030,7 +2053,7 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
 
 
 def girdi_denetle(yaz, ad, dosyalar):
-    """Asama BASLAMADAN once ihtiyac duydugu dosyalar var mi ve dolu mu."""
+    """Before the stage STARTS: do the files it needs exist, and are they non-empty?"""
     eksik = []
     for yol, etiket, uretici in dosyalar:
         if not os.path.exists(yol):
@@ -2051,9 +2074,10 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# Komut satiri: --yalniz tek iddia, --vtb-ust kac veritabani, --kisa-liste tam
-# hizalanacak aday sayisi (degistirmek eski kontrol noktalarini gecersiz kilar),
-# --nt NCBI kipi, --nt-yukle elle doldurulmus sablon, --literatur, --sifirla.
+# The command line: --yalniz a single claim, --vtb-ust how many databases,
+# --kisa-liste how many candidates are fully aligned (changing it invalidates the
+# old checkpoints), --nt the NCBI mode, --nt-yukle a hand filled template,
+# --literatur, --sifirla.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
