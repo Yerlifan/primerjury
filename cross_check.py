@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-u"""
+u"""Cross-check — an INDEPENDENT, READ-ONLY audit of a finished run.
+
+Opens no measurement of its own that the pipeline already made; it re-asks the
+pipeline's questions using different code and reports where the answers differ.
+It NEVER writes to panel files.
+
+Seven modules: identity, internal consistency, membership, literature, error
+patterns, database health, taxon coverage. Findings are graded KRITIK / CIDDI /
+UYARI / BILGI, and checks that COULD NOT RUN are reported as ATLANDI — never as
+passed. That distinction is the point: a check that did not run is not a check
+that succeeded, and the exit code reflects it.
+
+--- ozgun aciklama ---
+
 CAPRAZ KONTROL - PrimerJury paneli icin BAGIMSIZ, SALT OKUNUR denetci.
 ===========================================================================
 

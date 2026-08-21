@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Mevcut olcum kodunu ICE AKTARAN tek kapi.
+"""Engine gateway — the single import point for the low-level sequence code.
+
+Loads ispcr / reads / scanner / pair from engine/ and re-exports the functions
+the rest of the package uses (rc, clean, encode, read_fasta, find_sites,
+amplify, scan_file, IUPAC).
+
+Everything goes through here on purpose: one import point means one place where
+a version or path problem can surface, instead of a dozen modules each loading
+their own copy.
+
+--- ozgun aciklama ---
+Mevcut olcum kodunu ICE AKTARAN tek kapi.
 
 Bu dosya hicbir olcum algoritmasini yeniden yazmaz. Projede zaten calisan ve
 panelin sayilarini uretmis olan modulleri bulur ve disari acar:

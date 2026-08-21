@@ -1,5 +1,30 @@
 # -*- coding: utf-8 -*-
 """
+Full-chain driver — runs the whole pipeline from one command.
+
+THIS SCRIPT TAKES NO MEASUREMENTS. Its job is to call ten stages in dependency
+order, INSPECT each stage's output, and STOP if anything does not hold. The
+measurements live in the scripts it calls.
+
+THREE DESIGN DECISIONS
+    1  Resumability is at STAGE level. Each finished stage is stamped in
+       durum.json and skipped on re-run. Within-stage resumability belongs to
+       the called scripts, which already checkpoint; two layers of it would
+       overlap and confuse.
+
+    2  OUTPUT INSPECTION IS MANDATORY; AN EXIT CODE IS NOT ENOUGH. The failure
+       that keeps recurring in this domain is a program that produces a WRONG
+       or EMPTY answer without erroring. A zero exit code does not mean the
+       work was done. So after every stage: does the expected file exist, is it
+       non-empty, and — for some stages — what does it actually say? A failed
+       inspection STOPS the chain; it is never skipped over quietly.
+
+    3  KRAKEN STAGES DO NOT BREAK THE CHAIN. Those stages need a separate tool
+       and a separate database. Refusing an eight-hour run because they are
+       absent would be wrong, so they are marked SKIPPED with a reason and the
+       chain continues. The summary records which stages were skipped and why.
+
+--- ozgun aciklama ---
 tam_zincir.py - bastan sona TEK SECENEKLE kosan tam zincir surucusu.
 
 Sira: 8 -> H -> W -> I -> G -> T -> X -> Y -> Z -> S

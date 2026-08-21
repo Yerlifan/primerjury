@@ -1,6 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Butun sabitler ve yollar tek yerde. Kullanici bu dosyayi duzenleyebilir.
+"""Configuration: every path and every numeric constant, in one place.
 
+THIS IS THE FILE YOU EDIT to run the pipeline on your own data. It is the only
+place paths are defined; nothing else hard-codes a location.
+
+Contents, in order:
+  * paths     panel tables, canonical consensus, reads, reference databases,
+              outputs, checkpoints, cache
+  * qPCR      product size windows, annealing temperature, structure limits.
+              FIXED for QIAGEN Rotor-Gene Q + QuantiNova SYBR Green. Change
+              them only if your chemistry differs, and change them BEFORE a
+              run, never in the middle of one.
+  * oligo     invariant primer rules (length, GC, 3' end, base runs)
+  * grid      axes of the 144-cell parameter grid
+  * sampling  in-sample measurement settings and funnel capacities
+
+WARNING: one threshold here affects every stage at once. ENKOTU_ASGARI_OKUMA
+and KAPSAM_ESIGI in particular carry comparability BETWEEN stages; changing
+either mid-run makes stages incomparable without any error being raised.
+
+Turkish identifiers are kept deliberately: several are also TSV column names
+and checkpoint keys, so renaming them would change output schemas.
+
+--- ozgun aciklama ---
+Butun sabitler ve yollar tek yerde. Kullanici bu dosyayi duzenleyebilir.
 qPCR kisitlari QIAGEN Rotor-Gene Q + QuantiNova SYBR Green icin SABIT tutuldu.
 """
 # ---------------------------------------------------------------------------
