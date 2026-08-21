@@ -121,10 +121,10 @@ def calistir(kok, ncbi, yeniden, atla):
         print(s, flush=True); g.write(s + '\n'); g.flush()
 
     yaz('=' * 78)
-    yaz('  HEPSINI SIRAYLA KOS   surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  RUN ALL STAGES IN ORDER   version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
-    yaz(u'  TOPLAM TAHMINI SURE: 6-16 saat. Gece birakilabilir.')
-    yaz(u'  Her asama bitince kaydedilir; kesilirse BITMIS asamalar atlanir.')
+    yaz(u'  TOTAL ESTIMATED TIME: 6-16 hours. Can be left running overnight.')
+    yaz(u'  State is saved after every stage; if interrupted, FINISHED stages are skipped.')
     yaz('')
     for k, ad, _, _, sure in ASAMALAR:
         d = durum.get(k, {}).get('durum', 'bekliyor')
@@ -134,16 +134,16 @@ def calistir(kok, ncbi, yeniden, atla):
     t0 = time.time()
     for k, ad, komut, ciktilar, sure in ASAMALAR:
         if k in atla:
-            yaz(u'--- ASAMA %s ATLANDI (istek uzerine) ---' % k); continue
+            yaz(u'--- STAGE %s SKIPPED (on request) ---' % k); continue
         if durum.get(k, {}).get('durum') == 'bitti' and not yeniden:
-            yaz(u'--- ASAMA %s zaten bitmis, atlaniyor ---' % k); continue
+            yaz(u'--- STAGE %s already finished, skipping ---' % k); continue
         betik = os.path.join(kok, komut[0])
         if not os.path.exists(betik):
-            yaz(u'--- ASAMA %s ATLANDI: betik yok (%s) ---' % (k, komut[0]))
+            yaz(u'--- STAGE %s SKIPPED: script missing (%s) ---' % (k, komut[0]))
             durum[k] = dict(durum='betik yok'); continue
         yaz('')
         yaz('=' * 78)
-        yaz(u'  ASAMA %s BASLIYOR: %s   (tahmini %s)' % (k, ad, sure))
+        yaz(u'  STAGE %s STARTING: %s   (estimated %s)' % (k, ad, sure))
         yaz('=' * 78)
         arg = [sys.executable, betik, '--kok', kok]
         if k == 'D':
@@ -165,24 +165,24 @@ def calistir(kok, ncbi, yeniden, atla):
         durum[k] = dict(durum=dd, sure=round(time.time() - ta, 1),
                         satir=satir, zaman=time.strftime('%Y-%m-%d %H:%M'))
         json.dump(durum, open(dyol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-        yaz(u'  ASAMA %s: %s  (%s, %d satir)'
+        yaz(u'  STAGE %s: %s  (%s, %d rows)'
             % (k, durum[k]['durum'], sure_metni(time.time() - ta), max(satir, 0)))
         if dd != 'bitti':
             yaz('')
             yaz(u'  ' + '!' * 70)
-            yaz(u'  DURDURULDU. Asama %s beklenen ciktiyi uretmedi: %s' % (k, dd))
-            yaz(u'  Sonraki asamalar bu dosyayi girdi olarak kullanacakti; bos')
-            yaz(u'  girdiyle devam etmek gece boyunca ANLAMSIZ ama INANDIRICI bir')
-            yaz(u'  ozet uretir. Zincir bilerek burada durduruldu.')
-            yaz(u'  Yapilacak: yukaridaki %s asamasi ciktisini okuyun, sebebi giderin,')
-            yaz(u'  sonra AYNI secenegi tekrar secin - bitmis asamalar atlanacaktir.')
+            yaz(u'  STOPPED. Stage %s did not produce the expected output: %s' % (k, dd))
+            yaz(u'  The following stages would have used that file as input, and continuing')
+            yaz(u'  with empty input produces a MEANINGLESS but CONVINCING summary overnight.')
+            yaz(u'  The chain was stopped here deliberately.')
+            yaz(u'  What to do: read the output of stage %s above, fix the cause,')
+            yaz(u'  then run the SAME command again; finished stages will be skipped.')
             yaz(u'  ' + '!' * 70)
             ozet(kok, CIKTI, durum, yaz)
             g.close()
             return 3
 
     yaz('')
-    yaz(u'Butun asamalar bitti (%s). Birlesik ozet yaziliyor...' % sure_metni(time.time() - t0))
+    yaz(u'All stages finished (%s). Writing the combined summary...' % sure_metni(time.time() - t0))
     ozet(kok, CIKTI, durum, yaz)
     g.close()
     return 0
@@ -210,18 +210,18 @@ def ozet(kok, CIKTI, durum, yaz):
 
     yol = os.path.join(CIKTI, '00_BIRLESIK_OZET.md')
     with open(yol, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Birlesik ozet — dort asama tek dosyada\n\n')
-        fh.write(u'Uretim: %s · surum %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
+        fh.write(u'# Combined summary, four stages in one file\n\n')
+        fh.write(u'Generated: %s, version %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
 
-        fh.write(u'## Asamalarin durumu\n\n| asama | durum | sure |\n|---|---|---|\n')
+        fh.write(u'## Stage status\n\n| stage | status | time |\n|---|---|---|\n')
         for k, ad, _, _, _ in ASAMALAR:
             d = durum.get(k, {})
             fh.write(u'| **%s** %s | %s | %s |\n'
-                     % (k, ad, d.get('durum', 'kosulmadi'),
+                     % (k, ad, d.get('durum', u'not run'),
                         sure_metni(d.get('sure', 0)) if d.get('sure') else '-'))
 
         # --- 1) SIPARIS LISTESI ---
-        fh.write(u'\n---\n\n## 1. Son siparis listesi\n\n')
+        fh.write(u'\n---\n\n## 1. Final order list\n\n')
         gecen = [r for r in SIP if (r.get('durum') or '').startswith('ESIK USTU')]
         kalan = [r for r in SIP if (r.get('durum') or '').startswith('ESIK ALTI')]
         olcx = [r for r in SIP if (r.get('durum') or '').startswith('OLCULEMEDI')]
@@ -249,30 +249,25 @@ def ozet(kok, CIKTI, durum, yaz):
                        and r['hedef'] not in inceleme]
         if kesin or kosullu or onerilmez:
             _dus = len(kesin) - len(kesin_temiz)
-            fh.write(u'- **KESIN: %d cift**  (dCq >= 3,0 ya da evrensel/kapsam)%s\n'
+            fh.write(u'- **CERTAIN: %d pairs**  (dCq >= 3.0, or universal/coverage)%s\n'
                      % (len(kesin),
-                        (u' - bunlarin **%d tanesi dogrulamada CELISKILI/RISKLI/'
-                         u'INCELEME**, siparise girmez' % _dus) if _dus else u''))
-            fh.write(u'- **SIPARIS EDILEBILIR: %d cift = %d oligo**\n'
+                        (u' - **%d of these are CONTRADICTORY/RISKY/NEEDS REVIEW** in verification and do not go into the order' % _dus) if _dus else u''))
+            fh.write(u'- **ORDERABLE: %d pairs = %d oligos**\n'
                      % (len(kesin_temiz), 2 * len(kesin_temiz)))
-            fh.write(u'- **KOSULLU: %d cift**  (dCq 2,0-3,0 - siparis edilebilir AMA '
-                     u'laboratuvar dogrulamasi SART)\n' % len(kosullu))
-            fh.write(u'- **ONERILMEZ: %d cift**  (dCq < 2,0 - listede kalir, gerekcesi yazili)\n'
+            fh.write(u'- **CONDITIONAL: %d pairs**  (dCq 2.0-3.0 - orderable BUT laboratory validation is REQUIRED)\n' % len(kosullu))
+            fh.write(u'- **NOT ADVISED: %d pairs**  (dCq < 2.0 - stays on the list, with its reason written out)\n'
                      % len(onerilmez))
-            fh.write(u'- Esigi gecemeyen satir SESSIZCE SILINMEZ; karar sizindir. '
-                     u'Her satirin laboratuvar notu SIPARIS_LISTESI.tsv icinde.\n')
+            fh.write(u'- A row that fails the threshold is NEVER DELETED SILENTLY; the decision is yours. Every row\'s laboratory note is in SIPARIS_LISTESI.tsv.\n')
             fh.write(u'\n')
-        fh.write(u'- Ayrim oranini gecen cift (arac sayimi): **%d**\n' % len(gecen))
-        fh.write(u'- Bunlardan dogrulamada CELISKILI ya da RISKLI cikan: **%d**\n'
+        fh.write(u'- Pairs passing the discrimination ratio (tool count): **%d**\n' % len(gecen))
+        fh.write(u'- Of those, marked CONTRADICTORY or RISKY during verification: **%d**\n'
                  % (len(gecen) - len(temiz)))
         if eksik:
             fh.write(u'- Dogrulamasi TAMAMLANMAMIS (NCBI eksik): %d — bunlar yukaridaki '
                      u'sayiya DAHIL, ama NCBI adimi bitmeden siparis onerilmez\n' % len(eksik))
         # ESKI/YENI KIMLIK yan yana: ">>" isareti toplantida konusulan ad ile
         # olculen kimligin AYNI OLMADIGINI gosterir.
-        fh.write(u'\n| # | SINIF | hedef | Kraken etiketi | Olculen kimlik | Duzey | '
-                 u'urun bp | ayrim mm<=1 | dCq | dogrulama |\n'
-                 u'|---|---|---|---|---|---|---|---|---|---|\n')
+        fh.write(u'\n| # | CLASS | target | Kraken label | Measured identity | Level | product bp | discrimination mm<=1 | dCq | verification |\n|---|---|---|---|---|---|---|---|---|---|\n')
         _sirali = (kesin + kosullu + onerilmez) if (kesin or kosullu or onerilmez) else gecen
         for i, r in enumerate(_sirali, 1):
             dg = ('CELISKILI' if r['hedef'] in celiskili else
@@ -324,7 +319,7 @@ def ozet(kok, CIKTI, durum, yaz):
                     fh.write(u'- **%s** — %s\n' % (r['hedef'], r['sebep']))
 
         # --- 3) CELISKILER ---
-        fh.write(u'\n---\n\n## 3. Celiskiler (dogrulama turu)\n\n')
+        fh.write(u'\n---\n\n## 3. Contradictions (specificity round)\n\n')
         cel = [r for r in D if r.get('KARAR') == 'CELISKILI']
         if not D:
             fh.write(u'Dogrulama turu kosulmadi ya da cikti uretmedi.\n')
@@ -343,7 +338,7 @@ def ozet(kok, CIKTI, durum, yaz):
             fh.write(u'\nAyrinti ve ne yapilmasi gerektigi: `DOGRULAMA_SONUC/CELISKILER.md`\n')
 
         # --- 4) KIMLIK ---
-        fh.write(u'\n---\n\n## 4. Kimlik iddialari\n\n')
+        fh.write(u'\n---\n\n## 4. Identity claims\n\n')
         if not I:
             fh.write(u'Kimlik dogrulama turu kosulmadi ya da cikti uretmedi.\n')
         else:
@@ -365,16 +360,12 @@ def ozet(kok, CIKTI, durum, yaz):
 
 
         # --- 5) TOPLANTI TALEPLERININ TAMAMI ---
-        fh.write(u'\n---\n\n## 5. Toplanti taleplerinin TAMAMI\n\n')
-        fh.write(u'"6 Karar Durumu" sayfasinda 29 satir vardir ama hepsi talep degildir: '
-                 u'**Karar 1-4 = 21 toplanti talebi**, Karar 5 = 8 olcumden turetilen '
-                 u'hedef (toplantida istenmedi). Asagidaki tablo 21 talebin TAMAMINI '
-                 u'gosterir - panelde satiri olmayanlar dahil.\n\n')
+        fh.write(u'\n---\n\n## 5. ALL requested targets\n\n')
+        fh.write(u'The "6 Decision Status" sheet has 29 rows, but not all of them are requests: **decisions 1-4 are the 21 requested targets**, while decision 5 covers 8 targets derived from measurement (they were never requested). The table below shows ALL 21 requests, including those with no row in the panel.\n\n')
         p_ad = [r.get('hedef', '') for r in P]
         k_ad = {r.get('hedef', ''): r for r in K}
         sip_ad = {r.get('hedef', ''): r for r in SIP}
-        fh.write(u'| karar | toplanti talebi | panel satir(lar)i | olculdu mu | sonuc |\n'
-                 u'|---|---|---|---|---|\n')
+        fh.write(u'| decision | requested target | panel row(s) | measured? | result |\n|---|---|---|---|---|\n')
         panelsiz = 0
         for kar, ad, anah in TOPLANTI_TALEPLERI:
             bul = sorted({x for x in p_ad if any(a.lower() in x.lower() for a in anah)})
@@ -400,7 +391,7 @@ def ozet(kok, CIKTI, durum, yaz):
                     durumlar.append(u'%s: olculdu' % x)
             fh.write(u'| %s | %s | %s | evet | %s |\n'
                      % (kar, ad, ', '.join(bul), '; '.join(durumlar)[:120]))
-        fh.write(u'\n**Panelde satiri olmayan talep: %d.** ' % panelsiz)
+        fh.write(u'\n**Requests with no row in the panel: %d.** ' % panelsiz)
         if panelsiz:
             fh.write(u'Bu talepler kurtarma turunun `PANELSIZ_TALEPLER` tablosunda '
                      u'tanimlidir ve kutunun KENDI konsensusundan tasarim denemesi '
@@ -408,15 +399,10 @@ def ozet(kok, CIKTI, durum, yaz):
         else:
             fh.write(u'Zincir toplanti listesinin TAMAMINI kapsiyor.\n')
 
-        fh.write(u'\n---\n\n## Nereye bakmali\n\n'
-                 u'| Soru | Dosya |\n|---|---|\n'
-                 u'| Ne siparis edeyim? | `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` |\n'
-                 u'| Neden bu satir dustu? | `KURTARMA_SONUC/KURTARMA_RAPORU.md` |\n'
-                 u'| Hangi cift supheli? | `DOGRULAMA_SONUC/CELISKILER.md` |\n'
-                 u'| Rapora ne yazayim? | `KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
+        fh.write(u'\n---\n\n## Where to look\n\n| Question | File |\n|---|---|\n| What should I order? | `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` |\n| Why did this row fail? | `KURTARMA_SONUC/KURTARMA_RAPORU.md` |\n| Which pair is suspect? | `DOGRULAMA_SONUC/CELISKILER.md` |\n| What do I write in the report? | `KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
     yaz(u'  written: %s' % yol)
     yaz('')
-    yaz(u'  SABAH BUNA BAKIN: %s' % yol)
+    yaz(u'  LOOK AT THIS FIRST: %s' % yol)
 
 
 # Komut satiri: --kok proje klasoru, --ncbi D asamasinin NCBI kipi, --yeniden
