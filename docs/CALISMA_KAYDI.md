@@ -2,7 +2,7 @@
 
 Son güncelleme: 2026-08-01
 Proje klasörü: `C:\Users\yerli\Masaüstü\PrimerTasarlama`
-Betikler: `WSL_betikleri/`
+Betikler: `steps/`
 
 Bu belge, yapılan bütün işleri, ölçülen bütün sayıları, bulunan bütün hataları
 ve verilen bütün kararları kaydeder. Amaç, hiçbir sonucun kaynağının
@@ -101,38 +101,38 @@ sayısıdır, o türlerde oluşan ürün sayısı değil.
 
 | Betik | İş |
 |---|---|
-| `00_ortam_kontrol.sh` | bağımlılık denetimi |
-| `01_kraken2_yeniden_siniflandir.sh` | Kraken2 sınıflandırma |
-| `02_N_analizi.sh` | N oranı analizi |
-| `03_primer_aday_uret.py` | oligo adayları, kompozisyon ve termodinamik |
-| `04_grup_primer.py` | çift oluşturma, bağlanma ve ürün kuralı motoru |
-| `05_kume_bol.py` | kutu bölme |
-| `06_referans_capali_konsensus.sh` | referans çapalı konsensüs |
-| `07_referans_sabitle.sh` | referans sabitleme |
-| `08_toplu_tasarim.py` | hedef başına toplu tasarım |
-| `09_ozgulluk.py` | ham okumalarda özgüllük, Wilson alt sınırı |
-| `10_ayirt_edilemez.py` | ayırt edilemez kutuların bulunması |
-| `11_kutu_kimlik_denetimi.py` | kutu kimlik denetimi |
-| `12_baskin_alel_konsensus.py` | baskın alel konsensüsü |
-| `13_teslim_excel.py` | Excel teslimatı |
+| `check_environment.sh` | bağımlılık denetimi |
+| `reclassify_kraken2.sh` | Kraken2 sınıflandırma |
+| `analyze_ambiguous_bases.sh` | N oranı analizi |
+| `generate_primer_candidates.py` | oligo adayları, kompozisyon ve termodinamik |
+| `design_group_primers.py` | çift oluşturma, bağlanma ve ürün kuralı motoru |
+| `split_clusters.py` | kutu bölme |
+| `anchored_reference_consensus.sh` | referans çapalı konsensüs |
+| `freeze_reference.sh` | referans sabitleme |
+| `batch_design.py` | hedef başına toplu tasarım |
+| `specificity.py` | ham okumalarda özgüllük, Wilson alt sınırı |
+| `indistinguishable_targets.py` | ayırt edilemez kutuların bulunması |
+| `check_bin_identity.py` | kutu kimlik denetimi |
+| `dominant_allele_consensus.py` | baskın alel konsensüsü |
+| `export_excel.py` | Excel teslimatı |
 
 ### 2.2 Doğrulama ve dış ölçüm
 
 | Betik | İş |
 |---|---|
-| `14_dis_veritabani.py` | dış veritabanı taraması (blastn), kapsam denetimi, takson ayrımı |
-| `15_referans_tasarim.py` | referans veritabanından tasarım |
-| `16_primer_geometri_denetimi.py` | geometri denetimi |
-| `17_regresyon_testi.py` | regresyon takımı, **137 test** |
-| `18_teslim_denetimi.py` | bağımsız teslim denetimi |
-| `19_mfeprimer.py` | ikinci bağımsız özgüllük ölçümü |
-| `20_kutu_kurtarma.py` | referanssız konsensüs kurtarma |
-| `21_topluluk_trend.py` | topluluk trend çalışma kitabı |
-| `22_hedef_kimlik.py` | hedef adı ile verinin karşılaştırılması |
-| `24_guven_yeniden_ata.py` | Kraken2 güven eşiği, çevrimdışı |
-| `25_bolluk_rutbe.py` | bolluğun okunabildiği rütbe |
-| `26_referans_kimlik.py` | referans primerlerin numunede ne çoğalttığı |
-| `27_duzey_denetimi.py` | tür/cins özgüllüğünün doğrudan sınanması |
+| `external_databases.py` | dış veritabanı taraması (blastn), kapsam denetimi, takson ayrımı |
+| `design_from_reference.py` | referans veritabanından tasarım |
+| `check_primer_geometry.py` | geometri denetimi |
+| `regression_test.py` | regresyon takımı, **137 test** |
+| `check_deliverables.py` | bağımsız teslim denetimi |
+| `mfeprimer_layer.py` | ikinci bağımsız özgüllük ölçümü |
+| `recover_bins.py` | referanssız konsensüs kurtarma |
+| `community_trends.py` | topluluk trend çalışma kitabı |
+| `target_identity.py` | hedef adı ile verinin karşılaştırılması |
+| `reassign_confidence.py` | Kraken2 güven eşiği, çevrimdışı |
+| `abundance_rank.py` | bolluğun okunabildiği rütbe |
+| `reference_identity.py` | referans primerlerin numunede ne çoğalttığı |
+| `check_taxonomic_level.py` | tür/cins özgüllüğünün doğrudan sınanması |
 | `alan_denetimi.py` | alan (arke/bakteri/mantar) tutarlılığı, ortak modül |
 
 ### 2.3 Sürücüler
@@ -162,7 +162,7 @@ kendi ölçüsünden değil dizinin kendisinden geliyor.
 
 ### 3.2 Denetim betiğim yanlış DNA derişimi kullanıyordu
 
-`18_teslim_denetimi.py` Tm'i yeniden ölçerken `--dna 250` nM kullanıyordu,
+`check_deliverables.py` Tm'i yeniden ölçerken `--dna 250` nM kullanıyordu,
 oysa 03 ve 04 varsayılanı 50 nM. Yeniden ölçülen Tm sistematik olarak kayıyor
 ve **197 sahte KRİTİK bulgu** üretiyordu. Varsayılan 50 nM'ye çekildi.
 
@@ -198,7 +198,7 @@ operon kayıtları 3700 bp'lik hizalamalar üretiyor ve hizalamaya korunmuş
 
 ### 3.6 Kutu kurtarmada yön yapaylığı ve birleştirilmiş oran
 
-`20_kutu_kurtarma.py` iki yarı arasında %72 ıraksama bildiriyordu; sebep
+`recover_bins.py` iki yarı arasında %72 ıraksama bildiriyordu; sebep
 tohumların karşıt zincirlerden gelmesiydi. Hizalama tabanlı, yön farkında
 karşılaştırmaya çevrildi. Ardından ikinci bir hata çıktı: kapsama eksiği
 ikame farkının içine katlanıyordu. Gerçek ikame oranı 0,0021 iken
@@ -219,7 +219,7 @@ sürüm iki tarafa birden yazıldı.
 
 ### 3.8 Rütbe yüzdeleri %368 topluyordu
 
-`25_bolluk_rutbe.py` iç içe aynı rütbedeki düğümleri iki kez sayıyordu.
+`abundance_rank.py` iç içe aynı rütbedeki düğümleri iki kez sayıyordu.
 Kraken2 raporunda gerçek şube "P", alt şube "P1", onun altı "P2" diye kodlanır
 ve hepsi aynı ana rütbeye katlanır; üst düğümün klanı alt düğümünkini zaten
 içerdiği için ikisini birden saymak çift sayımdır. Düzeltmeden önce
@@ -245,7 +245,7 @@ yazılıyordu. Tür ve cins uyumu ayrı ayrı raporlanır oldu.
 
 ### 3.12 Kimlik sıralaması uzunluğa bakıyordu
 
-`22_hedef_kimlik.py` vuruşları önce uzunluğa göre sıralıyordu; 524 bp'de
+`target_identity.py` vuruşları önce uzunluğa göre sıralıyordu; 524 bp'de
 %94,47 eşleşme, 504 bp'de %98,21 eşleşmenin önüne geçiyor ve kimlik yanlış
 çıkıyordu. Bitscore'a çevrildi.
 
@@ -256,7 +256,7 @@ Kısa okuma verisi için sık önerilen 0,1 değeri bu ONT verisinde okumaların
 çoğu veritabanında karşılık bulmuyor ve bu k-mer'ler puanın paydasına giriyor.
 Eşik bir taramayla veriden seçildi: 0,02.
 
-`24_guven_yeniden_ata.py` yeniden sınıflandırmaya gerek bırakmıyor; Kraken2'nin
+`reassign_confidence.py` yeniden sınıflandırmaya gerek bırakmıyor; Kraken2'nin
 `--output` dosyaları her okumanın k-mer LCA dizisini zaten taşıyor ve güven
 puanı tam olarak oradan hesaplanıyor. 106 GB veritabanı da, ham fastq da
 gerekmiyor. Ölçüldü: vuruş taksonlarının **%99,84'ü** rapor dosyalarından
@@ -336,7 +336,7 @@ Ayrıntı: `veritabani_kapsami_kaniti.md`.
 
 ### 3.17 Boş ölçüm, temiz ölçüm gibi görünüyordu (kapsam denetimi)
 
-ROD hatasının asıl dersi buydu. `14_dis_veritabani.py`'ye kapsam denetimi
+ROD hatasının asıl dersi buydu. `external_databases.py`'ye kapsam denetimi
 eklendi: her (sınıf, veritabanı) ikilisi için, taramadan önce o sınıfın kendi
 konsensüs dizileri veritabanına megablast ile aranıyor ve en uzun hizalama
 ölçülüyor. Eşik uydurulmuyor, veriden geliyor: aranan ürün en fazla
@@ -448,7 +448,7 @@ soyağaçlı başlıkları bu daldan zaten geçemez, ayrı korumaya gerek yok.
 
 ### 3.26 Referans tasarımında rakip kümesi, doğrulama panelinden dardı
 
-**Yeni tasarımların kök sebebi.** `15_referans_tasarim.py` rakipleri tek
+**Yeni tasarımların kök sebebi.** `design_from_reference.py` rakipleri tek
 veritabanından ve ad başına altı kayıtla topluyordu. Podospora tasarımı 29
 rakip diziyle yapılmış (`fungi.ITS.fna`'da toplam 14 Podospora kaydı var);
 27'nin doğrulama paneli ise UNITE dahil 242 kayıt ve 50 tür. Tasarım
@@ -626,10 +626,10 @@ kapsanıyor.
 
 **Yapıldı**, rDNA tarafında NCBI'nin varsayılanından geniş:
 
-- `14_dis_veritabani.py`: `blastn -task blastn-short`, on rDNA veritabanı, beş
+- `external_databases.py`: `blastn -task blastn-short`, on rDNA veritabanı, beş
   sınıf, 970 kayıt, kapsam denetimi, kendi/yabancı/yakın/uzak ayrımı
-- `19_mfeprimer.py`: mfeprimer `spec`, ikinci bağımsız yöntem
-- `27_duzey_denetimi.py`: kardeş tür panellerine karşı blastn
+- `mfeprimer_layer.py`: mfeprimer `spec`, ikinci bağımsız yöntem
+- `check_taxonomic_level.py`: kardeş tür panellerine karşı blastn
 - `22` ve `26`: kimlik blastn'leri
 
 Primer-BLAST'ın algoritmik olarak yaptığı iş (primerleri ayrı ayrı ara, ters
@@ -648,7 +648,7 @@ yönde ve ürün boyu aralığında buluşan vuruş çiftlerini bul) yapıldı.
 
 ## 7. Regresyon takımı
 
-`17_regresyon_testi.py`, **137 test, 137/137 geçiyor.** Her testin beklenen
+`regression_test.py`, **137 test, 137/137 geçiyor.** Her testin beklenen
 sonucu toplantı kararlarından ya da bilinen matematikten türetilir; kodun
 kendi yardımcı fonksiyonlarına güvenilmez.
 
@@ -739,10 +739,10 @@ görünmesinler.
 
 ```bash
 PT="/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama"
-cd "$PT/WSL_betikleri"
+cd "$PT/steps"
 
 # Regresyon takımı
-python3 17_regresyon_testi.py
+python3 regression_test.py
 
 # Senkron doğrulama
 bash SENKRON.sh --dogrula
@@ -751,14 +751,14 @@ bash SENKRON.sh --dogrula
 bash AGIR_ISLER.sh --yalniz H
 
 # Düzey denetimi (5 dakika)
-python3 27_duzey_denetimi.py \
+python3 check_taxonomic_level.py \
   --hedefler hedefler.tsv --adlar taxid_adlari.tsv \
   --final "$PT/primer_final" --referans "$PT/primer_referans/primer_referans.tsv" \
   --db "$PT/REFERANS_DB" --kimlik "$PT/primer_final/hedef_kimlik.tsv" \
   --is-parcacigi 4 --out "$PT/primer_final/duzey_denetimi.tsv"
 
 # Yeni referans tasarımı (yarım saate kadar)
-python3 15_referans_tasarim.py --db "$PT/REFERANS_DB" --pt "$PT" \
+python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" \
   --hedefler-ref hedefler_referans.tsv --out "$PT/primer_referans"
 ```
 

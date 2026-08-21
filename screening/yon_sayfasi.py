@@ -1,0 +1,293 @@
+# -*- coding: utf-8 -*-
+"""yon_sayfasi.py - panele "19 Yon Normalizasyonu" sayfasini yazar."""
+# ---------------------------------------------------------------------------
+# yon_sayfasi.py — yon normalizasyonunun butun kanitlarini teslim panelinin
+#                  xlsx dosyasina "19 Yon Normalizasyonu" sayfasi olarak yazar.
+#
+# GIRDI  : --xlsx teslim paneli; --yon ile yon_denetimi.py'nin urettigi dosya
+#          bazli yon tablosu; --kod ile yon_kod_taramasi.py'nin urettigi kod
+#          yolu siniflandirmasi; --indeks ile konsensus_kanonik/INDEKS.tsv.
+#          Hangi dosyanin nasil duzeltildigine dair notlar (KOD_NOT) bu dosyanin
+#          icinde sabittir.
+# CIKTI  : verilen xlsx dosyasina yeni bir sayfa ekleyip kaydeder (wb.save);
+#          ekrana yazilan sayfa adini ve satir sayisini basar.
+# CAGRAN : MENUDE DEGILDIR - elle calistirilir, cunku teslim dosyasini
+#          degistirir. Girdilerini uretecek iki betik de (yon_denetimi.py,
+#          yon_kod_taramasi.py) elle calistirilir.
+#
+# Sayfanin varlik sebebi: yon hatasi ayni gece uc ayri yerde ayri ayri bulunup
+# yamandi. Bu sayfa "hangi dosya duzeltildi, hangi konsensus cevrildi, hangi
+# kod yolu hala risktedir" sorularinin cevabini panelin icinde, izlenebilir
+# bicimde tutar.
+# ---------------------------------------------------------------------------
+import os, sys, csv, argparse, collections
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+
+KIRMIZI = PatternFill('solid', fgColor='FFC7CE')
+SARI = PatternFill('solid', fgColor='FFEB9C')
+YESIL = PatternFill('solid', fgColor='C6EFCE')
+GRI = PatternFill('solid', fgColor='D9D9D9')
+KALIN = Font(bold=True)
+SAR = Alignment(wrap_text=True, vertical='top')
+
+KOD_NOT = {
+ 'screening/yapilandirma.py':
+   'DUZELTILDI. KONSENSUS artik konsensus_kanonik. "consensus sequences" yalniz '
+   'KONSENSUS_HAM olarak duruyor ve SADECE kanonik uretimi okur.',
+ 'screening/hedefler.py':
+   'DUZELTILDI. konsensusler() artik konsensus_kanonik/INDEKS.tsv okuyor. Indeks '
+   'yoksa HATA verir - karisik klasore sessizce DUSMEZ.',
+ 'screening/konsensus_uret.py':
+   'DUZELTILDI (uc yerde). (a) sablon kanonige cevriliyor, (b) oksuz kutu sablonu '
+   '(ham okuma) da cevriliyor, (c) CIKTI yazilmadan once bir kez daha olculup '
+   'cevriliyor. Ayrica kosunun basina KAPI kondu: yon sinamasi gecmeden uretim baslamaz.',
+ 'screening/kendini_sina.py':
+   'yon_sinamasi() eklendi: yon.py kendi sinavi + kanonik sette ters dosya var mi + '
+   'bilinen cevapli etki testi. primer3 gibi opsiyonel bagimliliga TAKILMAZ.',
+ 'screening/uretec.py':
+   'Yon bagimsiz: diziyi hem duz hem rc ile deniyor. Kanonik kaynakla da dogru calisir.',
+ 'screening/panel_olcum.py':
+   'HAM OKUMA olcer, konsensus yonunden etkilenmez (okumalar zaten iki yonde taranir).',
+ 'screening/uyelik_denetimi.py':
+   'Uyelik/olcum; konsensus yolunu hedefler.py uzerinden alir - kanonige bagli.',
+ 'screening/yon.py':
+   'YENI. Kanonik yon TANIMI ve normalizasyonu. Iki bagimsiz olcut, kendini sinama.',
+ 'screening/kanonik_uret.py':
+   'YENI. konsensus_kanonik/ uretir + MANIFEST/INDEKS/BELIRSIZ yazar + kendi dogrulamasi.',
+ 'screening/yon_denetimi.py':
+   'YENI (denetim araci). Karisik klasorleri BILEREK okur - amaci yonu olcmek.',
+ 'screening/yon_etki_testi.py':
+   'YENI. Bilinen cevapli test: dogru yon vs ters yon urun sayisi.',
+ 'steps/split_clusters.py':
+   'ESKI HAT. Karisik klasoru tek yon varsayarak okuyor. Panelin mevcut sayilarini '
+   'URETMIYOR (devre disi hat) ama yeniden kosulursa yanlis sonuc verir - kanonige '
+   'cevrilmeli ya da arsivlenmeli.',
+}
+
+
+def yaz(ws, r, c, v, fill=None, bold=False):
+    h = ws.cell(r, c, v)
+    if fill: h.fill = fill
+    if bold: h.font = KALIN
+    h.alignment = SAR
+    return h
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--xlsx', required=True)
+    ap.add_argument('--yon', required=True)
+    ap.add_argument('--kod', required=True)
+    ap.add_argument('--indeks', required=True)
+    a = ap.parse_args()
+
+    yr = list(csv.DictReader(open(a.yon, encoding='utf-8'), delimiter='\t'))
+    kr = list(csv.DictReader(open(a.kod, encoding='utf-8'), delimiter='\t'))
+    ix = list(csv.DictReader(open(a.indeks, encoding='utf-8'), delimiter='\t'))
+
+    say = collections.defaultdict(collections.Counter)
+    for x in yr:
+        say[x['klasor']][x['karar'].split(' (')[0]] += 1
+
+    wb = openpyxl.load_workbook(a.xlsx)
+    ad = '19 Yon Normalizasyonu'
+    if ad in wb.sheetnames:
+        del wb[ad]
+    ws = wb.create_sheet(ad)
+    for w, c in zip((44, 14, 14, 14, 14, 16, 60), 'ABCDEFG'):
+        ws.column_dimensions[c].width = w
+    n = 1
+
+    yaz(ws, n, 1, 'YON NORMALIZASYONU - 2026-08-02', bold=True); n += 1
+    yaz(ws, n, 1, 'CEVAP: yon ARTIK KANONIK. Once degildi - dort ayri konsensus kumesi vardi '
+                  've ikisi karisik yonluydu. Tek kanonik kaynak kuruldu: konsensus_kanonik/ '
+                  '(hepsi SENSE), tanim screening/yon.py.', fill=YESIL)
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+    ws.row_dimensions[n].height = 32; n += 2
+
+    yaz(ws, n, 1, '1. NEDEN SORULDU - uc ayri yama, tek kanonik cozum yok', bold=True, fill=GRI); n += 1
+    for s in ['Yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri yamandi: '
+              '(a) ALI tarafinda 85\'in iplik secimi, (b) tasarim tarafinda "konsensusler SILVA\'ya '
+              'gore ters tumleyen", (c) B/F yeniden olcumunde "58 konsensusten 39\'u ters yonde". '
+              'Uc ayri yama = tek kanonik cozum yok = bir sonraki degisiklikte yine kacar. '
+              'Bu sayfa "sanirim duzeltildi"yi olcuye baglar.']:
+        yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+        ws.row_dimensions[n].height = 46; n += 1
+    n += 1
+
+    yaz(ws, n, 1, '2. OLCUM - butun konsensus dosyalarinin DUZELTME ONCESI yonu', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, 'Yontem: iki BAGIMSIZ olcut. (1) panelin kendi evrensel ciftleri - sense yonde '
+                  'F ve rc(R) dogrudan bulunur. (2) literatur evrensel motifleri (SSU: 515F, '
+                  '806R-sense, 1100-sense / ITS: ITS1, rc(ITS4)). Ikisi ayrilirsa dosya BELIRSIZ. '
+                  'Tam liste: yon_denetimi_20260802.tsv (%d dosya).' % len(yr))
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+    ws.row_dimensions[n].height = 46; n += 1
+    for j, h in enumerate(['Klasor', 'SENSE', 'ANTISENSE', 'BELIRSIZ/bos', 'Toplam', 'Karisik mi?', 'Not'], 1):
+        yaz(ws, n, j, h, bold=True, fill=GRI)
+    n += 1
+    NOT = {
+     'consensus sequences': 'Ali\'nin ozgun ciktisi. KARISIK. Sebep: samtools/minimap2 hatti '
+                            'sablonu veriden secilen bir OKUMAYA gore kuruyor; nanopore okumalari '
+                            '~50/50 iki yonde geldigi icin cikti yonu rastgele.',
+     'referans_konsensus/konsensus': 'Gece normalize edilen set. Temiz.',
+     'referans_konsensus/baskin/konsensus': 'Baskin alel seti. Temiz (6 dosya olculemedi - N orani yuksek).',
+     'referans_konsensus/self/konsensus': 'Self set. Temiz (1 dosya bos).',
+     'KAPSAMLI_ARAMA_SONUC/konsensus_yeni': 'BU GECE KOSULACAK URETIMIN CIKTISI. KARISIK ve '
+                                            'agirlikli ANTISENSE. Kok neden: sablonu karisik '
+                                            'klasorden aliyordu (asagi bakiniz).',
+    }
+    for k in sorted(say):
+        c = say[k]
+        se, an = c.get('SENSE', 0), c.get('ANTISENSE', 0)
+        bl = sum(v for kk, v in c.items() if kk not in ('SENSE', 'ANTISENSE'))
+        kar = 'EVET - KARISIK' if se and an else 'hayir'
+        f = KIRMIZI if (se and an) else None
+        yaz(ws, n, 1, k, fill=f); yaz(ws, n, 2, se, fill=f); yaz(ws, n, 3, an, fill=f)
+        yaz(ws, n, 4, bl, fill=f); yaz(ws, n, 5, se + an + bl, fill=f)
+        yaz(ws, n, 6, kar, fill=f); yaz(ws, n, 7, NOT.get(k, ''), fill=f)
+        ws.row_dimensions[n].height = 44
+        n += 1
+    n += 1
+
+    yaz(ws, n, 1, '3. KOK NEDEN (kod kaniti)', bold=True, fill=KIRMIZI); n += 1
+    for s in ['screening/yapilandirma.py:  KONSENSUS = y(\'consensus sequences\')  '
+              '-> paket KARISIK klasoru tek kaynak sayiyordu.',
+              'screening/konsensus_uret.py -> _sablon_sec(): sablon "mevcut konsensus"tan '
+              'aliniyordu. Okumalar sablona iki yonde capalanip NORMALIZE ediliyordu (kod bunu '
+              '"yon normalize edilir" diye yaziyordu) ama SABLONUN KENDI YONU hicbir yerde '
+              'normalize edilmiyordu. Sonuc: cikti sablonun yonunu birebir miras aliyor. '
+              'Olculen kanit: konsensus_yeni 28 antisense / 7 sense.',
+              'Oksuz kutularda sablon dogrudan bir HAM OKUMADAN seciliyordu - okuma yonu rastgele, '
+              'yani cikti yonu de rastgele.']:
+        yaz(ws, n, 1, s, fill=KIRMIZI if 'konsensus_uret' in s else None)
+        ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+        ws.row_dimensions[n].height = 46; n += 1
+    n += 1
+
+    yaz(ws, n, 1, '4. BILINEN CEVAPLI TEST - yon yanlissa hangi sayi ne kadar bozulur',
+        bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, 'Kurulum: ayni primer cifti, ayni konsensus, TEK FARK YON. Kaynak: '
+                  'referans_konsensus/konsensus (99 dosya), olcut mm<=3 + 3\' son 2 baz tam. '
+                  'Motorlar (ispcr.amplify ve okuma_motoru) verilen diziyi YALNIZ ARTI IPLIKTE '
+                  'tarar; ters saklanmis konsensuste ne ileri primer ne rc(ters primer) bulunur. '
+                  'Hata atilmaz - "urun yok" denir.')
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+    ws.row_dimensions[n].height = 46; n += 1
+    for j, h in enumerate(['Cift', 'Sinif', 'Dogru yon', 'TERS yon', 'Kayip', 'Sonuc', ''], 1):
+        yaz(ws, n, j, h, bold=True, fill=GRI)
+    n += 1
+    for ad2, sn, d, t, top in [('Arke_universal', 'A', 38, 0, 39),
+                               ('Bakteri_universal', 'B', 20, 0, 20),
+                               ('Mantar_universal (F1)', 'F1', 18, 0, 20),
+                               ('Mantar_universal (F2)', 'F2', 15, 0, 20),
+                               ('Methanosarcina_mazei_turu', 'A', 12, 0, 39),
+                               ('Methanosarcina_cinsi', 'A', 13, 0, 39),
+                               ('Proteolitik_Cloacimonas', 'B', 1, 0, 20)]:
+        yaz(ws, n, 1, ad2, fill=KIRMIZI); yaz(ws, n, 2, sn, fill=KIRMIZI)
+        yaz(ws, n, 3, '%d/%d' % (d, top), fill=KIRMIZI)
+        yaz(ws, n, 4, '%d/%d' % (t, top), fill=KIRMIZI)
+        yaz(ws, n, 5, d - t, fill=KIRMIZI)
+        yaz(ws, n, 6, 'ters yon urunu SIFIRLIYOR', fill=KIRMIZI)
+        n += 1
+    yaz(ws, n, 1, 'TOPLAM: dogru yonde 117 urun, ters yonde 0 urun. KAYIP %100.', bold=True, fill=KIRMIZI)
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7); n += 1
+    yaz(ws, n, 1, 'CAPRAZ KONTROL: ayni test panelin KENDI motoruyla (ispcr.amplify) tekrarlandi - '
+                  'Arke_universal dogru 38/39, ters 0/39. Ayni sonuc. Kosmak icin: '
+                  'python screening/yon_etki_testi.py --kok .')
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+    ws.row_dimensions[n].height = 30; n += 2
+
+    yaz(ws, n, 1, '5. KANONIK COZUM - tek kaynak, tek tanim', bold=True, fill=YESIL); n += 1
+    for s in ['KANONIK YON = SENSE (referans / arti iplik). Tanim TEK YERDE: screening/yon.py. '
+              'Iki bagimsiz olcut, ayrilirlarsa dosya BELIRSIZ sayilir ve normalize EDILMEZ, '
+              'isaretlenir (proje kurali: hicbir karar tek kod yoluna birakilmaz).',
+              'TEK KAYNAK: konsensus_kanonik/ - %d kutu, hepsi SENSE. Uretici: '
+              'screening/kanonik_uret.py. Yaninda MANIFEST.tsv (her dosyanin kaynagi, '
+              'eski yonu, cevrilip cevrilmedigi), INDEKS.tsv (gecerli dosya listesi) ve '
+              'BELIRSIZ.tsv. Bu koside %d dosya ANTISENSE -> SENSE cevrildi, BELIRSIZ 0.'
+              % (len(ix), sum(1 for r in ix if r['cevrildi'] == 'EVET')),
+              'BUTUN BETIKLER BURAYI OKUR: hedefler.py -> konsensusler() artik INDEKS.tsv okuyor '
+              've indeks yoksa HATA verir; karisik klasore SESSIZCE DUSMEZ. Hicbir betigin kendi '
+              'yon yamasi yok.',
+              'DIKKAT - bagli klasorde dosya SILINEMIYOR. konsensus_kanonik/ icinde ilk kosunun '
+              'yanlis adlandirilmis "*_kanonik.fasta" kalintilari var. Gecerli dosyalar '
+              '"*.kanonik.fa" desenindedir ve INDEKS.tsv\'de listelidir. Tuketiciler glob DEGIL '
+              'INDEKS okur. Klasordeki OKUBENI.txt bunu tekrar eder.']:
+        yaz(ws, n, 1, s, fill=SARI if s.startswith('DIKKAT') else None)
+        ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+        ws.row_dimensions[n].height = 52; n += 1
+    n += 1
+
+    yaz(ws, n, 1, '6. KOD YOLLARI - konsensus okuyan her betik ve yonu nasil ele aldigi',
+        bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, 'Otomatik tarama (yon_kod_taramasi.py, yorum/docstring atilarak) + elle not. '
+                  'Tam liste: yon_kod_taramasi_20260802.tsv (%d betik).' % len(kr))
+    ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+    ws.row_dimensions[n].height = 26; n += 1
+    for j, h in enumerate(['Betik', 'Sinif', 'Karisik kaynak', 'Normalize kaynak',
+                           'Iki yon deniyor', 'Kendi yamasi', 'Not'], 1):
+        yaz(ws, n, j, h, bold=True, fill=GRI)
+    n += 1
+    onem = {'HAM_KAYNAK_VARSAYIM': 0, 'KAYNAK_BELIRSIZ': 1, 'NORMALIZE_KAYNAK': 2,
+            'IKI_YON_DENIYOR': 3, 'KENDI_YAMASI': 4, 'YON_ILGISIZ': 5}
+    for r in sorted(kr, key=lambda x: (onem.get(x['sinif'], 9), x['betik'])):
+        if r['betik'].startswith('screening/eski/'):
+            continue
+        f = (KIRMIZI if r['sinif'] == 'HAM_KAYNAK_VARSAYIM' and 'yapilandirma' not in r['betik']
+             and 'yon_denetimi' not in r['betik'] else
+             YESIL if r['betik'] in KOD_NOT and KOD_NOT[r['betik']].startswith(('DUZELTILDI', 'YENI')) else None)
+        yaz(ws, n, 1, r['betik'], fill=f); yaz(ws, n, 2, r['sinif'], fill=f)
+        yaz(ws, n, 3, r['karisik_kaynak'], fill=f); yaz(ws, n, 4, r['normalize_kaynak'], fill=f)
+        yaz(ws, n, 5, r['iki_yon'], fill=f); yaz(ws, n, 6, r['kendi_yamasi'], fill=f)
+        yaz(ws, n, 7, KOD_NOT.get(r['betik'], ''), fill=f)
+        if KOD_NOT.get(r['betik']):
+            ws.row_dimensions[n].height = 40
+        n += 1
+    n += 1
+
+    yaz(ws, n, 1, '7. BU GECE KOSULACAK URETIM - ozellikle kontrol edildi', bold=True, fill=YESIL); n += 1
+    for s in ['konsensus_uret.py UC yerde duzeltildi: (a) sablon kanonige cevriliyor, '
+              '(b) oksuz kutu sablonu (ham okuma) da cevriliyor, (c) CIKTI yazilmadan once bir kez '
+              'daha olculup cevriliyor (son emniyet kemeri). Cikti fasta basligina kanonik=... '
+              'cevrildi=... yaziliyor, TSV\'ye cikti_yon ve cikti_cevrildi sutunlari eklendi.',
+              'KAPI KONDU: konsensus_uret.calistir() basinda yon sinamasi kosar; gecmezse '
+              'URETIM BASLATILMAZ ve ne yapilacagi yazilir. Gerekce: bu adimin ciktisi yanlis '
+              'yonde cikarsa butun gece bosa gider.',
+              'kendini_sina.py icine yon_sinamasi() eklendi (3 madde: yon.py kendi sinavi, kanonik '
+              'sette ters dosya var mi, bilinen cevapli etki testi). primer3 gibi opsiyonel '
+              'bagimliliklara TAKILMAZ - ayri cagrilabilir. Bu oturumda kosuldu: 3/3 GECTI '
+              '(dogru 39/40, ters 0/40).',
+              'SIRA: (1) python screening/kanonik_uret.py --kok .   (2) screening.bat '
+              'menusunden konsensus yeniden uretimi   (3) uretim bitince kanonik_uret\'i '
+              '--oncelik yeni ile TEKRAR kosun ki yeni set kanonik kaynak olsun.']:
+        yaz(ws, n, 1, s, fill=SARI if s.startswith('SIRA') else None)
+        ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+        ws.row_dimensions[n].height = 56; n += 1
+    n += 1
+
+    yaz(ws, n, 1, '8. ACIK KALAN', bold=True, fill=SARI); n += 1
+    for s in ['konsensus_kanonik su an referans_konsensus/konsensus kaynakli (99 kutu) + 1 oksuz '
+              'kutu (A1-1_2209, ozgun klasorden, ANTISENSE idi, cevrildi). konsensus_yeni EKSIK '
+              'oldugu icin (35/99) kanonige alinmadi - yarim bir seti tam bir setle karistirmak '
+              'heterojen taban yaratir. Gece uretimi bitince --oncelik yeni ile yeniden kosulmali.',
+              'steps/split_clusters.py karisik klasoru tek yon varsayarak okuyor. Panelin '
+              'MEVCUT sayilarini uretmiyor (devre disi hat) ama yeniden kosulursa yanlis sonuc '
+              'verir. Kanonige cevrilmeli ya da arsivlenmeli.',
+              'yon_kod_taramasi\'nda KAYNAK_BELIRSIZ isaretli betikler (cogu steps ve '
+              'SON_ETAP_betikleri altinda) konsensus yolunu komut satirindan aliyor; yonu cagiran '
+              'tarafa birakiyorlar. Bunlar eski hattir. Yeniden kosulacaksa kanonik klasor '
+              'verilmelidir.',
+              'Bu sayfadaki yon olcumu konsensus dosyalarinadir. HAM OKUMA olcumleri yondan '
+              'etkilenmez (okumalar zaten iki yonde taranir) - "16 Okuma Motoru Duzeltmesi" '
+              'sayfasindaki sayilar bu bulgudan ETKILENMEZ.']:
+        yaz(ws, n, 1, s)
+        ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
+        ws.row_dimensions[n].height = 56; n += 1
+
+    wb.save(a.xlsx)
+    print('sayfa yazildi:', ad, '| satir', n)
+
+
+if __name__ == '__main__':
+    main()

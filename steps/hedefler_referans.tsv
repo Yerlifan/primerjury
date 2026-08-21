@@ -1,0 +1,28 @@
+# Numunede karsilanamayan hedefler icin REFERANS veritabanindan tasarim.
+# Bu ciftler numuneyle DOGRULANMAZ; yalnizca numunede destek olup olmadigi olculur.
+#
+# 2026-08-01 genisletmesi. Gerekcesi check_taxonomic_level.py'nin olcumu:
+#   Bacteroidaceae_ailesi     -> 65 Bacteroides turunun 0'ini cogaltiyor
+#   Alistipes_cinsi           -> 22 Alistipes turunun 0'ini cogaltiyor
+#   Podospora_pseudopauciseta -> hedef turde urun yok, kardes turleri cogaltiyor
+#   Microascaceae/Trichoderma -> hedef turde cogaltilan Petriella musispora
+#
+# veritabani sutunu artik virgulle birden cok dosya alir. Rakip kumesi elle
+# yazilanla sinirli degil: hedefin cinsindeki oteki turler VERIDEN bulunup
+# eklenir (15'in --kardes-rakip secenegi, varsayilan acik). Onceki surumde
+# Podospora tasarimi 29 rakip diziyle yapilmis, 27'nin dogrulama paneli ise
+# 242 kayit / 50 tur cikmisti; basarisizligin sebebi tam olarak bu farkti.
+# Bu yuzden elle yazilan kardes tur adlari (Podospora anserina, comata gibi)
+# listeden CIKARILDI: artik veriden bulunuyorlar ve elle liste eksik
+# kalabilecegi icin yanlis guven veriyordu. Elle kalanlar yalniz BASKA
+# cinslerden rakipler.
+ad	sinif	veritabani	ic	dis	taxid
+Methanosarcina_barkeri_referans	A1	archaea.16S.fna	Methanosarcina barkeri	Methanothrix soehngenii,Methanoculleus,Methanocorpusculum,Methanobrevibacter,Methanofollis,Nitrosocosmicus	2208
+Proteiniphilum_cinsi_referans	B	bacteria.16S.fna	Proteiniphilum saccharofermentans,Proteiniphilum acetatigenes	Petrimonas,Bacteroides,Alistipes,Sphaerochaeta,Cloacibacillus,Dysgonomonas,Parabacteroides,Fermentimonas	2829812,1642647
+Podospora_pseudopauciseta_referans	F1	fungi.ITS.fna,UNITE_ITS.fasta	Podospora pseudopauciseta	Trichoderma,Botrytis,Metarhizium,Schizosaccharomyces,Colletotrichum,Petriella	2093780
+Bacteroidaceae_ailesi_referans	B	bacteria.16S.fna	Bacteroides	Parabacteroides,Acetobacteroides,Pdegerlendiricieicola,Alistipes,Petrimonas,Proteiniphilum,Dysgonomonas,Prevotella,Fermentimonas	818,28116
+Alistipes_cinsi_referans	B	bacteria.16S.fna	Alistipes	Bacteroides,Parabacteroides,Pdegerlendiricieicola,Dysgonomonas,Petrimonas,Proteiniphilum,Prevotella,Fermentimonas	214856
+Microascaceae_askomikot_referans	F2	fungi.ITS.fna,UNITE_ITS.fasta	Trichoderma asperellum	Petriella,Metarhizium,Botrytis,Colletotrichum,Podospora	101201
+Petriella_musispora_referans	F2	fungi.ITS.fna,fungi.28SrRNA.fna,UNITE_ITS.fasta	Petriella musispora	Trichoderma,Podospora,Metarhizium,Botrytis,Colletotrichum	101201,2034170,63577
+Proteolitik_Cloacibacillus_referans	B	bacteria.16S.fna	Cloacibacillus porcorum,Cloacibacillus evryensis	Bacteroides,Alistipes,Petrimonas,Proteiniphilum,Sphaerochaeta,Dysgonomonas,Parabacteroides	1197717
+Sakarolitik_Sphaerochaeta_referans	B	bacteria.16S.fna	Sphaerochaeta	Treponema,Bacteroides,Alistipes,Petrimonas,Proteiniphilum,Dysgonomonas	1129264

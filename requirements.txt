@@ -2,11 +2,11 @@
 #     python3 -m pip install -r requirements.txt
 #
 # External binaries (blastn, MFEprimer, minimap2, samtools, seqkit, kraken2)
-# are NOT pip-installable; use `bash KUR.sh araclar`.
+# are NOT pip-installable; use `bash install.sh araclar`.
 
 primer3-py>=2.0        # oligo thermodynamics (one of two independent Tm sources)
 biopython>=1.79        # sequence handling, second independent Tm source
-numpy>=1.21            # vectorised scanning in KAPSAMLI_ARAMA/motor.py
+numpy>=1.21            # vectorised scanning in screening/motor.py
 openpyxl>=3.0          # Excel deliverables
 pysam>=0.19            # BAM/pileup for consensus and N-analysis
 matplotlib>=3.5        # figures

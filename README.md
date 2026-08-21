@@ -1,4 +1,4 @@
-# MicRhoBooster
+# PrimerJury
 
 **qPCR primer design for anaerobic digester microbiomes — with independent identity verification that does not trust a single database.**
 
@@ -29,7 +29,7 @@ against four independent layers before anything is ordered.
 ## What it does
 
 ```
-sekanslar/  (your .fasta / .fastq)
+sequences/  (your .fasta / .fastq)
      │
      ├─ 1. classify            Kraken2 + Bracken           (optional, see below)
      ├─ 2. consensus           per-bin consensus, N-analysis
@@ -59,7 +59,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 
 ### Identity verification
 
-`KURTARMA/kimlik_dogrulama.py` deliberately shares no mechanism with Kraken2:
+`verification/kimlik_dogrulama.py` deliberately shares no mechanism with Kraken2:
 
 - **No taxonomy tree, no k-mer LCA, no primers.** Seeds are extracted from the
   query consensus, the database is streamed, a short list is built, and every
@@ -109,11 +109,11 @@ Python packages are in `requirements.txt`.
 One entry point handles tools, databases, Kraken2 and QIIME2:
 
 ```bash
-bash KUR.sh durum          # measure what is installed — changes nothing
-bash KUR.sh araclar        # kraken2, bracken, minimap2, samtools, blast, seqkit
-bash KUR.sh veritabani     # SILVA + PR2 + RefSeq (+ UNITE/ROD instructions)
-bash KUR.sh qiime          # QIIME2 + PICRUSt2 + SILVA classifier
-bash KUR.sh hepsi          # all of the above
+bash install.sh durum          # measure what is installed — changes nothing
+bash install.sh araclar        # kraken2, bracken, minimap2, samtools, blast, seqkit
+bash install.sh veritabani     # SILVA + PR2 + RefSeq (+ UNITE/ROD instructions)
+bash install.sh qiime          # QIIME2 + PICRUSt2 + SILVA classifier
+bash install.sh hepsi          # all of the above
 ```
 
 Reference databases total roughly **28 GB** and are never committed to git.
@@ -136,7 +136,7 @@ current one and verifies whatever you hand it.
 Prebuilt Kraken2 databases are fixed at `k=35, l=31`. To choose your own:
 
 ```bash
-bash KUR.sh kraken-kur --kmer 31 --db ~/k2db_k31
+bash install.sh kraken-kur --kmer 31 --db ~/k2db_k31
 ```
 
 Shorter *k* raises sensitivity on error-prone long reads (ONT) but pushes the
@@ -152,11 +152,11 @@ Whatever *k* you build with, verify identity independently.
 
 ## Run
 
-Put your sequences in `sekanslar/`, then:
+Put your sequences in `sequences/`, then:
 
 ```bash
-bash KAPSAMLI_ARAMA.bat        # Windows menu (legacy)
-python3 KURTARMA/tam_zincir.py --kok . --onayla    # full chain
+bash screening.bat        # Windows menu (legacy)
+python3 verification/tam_zincir.py --kok . --onayla    # full chain
 ```
 
 The full chain runs ten stages in dependency order and **checks the output of
@@ -169,18 +169,18 @@ erroring.
 Individual stages:
 
 ```bash
-python3 KURTARMA/kimlik_dogrulama.py --kok .      # identity verification
-python3 KURTARMA/dogrulama_turu.py --kok .        # 4-layer specificity
-python3 TEK_PROTOKOL/tek_protokol_olc.py --kok .  # single-protocol panel measurement
-python3 capraz_kontrol.py --kok .                 # read-only independent audit
+python3 verification/kimlik_dogrulama.py --kok .      # identity verification
+python3 verification/dogrulama_turu.py --kok .        # 4-layer specificity
+python3 protocol/tek_protokol_olc.py --kok .  # single-protocol panel measurement
+python3 cross_check.py --kok .                 # read-only independent audit
 ```
 
 ### Tests
 
 ```bash
-python3 DENETIM_SINAMALARI/sina_taksonomi.py         # 5 header formats, real DBs
-python3 DENETIM_SINAMALARI/sina_adsiz_kayit.py       # unnamed records cannot become names
-python3 DENETIM_SINAMALARI/sina_D9_karisik_klasor.py # orientation-trap detector
+python3 tests/test_taxonomy.py         # 5 header formats, real DBs
+python3 tests/test_unnamed_records.py       # unnamed records cannot become names
+python3 tests/test_orientation_trap.py # orientation-trap detector
 ```
 
 Each exits non-zero on failure and prints what it measured.
@@ -213,11 +213,11 @@ These are not style preferences; each was paid for with a real bug.
 Honest list; these are the gaps between "runs for the original study" and
 "general-purpose tool":
 
-- **Targets are still study-specific.** `WSL_betikleri/hedefler.tsv` and
-  `KAPSAMLI_ARAMA/hedef_klad.tsv` describe the original 20 targets and 5
-  amplicon groups. Samples in `ornek_veri/` show the format. Generalising the
+- **Targets are still study-specific.** `steps/hedefler.tsv` and
+  `screening/hedef_klad.tsv` describe the original 20 targets and 5
+  amplicon groups. Samples in `examples/` show the format. Generalising the
   target definition is the main open work item.
-- **`KAPSAMLI_ARAMA/yapilandirma.py` holds every path and constant** and is
+- **`screening/yapilandirma.py` holds every path and constant** and is
   meant to be edited. Moving it to YAML/TOML is planned — the good news is that
   it is genuinely the only place paths are defined.
 - **Layer 2 taxonomic discrimination is new** and its effect on verdicts is
@@ -234,25 +234,44 @@ Honest list; these are the gaps between "runs for the original study" and
 
 | Path | Contents |
 |---|---|
-| `KAPSAMLI_ARAMA/` | search engine, in-silico PCR, scoring, configuration |
-| `KURTARMA/` | orchestration, identity verification, the four layers |
-| `WSL_betikleri/` | numbered pipeline, `00` → `27` |
-| `TEK_PROTOKOL/` | single-protocol panel measurement |
-| `ORTAK_PUANLAYICI/` | shared scoring |
-| `DENETIM_SINAMALARI/` | tests |
-| `ARACLAR/` | Kraken2 environment/database tooling |
+| `screening/` | search engine, in-silico PCR, scoring, configuration |
+| `verification/` | orchestration, identity verification, the four layers |
+| `steps/` | numbered pipeline, in dependency order |
+| `protocol/` | single-protocol panel measurement |
+| `scoring/` | shared scoring |
+| `tests/` | tests |
+| `tools/` | Kraken2 environment/database tooling |
 | `docs/` | audit report and working log (Turkish) |
-| `sekanslar/` | **your input goes here** |
+| `sequences/` | **your input goes here** |
 
 ---
 
-## Citation and licence
+## Documentation
 
-Released under the MIT licence — see [LICENSE](LICENSE). If you need a different
-licence, change that file before publishing; nothing else depends on it.
+**[Full user guide → `docs/GUIDE.md`](docs/GUIDE.md)** — installation, input
+preparation, defining your own targets, reading the output, and troubleshooting.
 
-If this is useful in published work, please cite the repository. Add author and
-DOI details to `CITATION.cff` before release.
+`docs/DENETIM_2026-08-21.md` is the pre-release code audit (Turkish): what was
+measured, what was broken, and what was fixed.
+
+## Licence
+
+**[PolyForm Noncommercial 1.0.0](LICENSE)** — free for any noncommercial purpose.
+
+- **Anyone may use it**: researchers, students, universities, public research
+  organisations, health and environmental organisations, government institutions,
+  hobbyists — regardless of how they are funded.
+- **You may modify and redistribute it**, keeping this licence.
+- **You may not make money from it**: no commercial products, paid services, or
+  commercial advantage built on this software.
+
+Note that this is a source-available licence, not an OSI-approved open-source
+one; GitHub will show it as "Other". That is the intended trade-off.
+
+## Citation
+
+If this is useful in published work, please cite the repository. Fill in the
+author and DOI fields in `CITATION.cff` before release.
 
 ## Contributing
 
