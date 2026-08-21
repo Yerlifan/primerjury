@@ -423,28 +423,25 @@ def main():
             kayitlar = {k: v for k, v in ham.items()
                         if not k.startswith("_")} if isinstance(ham, dict) else {}
             if eski is None:
-                log("checkpoint parmak izi TASIMIYOR (eski surumden kalma), "
-                    "yok sayiliyor")
+                log(u'the checkpoint CARRIES NO fingerprint (left over from an old version), it is ignored')
             elif eski != parmak:
-                log("checkpoint parmak izi UYUSMUYOR, yok sayiliyor")
-                log("   kayitli : %s" % eski)
-                log("   simdiki : %s" % parmak)
-                log("   Aday dosyalari ya da esikler degismis; eski "
-                    "dogrulama sonuclari yeniden kullanilmayacak.")
+                log(u'the checkpoint fingerprint DOES NOT MATCH, it is ignored')
+                log(u'   recorded: %s' % eski)
+                log(u'   current : %s' % parmak)
+                log(u'   The candidate files or the thresholds have changed; the old verification results will not be reused.')
             else:
                 ckpt = kayitlar
-                log("checkpoint gecerli: %d hedef zaten islenmis, atlanacak"
+                log(u'the checkpoint is valid: %d targets are already processed, they will be skipped'
                     % len(ckpt))
         except Exception as e:
-            log("checkpoint okunamadi (%s)" % e)
+            log(u'the checkpoint could not be read (%s)' % e)
     t0 = time.time()
-    log("baslangic. adaylar=%s" % a.adaylar)
+    log(u'start. candidates=%s' % a.adaylar)
 
     mfe = a.mfe or os.path.join(a.pt, "tools", "mfeprimer")
     kullan_mfe = (not a.atla_mfe) and os.path.exists(mfe) and os.access(mfe, os.X_OK)
     if not a.atla_mfe and not kullan_mfe:
-        log("UYARI: mfeprimer bulunamadi ya da calistirilabilir degil (%s), "
-            "dis veritabani adimi atlanacak" % mfe)
+        log(u'WARNING: mfeprimer was not found or is not executable (%s), the external database step will be skipped' % mfe)
     # External database specificity is NOW done in external_databases.py.
     # The flags here stand only for backward compatibility; which step runs where is
     # written openly into the log, so that no silent difference is left between the
@@ -453,7 +450,7 @@ def main():
         subprocess.run(["bash", "-c", "command -v blastn"],
                        capture_output=True).stdout.strip())
     if not a.atla_blast and not kullan_blast:
-        log("UYARI: blastn bulunamadi, ikinci olcum atlanacak")
+        log(u'WARNING: blastn was not found, the second measurement will be skipped')
 
     # fastq envanteri: sinif_taxid -> yol
     fq = {}
@@ -462,7 +459,7 @@ def main():
         m = re.search(r"reads[-_](\d+)", os.path.basename(p))
         if m:
             fq[(re.split(r"[-_]", grp)[0], grp, m.group(1))] = p
-    log("fastq envanteri: %d dosya" % len(fq))
+    log(u'fastq inventory: %d files' % len(fq))
 
     # the consensus inventory: (group, taxid) -> path. For the cross contamination measurement.
     kons = {}
@@ -471,15 +468,13 @@ def main():
             m = re.match(r"((?:A1|A2|B|F1|F2)-\d+)_(\d+)_", os.path.basename(p2))
             if m:
                 kons[(m.group(1), m.group(2))] = p2
-        log("konsensus envanteri: %d dosya" % len(kons))
+        log(u'consensus inventory: %d files' % len(kons))
         log(hizalama.durum())
         if not MAPPY:
-            log("UYARI: hizalama arka ucu yok, capraz bulasma olculemiyor. "
-                "Sabit esik (--rakip-wilson-max %.3f) kullanilacak."
+            log(u'WARNING: there is no alignment backend, cross contamination cannot be measured. The fixed threshold (--rakip-wilson-max %.3f) will be used.'
                 % a.rakip_wilson_max)
     else:
-        log("--kons verilmedi: capraz bulasma olculmeyecek, sabit esik "
-            "kullanilacak (--rakip-wilson-max %.3f)" % a.rakip_wilson_max)
+        log(u'--kons was not given: cross contamination will not be measured, a fixed threshold will be used (--rakip-wilson-max %.3f)' % a.rakip_wilson_max)
 
     def _kons_of(fq_yolu):
         b = os.path.basename(fq_yolu)
@@ -524,17 +519,13 @@ def main():
         if satirlar:
             basliklar = satirlar[0].split("\t")
             if "grup" not in basliklar or "taxid" not in basliklar:
-                sys.exit("HATA: %s basligi taninmadi: %s\n"
-                         "Beklenen sutunlar: grup, taxid, etiket, uzunluk, "
-                         "kapsanan.\nBu dosya eski bir 08 surumunden kalmis "
-                         "olabilir; 08'i yeniden calistirin." % (dl, basliklar))
+                sys.exit(u'ERROR: the header of %s was not recognised: %s\nExpected columns: grup, taxid, etiket, uzunluk, kapsanan.\nThis file may be left over from an old batch_design.py version; run batch_design.py again.' % (dl, basliklar))
             ig, it = basliklar.index("grup"), basliklar.index("taxid")
             for satir in satirlar[1:]:
                 p2 = satir.split("\t")
                 if len(p2) > max(ig, it) and p2[ig].strip() and p2[it].strip():
                     dislanan.add((p2[ig].strip(), p2[it].strip()))
-        log("08'in disladigi (grup, takson): %d -> uye kumesinden cikarilir, "
-            "rakip kumesinde ham okumalariyla KALIR" % len(dislanan))
+        log(u'excluded by batch_design.py (group, taxon): %d -> taken out of the member set, KEPT in the competitor set with its raw reads' % len(dislanan))
         for g, t in sorted(dislanan):
             log("   %s %s" % (g, t))
 
@@ -544,28 +535,27 @@ def main():
         for r in csv.DictReader(open(ae, encoding="utf-8"), delimiter="\t"):
             ayirt.setdefault((r["sinif"], r["taxid1"]), set()).add(r["taxid2"])
             ayirt.setdefault((r["sinif"], r["taxid2"]), set()).add(r["taxid1"])
-        log("ayirt edilemez cift tablosu okundu: %s (%d kayit)"
+        log(u'the indistinguishable pair table was read: %s (%d records)'
             % (ae, sum(len(v) for v in ayirt.values()) // 2))
     else:
-        log("UYARI: %s yok, ayirt edilemez takson ayiklamasi yapilmayacak" % ae)
+        log(u'WARNING: %s is missing, indistinguishable taxa will not be filtered out' % ae)
 
     sonuc = []
     tsvler = sorted(glob.glob(os.path.join(a.adaylar, "*__*.tsv")))
-    log("NOT: dis veritabani ozgullugu (mfeprimer ve blastn) bu betikte "
-        "DEGIL, external_databases.py adiminda calisir.")
-    log("islenecek aday dosyasi: %d" % len(tsvler))
+    log(u'NOTE: external database specificity (mfeprimer and blastn) does NOT run in this script, it runs in the external_databases.py step.')
+    log(u'candidate files to process: %d' % len(tsvler))
 
     for ti, tsv in enumerate(tsvler, 1):
         etiket = os.path.basename(tsv)[:-4]
         hedef, sinif = etiket.rsplit("__", 1)
         if etiket in ckpt and not a.yeniden:
-            log("[%d/%d] ATLANDI (checkpoint) %s" % (ti, len(tsvler), etiket))
+            log(u'[%d/%d] SKIPPED (checkpoint) %s' % (ti, len(tsvler), etiket))
             sonuc.extend(ckpt[etiket])
             continue
         th = time.time()
         rows = list(csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t"))
         if not rows:
-            log("[%d/%d] %s bos, atlandi" % (ti, len(tsvler), etiket))
+            log(u'[%d/%d] %s is empty, skipped' % (ti, len(tsvler), etiket))
             ckpt[etiket] = []
             continue
         h = hedefler.get(hedef, {})
@@ -617,14 +607,13 @@ def main():
                     temiz.append(v)
             rakip_fq = temiz
         if atilan_tx:
-            log("      rakipten cikarildi (hedefle ayirt edilemez): %s"
+            log(u'      taken out of the competitors (indistinguishable from the target): %s'
                 % ", ".join(sorted(atilan_tx)))
-        log("[%d/%d] %-46s aday=%d uye_takson=%d uye_fastq=%d rakip_fastq=%d "
-            "(fastq basina en fazla %d okuma)"
+        log(u'[%d/%d] %-46s candidates=%d member_taxa=%d member_fastq=%d competitor_fastq=%d (at most %d reads per fastq)'
             % (ti, len(tsvler), etiket, len(rows), len(uye_takson),
                len(uye_fq), len(rakip_fq), a.max_okuma))
         if not uye_fq:
-            log("      uye fastq bulunamadi, ham okuma dogrulamasi atlanacak")
+            log(u'      no member fastq was found, the raw read verification will be skipped')
 
         uye_kons = [k for k in (_kons_of(x) for x in uye_fq) if k]
 
@@ -728,10 +717,10 @@ def main():
                       ozgulluk_durum=",".join(durum) if durum else "GECTI")
             gecen.append(r2)
             if len(durum) == 0:
-                log("      [%d] GECTI  F=%s R=%s  uye=%d/%d takson rakipW=%.4f"
+                log(u'      [%d] GECTI  F=%s R=%s  members=%d/%d taxa competitorW=%.4f'
                     % (ri, F, R, uye_dogru, len(uye_takson), rak_w))
             if sum(1 for g in gecen if g["ozgulluk_durum"] == "GECTI") >= 5:
-                log("      bes gecerli aday bulundu, bu hedef icin duruldu")
+                log(u'      five valid candidates were found, stopped for this target')
                 break
         ckpt[etiket] = gecen
         sonuc.extend(gecen)
@@ -739,15 +728,15 @@ def main():
         with open(CKPT, "w", encoding="utf-8") as cf:
             json.dump(ckpt, cf, ensure_ascii=False)
         yaz(a.out, sonuc)
-        log("      bitti, %.1f sn, gecen=%d/%d"
+        log(u'      done, %.1f s, passed=%d/%d'
             % (time.time() - th,
                sum(1 for g in gecen if g["ozgulluk_durum"] == "GECTI"), len(gecen)))
 
     yaz(a.out, sonuc)
     ok = sum(1 for s in sonuc if s["ozgulluk_durum"] == "GECTI")
-    log("TOPLAM: %d aday sinandi, %d tanesi butun kurallardan gecti" % (len(sonuc), ok))
-    log("toplam sure: %.1f dakika" % ((time.time() - t0) / 60))
-    log("cikti: %s" % os.path.join(a.out, "primer_final.tsv"))
+    log(u'TOTAL: %d candidates tested, %d of them passed every rule' % (len(sonuc), ok))
+    log(u'total time: %.1f minutes' % ((time.time() - t0) / 60))
+    log(u'output: %s' % os.path.join(a.out, "primer_final.tsv"))
 
 
 def yaz(out, sonuc):
