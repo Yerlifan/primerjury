@@ -182,13 +182,10 @@ def main():
 
     my = os.path.join(kok, 'TOPLANTI_DURUMU.md')
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Toplantıda ne istendi, hangisi oldu\n\n')
-        fh.write(u'Üretim: %s\n\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'Kaynak: `steps/hedefler.tsv` (toplantı kararlarının '
-                 u'kendisi) yan yana `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` ve '
-                 u'`DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv`. Hiçbir durum elle '
-                 u'yazılmadı; hepsi bu dosyalardan okundu.\n\n')
-        fh.write(u'| durum | kaç istek |\n|---|---|\n')
+        fh.write(u'# What was requested, and what was achieved\n\n')
+        fh.write(u'Generated: %s\n\n' % time.strftime('%Y-%m-%d %H:%M'))
+        fh.write(u'Source: `steps/hedefler.tsv` (the requested targets themselves) beside `TEK_PROTOKOL_SONUC/SIPARIS_LISTES')
+        fh.write(u'| status | how many requests |\n|---|---|\n')
         for k in sorted(sayim, key=lambda x: -sayim[x]):
             fh.write(u'| %s | %d |\n' % (k, sayim[k]))
         fh.write(u'\n')
@@ -197,8 +194,7 @@ def main():
             if not grup:
                 continue
             fh.write(u'## %s\n\n' % KARAR_ADI.get(no, u'Karar %s' % no))
-            fh.write(u'| istenen | paneldeki karşılığı | durum | dCq | not |\n'
-                     u'|---|---|---|---|---|\n')
+            fh.write(u'| requested | its counterpart in the panel | status | dCq | note |\n|---|---|---|---|---|\n')
             for s in grup:
                 fh.write(u'| %s | %s | **%s** | %s | %s |\n'
                          % (s['istenen'], s['panel'] or '—', s['durum'],
@@ -206,7 +202,7 @@ def main():
             fh.write(u'\n')
         yapilamadi = [s for s in satirlar if s['durum'] == u'YAPILAMADI']
         if yapilamadi:
-            fh.write(u'## Yapılamayanlar ve sebebi\n\n')
+            fh.write(u'## Not achieved, and why\n\n')
             for s in yapilamadi:
                 fh.write(u'### %s\n\n%s\n\n' % (s['istenen'], s['not_']))
 

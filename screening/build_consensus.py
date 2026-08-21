@@ -200,7 +200,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     # (ters yonlu konsensuste in-silico PCR SESSIZCE 0 urun verir).
     from . import self_test as _KS
     if not _KS.yon_sinamasi(yaz):
-        yaz('   YON SINAMASI DUSTU - konsensus uretimi BASLATILMADI.')
+        yaz(u'   THE ORIENTATION TEST FAILED, so consensus generation WAS NOT STARTED.')
         yaz('   Once calistirin: python screening/build_canonical.py --kok .')
         return None
     from .hepsi import yon_kapisi
@@ -226,16 +226,16 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     yaz('=' * 78)
     yaz('  KONSENSUSLERIN HAM OKUMALARDAN YENIDEN URETIMI')
     yaz('=' * 78)
-    yaz('  kutu sayisi   : %d' % len(kut))
-    yaz('  okuma filtresi: %d-%d bp  (A2 ~4,5 kb ve F2 ~3,7 kb ELENMEZ)'
+    yaz(u'  number of bins: %d' % len(kut))
+    yaz(u'  read filter   : %d-%d bp  (A2 at ~4.5 kb and F2 at ~3.7 kb are NOT discarded)'
         % (OKUMA_MIN, OKUMA_MAX))
-    yaz('  yontem        : (A) kalite agirlikli, esik %.2f   (B) cogunluk oyu, esik %.2f'
+    yaz(u'  method        : (A) quality weighted, threshold %.2f   (B) majority vote, threshold %.2f'
         % (AGIRLIK_ESIGI, COGUNLUK_ESIGI))
-    yaz('  uzlasmayan sutun -> N (maskelenir). DEJENERE BAZ URETILMEZ.')
-    yaz('  5\' uc KESILMEZ - cikti sablon boyunda, kapsanmayan sutun N.')
+    yaz(u'  a column with no agreement becomes N (masked). NO DEGENERATE BASE IS PRODUCED.')
+    yaz(u'  the 5\' end is NOT TRIMMED. The output keeps the template length, and any uncovered column is N.')
     yaz('')
     tahmin = len(kut) * 12
-    yaz('TAHMINI SURE: ~%s   (her kutu bitince diske yazilir, devam eder)\n' % sure(tahmin))
+    yaz(u'ESTIMATED TIME: ~%s   (each bin is written to disk as it finishes, so it resumes)\n' % sure(tahmin))
 
     satirlar = []
     t0 = time.time()
