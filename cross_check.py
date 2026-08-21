@@ -285,7 +285,7 @@ class KontrolNoktasi(object):
             return v
         except (ValueError, IOError) as e:
             # Bozuk kontrol noktasi SESSIZCE yok sayilmaz, ekrana basilir.
-            yaz(u'  UYARI: kontrol noktasi okunamadi (%s): %s' % (anahtar, e))
+            yaz(u'  WARNING: could not read checkpoint (%s): %s' % (anahtar, e))
             self.iska += 1
             return None
 
@@ -296,7 +296,7 @@ class KontrolNoktasi(object):
             with io.open(self._yol(anahtar), 'w', encoding='utf-8') as fh:
                 fh.write(unicode_(json.dumps(veri, ensure_ascii=False, default=str)))
         except IOError as e:
-            yaz(u'  UYARI: kontrol noktasi yazilamadi (%s): %s' % (anahtar, e))
+            yaz(u'  WARNING: could not write checkpoint (%s): %s' % (anahtar, e))
 
 
 class Canlilik(object):
@@ -331,7 +331,7 @@ class Canlilik(object):
 
     def bitti(self, n):
         d = time.time() - self.t0
-        yaz(u'  %s bitti: %d oge, %s' % (self.etiket, n, sure_metni(d)))
+        yaz(u'  %s done: %d items, %s' % (self.etiket, n, sure_metni(d)))
         return d
 
 
@@ -1191,13 +1191,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                  u'suzgecten sonra kutu kalmadi', kay.konsensus_indeks)
         return
 
-    yaz(u'M1: %d kutu, kip=%s' % (len(kutular), kip))
+    yaz(u'M1: %d bins, mode=%s' % (len(kutular), kip))
 
     # -----------------------------------------------------------------
     # ASAMA A - N orani, okuma hata orani, karisim/saflik.
     # Bu asama HIC VERITABANI OKUMAZ; tamamen kutunun kendi verisiyle olcer.
     # -----------------------------------------------------------------
-    yaz(u'M1/A: N orani, okuma hata orani ve karisim olcumu...')
+    yaz(u'M1/A: N fraction, read error rate and mixture measurement...')
     # Kac kutunun GERCEKTEN hesaplandigini sayariz. Kontrol noktasindan okunan
     # kutular sifir saniye surer; onlari da sayarsak "kutu basina 0 saniye"
     # cikar ve tam tarama tahmini gercek disi bir sekilde kisa gorunur.
@@ -1326,7 +1326,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     vtb = [(e, d, t) for e, d, t, kullan, _n in K.VTB if kullan]
     if kip == u'hizli':
         vtb = [v for v in vtb if v[0] in HIZLI_VTB]
-    yaz(u'M1/B: %d veritabani taranacak: %s' % (len(vtb), u', '.join(v[0] for v in vtb)))
+    yaz(u'M1/B: %d databases to scan: %s' % (len(vtb), u', '.join(v[0] for v in vtb)))
 
     bulgular_kutu = collections.defaultdict(list)   # kutu -> [isabet, ...]
     for ei, (etiket, dosya, lokus) in enumerate(vtb, 1):
@@ -1344,12 +1344,12 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         if onbellek is not None:
             for kutu, isabetler in onbellek.items():
                 bulgular_kutu[kutu].extend(isabetler)
-            yaz(u'  [%d/%d] %s - kontrol noktasindan okundu' % (ei, len(vtb), etiket))
+            yaz(u'  [%d/%d] %s - read from checkpoint' % (ei, len(vtb), etiket))
             continue
 
         t0 = time.time()
         mb = os.path.getsize(yol) / 1e6
-        yaz(u'  [%d/%d] %s (%s MB) taraniyor...' % (ei, len(vtb), etiket, vir(mb, 1)))
+        yaz(u'  [%d/%d] %s (%s MB) scanning...' % (ei, len(vtb), etiket, vir(mb, 1)))
         can2 = Canlilik(u'%s kayit' % etiket, None, aralik=20.0)
         try:
             kls, taranan = T.toplu_kisa_liste(K, yol, sorgular, KL_UST,
@@ -1447,13 +1447,13 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             u'%d kutu, %s (%s sn/kutu)'
             % (len(kutular), sure_metni(hiz_sn), vir(hiz_sn / max(1, len(kutular)), 2)))
         kn.yazdir(anahtar, vtb_sonuc)
-        yaz(u'  [%d/%d] %s bitti: tarama %s + hizalama %s'
+        yaz(u'  [%d/%d] %s done: scan %s + alignment %s'
             % (ei, len(vtb), etiket, sure_metni(tarama_sn), sure_metni(hiz_sn)))
 
     # -----------------------------------------------------------------
     # ASAMA C - hukum + Kraken karsilastirmasi
     # -----------------------------------------------------------------
-    yaz(u'M1/C: hukum ve Kraken karsilastirmasi...')
+    yaz(u'M1/C: verdict and Kraken comparison...')
     kharita = _kraken_haritasi(kay.kraken)
     if not kharita:
         rap.atla(M, u'M1-KRAKEN-YOK', u'Kraken2 raporlari okunabilmeli',
@@ -1735,7 +1735,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                  u'"hizli" kipte yalniz %d kucuk RefSeq kumesi tarandi; SILVA SSU/LSU, '
                  u'UNITE, PR2, ROD taranmadi' % len(HIZLI_VTB), kay.refdb,
                  u'Nihai hukum icin --m1-kip tam ile kosun.')
-    yaz(u'M1 bitti: %d satir, %d olculemeyen kutu, %s'
+    yaz(u'M1 done: %d rows, %d bins not measurable, %s'
         % (len(satirlar), len(olculemeyen), sure_metni(time.time() - t_basla)))
 
 
@@ -3275,7 +3275,7 @@ def _sinama_vtb_dosyalari(gecici, kay, kmer_satiri=u'kvalue=9, kmer_count=262144
         yol = os.path.join(gecici, 'REFERANS_DB', dosya)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             for i in range(3):
-                fh.write(u'>KAYIT_%d Ornek organism %d; from TYPE material\n%s\n'
+                fh.write(u'>RECORD_%d Example organism %d; from TYPE material\n%s\n'
                          % (i, i, govde))
         with io.open(yol + u'.log', 'w', encoding='utf-8') as fh:
             fh.write(u'Binary index v5-single-strand-64 created: 1 MB, %s\n' % kmer_satiri)
@@ -3326,7 +3326,7 @@ def kendini_sina(kay, cikti):
         # HATA: hedefin KENDI uyesi (111) hedef disi listesine sokuldu.
         yol = os.path.join(g, 'HEDEF_DISI_AYRINTI_2026-08-07.tsv')
         with io.open(yol, 'w', encoding='utf-8') as fh:
-            fh.write(u'hedef\ttaxid\tnot\nHedef_A\t111\tkendi uyesi hedef disi sayildi\n')
+            fh.write(u'hedef\ttaxid\tnot\nHedef_A\t111\tits own member was counted as off-target\n')
         return u'Hedef_A kendi uyesi olan 111 taxid\'i hedef disi listesine eklendi'
 
     def kur_m6(g):
@@ -3342,8 +3342,7 @@ def kendini_sina(kay, cikti):
         # HATA: karsilanmayan bir hedefin sebebi hicbir kategoriye girmiyor.
         yol = os.path.join(g, 'TOPLANTI_KARARLARI_SON_DURUM.md')
         with io.open(yol, 'w', encoding='utf-8') as fh:
-            fh.write(u'## Karar 1\n\n| Istenen tur | Durum |\n|---|---|\n'
-                     u'| *Taxon C* | **Yapilamadi.** Sebep yazilmadi |\n')
+            fh.write(u'## Decision 1\n\n| Requested species | Status |\n|---|---|\n| *Taxon C* | **Not achieved.** No reason recorded |\n')
         return u'Karsilanmayan bir hedefin sebebi dort kategoriden hicbirine girmiyor'
 
     SINAVLAR = [
@@ -3362,7 +3361,7 @@ def kendini_sina(kay, cikti):
     ]
 
     yaz(u'')
-    yaz(u'=== KENDINI SINAMA: her module BILEREK BOZUK girdi veriliyor ===')
+    yaz(u'=== SELF-TEST: each module is given DELIBERATELY BROKEN input ===')
     ayrinti = []
     gecen = 0
     for ad, kur, beklenen_kod, kos in SINAVLAR:
@@ -3385,8 +3384,8 @@ def kendini_sina(kay, cikti):
                 gecen += 1
             durum = u'YAKALADI' if yakalandi else (
                 u'COKTU (%s)' % cokme if cokme else u'YAKALAYAMADI')
-            yaz(u'  [%s] %-22s  ekilen hata: %s' % (
-                u'OK ' if yakalandi else u'HATA', ad, ekilen))
+            yaz(u'  [%s] %-22s  planted error: %s' % (
+                u'OK ' if yakalandi else u'ERROR', ad, ekilen))
             yaz(u'        beklenen bulgu kodu: %s  ->  %s  (%s)'
                 % (beklenen_kod, durum, sure_metni(time.time() - t0)))
             ayrinti.append(dict(modul=ad, ekilen=ekilen, beklenen=beklenen_kod,
@@ -3396,7 +3395,7 @@ def kendini_sina(kay, cikti):
             shutil.rmtree(gecici, ignore_errors=True)
 
     yaz(u'')
-    yaz(u'=== SINAMA SONUCU: %d/%d modul ekilen hatayi yakaladi ==='
+    yaz(u'=== SELF-TEST RESULT: %d/%d modules caught the planted error ==='
         % (gecen, len(SINAVLAR)))
     if not os.path.isdir(cikti):
         os.makedirs(cikti)
@@ -3406,7 +3405,7 @@ def kendini_sina(kay, cikti):
         for a in ayrinti:
             fh.write(u'%s\t%s\t%s\t%s\n' % (a['modul'], _tsv_kacis(a['ekilen']),
                                             a['beklenen'], a['durum']))
-    yaz(u'Sinama ayrintisi: %s' % yol)
+    yaz(u'Self-test detail: %s' % yol)
     return gecen, len(SINAVLAR), ayrinti
 
 
@@ -3465,12 +3464,12 @@ def main():
     cikti = a.cikti or os.path.join(kok, u'KONTROL_SONUC')
     kay = Kaynaklar(kok)
 
-    yaz(u'CAPRAZ KONTROL %s' % VERSIYON)
-    yaz(u'Kok klasor : %s' % kok)
-    yaz(u'Cikti      : %s' % cikti)
-    yaz(u'SALT OKUNUR: bu betik cikti klasoru disinda hicbir dosyaya yazmaz.')
+    yaz(u'CROSS-CHECK %s' % VERSIYON)
+    yaz(u'Root directory : %s' % kok)
+    yaz(u'Output         : %s' % cikti)
+    yaz(u'READ-ONLY: this script writes to nothing outside the output directory.')
     if not os.path.isdir(kok):
-        yaz(u'HATA: kok klasor yok: %s' % kok)
+        yaz(u'ERROR: root directory does not exist: %s' % kok)
         return 8
 
     if a.kendini_sina:
@@ -3484,7 +3483,7 @@ def main():
         secili = [x.strip() for x in a.moduller.split(u',') if x.strip()]
         bilinmeyen = [x for x in secili if x not in MODUL_ADLARI]
         if bilinmeyen:
-            yaz(u'HATA: bilinmeyen modul: %s (gecerli: %s)'
+            yaz(u'ERROR: unknown module: %s (valid: %s)'
                 % (u', '.join(bilinmeyen), u', '.join(MODUL_ADLARI)))
             return 8
 
@@ -3492,7 +3491,7 @@ def main():
     if a.sifirla and os.path.isdir(kn_klasor):
         import shutil
         shutil.rmtree(kn_klasor, ignore_errors=True)
-        yaz(u'Kontrol noktalari silindi (--sifirla).')
+        yaz(u'Checkpoints deleted (--reset).')
     kn = KontrolNoktasi(kn_klasor, etkin=not a.kn_yok)
 
     rap = Rapor()
@@ -3539,7 +3538,7 @@ def main():
                      u'%s: %s | %s' % (type(e).__name__, e,
                                        iz.strip().splitlines()[-1]), u'-')
         sureler[ad] = time.time() - t0
-        yaz(u'--- %s bitti: %s, bulgu K%d/C%d/U%d/B%d/A%d' % (
+        yaz(u'--- %s done: %s, findings C%d/S%d/W%d/I%d/K%d' % (
             ad, sure_metni(sureler[ad]), rap.say(KRITIK, ad), rap.say(CIDDI, ad),
             rap.say(UYARI, ad), rap.say(BILGI, ad), rap.say(ATLANDI, ad)))
 
@@ -3554,14 +3553,14 @@ def main():
     md, tsv, kimlik = raporla(kay, rap, cikti, kosulan, sureler)
     kod = rap.cikis_kodu()
     yaz(u'')
-    yaz(u'================= OZET =================')
+    yaz(u'================= SUMMARY =================')
     for c in (KRITIK, CIDDI, UYARI, BILGI, ATLANDI):
         yaz(u'  %-8s : %d' % (c, rap.say(c)))
-    yaz(u'Rapor      : %s' % md)
-    yaz(u'Makine TSV : %s' % tsv)
+    yaz(u'Report         : %s' % md)
+    yaz(u'Machine TSV    : %s' % tsv)
     if kimlik:
-        yaz(u'Kimlik TSV : %s' % kimlik)
-    yaz(u'Cikis kodu : %d  (1=KRITIK, 2=CIDDI, 4=ATLANDI var; toplanir)' % kod)
+        yaz(u'Identity TSV   : %s' % kimlik)
+    yaz(u'Exit code      : %d  (1=CRITICAL, 2=SERIOUS, 4=SKIPPED present; these are summed)' % kod)
     return kod
 
 
@@ -3569,5 +3568,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-        yaz(u'KESILDI.')
+        yaz(u'INTERRUPTED.')
         sys.exit(8)
