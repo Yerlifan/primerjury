@@ -1,0 +1,40 @@
+# NCBI Primer-BLAST DISLAMA HARITASI  (2026-08-10)
+# Neden: genel organizma kisitiyla (Bacteria OR Archaea OR Fungi)
+# Primer-BLAST bulunan HER urunu "target templates" hanesine koyuyor,
+# "unintended" bolumu bos kaliyor. 22 sayfanin 22'sinde olculdu.
+# Cozum: hedefin KENDI taksonunu ENTREZ_QUERY ile disla; o zaman
+# kalan her urun tanimi geregi hedef disidir.
+# Bos taxid = dislama uygulanmaz ve o hedef SINANMADI yazilir.
+# Birden cok taxid virgulle yazilir: her biri ayri bir NOT terimi olur.
+# EVRENSEL primerlerde de dislama YAPILIR: alani disla, kalan her urun
+# gercek hedef disidir (bakteri primerinin kloroplast tutmasi gibi).
+# ANAHTARLAR SIPARIS_LISTESI.tsv icindeki hedef adiyla BIREBIR ayni olmali;
+# tutmayan anahtar sessizce SINANMADI uretir (2026-08-10 iki tanesinde oldu).
+# TAXID'LER NCBI Taxonomy'den DOGRULANDI (2026-08-10).
+# KURAL: dislanacak takson hedefin ADINA gore degil, OLCULEN KIMLIGE gore
+# secilir ve olculen kimligi ICEREN en dar taksona cikilir. Ad ile olculen
+# kimlik bu projede 100 kutunun 78'inde ayrisiyor; adi esas almak hedefin
+# kendisini dislamamaya ve kendi vuruslarini hedef disi saymaya yol acar.
+hedef	taxid	gerekce
+Methanothrix_cinsi	2222	Methanothrix cinsi, NCBI Taxonomy
+Methanothrix_soehngenii_turu	2223,2222	M. soehngenii (2223) + Methanothrix CINSI (2222). Uye kutularin ucu de olculende yalniz CINS duzeyine cozuluyor ("Methanothrix"), tur adi cikmiyor. Yalniz 2223 dislansaydi hedefin kendi kutulari hedef disi sayilirdi. Bedeli: bu katman baska bir Methanothrix turunu ayirt EDEMEZ; tur duzeyi ayrimi katman 2-3 olcer.
+Methanosarcina_cinsi	2207	Methanosarcina cinsi, NCBI Taxonomy
+Methanosarcina mazei / M. soligelidi grubu	2209,1036677,2213	M. mazei + M. soligelidi + "Methanosarcina sp." dugumu (2213): bir uye kutu olculende yalniz cins duzeyine cozuluyor. M. mazei 2209 + M. soligelidi 1036677 - cift bu IKI turu birlikte hedefliyor, ikisi de dislanir. Cins (2207) dislanmaz: baska bir Methanosarcina turunu tutmasi HEDEF DISIDIR ve gorunmelidir.
+Metilotrofik_metanojen	1080709,1577788	Methanomassiliicoccus cinsi (1080709) + Methanomassiliicoccaceae AILESI (1577788). Uye kutunun olculen kimligi aile duzeyinde kaliyor. Methanomassiliicoccus CINSI - olculen kimlik adlandirilamayan soy (%99,23). Tur yerine cins, cunku ad kesin degil.
+Nitrosocosmicus_AOA	1826864	Ca. Nitrosocosmicus CINSI - olculen kimlik "Nitrocosmicus cf. oleophi", tur degil. ESKI 1826872 (hydrocola TURU) farkli bir turu dislardi.
+Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	649777	Synergistaceae AILESI - olculen kimlik adlandirilamayan Synergistaceae. ESKI 1197717 (Cloacibacillus porcorum TURU) hedefi dislamazdi.
+Proteolitik_Cloacimonas	112	Planctomycetales takimi - OLCULEN kimlik "Planctomycetales bacterium". ESKI 456827 (Ca. Cloacimonas) YANLISTI: Kraken ADINA gore secilmisti, hedefin kendisi dislanmaz ve kendi vuruslari hedef disi sayilirdi.
+Sakarolitik_Sphaerochaeta	399320	Sphaerochaeta CINSI - olculen kimlik adlandirilamayan soy (%95,49). Tur yerine cins.
+Petrimonas_cinsi	307628,294702	Petrimonas (307628) + Proteiniphilum (294702). OLCULDU: uc uye kutunun ikisi "adlandirilamayan soy", en yakin kayitlarinin soyu Proteiniphilum ile bitiyor; yalnizca biri "Petrimonas sp." cikiyor. Kraken'in Petrimonas/Proteiniphilum ayrimi bu numunede tek bir adlandirilmamis Bacteroidales soyuna karsilik geliyor - "Proteiniphilum_cinsi hedefi numunede yok" hukmuyle de tutarli. Ikisi birlikte dislanir.
+Proteiniphilum_cinsi	294702	Proteiniphilum cinsi, NCBI Taxonomy
+Bacteroidales_kumesi	171549	Bacteroidales takimi, NCBI Taxonomy
+Microascaceae_askomikot	5593	Microascaceae ailesi - DOGRULANDI 2026-08-10 (34468 gecersiz)
+Petriella_musispora	42313	Petriella cinsi - DOGRULANDI 2026-08-10 (69605 YANLISTI: bakteriyofaj)
+Petriella_cinsi	42313	Petriella cinsi - DOGRULANDI 2026-08-10 (69605 YANLISTI: Enterobacteria phage FSalpha)
+Metanomikrobiyales_hidrojenotrof	2191	Methanomicrobiales takimi, NCBI Taxonomy
+Asetoklastik_metanojenler	94695,2905377	Methanosarcinales (94695) + Methanotrichales (2905377). 2026-08-10 OLCULDU: NCBI Methanothrix'i Methanosarcinales'ten CIKARIP kendi takimi Methanotrichales altina tasimis (soy: Methanomicrobia; Methanotrichales; Methanotrichaceae; Methanothrix). Yalniz 94695 yazilsaydi hedefin Methanothrix uyeleri hedef DISI sayilirdi. ESKI GEREKCE ("94695 Methanothrix'i kapsar") ARTIK DOGRU DEGIL - ezberden yazilmisti, zincir cekilince cikti. Methanosarcinales takimi - DOGRULANDI 2026-08-10 (2206 Methanosarcinaceae AILESIYDI; uye kumesinde Methanothrix 2223 var ve o Methanotrichaceae altinda, aile ile dislama eksik kalirdi)
+Metanojen_universal	2158,2182,2191,94695,2905377,68985,570264,1235850,2202723	Methanotrichales (2905377) EKLENDI - Methanothrix orada. BUTUN metanojen takimlari (Methanobacteriales, Methanococcales, Methanomicrobiales, Methanosarcinales, Methanopyrales, Methanocellales, Methanomassiliicoccales, Methanonatronarchaeales). Metanojenler tek bir takson degil, birkac takima yayilmistir; Archaea dislansaydi metanojen olmayan bir arkeyi tutmasi GIZLENIRDI. Kalan her urun hedef disidir.
+Mantar_universal (F1)	4751	Fungi alemi. Kalan her urun mantar disidir (bitki urunu uyarisi bu katmanda olculur).
+Mantar_universal (F2)	4751	Fungi alemi. Kalan her urun mantar disidir (bitki urunu uyarisi bu katmanda olculur).
+Bakteri_universal	2	Bacteria alani. Kalan her urun bakteri disidir - kloroplast ve mitokondri urunleri tam olarak burada gorunur.
+Arke_universal	2157	Archaea alani. Kalan her urun arke disidir.

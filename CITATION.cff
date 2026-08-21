@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: MicRhoBooster
+message: >-
+  If you use this software, please cite it. Fill in the author and
+  identifier fields below before publishing the repository.
+type: software
+authors:
+  - given-names: ""        # TODO: your given name
+    family-names: ""       # TODO: your family name
+    orcid: ""              # TODO: optional
+repository-code: ""        # TODO: GitHub URL after upload
+license: MIT
+abstract: >-
+  qPCR primer design for anaerobic digester microbiomes, with
+  taxonomy-tree-free identity verification requiring agreement between at
+  least two independent reference databases, and four-layer primer
+  specificity validation.
+keywords:
+  - qPCR
+  - primer design
+  - anaerobic digestion
+  - microbiome
+  - nanopore
+  - amplicon

@@ -1,0 +1,40 @@
+# Toplantı kararlarının taxid karşılıkları.
+# in_taxid  : hedeflenen üyeler, ürün HEPSİNDE oluşmalı
+# hariç     : bu taxidler out-group'a alınmaz (yakın akraba, ayrım zorlanmasın diye
+#             bilerek dışarıda bırakılanlar); boşsa aynı amplikon sınıfındaki
+#             diğer bütün taksonlar rakip sayılır
+# Tasarım her amplikon sınıfı için ayrı yapılır (A1, A2, B, F1, F2), çünkü
+# sınıflar rDNA'nın farklı pencerelerini kapsıyor ve konsensüsler artık
+# sınıf içinde ortak koordinatta.
+#
+# hedef_tur (7. sütun, isteğe bağlı): beyan edilen taxid'in adı numunedeki
+# organizmaya karşılık gelmediğinde, doğru tür adı buraya doğrudan yazılır.
+# Taxid UYDURULMAZ; taxid_adlari.tsv'de karşılığı olmayan bir tür bu sütunla
+# bildirilir. Sütun boşsa hiçbir şey değişmez.
+#
+# Karar 5 satırları toplantıda konuşulmadı; ölçümden türetildi ve onaya
+# sunulmak üzere ayrı numaralandırıldı. Gerekçeleri not sütununda.
+karar	hedef	duzey	in_taxid	haric	not	hedef_tur
+1	Methanosarcina_mazei_turu	tur	2209		Methanosarcina mazei
+1	Methanothrix_soehngenii_turu	tur	2223		Methanothrix soehngenii
+1	Methanosarcina_barkeri_turu	tur	2208		Methanosarcina barkeri
+1	Podospora_pseudopauciseta	tur	2093780	2093779	kardes tur P. pseudocomata ayrimi zor, once haric denenir
+1	Zoopagomycota_mantari	tur	44689		Dictyostelium discoideum, Amoebozoa; hedef adi veriyle uyusmuyor
+1	Microascaceae_askomikot	tur	101201		Trichoderma asperellum; hedef adi veriyle uyusmuyor, 63577 kontrolu bekleniyor
+2	Bacteroidaceae_ailesi	cins	818,28116		Bacteroides thetaiotaomicron ve B. ovatus
+2	Alistipes_cinsi	cins	214856		Alistipes finegoldii
+2	Proteiniphilum_cinsi	cins	2829812,1642647		P. propionicum ve P. saccharofermentans
+2	Petrimonas_cinsi	cins	1642646,285070		P. mucosa ve P. sulfuriphila
+3	Hidrojenotrofik_metanojenler	grup	394967,83986,118126,83984,224719,2201		Methanoculleus, Methanocorpusculum, Methanobrevibacter, Methanofollis
+3	Metilotrofik_metanojen	grup	1406512		Ca. Methanomassiliicoccus intestinalis, tek uye
+3	Asetoklastik_metanojenler	grup	2209,2223,2208,2210,1434102,3078083		Methanosarcina ve Methanothrix
+3	Sakarolitik_bakteriler	grup	818,28116,1642647,1129264,1760811		Bacteroides, Proteiniphilum, Sphaerochaeta, Acetobacteroides
+3	Proteolitik_sintrofik_bakteriler	grup	1197717,456827,2829812		Cloacibacillus, Ca. Cloacimonas, Proteiniphilum
+3	Nitrosocosmicus_AOA	grup	1826872		Ca. Nitrosocosmicus hydrocola
+3	Trichoderma_cinsi	grup	101201,2034170,63577		T. asperellum, T. breve, T. atroviride
+4	Bakteri_universal	alan	*B		B sinifindaki butun taksonlar
+4	Arke_universal	alan	*A		A1 ve A2 sinifindaki butun taksonlar
+4	Mantar_universal	alan	*F	1760811,5855,5811	F sinifindaki butun taksonlar; bakteri ve Apicomplexa haric
+5	Petriella_musispora	tur	101201,2034170,63577		OLCUMDEN TURETILDI, onaya sunulur. Microascaceae_askomikot ve Trichoderma_cinsi hedeflerinin kutularinda olculen gercek organizma; 6/6 ve 8/12 kutu destegi, ITS'te %98,2 RefSeq ve %98,8 UNITE. Taxid uydurulmadi, kutularin Kraken2 etiketleri kullanildi ve tur adi 7. sutunda verildi	Petriella musispora
+5	Proteolitik_Cloacibacillus	cins	1197717		OLCUMDEN TURETILDI, onaya sunulur. Karar 3'teki Proteolitik_sintrofik_bakteriler grubunda uc uyede birden urun veren cift yok; elemelerin 17623'unu tek basina C. porcorum yapiyor. Grup uyeye bolunerek deneniyor	Cloacibacillus porcorum
+5	Sakarolitik_Sphaerochaeta	cins	1129264		OLCUMDEN TURETILDI, onaya sunulur. Karar 3'teki Sakarolitik_bakteriler grubunun gecen ciftleri yanlis alanda (F2); grup uyeye bolunerek deneniyor	Sphaerochaeta associata

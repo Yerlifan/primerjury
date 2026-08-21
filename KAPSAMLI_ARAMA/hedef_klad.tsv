@@ -1,0 +1,39 @@
+# HEDEF KLAD TABLOSU  -  bir hedef disi amplikonun hedefin ICINDEN mi
+# DISINDAN mi geldigini soylemek icin gereken TEK sey.
+#
+# NEDEN VAR (D-12, 2026-08-07): MFEprimer'in "hedef disi" olcusu SADECE BOYA
+# dayanir. Evrensel bir bakteri primerinin buldugu 1550 farkli-boy amplikonun
+# 1519'u SILVA'da "Bacteria;..." ile basliyor - yani hedef ICI, 16S'in dogal
+# uzunluk polimorfizmi. Ham sayi hukme sokuldugunda bu cift RISKLI cikiyordu.
+# Bu tablo o ayrimi olculebilir kilar.
+#
+# Sutunlar:
+#   hedef   : "2 Panel" / SIPARIS_LISTESI.tsv'deki hedef adi (birebir)
+#   alan    : Bacteria | Archaea | Eukaryota  (SILVA dizgesinin ILK jetonu)
+#             (b) sinifi = ayni alan, klad disi ; (c) = farkli alan
+#   klad    : virgulle ayrilmis jeton listesi. Amplikonun taksonomi dizgesinde
+#             BUNLARDAN BIRI geciyorsa amplikon hedef ICI sayilir.
+#   kaynak  : bu jetonlar NEREDEN geldi - denetlenebilmesi icin
+hedef	alan	klad	kaynak
+Bakteri_universal	Bacteria	Bacteria	hedefler.tsv karar 4, duzey='alan': "*B sinifindaki butun taksonlar"
+Arke_universal	Archaea	Archaea	hedefler.tsv karar 4, duzey='alan': "*A1,*A2 butun taksonlar"
+Mantar_universal (F1)	Eukaryota	Fungi	hedefler.tsv karar 4: "F sinifi; bakteri ve Apicomplexa haric"; hedef_uyelik haric=Dictyostelium(Amoebozoa),Plasmodium,Toxoplasma
+Mantar_universal (F2)	Eukaryota	Fungi	ayni satir (F2 barkod sinifi)
+Methanothrix_cinsi	Archaea	Methanothrix	hedef_uyelik uye 2223=Methanothrix soehngenii, duzey='cins'
+Methanothrix_soehngenii_turu	Archaea	Methanothrix	uye 2223, duzey='tur'; SILVA tur alti ayirmiyor -> cins jetonu
+Methanosarcina_cinsi	Archaea	Methanosarcina	uye 2209,2208,2210,1434102,3078083 -> cins Methanosarcina
+Methanosarcina mazei / M. soligelidi grubu	Archaea	Methanosarcina	uye 2209, duzey='tur'; SILVA tur alti ayirmiyor -> cins jetonu
+Petrimonas_cinsi	Bacteria	Petrimonas	uye 1642646,285070 -> cins Petrimonas
+Proteiniphilum_cinsi	Bacteria	Proteiniphilum	uye 2829812,1642647 -> cins Proteiniphilum
+Sakarolitik_Sphaerochaeta	Bacteria	Sphaerochaeta	uye 1129264=Sphaerochaeta associata
+Petriella_cinsi	Eukaryota	Petriella,Microascaceae	hedef adi = cins Petriella; SILVA/RefSeq ailesi Microascaceae
+Petriella_musispora	Eukaryota	Petriella,Microascaceae	hedef adi; duzey='cins -> sinif' (hedef_takson_esleme KARAR 18)
+Microascaceae_askomikot	Eukaryota	Microascaceae	hedef adi, duzey='aile' (KARAR 14)
+Metanomikrobiyales_hidrojenotrof	Archaea	Methanomicrobiales	hedef_uyelik not: "Methanomicrobiales: Methanoculleus, Methanocorpusculum, Methanofollis"
+Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	Bacteria	Synergistaceae,Synergistota	hedef adi + not: "adlandirilamayan Synergistaceae"
+Bacteroidales_kumesi	Bacteria	Bacteroidales	hedef adi + not: "Bacteroidales takimi"
+Asetoklastik_metanojenler	Archaea	Methanosarcinales	hedef_uyelik not: "Methanosarcina ve Methanothrix" -> ikisinin ortak takimi
+Proteolitik_Cloacimonas	Bacteria	Cloacimonadota,Cloacimonadia,Cloacimonadales,Cloacimonadaceae,Cloacimonas	not: "YALNIZ Ca. Cloacimonas" -> SILVA'daki butun rutbe adlari
+Nitrosocosmicus_AOA	Archaea	Nitrosocosmicus,Nitrososphaeraceae	uye 1826872=Ca. Nitrosocosmicus hydrocola; SILVA'da Nitrososphaeraceae altinda
+Metilotrofik_metanojen	Archaea	Methanomassiliicoccus,Methanomassiliicoccales	uye 1406512=Ca. Methanomassiliicoccus intestinalis
+Metanojen_universal	Archaea	Methanosarcina,Methanothrix,Methanoculleus,Methanocorpusculum,Methanofollis,Methanobrevibacter,Methanomassiliicoccus,Methanosarcinales,Methanomicrobiales,Methanobacteriales,Methanomassiliicoccales,Methanosaetaceae,Methanosarcinaceae,Methanocellales,Methanococcales,Methanopyrales,Methanonatronarchaeales,Methanofastidiosales,Methanomethyliales,Methanoliparia	13 uye taxid'in 7 cinsi (Methanosarcina, Methanothrix, Methanoculleus, Methanocorpusculum, Methanofollis, Methanobrevibacter, Methanomassiliicoccus) + o cinslerin SILVA takim/aile adlari + SILVA'daki diger metanojen takimlari (2026-08-07 bagimsiz denetimde eklendi; onceki liste 5 takimi atliyordu, bu kosuda etkisi 0 idi). DUZEY KUNYESI: 'grup (islevsel)' KAPSAMLI_ARAMA/hedef_takson_esleme.py KARAR sozlugundendir - bu hedef WSL_betikleri/hedefler.tsv'de YOKTUR.

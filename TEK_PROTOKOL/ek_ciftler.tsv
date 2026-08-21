@@ -1,0 +1,12 @@
+# TEK PROTOKOL - panel TSV'sinde OLMAYAN ek ciftler. Bu dosya ELLE DUZENLENEBILIR.
+# Sutunlar SEKME ile ayrilir. Satir eklemek icin asagidaki bicimi izleyin.
+#
+#   hedef          : ciktilarda gorunecek ad (serbest)
+#   uyelik_hedefi  : uyelik tablosundaki hangi hedefin uye/rakip kutulari kullanilsin
+#                    (bos birakilirsa 'hedef' adi aranir)
+#   sinif          : A1 / A2 / B / F1 / F2
+#   F, R           : primer dizileri 5'->3'
+#   urun_bp        : beklenen urun boyu
+#
+hedef	uyelik_hedefi	sinif	duzey	ta	F	R	urun_bp	not
+Petriella_cinsi	Petriella_musispora	F2	cins (Petriella) - LSU D1-D2	55.3	AAATCTGGCTGCCTGTGC	CTCTCACCCTCTATGGCGTC	101	YENI LSU D1-D2 cifti (petriella_lsu_tasarim_20260803.md). Paneldeki 116 bp Petriella cifti ve 118 bp Microascaceae cifti ile AYNI dokuz kutuyu hedefler.
