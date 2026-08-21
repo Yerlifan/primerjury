@@ -55,9 +55,7 @@ def sayfa16(wb, rows):
         ws.column_dimensions[c].width = w
     n = 1
     yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI - 2026-08-02', bold=True); n += 1
-    yaz(ws, n, 1, 'Panelin numune olcum motorunda SESSIZ bir hata bulundu ve duzeltildi. '
-                  'Bu sayfa hatayi, duzeltmeyi, hangi degerlerin degistigini ve hangi ciftlerin '
-                  '10x esiginin altina dustugunu kayda gecirir.'); n += 2
+    yaz(ws, n, 1, u'A SILENT bug was found and fixed in the panel\'s sample measurement engine. This page records the bug, the fix, which values changed and which pairs fell below the 10x threshold.'); n += 2
 
     yaz(ws, n, 1, '1. HATA NEYDI', bold=True, fill=GRI); n += 1
     for s in [
@@ -74,8 +72,7 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 42; n += 1
     n += 1
 
-    yaz(ws, n, 1, '2. KANIT - BILINEN CEVAPLI TEST (kutu A1-4_3078083, ilk 400 okuma, '
-                  'M. mazei cifti, AYNI olcut mm<=1)', bold=True, fill=GRI); n += 1
+    yaz(ws, n, 1, u'2. EVIDENCE - A TEST WITH A KNOWN ANSWER (bin A1-4_3078083, first 400 reads, the M. mazei pair, the SAME criterion mm<=1)', bold=True, fill=GRI); n += 1
     bas = ['Motor', 'Urun veren okuma / 400', 'Yuzde', 'Not']
     for j, h in enumerate(bas, 1):
         yaz(ws, n, j, h, bold=True, fill=GRI)
@@ -87,13 +84,9 @@ def sayfa16(wb, rows):
         for j, v in enumerate(r, 1):
             yaz(ws, n, j, v, fill=(KIRMIZI if r[1] == '2' else YESIL))
         n += 1
-    yaz(ws, n, 1, 'Ileri primerin 205 baglanma yerinin 202\'sinde (%98,5) tek uyumsuzluk tohumun icine '
-                  'dusuyor; 188\'i primerin 6. bazinda - dagitik gurultu degil, tek ve tekrar eden bir '
-                  'varyant baz. KACIRMA ORANI: 172/174 = %98,9.')
+    yaz(ws, n, 1, u'In 202 of the forward primer\'s 205 binding sites (98.5%) the single mismatch falls inside the seed, and 188 of those are at base 6 of the primer. That is not scattered noise, it is one recurring variant base. MISS RATE: 172/174 = 98.9%.')
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9); ws.row_dimensions[n].height = 30; n += 1
-    yaz(ws, n, 1, 'DUZELTME: onceki not dosyasindaki "188/400" sayisi ispcr.amplify\'in VARSAYILAN max_mm=3 '
-                  'ile kosulmasindan geliyordu; o karsilastirma tohumu VE olcutu ayni anda degistiriyordu. '
-                  'Yukaridaki 2 vs 174, yalniz tohumu degistirir - hatanin buyuklugunu veren sayi budur.', fill=SARI)
+    yaz(ws, n, 1, u'CORRECTION: the "188/400" figure in the earlier note file came from running ispcr.amplify with its DEFAULT max_mm=3, so that comparison changed the seed AND the criterion at the same time. The 2 vs 174 above changes only the seed, and that is the number that gives the size of the bug.', fill=SARI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9); ws.row_dimensions[n].height = 30; n += 2
 
     yaz(ws, n, 1, '3. NASIL DUZELTILDI', bold=True, fill=GRI); n += 1
@@ -109,7 +102,8 @@ def sayfa16(wb, rows):
         'HIZ: 400 okuma/cift icin kaba kuvvet 0,30 sn, duzeltilmis motor 0,03 sn (~10x). Kaba kuvvetle ayni '
         'sonucu verdigi icin hiz kazanci dogruluktan odun vermez.',
         'DOSYALAR: screening/read_engine.py (motor), brute_force.py (referans), engine_test.py (kanit), '
-        'measure_panel.py (panel olcumu), independent_check.py, KOS_TAM_DERINLIK.bat',
+        'measure_panel.py (panel olcumu), independent_check.py, '
+        'python3 -m screening --mod panel-olc --full-depth',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 46; n += 1
@@ -135,11 +129,9 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 42; n += 1
     n += 1
 
-    yaz(ws, n, 1, '5. HANGI DEGERLER DEGISTI (21 cift, duzeltilmis motor, kutu basina <=3000 okuma)',
+    yaz(ws, n, 1, u'5. WHICH VALUES CHANGED (21 pairs, corrected engine, at most 3000 reads per bin)',
         bold=True, fill=GRI); n += 1
-    yaz(ws, n, 1, 'ALT KUME OLCUMUDUR: kutu basina en cok 3000 okuma (panelin kendi protokolu). '
-                  'TAM DERINLIK dogrulamasi screening/KOS_TAM_DERINLIK.bat ile yapilacaktir; '
-                  'egilim degisirse bu sayfa guncellenmelidir.', fill=SARI)
+    yaz(ws, n, 1, u'THIS IS A SUBSET MEASUREMENT: at most 3000 reads per bin (the panel\'s own protocol). Full depth verification is done with python3 -m screening --mod panel-olc --full-depth; if the trend changes, this page must be updated.', fill=SARI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9); ws.row_dimensions[n].height = 30; n += 1
     bas = ['#', 'Hedef', 'Panelin olcutu', 'ESKI kat (en kotu/havuz)', 'YENI mm<=1 (en kotu/havuz)',
            'YENI mm<=3 (en kotu/havuz)', 'Uye kumesi', '10x alti?', 'Not']
@@ -157,12 +149,12 @@ def sayfa16(wb, rows):
         yaz(ws, n, 6, '%s / %s' % (r['YENI3_kat_enkotu'] or '-', r['YENI3_kat_havuz'] or '-'), fill=f)
         yaz(ws, n, 7, r['uye_kumesi'], fill=f)
         yaz(ws, n, 8, ('mm<=1 ' if r['ESIK_ALTI_mm1'] else '') + ('mm<=3' if r['ESIK_ALTI_mm3'] else ''), fill=f)
-        yaz(ws, n, 9, r['DEGISTI'] or 'degisiklik yok (5 puan / 2 kat esiginin altinda)', fill=f)
+        yaz(ws, n, 9, r['DEGISTI'] or u'no change (below the 5 point / 2 fold threshold)', fill=f)
         ws.row_dimensions[n].height = 30
         n += 1
     n += 1
 
-    yaz(ws, n, 1, '6. TEK GERCEK GERILEME - Methanosarcina_mazei_turu (satir 22)', bold=True, fill=KIRMIZI); n += 1
+    yaz(ws, n, 1, u'6. THE ONE REAL REGRESSION - Methanosarcina_mazei_turu (row 22)', bold=True, fill=KIRMIZI); n += 1
     for s in [
         'Duzeltmenin bir paneli degeri ESIGIN ALTINA dusurdugu TEK satir budur. Digerlerinde duzeltme '
         'ya hicbir sey degistirmiyor ya da degeri YUKARI cekiyor (kapsam eksik olculmustu).',
@@ -183,7 +175,7 @@ def sayfa16(wb, rows):
         ws.row_dimensions[n].height = 46; n += 1
     n += 1
 
-    yaz(ws, n, 1, '7. YUKARI YONDE DUZELEN SATIRLAR (kapsam eksik olculmustu)', bold=True, fill=YESIL); n += 1
+    yaz(ws, n, 1, u'7. ROWS THAT IMPROVED (their coverage had been under measured)', bold=True, fill=YESIL); n += 1
     for s in [
         'Methanosarcina_cinsi (satir 7): yedi M. mazei UYE kutusu eski motorla %0,5-26,5 olculuyordu; '
         'dogru deger %79,4-82,9. En kotu kat 0,04x -> 4,37x (mm<=1) / 4,66x (mm<=3), havuz 2,51x -> 81,59x. '
@@ -218,7 +210,8 @@ def sayfa16(wb, rows):
     yaz(ws, n, 1, '9. ACIK KALAN - SONRAKI KISININ BILMESI GEREKENLER', bold=True, fill=SARI); n += 1
     for s in [
         'TAM DERINLIK: bu sayfadaki sayilar kutu basina <=3000 okuma alt kumesiyle uretildi. '
-        'KOS_TAM_DERINLIK.bat orneklemesiz kosar. Egilim degisirse bu sayfa guncellenmelidir.',
+        'python3 -m screening --mod panel-olc --full-depth runs with no sampling. '
+        'Egilim degisirse bu sayfa guncellenmelidir.',
         'UYE KUMELERI: panelin ozgun uye takson kumeleri hicbir betikte saklanmamis (komut satiri '
         'argumaniydi). screening/ciftler.tsv\'de hedef adlarindan ve taxid_adlari.tsv\'den yeniden '
         'kuruldu. "PANELLE_TUTUYOR" isaretli satirlarda yeniden kurulan kume panelin yayimladigi uye % '
@@ -267,15 +260,7 @@ def panel_sutunlari(wb, rows):
     # NOT satiri
     n = ws.max_row + 2
     yaz(ws, n, 1, 'NOT', bold=True)
-    yaz(ws, n, 3, 'OKUMA MOTORU DUZELTMESI (2026-08-02, en son madde): "Uye urun %", "Rakip maks %" ve '
-                  '"Ayrim (x)" sutunlarinin uretildigi motorda SESSIZ bir hata bulundu - 13 bazlik TAM '
-                  'eslesen tohum, uyumsuzluk tohuma dustugunde baglanma yerini hic gormuyordu (aynı olcutte '
-                  '2/400 yerine 174/400). Motor duzeltildi ve 21 ciftin tamami yeniden olculdu. '
-                  'AYRICA: bu uc sutun TEK BIR OLCUTLE olculmemis - bir kisim satir mm<=1, bir kisim mm<=3 '
-                  'ile. Bu yuzden sutun ici degerler satirlar arasi karsilastirilamaz. Ayrinti, degisen '
-                  'degerler ve 10x altina dusen ciftler: "16 Okuma Motoru Duzeltmesi" sayfasi. '
-                  'Yeni sutunlar (saga bakiniz) alt kume olcumudur; tam derinlik screening\\'
-                  'KOS_TAM_DERINLIK.bat ile dogrulanacaktir.')
+    yaz(ws, n, 3, u'READ ENGINE FIX (2026-08-02, the most recent item): a SILENT bug was found in the engine that produced the "Uye urun %", "Rakip maks %" and "Ayrim (x)" columns. The 13 base EXACT matching seed never saw a binding site when the mismatch fell inside the seed (174/400 instead of 2/400 under the same criterion). The engine was fixed and all 21 pairs were re-measured. ALSO: those three columns were not measured under a SINGLE CRITERION. Some rows used mm<=1 and some mm<=3, so values inside a column cannot be compared across rows. Detail, the changed values and the pairs that fell below 10x: the "16 Okuma Motoru Duzeltmesi" sheet. The new columns (see to the right) are a subset measurement; full depth will be verified with python3 -m screening --mod panel-olc --full-depth.')
     ws.cell(n, 3).fill = KIRMIZI
     ws.cell(n, 3).alignment = SAR
     ws.row_dimensions[n].height = 90
@@ -285,25 +270,12 @@ def ozet_ve_karar(wb):
     ws = wb['1 Rapora Ozet']
     n = ws.max_row + 2
     yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI (2026-08-02 - EN ONEMLI ACIK MADDE)', bold=True, fill=KIRMIZI)
-    yaz(ws, n, 7, 'Bu tablodaki ayrim oranlarinin uretildigi motorda sessiz bir hata bulundu: 13 bazlik '
-                  'tam eslesen tohum, uyumsuzluk tohuma dustugunde baglanma yerini hic gormuyordu '
-                  '(ayni olcutte 2/400 yerine 174/400 - kacirma %98,9). Motor duzeltildi, 21 ciftin '
-                  'tamami yeniden olculdu. TEK GERCEK GERILEME: Methanosarcina mazei / M. soligelidi '
-                  'grubu - havuz ayrimi 49,96x -> 11,41x, EN KOTU TEK KUTU 4,23x -> 0,82x. Sebep: '
-                  'M. hadiensis kutusu A1-4_3078083 %0,72 yerine %47,22 cogaliyor. Yani bu cift '
-                  'M. hadiensis\'i hedef kadar iyi cogaltiyor. Bu satirdaki 187,9x DEGERI ARTIK '
-                  'GECERSIZDIR. Diger satirlarda duzeltme ya etkisiz ya da degeri YUKARI cekiyor '
-                  '(kapsam eksik olculmustu). Ayrinti: "16 Okuma Motoru Duzeltmesi".')
+    yaz(ws, n, 7, u'A silent bug was found in the engine that produced the discrimination ratios in this table: the 13 base exact matching seed never saw a binding site when the mismatch fell inside the seed (174/400 instead of 2/400 under the same criterion, a 98.9% miss rate). The engine was fixed and all 21 pairs were re-measured. THE ONE REAL REGRESSION: the Methanosarcina mazei / M. soligelidi group. Pool discrimination went 49.96x -> 11.41x, and the WORST SINGLE BIN 4.23x -> 0.82x. The cause: bin A1-4_3078083 of M. hadiensis amplifies at 47.22% instead of 0.72%. In other words this pair amplifies M. hadiensis as well as it amplifies the target. THE 187.9x VALUE ON THIS ROW IS NO LONGER VALID. On the other rows the fix is either neutral or pulls the value UP (their coverage had been under measured). Detail: "16 Okuma Motoru Duzeltmesi".')
     ws.cell(n, 7).fill = KIRMIZI; ws.cell(n, 7).alignment = SAR
     ws.row_dimensions[n].height = 120
     n += 1
     yaz(ws, n, 1, 'IKINCI BULGU - OLCUT TUTARSIZLIGI', bold=True, fill=SARI)
-    yaz(ws, n, 7, 'Panelin "Ayrim (x)" sutunu TEK BIR OLCUTLE uretilmemis: bir kisim satir uyumsuzluk '
-                  '<=1, bir kisim <=3 ile olculmus (ornek: Proteiniphilum panelde %29,0 - bu deger '
-                  'mm<=3 degeridir, mm<=1 ile %1,6). Bu yuzden sutun ici degerler satirlar arasi '
-                  'KARSILASTIRILAMAZ. "16 Okuma Motoru Duzeltmesi" sayfasinda her satir tek motorla '
-                  've iki olcutle yeniden olculdu, her deger olcut etiketi tasiyor. Panelin tek bir '
-                  'numune olcutu secmesi gerekiyor - karar sizin.')
+    yaz(ws, n, 7, u'The panel\'s "Ayrim (x)" column was not produced under a SINGLE CRITERION: some rows were measured with mismatches <=1 and some with <=3 (for example Proteiniphilum reads 29.0% in the panel, which is the mm<=3 value; under mm<=1 it is 1.6%). Values inside the column therefore CANNOT be compared across rows. On the "16 Okuma Motoru Duzeltmesi" sheet every row was re-measured with one engine under both criteria, and every value carries its criterion label. The panel needs to settle on a single sample criterion, and that decision is yours.')
     ws.cell(n, 7).fill = SARI; ws.cell(n, 7).alignment = SAR
     ws.row_dimensions[n].height = 90
 
@@ -323,32 +295,21 @@ def ozet_ve_karar(wb):
     yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=KIRMIZI)
     yaz(ws, n, 2, 'Methanosarcina mazei / M. soligelidi grubu')
     yaz(ws, n, 3, 'ESIK ALTI - YENIDEN KARAR GEREKIYOR', fill=KIRMIZI)
-    yaz(ws, n, 4, 'Numune motorundaki tohum hatasi duzeltildi. Cins ici havuz ayrimi 49,96x -> 11,41x, '
-                  'en kotu tek kutu 4,23x -> 0,82x. Sebep: M. hadiensis kutusu A1-4_3078083 eski motorla '
-                  '%0,72, dogru degeri %47,22. Cift M. hadiensis\'i hedef kadar iyi cogaltiyor. '
-                  'SECENEKLER: (a) cogaltilan kumeyi M. hadiensis\'i de kapsayacak sekilde genislet, '
-                  '(b) cifti dusur, (c) amplikon dizilemesi sartiyla kosullu birak. Panelde sessizce '
-                  'birakilmadi, "ESIK ALTI" isaretlendi. Ayrinti: "16 Okuma Motoru Duzeltmesi".')
+    yaz(ws, n, 4, u'The seed bug in the sample engine was fixed. Within genus pool discrimination went 49.96x -> 11.41x, and the worst single bin 4.23x -> 0.82x. The cause: bin A1-4_3078083 of M. hadiensis measured 0.72% under the old engine, and its correct value is 47.22%. The pair amplifies M. hadiensis as well as it amplifies the target. OPTIONS: (a) widen the amplified set so that it covers M. hadiensis as well, (b) drop the pair, (c) keep it conditional on amplicon sequencing. It was not left in the panel silently; it is marked "ESIK ALTI". Detail: "16 Okuma Motoru Duzeltmesi".')
     ws.cell(n, 4).fill = KIRMIZI; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 90
     n += 1
     yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=YESIL)
     yaz(ws, n, 2, 'Methanosarcina cinsi / Asetoklastik metanojenler')
-    yaz(ws, n, 3, 'DUZELDI (kapsam eksik olculmustu)', fill=YESIL)
-    yaz(ws, n, 4, 'Methanosarcina_cinsi: yedi M. mazei uye kutusu eski motorla %0,5-26,5 olculuyordu, '
-                  'dogru deger %79,4-82,9. Havuz ayrimi 2,51x -> 81,59x; en kotu tek kutu 0,04x -> 4,66x '
-                  '(hala 10x altinda). Asetoklastik_metanojenler: uye alt sinir %0,0 -> %58,6, '
-                  'havuz ~0 -> 50,84x. Kapsam olculeri de yukari: Arke_universal 11/39 -> 32/39 (mm<=1), '
-                  'Bakteri_universal 4/20 -> 13/20.')
+    yaz(ws, n, 3, u'IMPROVED (the coverage had been under measured)', fill=YESIL)
+    yaz(ws, n, 4, u'Methanosarcina_cinsi: seven M. mazei member bins measured 0.5-26.5% under the old engine, and their correct value is 79.4-82.9%. Pool discrimination 2.51x -> 81.59x; the worst single bin 0.04x -> 4.66x (still below 10x). Asetoklastik_metanojenler: the member floor went 0.0% -> 58.6%, and the pool ~0 -> 50.84x. The coverage measures also rose: Arke_universal 11/39 -> 32/39 (mm<=1), Bakteri_universal 4/20 -> 13/20.')
     ws.cell(n, 4).fill = YESIL; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 76
     n += 1
     yaz(ws, n, 1, 'OKUMA MOTORU DUZELTMESI', bold=True, fill=SARI)
     yaz(ws, n, 2, 'Methanothrix cinsi')
     yaz(ws, n, 3, 'OLCUTE ASIRI DUYARLI - OLCUT KARARI BEKLIYOR', fill=SARI)
-    yaz(ws, n, 4, 'mm<=1 olcutunde ayrim 13,74x (esik ustu), mm<=3 olcutunde 0,86x (bir rakip kutu '
-                  '%76,92 cogaliyor). Panelde yayimlanan 75,2x hicbir olcutle yeniden uretilemedi. '
-                  'Olcut kararlastirilmadan siparise gitmemeli.')
+    yaz(ws, n, 4, u'Under the mm<=1 criterion the discrimination is 13.74x (above the threshold); under mm<=3 it is 0.86x (one competitor bin amplifies at 76.92%). The 75.2x published in the panel could not be reproduced under either criterion. This should not go to order before the criterion is settled.')
     ws.cell(n, 4).fill = SARI; ws.cell(n, 4).alignment = SAR
     ws.row_dimensions[n].height = 60
 
