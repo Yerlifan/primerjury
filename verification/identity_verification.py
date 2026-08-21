@@ -478,8 +478,7 @@ def ortalama_uzunluk(yol):
                     fai_bozuk += 1
         if fai_bozuk:
             sys.stderr.write(
-                'UYARI: %s icinde %d bozuk satir var; indeks yok sayildi ve '
-                'ortalama uzunluk FASTA taranarak olculuyor.\n' % (fai, fai_bozuk))
+                u'WARNING: %s contains %d malformed lines. The index was ignored and the average length is measured by scanning the FASTA.\n' % (fai, fai_bozuk))
             n = 0
             t = 0
     if not n:                                # yoksa yalniz uzunluk sayan hizli tarama
@@ -781,15 +780,14 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
     kazanan_sira, kazanan_kaynak = res['kazanan_sira'], res['kazanan_kaynak']
     uyari, hiz_sure = res['sira_uyarisi'], res['hizalama_suresi']
     json.dump(res, open(kp, 'w', encoding='utf-8'), ensure_ascii=False, default=str)
-    yaz('     %s: %s kayit TARANDI (tamami), %d kisa listeye alindi ve HEPSI '
-        u'hizalandi (%s), en iyi %s%% | KAZANAN SIRA: %s/%d [%s] (%s)'
+    yaz(u'     %s: %s records SCANNED (all of them), %d short-listed and ALL aligned (%s), best %s%% | WINNER RANK: %s/%d [%s] (%s)'
         % (etiket, '{:,}'.format(res.get('taranan_kayit') or 0).replace(',', ' '),
            len(kl), sure_metni(hiz_sure),
            vir(isabet[0]['kimlik']) if isabet else '-',
            kazanan_sira if kazanan_sira is not None else '-', kl_ust,
            kazanan_kaynak or '-', sure_metni(time.time() - t0)))
     if uyari:
-        yaz(u'     >>> UYARI: %s' % uyari)
+        yaz(u'     >>> WARNING: %s' % uyari)
     return res
 
 
@@ -834,10 +832,10 @@ def envanter_yaz(kok, CIKTI, yaz):
                                       u'isteniyorsa identity_verification.py icindeki VTB '
                                       u'listesine eklenmelidir.')))
     with open(yol, 'w', encoding='utf-8') as fh:
-        fh.write(u'# REFERANS_DB envanteri - hangi kume nerede kullaniliyor\n\n')
-        fh.write(u'Uretim: %s (her kosuda yeniden uretilir, elle guncellenmez)\n\n'
+        fh.write(u'# REFERANS_DB inventory: which set is used where\n\n')
+        fh.write(u'Generated: %s (rebuilt on every run; do not edit by hand)\n\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'| dosya | MB | etiket | KIMLIK (I) asamasinda | sebep / not |\n')
+        fh.write(u'| file | MB | label | used at the IDENTITY stage | reason / note |\n')
         fh.write(u'|---|---|---|---|---|\n')
         for r in satir:
             fh.write(u'| `%s` | %d | %s | **%s** | %s |\n'
@@ -848,9 +846,8 @@ def envanter_yaz(kok, CIKTI, yaz):
                  u'Parc kumesinde **82**. Bir kume ancak (a) baska bir kumenin bayt bayt '
                  u'ikizi ya da (b) baska bir kumenin altkumesi ise disarida birakilabilir; '
                  u'iki durum da tabloda gerekcesiyle yazilidir.\n\n')
-        fh.write(u'**NCBI nt** yerel bir dosya degildir; ayri bir katman olarak '
-                 u'sorgulanir (ag ya da elle BLAST). Bkz. rapor.\n')
-    yaz(u'  envanter yazildi: %s' % yol)
+        fh.write(u'**NCBI nt** is not a local file; it is queried as a separate layer, over the network or by manual BLAST. See the report.\n')
+    yaz(u'  inventory written: %s' % yol)
     return satir
 
 
@@ -878,10 +875,10 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
             s = f.read().decode('utf-8', 'replace')
         m = re.search(r'RID = (\S+)', s)
         if not m:
-            yaz(u'     NCBI nt: RID alinamadi - elle yola dusuluyor')
+            yaz(u'     NCBI nt: could not obtain a RID, falling back to the manual route')
             return elle_nt_girdi(kutu, q, CIKTI, yaz)
         rid = m.group(1)
-        yaz(u'     NCBI nt: is gonderildi (RID %s), bekleniyor...' % rid)
+        yaz(u'     NCBI nt: job submitted (RID %s), waiting...' % rid)
         son = ''
         for i in range(tur_ust):
             time.sleep(bekleme)
@@ -907,14 +904,14 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
                 isabet[0]['kimlik'] = float(mm.group(1))
                 break
         if not isabet:
-            yaz(u'     NCBI nt: yanit ayristirilamadi - elle yola dusuluyor')
+            yaz(u'     NCBI nt: could not parse the response, falling back to the manual route')
             g = elle_nt_girdi(kutu, q, CIKTI, yaz)
             g['not_'] = u'otomatik yanit ayristirilamadi; ham yanit nt_ham/ altinda'
             return g
-        yaz(u'     NCBI nt: %d isabet' % len(isabet))
+        yaz(u'     NCBI nt: %d hits' % len(isabet))
         return dict(durum='TAMAM', isabet=isabet[:10], kaynak='NCBI nt (URL API)')
     except Exception as e:
-        yaz(u'     NCBI nt BASARISIZ (%s) - elle yola dusuluyor' % type(e).__name__)
+        yaz(u'     NCBI nt FAILED (%s), falling back to the manual route' % type(e).__name__)
         g = elle_nt_girdi(kutu, q, CIKTI, yaz)
         g['not_'] = u'%s: %s' % (type(e).__name__, e)
         return g
@@ -926,21 +923,19 @@ def elle_nt_girdi(kutu, q, CIKTI, yaz):
     os.makedirs(d, exist_ok=True)
     fa = os.path.join(d, '%s.fasta' % re.sub(r'\W+', '_', kutu))
     with open(fa, 'w', encoding='utf-8') as fh:
-        fh.write('>%s (kimlik dogrulama sorgusu, ilk %d baz)\n' % (kutu, len(q)))
+        fh.write(u'>%s (identity verification query, first %d bases)\n' % (kutu, len(q)))
         for i in range(0, len(q), 70):
             fh.write(q[i:i + 70] + '\n')
     sab = os.path.join(d, 'NT_SONUC_SABLONU.tsv')
     if not os.path.exists(sab):
         with open(sab, 'w', encoding='utf-8', newline='') as fh:
-            fh.write(u'# NCBI nt sonuclarini BURAYA yazin, sonra:\n')
-            fh.write(u'#   python3 verification/identity_verification.py --kok . '
-                     u'--nt-yukle KIMLIK_SONUC/nt_elle/NT_SONUC_SABLONU.tsv\n')
-            fh.write(u'# Adres: https://blast.ncbi.nlm.nih.gov/Blast.cgi '
-                     u'(Nucleotide BLAST, database = nt)\n')
-            fh.write(u'# Sorgu dosyalari ayni klasorde: <kutu>.fasta\n')
+            fh.write(u'# Write the NCBI nt results HERE, then:\n')
+            fh.write(u'#   python3 verification/identity_verification.py --root . --nt-load KIMLIK_SONUC/nt_elle/NT_SONUC_SABLONU.tsv\n')
+            fh.write(u'# Address: https://blast.ncbi.nlm.nih.gov/Blast.cgi (Nucleotide BLAST, database = nt)\n')
+            fh.write(u'# The query files are in the same directory: <bin>.fasta\n')
             w = csv.writer(fh, delimiter='\t')
             w.writerow(['kutu', 'en_iyi_isabet_basligi', 'kimlik_yuzde', 'notunuz'])
-    yaz(u'     NCBI nt: elle sorgu dosyasi uretildi -> %s' % os.path.basename(fa))
+    yaz(u'     NCBI nt: manual query file written -> %s' % os.path.basename(fa))
     return dict(durum='ELLE GEREKIR', isabet=[], kaynak='NCBI nt (elle)',
                 girdi=fa, sablon=sab)
 
@@ -1498,19 +1493,19 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             try:
                 os.remove(os.path.join(KONTROL, f))
             except OSError as e:
-                print('  silinemedi: %s (%s)' % (f, e))
+                print(u'  could not delete: %s (%s)' % (f, e))
     g = open(os.path.join(CIKTI, 'kosu_gunlugu.txt'), 'a', encoding='utf-8')
 
     def yaz(s=''):
         print(s, flush=True); g.write(s + '\n'); g.flush()
 
     yaz('=' * 78)
-    yaz('  KIMLIK DOGRULAMA TURU - raporlanan iddialar bagimsiz sinaniyor')
-    yaz('  surum %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
+    yaz(u'  IDENTITY VERIFICATION - reported claims are tested independently')
+    yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
-    yaz(u'  Yontem: TOHUM + HIZALAMA (taksonomi agaci YOK, primer YOK, k-mer LCA YOK).')
-    yaz(u'  Sart  : bir iddia DOGRULANDI sayilmak icin EN AZ IKI bagimsiz')
-    yaz(u'          veritabaninin uyusmasi gerekir. Uydurma teyit uretilmez.')
+    yaz(u'  Method: SEED + ALIGNMENT (NO taxonomy tree, NO primers, NO k-mer LCA).')
+    yaz(u'  Rule  : a claim is only VERIFIED when AT LEAST TWO independent')
+    yaz(u'          databases agree. No confirmation is ever invented.')
     yaz('')
 
     from screening import targets as H
@@ -1518,21 +1513,21 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     var = [(e, d, t) for e, d, t, kullan, _n in VTB
            if kullan and os.path.exists(os.path.join(kok, 'REFERANS_DB', d))][:vtb_ust]
     envanter_yaz(kok, CIKTI, yaz)
-    yaz(u'  kullanilabilir veritabani : %d  (%s)' % (len(var), ', '.join(e for e, _, _ in var)))
+    yaz(u'  usable databases          : %d  (%s)' % (len(var), ', '.join(e for e, _, _ in var)))
     if len(var) < 2:
-        yaz(u'  UYARI: ikiden az veritabani var - hicbir iddia DOGRULANDI cikamaz.')
+        yaz(u'  WARNING: fewer than two databases available, so no claim can come out VERIFIED.')
 
     nt_onceden = nt_yukle(nt_yukle_yolu)
     if nt_onceden:
-        yaz(u'  elle yuklenen NCBI nt sonucu: %d kutu' % len(nt_onceden))
-    yaz(u'  NCBI nt katmani           : %s' % {'oto': u'otomatik (URL API)', 'elle': u'elle (sorgu dosyasi uretilir)', 'yok': u'ATLANDI (istek uzerine)'}[nt_kip])
+        yaz(u'  manually loaded NCBI nt results: %d bins' % len(nt_onceden))
+    yaz(u'  NCBI nt layer             : %s' % {'oto': u'automatic (URL API)', 'elle': u'manual (a query file is written)', 'yok': u'SKIPPED (on request)'}[nt_kip])
 
     iddialar = sorted(IDDIALAR, key=lambda x: (x['oncelik'], x['no']))
     if yalniz:
         iddialar = [i for i in iddialar
                     if (yalniz.isdigit() and int(yalniz) == i['no'])
                     or (not yalniz.isdigit() and yalniz.lower() in i['metin'].lower())]
-    yaz(u'  sinanacak iddia           : %d  (oncelik sirasina gore)' % len(iddialar))
+    yaz(u'  claims to test            : %d  (in priority order)' % len(iddialar))
     kutu_say = len({k for i in iddialar for k in (i.get('kutu') or []) + (i.get('karsi') or [])})
     # --- SURE TAHMINI: tarama + HIZALAMA ayri ayri ---
     # Hizalama maliyeti olculerek uyduruldu (bu betigin kendi hizalayicisiyla):
@@ -1547,12 +1542,12 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     _hiz_cift = _bir * kl_ust          # bir kutu-veritabani ciftinin hizalama suresi
     _tara_cift = 420                   # akis taramasi (degismedi)
     _cift = kutu_say * len(var)
-    yaz(u'  TAHMINI SURE: ~%s  (%d kutu x %d veritabani = %d cift; her ciftte tam'
+    yaz(u'  ESTIMATED TIME: ~%s  (%d bins x %d databases = %d pairs; each pair streams'
         % (sure_metni(_cift * (_tara_cift + _hiz_cift)), kutu_say, len(var), _cift))
-    yaz(u'  veritabani akisi taranir). Kesintiye dayaniklidir.')
-    yaz(u'  KISA LISTE: %d aday - HEPSI hizalanir. Hizalama payi cift basina ~%s'
+    yaz(u'  the whole database). Resumable if interrupted.')
+    yaz(u'  SHORT LIST: %d candidates, ALL aligned. Alignment cost per pair ~%s'
         % (kl_ust, sure_metni(_hiz_cift)))
-    yaz(u'  (ortalama sorgu %d bp); toplam hizalama payi ~%s.'
+    yaz(u'  (average query %d bp); total alignment cost ~%s.'
         % (int(_oq), sure_metni(_cift * _hiz_cift)))
     yaz(u'  2026-08-05: liste 1000 -> %d GERI indirildi. Siralama olcutu ters'
         % kl_ust)
@@ -1560,8 +1555,8 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     yaz(u'  35, yani %d kat pay var. Kazanc ~%s (olculdu: 1000 adayda hizalama'
         % (kl_ust // 35, sure_metni(_cift * _bir * kl_ust)))
     yaz(u'  toplam maliyetin %53\'u, 500 adayda %36\'si).')
-    yaz(u'  Kesme noktasinin baglayici olup olmadigi AYRI OLCUM GEREKTIRMEZ:')
-    yaz(u'  her sorguda kazanan isabetin kisa liste sirasi kaydedilir (kazanan_sira).')
+    yaz(u'  Whether the cut-off is binding needs NO SEPARATE MEASUREMENT:')
+    yaz(u'  the winning hit\'s short-list rank is recorded for every query.')
     yaz('')
 
     sonuc = []
@@ -1600,14 +1595,13 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             if _kayit is not None and _kayit.get('_ham_isabet_var'):
                 # Ham olcum var: TARAMA atlanir, HUKUM yeniden turetilir.
                 sonuc.append(_yeniden_turet(_kayit, idd))
-                yaz('[%2d/%2d] iddia %d  (tarama onbellekten, hukum YENIDEN turetildi)'
+                yaz(u'[%2d/%2d] claim %d  (scan from cache, verdict RE-DERIVED)'
                     % (n, len(iddialar), idd['no']))
                 continue
             if _kayit is not None:
-                yaz('[%2d/%2d] iddia %d  ESKI BICIM kontrol noktasi (ham isabet yok) - '
-                    'hukum yeniden turetilemez, YENIDEN TARANIYOR'
+                yaz(u'[%2d/%2d] claim %d  OLD-FORMAT checkpoint (no raw hits), the verdict cannot be re-derived, RESCANNING'
                     % (n, len(iddialar), idd['no']))
-        yaz('[%2d/%2d] IDDIA %d (oncelik %d): %s'
+        yaz(u'[%2d/%2d] CLAIM %d (priority %d): %s'
             % (n, len(iddialar), idd['no'], idd['oncelik'], idd['metin']))
         if idd.get('not_'):
             yaz(u'         NOT: %s' % idd['not_'])
@@ -1619,7 +1613,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             kutular = (idd.get('kutu') or [])[:1] + (idd.get('karsi') or [])[:1]
         for kutu in kutular:
             if kutu not in kons:
-                yaz(u'         konsensus yok: %s' % kutu)
+                yaz(u'         no consensus: %s' % kutu)
                 continue
             q = kons[kutu]
             if len(q) > 4000:
@@ -1635,7 +1629,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             if nt_kip != 'yok':
                 if kutu in nt_onceden:
                     bulgular[NT_ETIKET] = nt_onceden[kutu]
-                    yaz(u'     NCBI nt: elle yuklenen sonuc kullanildi')
+                    yaz(u'     NCBI nt: used the manually loaded result')
                 else:
                     ntk = os.path.join(KONTROL, 'nt_%s.json' % re.sub(r'\W+', '_', kutu))
                     onbellek = None
@@ -1692,7 +1686,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                        revizyon_uyarisi='-', revizyon_pmid='-',
                        otorite_kontrolu='GEREKLI', otorite_baglantilari='')
         lit['no'] = idd['no']; lit['onerilen_ad'] = adl.get('onerilen_ad', '-')
-        yaz(u'         literatur: %s | ad farkli mi: %s | revizyon: %s'
+        yaz(u'         literature: %s | name differs: %s | revision: %s'
             % (lit.get('durum', '-'), lit.get('ad_farkli_mi', '-'),
                (lit.get('revizyon_uyarisi', '-') or '-')[:48]))
 
@@ -1725,8 +1719,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             garanti_ile_kazanan=len([1 for _e, _s, k in _sr if k == 'garanti']),
             olculen_vtb=len(_sr),
             vtb_siralari={e: s for e, s, _k in _sr})
-        yaz(u'         oz-kalibrasyon: en yuksek kazanan sira %s/%d (%s) | '
-            u'ilk %d disinda %d/%d vtb | garanti ile kazanan %d'
+        yaz(u'         self-calibration: highest winner rank %s/%d (%s) | outside the first %d in %d/%d databases | won via guarantee %d'
             % (kal['en_yuksek_kazanan_sira'] if kal['en_yuksek_kazanan_sira'] is not None else '-',
                kl_ust, kal['kazanan_sira_vtb'], SIRA_GUVENLI_BOLGE,
                kal['guvenli_bolge_disi'], kal['olculen_vtb'], kal['garanti_ile_kazanan']))
@@ -1753,9 +1746,9 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
         sonuc.append(r)
         yaz(u'         => %s' % h)
         if duzeltme:
-            yaz(u'         DOGRU IFADE: %s' % duzeltme)
+            yaz(u'         CORRECT WORDING: %s' % duzeltme)
         gec = time.time() - tb
-        print('        gecen %s | tahmini kalan %s'
+        print(u'        elapsed %s | estimated remaining %s'
               % (sure_metni(gec), sure_metni(gec / n * (len(iddialar) - n))), flush=True)
 
     raporla(CIKTI, sonuc, var, yaz)
@@ -1780,10 +1773,8 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
 def raporla(CIKTI, sonuc, var, yaz):
     t = os.path.join(CIKTI, 'kimlik_iddialari.tsv')
     with open(t, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# Her iddia BAGIMSIZ olarak sinandi. DOGRULANDI = en az IKI '
-                 u'veritabani uyusuyor.\n')
-        fh.write(u'# Yontem: tohum + hizalama. Taksonomi agaci, k-mer LCA ve primer '
-                 u'KULLANILMADI.\n')
+        fh.write(u'# Every claim was tested INDEPENDENTLY. VERIFIED means AT LEAST TWO databases agree.\n')
+        fh.write(u'# Method: seed + alignment. NO taxonomy tree, NO k-mer LCA, NO primers.\n')
         try:
             import sys as _s2, os as _o2
             _k2 = _o2.path.dirname(_o2.path.dirname(_o2.path.abspath(__file__)))
@@ -1879,7 +1870,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                         if kal else '-',
                         _bag,
                         len(d), s['uyusan_vtb'], hepsi, s['kanit'], s['dogru_ifade']])
-    yaz('  yazildi: %s' % t)
+    yaz(u'  written: %s' % t)
     try:
         import importlib.util as _lu
         _lp = _lu.spec_from_file_location(
@@ -1890,26 +1881,25 @@ def raporla(CIKTI, sonuc, var, yaz):
                                              no=s['no'],
                                              onerilen_ad=(s.get('adlandirma') or {})
                                              .get('onerilen_ad', '-')) for s in sonuc])
-        yaz('  yazildi: %s' % el)
+        yaz(u'  written: %s' % el)
     except Exception as e:
-        yaz('  elle kontrol listesi yazilamadi: %s' % type(e).__name__)
+        yaz(u'  could not write the manual check list: %s' % type(e).__name__)
 
     say = {}
     for s in sonuc:
         say[s['hukum']] = say.get(s['hukum'], 0) + 1
     r = os.path.join(CIKTI, 'KIMLIK_DOGRULAMA_RAPORU.md')
     with open(r, 'w', encoding='utf-8') as fh:
-        fh.write(u'# Kimlik iddialarinin bagimsiz dogrulanmasi\n\n')
+        fh.write(u'# Independent verification of identity claims\n\n')
         fh.write(u'Uretim: %s · betik %s\n\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
-        fh.write(u'Kullanilan yerel veritabanlari (%d): %s\n\n'
+        fh.write(u'Local databases used (%d): %s\n\n'
                  % (len(var), ', '.join(e for e, _, _ in var)))
         fh.write(u'Ayrica **NCBI nt** ayri bir katman olarak sorgulanir. Yerel '
                  u'kumelerin hepsi belirli lokuslara ozeldir (SSU, LSU, ITS, operon); '
                  u'nt en genis olanidir ve o yuzden ayrica sorulur. nt katmani '
                  u'tamamlanmazsa iddia **DOGRULANAMADI** sayilir - sessizce atlanmaz.\n\n')
-        fh.write(u'Tam kume envanteri ve kullanilmayanlarin sebebi: '
-                 u'`VERITABANI_ENVANTERI.md`\n\n')
-        fh.write(u'## Sonuc\n\n')
+        fh.write(u'Full set inventory, and why some sets are unused: `VERITABANI_ENVANTERI.md`\n\n')
+        fh.write(u'## Result\n\n')
         for k in ('DOGRULANDI', 'DUZELTILMELI', 'DOGRULANAMADI'):
             if k in say:
                 fh.write(u'- **%s**: %d\n' % (k, say[k]))
@@ -1919,10 +1909,9 @@ def raporla(CIKTI, sonuc, var, yaz):
         siralar = [(s['no'], e, v) for s in sonuc
                    for e, v in ((s.get('kalibrasyon') or {}).get('vtb_siralari') or {}).items()
                    if isinstance(v, int)]
-        fh.write(u'\n## Kisa liste oz-kalibrasyonu (kesme noktasi baglayici mi?)\n\n')
+        fh.write(u'\n## Short-list self-calibration (is the cut-off binding?)\n\n')
         if not siralar:
-            fh.write(u'Olculebilir kazanan sirasi yok (bu kosuda veritabani taramasi '
-                     u'yapilmamis olabilir).\n\n')
+            fh.write(u'No measurable winner rank (this run may not have scanned any database).\n\n')
         else:
             ust = max(v for _n, _e, v in siralar)
             n100 = len([1 for _n, _e, v in siralar if v > SIRA_GUVENLI_BOLGE])
@@ -1935,15 +1924,15 @@ def raporla(CIKTI, sonuc, var, yaz):
                      u'kesme noktasi gercek en iyi eslesmeyi eleyebilir. Bunu ayrica '
                      u'olcmek yerine **her sorguda kazanan isabetin kisa listedeki tohum '
                      u'sirasi** kaydedildi - kanit kosunun kendisinden cikiyor.\n\n')
-            fh.write(u'| olcu | deger |\n|---|---|\n')
-            fh.write(u'| kisa liste boyu | %d (HEPSI hizalandi) |\n' % boy)
-            fh.write(u'| olculen sorgu (iddia x veritabani) | %d |\n' % len(siralar))
-            fh.write(u'| **en yuksek kazanan sira** | **%d** |\n' % ust)
-            fh.write(u'| kazanan ilk %d disindan geldi | %d / %d sorgu |\n'
+            fh.write(u'| measure | value |\n|---|---|\n')
+            fh.write(u'| short-list size | %d (ALL aligned) |\n' % boy)
+            fh.write(u'| queries measured (claim x database) | %d |\n' % len(siralar))
+            fh.write(u'| **highest winner rank** | **%d** |\n' % ust)
+            fh.write(u'| winner came from outside the first %d | %d / %d queries |\n'
                      % (SIRA_GUVENLI_BOLGE, n100, len(siralar)))
-            fh.write(u'| kazanan %d. siranin otesinden geldi | %d / %d sorgu |\n'
+            fh.write(u'| winner came from beyond rank %d | %d / %d queries |\n'
                      % (SIRA_UYARI_ESIGI, n400, len(siralar)))
-            fh.write(u'| kazanan "beklenen takson garantisi" ile geldi | %d sorgu |\n\n' % gar)
+            fh.write(u'| winner entered via the "expected taxon guarantee" | %d queries |\n\n' % gar)
             if n400:
                 fh.write(u'> **UYARI.** %d sorguda kazanan %d. siranin otesinden geldi. '
                          u'Kesme noktasi hala baglayici olabilir; `--kisa-liste` degerini '
@@ -1964,8 +1953,8 @@ def raporla(CIKTI, sonuc, var, yaz):
                          u'yamaya BAGIMLIDIR - ne aradigimizi bilmedigimiz bir taksonda '
                          u'ayni isabet kacardi.\n\n' % gar)
             enb = sorted(siralar, key=lambda x: -x[2])[:5]
-            fh.write(u'En yuksek bes kazanan sira: %s\n\n'
-                     % '; '.join(u'iddia %d / %s: %d' % t for t in enb))
+            fh.write(u'Five highest winner ranks: %s\n\n'
+                     % '; '.join(u'claim %d / %s: %d' % t for t in enb))
 
         fh.write(u'\n> **Yontem farki.** Kraken2 k-mer + taksonomi agacinda LCA yapar; '
                  u'onceki turlarimiz konsensusleri birbiriyle ve in-silico PCR ile '
@@ -1982,7 +1971,7 @@ def raporla(CIKTI, sonuc, var, yaz):
             fh.write(baslik + u'\n\n')
             for s in uy:
                 fh.write(u'### %d. %s\n\n' % (s['no'], s['iddia']))
-                fh.write(u'- **Hukum:** %s  (uyusan veritabani: %d)\n' % (s['hukum'], s['uyusan_vtb']))
+                fh.write(u'- **Verdict:** %s  (agreeing databases: %d)\n' % (s['hukum'], s['uyusan_vtb']))
                 a = s.get('adlandirma') or {}
                 if a:
                     fh.write(u'- **Savunulabilir duzey:** `%s` → **%s**\n'
@@ -2002,7 +1991,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                     fh.write(u'\n  > **Elde isim olmasi ile kimlik iddia etmek ayri seylerdir.** '
                              u'Yukaridaki "en yakin kayit" bir KIMLIK DEGILDIR; savunulabilir '
                              u'duzey sutunu neyin iddia edilebilecegini soyler.\n\n')
-                fh.write(u'- **Kanit:** %s\n' % s['kanit'])
+                fh.write(u'- **Evidence:** %s\n' % s['kanit'])
                 d = s.get('vtb_detay') or {}
                 if d:
                     fh.write(u'\n  **Sorgulanan veritabanlari ve her birinin dedigi '
@@ -2031,7 +2020,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                              % '; '.join('%s yayilim %%%s' % (k, vir(v.get('yayilim')))
                                          for k, v in ae.items()))
                 fh.write(u'\n')
-    yaz('  yazildi: %s' % r)
+    yaz(u'  written: %s' % r)
     yaz('')
     yaz('  ' + '   '.join('%s: %d' % kv for kv in say.items()))
 
@@ -2062,15 +2051,15 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BOS CIKTI URETTI - ZINCIR BURADA DURDURULDU' % ad)
+    yaz(u'  STAGE %s PRODUCED EMPTY OUTPUT - THE CHAIN WAS STOPPED HERE' % ad)
     for x in sorun:
         yaz(u'    - %s' % x)
     yaz('')
-    yaz(u'  NEDEN DURDURULDU: sonraki asama bu dosyayi girdi olarak okuyacakti.')
-    yaz(u'  Bos girdiyle devam etmek cokme uretmez, ANLAMSIZ AMA INANDIRICI bir')
-    yaz(u'  ozet uretir - tam da avladigimiz sessiz hata deseni budur.')
-    yaz(u'  Yukaridaki kosu gunlugunu okuyup sebebi giderin, sonra ayni secenegi')
-    yaz(u'  tekrar secin; bitmis isler kontrol noktalarindan atlanacaktir.')
+    yaz(u'  WHY IT STOPPED: the next stage would have read this file as input.')
+    yaz(u'  Continuing with empty input does not crash; it produces a MEANINGLESS BUT')
+    yaz(u'  CONVINCING summary, which is exactly the silent failure we hunt for.')
+    yaz(u'  Read the run log above, fix the cause, then run the same command')
+    yaz(u'  again; finished work is skipped from its checkpoints.')
     yaz('  ' + '!' * 70)
     return 4
 
@@ -2091,7 +2080,7 @@ def girdi_denetle(yaz, ad, dosyalar):
         return 0
     yaz('')
     yaz('  ' + '!' * 70)
-    yaz(u'  %s ASAMASI BASLATILMADI - GIRDI EKSIK' % ad)
+    yaz(u'  STAGE %s WAS NOT STARTED - INPUT MISSING' % ad)
     for x in eksik:
         yaz(u'    - %s' % x)
     yaz('  ' + '!' * 70)
