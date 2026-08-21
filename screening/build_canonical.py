@@ -1,72 +1,81 @@
 # -*- coding: utf-8 -*-
 """
-build_canonical.py - TEK KANONIK KAYNAK uretir: konsensus_kanonik/
+build_canonical.py - it produces THE ONE CANONICAL SOURCE: konsensus_kanonik/
 
-Butun konsensusleri (karisik yonlu klasorlerden) okur, orientation.py ile SENSE yonune
-cevirir ve TEK bir klasore yazar. Bundan sonra her betik BURAYI okur; hicbir
-betigin kendi yon yamasi olmaz.
+It reads every consensus (from the mixed orientation directories), turns them to the
+SENSE direction with orientation.py and writes them into a SINGLE directory. From
+then on every script reads HERE; no script has an orientation patch of its own.
 
-Girdi klasorleri (oncelik sirasiyla; ayni kutu birden fazla klasorde varsa
-oncelikli olan kazanir ve digeri manifest'e "atlandi" yazilir):
-    1. KAPSAMLI_ARAMA_SONUC/konsensus_yeni   (varsa - en yeni uretim)
-    2. referans_konsensus/konsensus          (gece normalize edilmis set)
-    3. consensus sequences                   (ozgun ciktisi)
+The input directories (in order of precedence; if the same bin is in more than one
+directory the one with precedence wins and the other is written to the manifest as
+atlandi):
+    1. KAPSAMLI_ARAMA_SONUC/konsensus_yeni   (if present, the newest production)
+    2. referans_konsensus/konsensus          (the set normalised overnight)
+    3. consensus sequences                   (the original output)
 
-Cikti:
-    konsensus_kanonik/<kutu>_kanonik.fasta
-    konsensus_kanonik/MANIFEST.tsv           her dosya: kaynak, eski yon, cevrildi mi
-    konsensus_kanonik/BELIRSIZ.tsv           yonu belirlenemeyen dosyalar (MASKELI)
+The output:
+    konsensus_kanonik/<bin>_kanonik.fasta
+    konsensus_kanonik/MANIFEST.tsv           per file: source, old orientation, flipped
+    konsensus_kanonik/BELIRSIZ.tsv           files whose orientation could not be settled
 
-Kullanim:
+Usage:
     python build_canonical.py --kok ..
-    python build_canonical.py --kok .. --yeniden        (varsa uzerine yaz)
+    python build_canonical.py --kok .. --yeniden        (overwrite if present)
+
 """
-# ---------------------------------------------------------------------------
-# build_canonical.py — butun konsensus klasorlerini tarar, her kutunun dizisini
-#                   orientation.py ile SENSE yonune cevirir ve tek bir kanonik klasore
-#                   yazar; boylece yon sorusu tek yerde cozulmus olur.
+# -------------------------------------------------------------------------
+# build_canonical.py - it scans every consensus directory, turns each bin's
+#                   sequence to the SENSE direction with orientation.py and writes
+#                   it into a single canonical directory; that way the orientation
+#                   question is settled in one place.
 #
-# GIRDI  : --kok altindaki uc kaynak klasor, --oncelik ile secilen sirayla:
-#          "consensus sequences" (panelin uzerine kuruldugu ozgun set),
-#          "KAPSAMLI_ARAMA_SONUC/konsensus_yeni" (yeni uretim) ve
-#          "referans_konsensus/konsensus". Yon karari yon.dosya_kanonik() ile.
-# CIKTI  : konsensus_kanonik/ altina kutu basina <kutu>.kanonik.fa; ayrica
-#          INDEKS.tsv (tuketicilerin okumasi gereken tek liste), MANIFEST.tsv
-#          (kaynak, eski yon, cevrildi mi), BELIRSIZ.tsv ve OKUBENI.txt.
-#          Cikis kodu 0 = kanonik klasorde cevrilmesi gereken dosya kalmadi.
-# CAGRAN : hepsi.kanonik_kos() ayri bir surec olarak calistirir - tus 9'un
-#          2. asamasi (--oncelik ozgun) ve 4. asamasi (--oncelik yeni). Yon
-#          kapisi dusen her asamanin hata mesajinda da elle calistirilmasi
-#          onerilen komut budur.
+# INPUT  : the three source directories under --kok, in the order chosen with
+#          --oncelik: consensus sequences (the original set the panel was built
+#          on), KAPSAMLI_ARAMA_SONUC/konsensus_yeni (the new production) and
+#          referans_konsensus/konsensus. The orientation decision is made with
+#          yon.dosya_kanonik().
+# OUTPUT : <bin>.kanonik.fa per bin under konsensus_kanonik/; besides that
+#          INDEKS.tsv (the one list consumers must read), MANIFEST.tsv (the source,
+#          the old orientation, whether it was flipped), BELIRSIZ.tsv and
+#          OKUBENI.txt. Exit code 0 = no file needing a flip is left in the
+#          canonical directory.
+# CALLED BY: hepsi.kanonik_kos() runs it as a separate process, as the 2nd stage of
+#          key 9 (--oncelik ozgun) and the 4th stage (--oncelik yeni). It is also
+#          the command suggested for running by hand in the error message of every
+#          stage whose orientation gate fails.
 #
-# INDEKS.tsv NEDEN VAR: bagli klasorde eski kalinti dosyalar SILINEMIYOR. glob
-# ile okuyan bir tuketici o kalintilari da toplar ve karisik yonlu eski
-# dosyalari kanonik sanir. Bu yuzden gecerli dosyalarin listesi ayri tutulur.
-# ---------------------------------------------------------------------------
+# WHY INDEKS.tsv EXISTS: leftover old files on the mounted directory CANNOT BE
+# DELETED. A consumer reading with glob collects those leftovers too and takes old
+# mixed orientation files for canonical ones. That is why the list of valid files is
+# kept separately.
+# -------------------------------------------------------------------------
 import os, sys, re, csv, glob, argparse, shutil
 
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
 import orientation
 
-# Oncelik: ayni kutu birden fazla klasorde varsa ilk sirada olan kazanir.
+# The precedence: if the same bin is in more than one directory the one first in
+# the order wins.
 #
-# VARSAYILAN 'ozgun' (2026-08-02 duzeltmesi). Onceki varsayilan 'referans' idi ve
-# SESSIZ BIR KAYNAK DEGISIKLIGI yapiyordu: referans_konsensus/ klasoru, panelin
-# uzerine kuruldugu "consensus sequences/*_consensus_strict.fasta" dosyalarindan
-# FARKLI bir konsensus yeniden-kurulumudur (uzunluklar bile farkli: 1503 vs 1534).
-# Olculdu: 'referans' ile Bakteri_universal (EVRENSEL bakteri cifti) 20 B
-# kutusunun yalniz 2'sinde urun veriyordu ve boy 130 yerine 135 cikiyordu;
-# 'ozgun' ile 7 kutuda urun veriyor ve panelin 130 bp degeri yeniden uretiliyor.
-# Panelin butun sayilari 'ozgun' set uzerinde olculmustur - taban o olmalidir.
-# YON normalizasyonu ayri bir istir ve her iki kaynakta da uygulanir.
+# THE DEFAULT IS ozgun (the 2026-08-02 fix). The previous default was referans and
+# it made A SILENT CHANGE OF SOURCE: the referans_konsensus/ directory is a
+# DIFFERENT consensus rebuild from the consensus sequences/*_consensus_strict.fasta
+# files the panel was built on (even the lengths differ, 1503 against 1534).
+# Measured: with referans, Bakteri_universal (the UNIVERSAL bacterial pair) gave a
+# product in only 2 of the 20 B bins and the length came out 135 instead of 130;
+# with ozgun it gives a product in 7 bins and the panel's 130 bp value is
+# reproduced. All the panel's numbers were measured on the ozgun set, so that must
+# be the baseline. ORIENTATION normalisation is a separate job and is applied on
+# both sources.
 ONCELIK = {
  'referans': [('referans_konsensus', 'referans_konsensus/konsensus'),
               ('konsensus_yeni', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni'),
               ('ozgun', 'consensus sequences')],
- # 'yeni': gece uretimi bitince kullanilir. YEDEK SIRASI ONEMLI - konsensus_yeni
- # bir kutuyu uretememisse ONCE 'ozgun' (panelin tabani) gelir; referans_konsensus
- # en sona alindi cunku farkli bir yeniden-kurulumdur (bkz. yukaridaki not).
+ # yeni: used once the night's production is finished. THE FALLBACK ORDER MATTERS:
+ # if konsensus_yeni could not produce a bin, ozgun (the panel's baseline) comes
+ # FIRST; referans_konsensus was put last because it is a different rebuild (see the
+ # note above).
  'yeni':     [('konsensus_yeni', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni'),
               ('ozgun', 'consensus sequences'),
               ('referans_konsensus', 'referans_konsensus/konsensus')],
@@ -81,10 +90,13 @@ _TAX = re.compile(r'(?<![0-9])(\d{3,7})(?![0-9])')
 
 
 def kutu_adi(yol):
-    """dosya adindan <sinif>-<barkod>_<taxid> kutusunu cikar.
-    Kaynak klasorlerin adlandirmasi TUTARSIZ (A1-1-reads_2209_consensus_strict,
-    A1_1_reads_1826872_consensus_strict, A1-1_2209_yeniden_konsensus ...) - bu
-    yuzden ad parcalama degil, desen eslemesi kullanilir."""
+    """extract the <class>-<barcode>_<taxid> bin from the file name.
+    The naming of the source directories is INCONSISTENT
+    (A1-1-reads_2209_consensus_strict, A1_1_reads_1826872_consensus_strict,
+    A1-1_2209_yeniden_konsensus and so on), so pattern matching is used rather than
+    splitting the name apart.
+
+    """
     b = os.path.basename(yol).replace('.fasta', '')
     m = _KUTU.search(b)
     if not m:
@@ -113,9 +125,10 @@ def main():
 
     cik = os.path.join(a.kok, a.cikti)
     os.makedirs(cik, exist_ok=True)
-    # NOT: bagli klasorde dosya SILINEMIYOR (Operation not permitted). Bu yuzden
-    # gecerli dosyalar '*.kanonik.fa' desenine yazilir ve INDEKS.tsv'ye kaydedilir.
-    # Tuketiciler glob DEGIL INDEKS okumalidir; eski '*_kanonik.fasta' kalintilari inert.
+    # NOTE: a file CANNOT BE DELETED on the mounted directory (Operation not
+    # permitted). That is why valid files are written to the *.kanonik.fa pattern and
+    # recorded in INDEKS.tsv. Consumers must read THE INDEX, NOT a glob; the old
+    # *_kanonik.fasta leftovers are inert.
 
     manifest, belirsiz, gorulen = [], [], {}
     for etiket, kl in ONCELIK[a.oncelik]:
@@ -191,7 +204,7 @@ def main():
         kay[m['kaynak']] = kay.get(m['kaynak'], 0) + 1
     print('kaynak dagilimi:', ', '.join('%s=%d' % x for x in sorted(kay.items())))
 
-    # DOGRULAMA: yazilan her dosya gercekten SENSE mi
+    # VERIFICATION: is every file written really SENSE
     kotu = 0
     for y in sorted(glob.glob(os.path.join(cik, '*.kanonik.fa'))):
         kayitlar, sn = yon.dosya_kanonik(y)

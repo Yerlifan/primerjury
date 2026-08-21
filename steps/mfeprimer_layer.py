@@ -2,39 +2,41 @@
 # -*- coding: utf-8 -*-
 """
 mfeprimer_layer.py
-DIS VERITABANI OZGULLUGUNUN IKINCI, BAGIMSIZ OLCUMU.
+THE SECOND, INDEPENDENT MEASUREMENT OF EXTERNAL DATABASE SPECIFICITY.
 
-external_databases.py blastn kullanir: her primeri ayri ayri arar, sonra
-vuruslari kendisi eslestirip urun olusup olusmadigina karar verir.
-Bu betik mfeprimer'in 'spec' alt komutunu kullanir: mfeprimer amplikonu
-kendi termodinamik modeliyle, k-mer indeksinden dogrudan tahmin eder.
-Iki yontem birbirinden bagimsizdir; toplanti kararindaki "hicbir karar tek
-koda birakilmasin" ilkesi dis ozgullukte ancak ikisi birden calisinca
-saglanir.
+external_databases.py uses blastn: it searches for each primer separately, then
+matches the hits itself and decides whether a product forms.
+This script uses mfeprimer's spec subcommand: mfeprimer predicts the amplicon
+directly from a k-mer index with its own thermodynamic model.
+The two methods are independent of one another; the principle from the meeting
+decision that no decision be left to a single piece of code is met in external
+specificity only when both of them run.
 
-Sonuc uc sutunda verilir:
-  blast_urun     14'un buldugu hedef disi urun sayisi
-  mfe_urun       mfeprimer'in buldugu hedef disi amplikon sayisi
+The result is given in three columns:
+  blast_urun     the off target product count external_databases.py found
+  mfe_urun       the off target amplicon count mfeprimer found
   uyum           iki_olcum_uyustu | ayrisan_olcum | tek_olcum
 
-ONEMLI: mfeprimer toplanti kararindaki "son iki baz birebir" kuralini
-uygulamaz. Olculdu: 3' son bazi degistirilmis bir primer, bozulmamis
-primerle ayni sayida amplikon veriyor. Bu yuzden mfeprimer sonuclari eleme
-olcutu degil, ikinci bir bakis acisidir.
+IMPORTANT: mfeprimer does not apply the rule from the meeting decision that the
+last two bases match exactly. It was measured: a primer whose last base at the 3'
+end has been changed gives the same number of amplicons as the intact primer. That
+is why the mfeprimer results are not an elimination criterion but a second point of
+view.
 
-"Uyum" mutlak sayilarin esitligi demek DEGILDIR; iki yontemin esik ve
-model farklari sayilari kacinilmaz olarak ayirir. Uyum, ikisinin de AYNI
-KARARI vermesidir: sifir mi, sifir degil mi. Ayrisma sessizce gecilmez,
-ayri bir sutunda ve ozet satirinda raporlanir.
+Agreement DOES NOT mean that the absolute numbers are equal; the threshold and
+model differences of the two methods separate the numbers unavoidably. Agreement is
+the two of them giving THE SAME DECISION: is it zero or is it not zero. A
+divergence is not passed over silently, it is reported in a separate column and in
+the summary row.
 
-Kullanim:
-  python3 mfeprimer_layer.py --final primer_final --db REFERANS_DB \
-      --mfe tools/mfeprimer --out primer_final/mfeprimer.tsv
+Usage:
+  python3 mfeprimer_layer.py --final primer_final --db REFERANS_DB       --mfe tools/mfeprimer --out primer_final/mfeprimer.tsv
+
 """
 import argparse, csv, collections, os, re, shutil, subprocess, sys, tempfile
 
-# 14 ile AYNI sinif-veritabani eslemesi; ikisi ayrisirsa karsilastirma
-# anlamsiz olur.
+# THE SAME class to database mapping as external_databases.py; if the two drift
+# apart the comparison becomes meaningless.
 SINIF_DB = {
     "A1": ["archaea.16S.fna"],
     "A2": ["archaea.16S.fna"],
@@ -43,12 +45,12 @@ SINIF_DB = {
     "F2": ["fungi.ITS.fna", "fungi.28SrRNA.fna"],
 }
 
-# 14 ile ayni genis kume; iki olcumun ayni veritabanlarini gormesi sart,
-# yoksa "ayrisan olcum" satirlari yontem farkini degil kapsam farkini
-# gosterir. Liste external_databases.py'deki ile BIREBIR AYNI olmak
-# zorundadir; 14'te ROD'un okaryot-yalniz oldugu olculdukten sonra
-# (60320/60320 Eukaryota, 0 Bacteria, 0 Archaea) alan bazli elle secim
-# kaldirildi ve tum siniflar tum rDNA veritabanlarini gorur oldu.
+# The same broad set as external_databases.py; the two measurements must see the
+# same databases, otherwise the diverging measurement rows show a difference of
+# coverage rather than a difference of method. The list has to be EXACTLY THE SAME
+# as the one in external_databases.py; after ROD was measured there to be eukaryote
+# only (60320/60320 Eukaryota, 0 Bacteria, 0 Archaea) the hand made selection by
+# domain was dropped and every class came to see every rDNA database.
 GENIS_ORTAK = [
     "SILVA_138.2_SSURef_NR99.fasta",
     "SILVA_138.2_LSURef_NR99.fasta",
@@ -93,10 +95,12 @@ def get_args():
 
 
 def indeks_eksik(fna):
-    """mfeprimer 'spec' icin gereken yardimci dosyalar. Yalnizca .primerqc.bin
-    bakmak yetmez: .fai ve .json yoksa mfeprimer 'no valid db found' yazar
-    ve CIKIS KODU 0 DONER, yani sessizce hicbir sey uretmez. Eksik dosya
-    adlari doner, bos liste her seyin yerinde oldugunu gosterir."""
+    """The helper files mfeprimer spec needs. Looking only at .primerqc.bin
+    is not enough: without .fai and .json mfeprimer writes no valid db found and
+    RETURNS EXIT CODE 0, that is, it silently produces nothing. It returns the
+    missing file names; an empty list shows that everything is in place.
+
+    """
     eksik = []
     if not (os.path.exists(fna + ".primerqc.bin")
             or os.path.exists(fna + ".primerqc")):
@@ -126,7 +130,7 @@ def main():
         sys.exit("gecen aday yok")
     print(u'pairs to test: %d' % len(rows))
 
-    # 14'un sonucu: (hedef, sinif, ileri, geri, veritabani) -> urun sayisi
+    # what external_databases.py produced: (target, class, forward, reverse, database) -> product count
     blast = {}
     byol = a.blast or os.path.join(a.final, "dis_veritabani.tsv")
     if os.path.exists(byol):
@@ -141,7 +145,7 @@ def main():
     calisma = tempfile.mkdtemp(prefix="mfe_")
     sonuc = []
     hata = 0
-    # sinif basina tek cagri: mfeprimer tsv girdisinde her satir bir cifttir
+    # one call per class: in mfeprimer's tsv input every row is a pair
     sinif_cift = collections.defaultdict(list)
     for i, r in enumerate(rows):
         sinif_cift[r["sinif"]].append((i, r))
@@ -168,20 +172,22 @@ def main():
                 for i, r in ciftler:
                     fh.write("p%d\t%s\t%s\n" % (i, r["ileri_dizi"], r["geri_dizi"]))
             cikti = girdi + ".mfe.tsv"
-            # mfeprimer'in KENDI modeli calisir; toplanti kararindaki
-            # baglanma kurali burada TAKLIT EDILMEZ. Taklit edilseydi iki
-            # olcum bagimsiz olmaz ve ikinci olcumun anlami kalmazdi.
+            # mfeprimer's OWN model runs; the binding rule from the meeting
+            # decision IS NOT IMITATED here. Had it been imitated the two
+            # measurements would not be independent and the second one would
+            # mean nothing.
             #
-            # OLCULDU (archaea.16S, 2026-08-01): mfeprimer --misEnd 3 ile
-            # calistirildiginda, 3' UCTAKI SON BAZI degistirilmis bir primer
-            # bozulmamis primerle AYNI sayida amplikon veriyor (323'e 323).
-            # Yani mfeprimer "son iki baz birebir uymali" kuralini
-            # uygulamiyor; kendi k-mer cekirdegini baska yerde kuruyor.
-            # --misEnd 9 (varsayilan) ise ayni primer icin 30 000'den fazla
-            # amplikon veriyor ve pratikte kullanilamayacak kadar yavas.
-            # Bu yuzden mfeprimer sayilari BIR ELEME OLCUTU DEGILDIR;
-            # blastn'in bulmadigi bir urun bulursa bu, o cift icin
-            # laboratuvarda ayrica bakilmasi gereken bir uyaridir.
+            # MEASURED (archaea.16S, 2026-08-01): when it is run with
+            # mfeprimer --misEnd 3, a primer whose LAST BASE AT THE 3' END
+            # has been changed gives THE SAME number of amplicons as the
+            # intact primer (323 against 323). So mfeprimer does not apply
+            # the rule that the last two bases must match exactly; it builds
+            # its own k-mer seed somewhere else. --misEnd 9 (the default)
+            # gives more than 30 000 amplicons for the same primer and is
+            # too slow to use in practice. That is why the mfeprimer counts
+            # ARE NOT AN ELIMINATION CRITERION; if it finds a product blastn
+            # did not, that is a warning that the pair needs a separate look
+            # in the laboratory.
             cmd = [a.mfe, "spec", "-i", girdi, "-o", cikti, "-d", fna,
                    "-s", str(a.prod_min), "-S", str(a.prod_max),
                    "-t", str(a.tm_min), "-c", str(a.cpu),
@@ -200,9 +206,10 @@ def main():
                 print("      HATA: %s" % ciktisi.strip()[:220])
                 hata += 1
                 continue
-            # mfeprimer bazi hatalarda CIKIS KODU 0 doner ve yalnizca
-            # ekrana yazar. Cikis kodunu tek olcut saymak, bu durumda
-            # "hedef disi urun yok" gibi okunan sahte bir temizlik uretir.
+            # On some errors mfeprimer RETURNS EXIT CODE 0 and only writes
+            # to the screen. Counting the exit code as the only criterion
+            # produces a false cleanliness that reads as there being no off
+            # target product.
             if "no valid db" in ciktisi.lower() or "error" in ciktisi.lower():
                 print(u'      ERROR (exit code 0 but there is a message): %s'
                       % ciktisi.strip()[:220])
@@ -211,9 +218,10 @@ def main():
             # mfeprimer ciktisini oku: amplikon satirlarini cift basina say
             say = collections.Counter()
             ornek = collections.defaultdict(list)
-            # mfeprimer iki dosya yazar: <out> insan icin okunabilir rapor,
-            # <out>.spec.tsv makine icin. Ikincisi okunur; ilkinin bicimi
-            # surumler arasinda degisiyor ve sayim icin guvenilir degil.
+            # mfeprimer writes two files: <out> is a human readable report
+            # and <out>.spec.tsv is for the machine. The second one is read;
+            # the first one's format changes between versions and is not
+            # reliable for counting.
             okunan = None
             for c in (cikti + ".spec.tsv", cikti + ".tsv", cikti):
                 if os.path.exists(c) and c.endswith(".spec.tsv"):
@@ -235,9 +243,9 @@ def main():
                         basliklar = [x.strip().lstrip("#") for x in p2]
                         continue
                     d = dict(zip(basliklar, p2))
-                    # fpName ve rpName ayni cifte ait olmali; degilse bu
-                    # amplikon iki farkli ciftin primerlerinden olusmustur
-                    # ve o cifte yazilmaz.
+                    # fpName and rpName must belong to the same pair; if they do not,
+                    # this amplicon is made of the primers of two different pairs and
+                    # it is not written to that pair.
                     mf = re.search(r"p(\d+)", d.get("fpName", ""))
                     mr = re.search(r"p(\d+)", d.get("rpName", ""))
                     if not mf or not mr or mf.group(1) != mr.group(1):
@@ -266,8 +274,8 @@ def main():
 
     if not sonuc:
         print(u'no database could be scanned; no output was written')
-        # Bos cikmasi sessizce 'temiz' okunmamali; bos ama basliklari olan
-        # bir dosya yazilir ki bayat cikti hayatta kalmasin.
+        # Coming out empty must not be read silently as clean; an empty file WITH
+        # its headers is written so that stale output does not survive.
         if a.out:
             d = os.path.dirname(os.path.abspath(a.out))
             if d:

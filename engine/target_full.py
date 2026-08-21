@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
-"""FARKLI_LOKUS - tek hedef icin TAM arama + ARMS + derin olcum.
+"""FARKLI_LOKUS - a FULL search plus ARMS plus a deep measurement for one target.
 
-Akis:
-  1. Uye konsensusleri uzunluga gore kumelenir, her kumenin en uzunu omurga.
-  2. Her omurga 700 bp pencere / 300 bp adimla taranir. Urun ust siniri 400 bp
-     oldugu icin baslangici s olan her amplikon k = s//300 penceresinin ICINE
-     tam duser - kapsama bir iddia degil, teorem.
-  3. On suzgec OLCUM KURALIDIR (<=1 uyumsuzluk, okuma_motoru.Sonda). 3' son iki
-     baz sarti ARTIK UYGULANMIYOR (2026-08-08 karari) - son2=False.
-  4. En iyi adaylara ARMS varyantlari (uretec.arms_varyantlari) eklenir.
-     ARMS dejenere baz DEGILDIR: tek tanimli baz, tek oligo.
-  5. Hepsi PANEL DERINLIGINDE (n=3000) yeniden olculur.
-  6. Iki esik birden yazilir: sabit dCq 3 ve bollukla agirlikli
-     max(log2(R)+4,3 ; 3,32).
+The flow:
+  1. The member consensuses are clustered by length and the longest of each
+     cluster becomes a backbone.
+  2. Every backbone is scanned with a 700 bp window and a 300 bp step. Since the
+     product upper bound is 400 bp, every amplicon starting at s falls entirely
+     INSIDE the window k = s//300; the coverage is a theorem, not a claim.
+  3. The prefilter IS THE MEASUREMENT RULE (<=1 mismatch, okuma_motoru.Sonda).
+     The last two bases at the 3' end condition IS NO LONGER APPLIED (the
+     2026-08-08 decision), son2=False.
+  4. ARMS variants (uretec.arms_varyantlari) are added to the best candidates.
+     ARMS IS NOT a degenerate base: one defined base, one oligo.
+  5. All of them are measured again AT PANEL DEPTH (n=3000).
+  6. Both thresholds are written: the fixed dCq 3 and the abundance weighted
+     max(log2(R)+4.3 ; 3.32).
+
 """
 import os, sys, json, time, math, argparse
 
@@ -77,21 +80,22 @@ def main():
                     help='choose the template bin MANUALLY (a member bin with a solid consensus)')
     a = ap.parse_args()
     t0 = time.time()
-    # Varsayilan durum dosyasi /tmp/fl altindaydi. Iki sakincasi vardi: klasor
-    # yoksa cokuyordu (asagidaki duzeltme), ve /tmp her yeniden baslatmada
-    # siliniyor - saatlerce suren bir tarama iz birakmadan kayboluyordu. Artik
-    # proje icinde duruyor, yarim kalan tarama ertesi gun kaldigi yerden devam
-    # ediyor ve sonuc dosyasi elle de okunabiliyor.
+    # The default state file used to sit under /tmp/fl. It had two drawbacks: it
+    # crashed when the directory was missing (the fix below), and /tmp is wiped on
+    # every restart, so a scan that had run for hours vanished without a trace. It
+    # now sits inside the project, a half finished scan carries on the next day from
+    # where it stopped, and the result file can also be read by hand.
     dur = a.durum or os.path.join(KOK, 'FARKLI_LOKUS_SONUC', 'durum_%s.json' % ''.join(
         ch if ch.isalnum() else '_' for ch in a.hedef)[:40])
-    # 2026-08-11: durum dosyasinin KLASORU yoksa tarama, ilk pencereyi bitirip
-    # sonucu yazmaya calistigi anda FileNotFoundError ile cokuyordu - yani en
-    # pahali is (bir pencerelik tarama) yapildiktan SONRA. Klasor bastan
-    # acilir; acilamiyorsa durum dosyasi TEK_TUS_SONUC altina alinir ve bu
-    # ekrana yazilir. Tarama, durum dosyasi yuzunden cokmez.
-    # Yazilabilirlik OS'a sorulur, deneme dosyasi ACILMAZ. (Ilk hali deneme
-    # dosyasi yazip siliyordu; bagli klasorde silme yasak oldugu icin kendi
-    # denemesi hata verip saglam klasoru "yazilamaz" ilan ediyordu.)
+    # 2026-08-11: when the DIRECTORY of the state file was missing, the scan crashed
+    # with FileNotFoundError the moment it finished the first window and tried to
+    # write the result, that is, AFTER the most expensive work (a window's worth of
+    # scanning) had been done. The directory is opened up front; if it cannot be
+    # opened the state file is taken under TEK_TUS_SONUC and that is printed to the
+    # screen. The scan does not crash because of the state file.
+    # Writability is asked of the OS, no trial file IS OPENED. (The first version
+    # wrote a trial file and deleted it; because deleting is forbidden on the mounted
+    # directory its own trial failed and it declared a sound directory unwritable.)
     try:
         _d = os.path.dirname(os.path.abspath(dur))
         if _d and not os.path.isdir(_d):
@@ -117,12 +121,12 @@ def main():
         (l for l in open(os.path.join(KOK, 'TEK_PROTOKOL_SONUC',
          'panel_tek_protokol.tsv'), encoding='utf-8') if not l.startswith('#')),
         delimiter='\t')}
-    # YENI HEDEF (panelde satiri yok) DESTEGI.
-    # Hocanin listesindeki taksonlarin cogunun panelde karsiligi yok; eskiden
-    # betik burada StopIteration ile cokuyordu. --uye-taxid verildiginde panel
-    # satirina zaten ihtiyac yok: uyelik elle veriliyor. Panel satiri varsa
-    # mevcut cift de olculur ve karsilastirma basilir; yoksa yalnizca yeni
-    # tasarim yapilir.
+    # SUPPORT FOR A NEW TARGET (one with no row in the panel).
+    # Most of the taxa in the requested list have no counterpart in the panel; the
+    # script used to crash here with StopIteration. When --uye-taxid is given the
+    # panel row is not needed at all: membership is supplied by hand. If there is a
+    # panel row the existing pair is measured too and the comparison is printed; if
+    # there is none, only the new design is done.
     ad = next((h for h in panel if a.hedef.lower() in h.lower()), None)
     if ad is None:
         if not a.uye_taxid:
@@ -138,13 +142,13 @@ def main():
     else:
         b = H.hedef_baglami(panel[ad], kons=kons, kut=kut)
     if a.uye_taxid:
-        # KUTU: oneki - uyelik KUTU duzeyinde verilebilir (2026-08-11).
-        # Gerekce: ayni taxid'i tasiyan kutular ayni organizma OLMAYABILIR.
-        # Olculen ornek: F2-1_40559 ile F2-2_40559 + F2-3_40559 dizi
-        # benzerligine gore iki AYRI kumeye dusuyor, ikisine de Kraken
-        # "Botrytis cinerea" demis. Taxid ile secince ucu tek hedef olur ve
-        # hedefin kendi ici birbirinden ayrilmadigi icin hicbir cift bulunmaz.
-        # Bu yol screening/targets.py icindeki KUTU: yolunun aynisidir.
+        # THE KUTU: PREFIX - membership can be given at BIN level (2026-08-11).
+        # The reason: bins carrying the same taxid MAY NOT be the same organism.
+        # A measured example: F2-1_40559 falls into one cluster and F2-2_40559 plus
+        # F2-3_40559 into another by sequence similarity, and Kraken called all three
+        # Botrytis cinerea. Choosing by taxid makes the three a single target, and
+        # because the target is then not separated from itself no pair is ever found.
+        # This route is the same as the KUTU: route inside screening/targets.py.
         ham_u = [x for x in a.uye_taxid.split(',') if x]
         ham_r = [x for x in a.rakip_taxid.split(',') if x] if a.rakip_taxid else None
         ku_u = set(x[5:] for x in ham_u if x.startswith('KUTU:'))
@@ -174,13 +178,13 @@ def main():
 
     if a.asama == 'tara':
         birim = []
-        # --omurga: sablonu ELLE sec (2026-08-12).
-        # Gerekce: omurgalar() en uzun konsensusu secer, ama uzun olan SAGLAM
-        # olmak zorunda degil. Konsensus saglik denetiminde 99 kutunun 30 unda
-        # konsensusun kutunun kendi okumalarini temsil etmedigi olculdu
-        # (KONSENSUS_SAGLIK_20260812.xlsx). Bozuk bir sablonla taranan bolge
-        # numunede hic yoktur; "cift bulunamadi" sonucu o zaman bir sey
-        # kanitlamaz. Bu secenek saglam bir uye kutusunu sablon yapmayi saglar.
+        # --omurga: choose the template BY HAND (2026-08-12).
+        # The reason: omurgalar() picks the longest consensus, but the longest is not
+        # necessarily the SOUND one. In the consensus health audit, in 30 of 99 bins the
+        # consensus was measured not to represent the bin's own reads
+        # (KONSENSUS_SAGLIK_20260812.xlsx). A region scanned with a broken template is
+        # not in the sample at all; a no pair found result then proves nothing. This
+        # option makes it possible to take a sound member bin as the template.
         om_liste = omurgalar(uye_k)
         if a.omurga:
             zorla = [k for k in kons if k['kutu'] == a.omurga]

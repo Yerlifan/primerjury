@@ -1,37 +1,40 @@
 # -*- coding: utf-8 -*-
 """
-order_and_status.py - iki teslim dosyasi uretir, CANLI panelden:
-  SIPARIS_LISTESI_20260802.tsv          yalniz siparis edilecek ciftler
-  TOPLANTI_KARARLARI_DURUM_20260802.md  karar bazinda YAPILDI / KISMEN / YAPILAMIYOR
+order_and_status.py - it produces two delivery files from the LIVE panel:
+  SIPARIS_LISTESI_20260802.tsv          only the pairs to be ordered
+  TOPLANTI_KARARLARI_DURUM_20260802.md  YAPILDI / KISMEN / YAPILAMIYOR per decision
 
-TAZELIK KURALI: xlsx her calistirmada bagli klasordeki CANLI dosyadan okunur,
-/tmp kopyasi kullanilmaz. Yazdiktan sonra dosyalar geri okunup panelle karsilastirilir.
+THE FRESHNESS RULE: the xlsx is read on every run from the LIVE file on the mounted
+directory, no /tmp copy is used. After writing, the files are read back and compared
+against the panel.
+
 """
-# ---------------------------------------------------------------------------
-# order_and_status.py — canli panelden iki teslim dosyasi uretir: siparis
-#                       edilecek ciftlerin listesi ve toplanti kararlarinin
-#                       yapildi / kismen / yapilamiyor durumu.
+# -------------------------------------------------------------------------
+# order_and_status.py - it produces two delivery files from the live panel: the
+#                       list of pairs to be ordered, and the done / partly / cannot
+#                       be done status of the meeting decisions.
 #
-# GIRDI  : --xlsx ile bagli klasordeki CANLI panel dosyasi (openpyxl ile
-#          okunur, md5'i alinip ekrana basilir) ve --kok proje klasoru. Panel
-#          satiri -> toplanti karari eslemesi (KARAR_ESLEME) dosyanin icinde
-#          sabittir.
-# CIKTI  : SIPARIS_LISTESI_<tarih>.tsv ve TOPLANTI_KARARLARI_DURUM_<tarih>.md.
-#          Yazdiktan sonra iki dosya da geri okunur ve primer dizileri panelle
-#          karsilastirilir; bulunan her fark ekrana basilir.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir teslim uretecidir. Menudeki
-#          (P) tusu ayri bir siparis listesi uretir (protocol klasorunde) ve
-#          bu betigi kullanmaz.
+# INPUT  : the LIVE panel file on the mounted directory given with --xlsx (read
+#          with openpyxl, its md5 taken and printed to the screen) plus the
+#          project directory given with --kok. The panel row to meeting decision
+#          mapping (KARAR_ESLEME) is fixed inside the file.
+# OUTPUT : SIPARIS_LISTESI_<date>.tsv and TOPLANTI_KARARLARI_DURUM_<date>.md.
+#          After writing, both files are read back and the primer sequences are
+#          compared against the panel; every difference found is printed.
+# CALLED BY: IT IS NOT IN THE MENU - it is a delivery generator run by hand. Key
+#          (P) in the menu produces a separate order list (in the protocol
+#          directory) and does not use this script.
 #
-# TAZELIK KURALI KRITIKTIR: xlsx her calistirmada canli dosyadan okunur, gecici
-# kopya kullanilmaz. Siparis dizisi bayat bir kopyadan alinirsa YANLIS PRIMER
-# SIPARIS EDILIR ve hata ancak laboratuvarda gorunur.
-# ---------------------------------------------------------------------------
+# THE FRESHNESS RULE IS CRITICAL: the xlsx is read from the live file on every run,
+# no temporary copy is used. If the order sequence is taken from a stale copy THE
+# WRONG PRIMER IS ORDERED and the mistake only shows up in the laboratory.
+# -------------------------------------------------------------------------
 import os, sys, csv, argparse, hashlib
 import shutil
 import openpyxl
 
-# panel satiri -> (karar, istenen hedef)  ; Karar 1-4 toplantida ISTENEN hedeflerdir
+# the panel row -> (decision, requested target); decisions 1 to 4 are the targets
+# REQUESTED at the meeting
 KARAR_ESLEME = {
     22: ('Karar 1 - tur ozgul', 'Methanosarcina mazei'),
     21: ('Karar 1 - tur ozgul', 'Methanothrix soehngenii'),
@@ -56,7 +59,7 @@ KARAR_ESLEME = {
     18: ('Karar 5 - olcumden turetilen', 'Petriella musispora'),
 }
 
-# toplantida ISTENIP hic cift verilemeyen hedefler (panel satiri yok)
+# targets REQUESTED at the meeting for which no pair could be given at all (no panel row)
 YAPILAMIYOR = [
  ('Karar 1 - tur ozgul', 'Methanosarcina barkeri',
   'Organizma numunede yok: 2208 kutusunun en yakin referansi M. vacuolata %97,4-97,9 - tur esiginin altinda. Yerine CINS duzeyi verildi (Methanosarcina_cinsi).'),
@@ -74,7 +77,7 @@ YAPILAMIYOR = [
   'Hedef numunede var ama cins degil: olculen kimlik Petriella/Microascaceae. Cift panelden cikarildi (ayrim 0,7x).'),
 ]
 
-# KISMEN gerekceleri (panel satiri VAR ama istenen duzey verilemedi)
+# the PARTLY reasons (there IS a panel row but the requested level could not be given)
 KISMEN_NOT = {
  15: 'Toplanti "sakarolitik bakteriler" grubunu istedi; grup capinda cift bulunamadi. Verilen: UYE BAZLI tek cins cifti (Sphaerochaeta associata). Grubun diger uyeleri kapsanmiyor.',
  11: 'Toplanti "proteolitik/sintrofik bakteriler" grubunu istedi; grup capinda cift yok. Verilen: uye bazli iki ayri cift (Synergistaceae soyu + Cloacimonas cinsi). Hedef adi olculen kimlige cekildi - numunedeki organizma Cloacibacillus degil, adlandirilamayan Synergistaceae (%99,39; Cloacibacillus %90,02, cins esigi %94,5).',
@@ -92,48 +95,51 @@ def kisa(v, n=110):
     return s if len(s) <= n else s[:n - 1] + '…'
 
 
-# ---------------------------------------------------------------------------
-# DUZELTME 2026-08-04: cikti adlari SABIT DEGILDIR.
+# -------------------------------------------------------------------------
+# THE 2026-08-04 FIX: the output names ARE NOT FIXED.
 #
-# Eskiden bu betik ciktiyi her kosuda 'SIPARIS_LISTESI_20260802.tsv' adiyla
-# yaziyordu. Sonucu suydu: 3 Agustos'ta uretilen daha yeni listeler yan yana
-# durdugu halde, betigin urettigi dosya adiyla 2 Agustos'ta kalmis gorunuyor ve
-# hangisinin guncel oldugu dosya adindan anlasilamiyordu.
+# This script used to write the output as SIPARIS_LISTESI_20260802.tsv on every
+# run. The consequence: although newer lists produced on 3 August were sitting side
+# by side with it, the file the script produced looked by its name as though it had
+# stayed at 2 August, and which one was current could not be told from the name.
 #
-# Yeni davranis uc parcalidir:
-#   1) Tarihli dosya, PANELIN kendi degistirilme tarihinden turetilir. Boylece
-#      ad, ciktinin gercekten hangi panel surumunden geldigini tasir.
-#   2) Ayrica KANONIK bir 'SIPARIS_LISTESI.tsv' yazilir. Siparis her zaman bu
-#      addan verilir; tarihli dosyalar kayit icin durur.
-#   3) Klasorde bu betigin URETMEDIGI, daha yeni tarihli bir siparis listesi
-#      varsa UYARI basilir ve kanonik dosya USTUNE YAZILMAZ. Sessizce eskiye
-#      donmek, bu projede tam olarak bir kez pahaliya mal oldu.
-# ---------------------------------------------------------------------------
+# The new behaviour has three parts:
+#   1) The dated file is derived from THE PANEL'S own modification date. That way
+#      the name carries which panel version the output really came from.
+#   2) A CANONICAL SIPARIS_LISTESI.tsv is written as well. The order is always
+#      given from this name; the dated files stay as a record.
+#   3) If a newer dated order list that this script DID NOT PRODUCE is in the
+#      directory, a WARNING is printed and the canonical file IS NOT OVERWRITTEN.
+#      Going back to the old one silently has cost this project dearly exactly once.
+# -------------------------------------------------------------------------
 
 KANONIK_SIPARIS = 'SIPARIS_LISTESI.tsv'
 
 
 def panel_tarihi(xlsx_yolu):
-    """Ciktinin tarih etiketini PANELDEN turetir, bugunun tarihinden degil.
+    """Derives the output's date label FROM THE PANEL, not from today's date.
 
-    Neden: ayni panelden iki kez uretilen liste ayni adi almalidir. Bugunun
-    tarihi kullanilsaydi, hicbir sey degismedigi halde her gun yeni bir dosya
-    olusur ve 'hangisi guncel' sorusu yeniden dogardi.
+    The reason: a list produced twice from the same panel must get the same name.
+    Had today's date been used, a new file would appear every day although nothing
+    had changed, and the question of which one is current would be born again.
+
     """
     import datetime
     return datetime.datetime.fromtimestamp(os.path.getmtime(xlsx_yolu)).strftime('%Y%m%d')
 
 
 def daha_yeni_liste_var_mi(kok, bizim_dosya, kaynak_panel):
-    """Bu betigin URETMEDIGI, daha yeni bir siparis listesi var mi.
+    """Is there a newer order list that this script DID NOT PRODUCE.
 
-    Ada gore degil, DEGISTIRILME TARIHINE gore bakar; ad tahmin ettirir, tarih
-    olcer. Bulursa (dosya_adi, tarih) doner, yoksa None.
+    It looks by MODIFICATION DATE, not by name; a name lets you guess, a date
+    measures. If it finds one it returns (file_name, date), otherwise None.
 
-    DIKKAT - karsilastirma KAYNAK PANELIN tarihine gore yapilir, bu betigin az
-    once yazdigi dosyanin tarihine gore DEGIL. Ikincisi her kosuda "simdi" olur
-    ve hicbir aday ondan yeni cikamazdi; uyari hicbir zaman tetiklenmezdi.
-    Sorulan soru sudur: turedigim panelden SONRA uretilmis bir liste var mi?
+    CAREFUL: the comparison is made against THE SOURCE PANEL'S date, NOT against the
+    date of the file this script has just written. The latter is now on every run and
+    no candidate could ever come out newer than it, so the warning would never fire.
+    The question asked is this: is there a list produced AFTER the panel I am derived
+    from?
+
     """
     import glob, datetime
     bizim_t = os.path.getmtime(kaynak_panel)
@@ -184,7 +190,7 @@ def main():
     hayir = [r for r in satirlar if r['siparis'].upper().startswith('HAYIR')]
 
     # ---- 1) SIPARIS LISTESI ------------------------------------------------
-    ETIKET = panel_tarihi(xy)                      # panelden turetilir, sabit degil
+    ETIKET = panel_tarihi(xy)                      # derived from the panel, not fixed
     syol = os.path.join(a.kok, 'SIPARIS_LISTESI_%s.tsv' % ETIKET)
     BAS = ['#', 'Hedef', 'Duzey', 'Plaka', 'Ta (C)',
            "Ileri primer (5'->3')", 'Ileri uz', 'Ileri Tm',
@@ -282,7 +288,7 @@ def main():
         except ValueError:
             enk = None
         if uyedur.get(r['satir']) == 'YENIDEN_KURULDU' and ham:
-            # duzeltilmis olcum yeniden kurulan uye kumesiyle yapildi - tek basina guvenilmez
+            # the corrected measurement was made with the rebuilt member set, so it is not reliable on its own
             deger = 'panel: %s' % r['ayrim']
             notlar.append('düzeltilmiş motorla üye kümesi **doğrulanamadı** (panel değeri gösteriliyor)')
         elif enk is not None and enk < 10:
@@ -330,10 +336,11 @@ def main():
       % ', '.join(r['hedef'] for r in hayir))
     open(myol, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 
-    # ---- KANONIK KOPYA -----------------------------------------------------
-    # Siparis her zaman KANONIK_SIPARIS adindan verilir. Ama once, bu betigin
-    # uretmedigi daha yeni bir liste var mi diye bakilir; varsa kanonik dosyaya
-    # DOKUNULMAZ ve kullanici uyarilir. Sessizce eskiye donmek yasak.
+    # ---- THE CANONICAL COPY ------------------------------------------------
+    # The order is always given from the name KANONIK_SIPARIS. But first we look at
+    # whether a newer list this script did not produce exists; if it does the canonical
+    # file IS NOT TOUCHED and the user is warned. Going back to the old one silently is
+    # forbidden.
     kyol = os.path.join(a.kok, KANONIK_SIPARIS)
     yeni_olan = daha_yeni_liste_var_mi(a.kok, syol, xy)
     if yeni_olan:
