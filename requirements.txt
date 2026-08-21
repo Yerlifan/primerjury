@@ -10,3 +10,7 @@ numpy>=1.21            # vectorised scanning in screening/engine_gateway.py
 openpyxl>=3.0          # Excel deliverables
 pysam>=0.19            # BAM/pileup for consensus and N-analysis
 matplotlib>=3.5        # figures
+
+# Optional. alignment.py tries mappy first and falls back to the minimap2 CLI,
+# so this is not required -- but it is faster when present.
+# mappy>=2.24

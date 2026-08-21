@@ -204,30 +204,30 @@ def load_set(patterns, mask_dir=None):
 def get_args():
     p = argparse.ArgumentParser(description="Cok uyeli hedef icin primer cifti")
     p.add_argument("--in-group", nargs="+", required=True,
-                   help="hedeflenen uyelerin konsensus dosyalari, glob kabul eder")
+                   help="hedeflenen uyelerin consensus files, glob kabul eder")
     p.add_argument("--out-group", nargs="*", default=[],
-                   help="rakip konsensus dosyalari, glob kabul eder")
+                   help="competitor consensus files, glob kabul eder")
     p.add_argument("--anchor", default=None,
-                   help="adaylarin uretilecegi konsensus; verilmezse N'i en az olan")
-    p.add_argument("--mask-dir", default=None, help="02 betiginin maske klasoru")
+                   help="consensus the candidates are generated from; if omitted, the one with fewest Ns")
+    p.add_argument("--mask-dir", default=None, help="02 betiginin maske directory")
     p.add_argument("--label", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--max-pairs", type=int, default=2000)
     p.add_argument("--max-oligo", type=int, default=400,
-                   help="termodinamik suzgecten sonra zincir basina tutulacak en "
+                   help="how many to keep per strand after the thermodynamic filter, at most "
                         "fazla oligo. Tek takson hedeflerinde binlerce korunmus "
                         "oligo cikiyor ve F x R carpimi milyonlara ulasiyor. "
                         "Secim pozisyona gore tabakalanir, yani kalip boyunca "
                         "esit dagilir; 0 sinirsiz.")
     p.add_argument("--stop-after", type=int, default=20000,
-                   help="bu kadar gecerli cift bulununca ciftleme durur; 0 sinirsiz")
+                   help="stop pairing after this many valid pairs; 0 means unlimited")
     # baglanma kurali
     p.add_argument("--exact-last", type=int, default=2)
     p.add_argument("--tail-len", type=int, default=5)
     p.add_argument("--tail-max-mm", type=int, default=1)
     p.add_argument("--total-max-mm", type=int, default=3)
     p.add_argument("--min-overlap", type=int, default=15,
-                   help="5' sarkma serbest, ancak kalipla ortusen kisim en az "
+                   help="5' overhang is allowed, but the part overlapping the template must be at least "
                         "bu kadar baz olmali")
     p.add_argument("--competitor-prod-max", type=int, default=0,
                    help="rakipte urun aranirken kullanilan ust sinir. 0 ise "
@@ -236,7 +236,7 @@ def get_args():
                         "dedigi icin varsayilan sinirsizdir.")
     # ozgulluk
     p.add_argument("--rakip-prod-min", type=int, default=1,
-                   help="rakipte urun sayilmasi icin en kucuk boy; rakipte "
+                   help="rakipte urun sayilmasi for en kucuk boy; rakipte "
                         "herhangi bir bant istenmedigi icin varsayilan 1")
     p.add_argument("--yetim-min-uyumsuzluk", type=int, default=0,
                    help="0: kati kural, yetim primer rakiplerde HIC baglanmamali. "
@@ -259,7 +259,7 @@ def get_args():
     p.add_argument("--degeneracy-budget", type=int, default=0)
     p.add_argument("--degeneracy-fold-max", type=int, default=4)
     p.add_argument("--varyantlari-tut", action="store_true",
-                   help="ayni lokusun IUPAC kardes varyantlarini ayri satir olarak birak")
+                   help="keep IUPAC sibling variants of the same locus as separate rows")
     p.add_argument("--iupac-max", type=int, default=2)
     p.add_argument("--iupac-son-yasak", type=int, default=5)
     p.add_argument("--tm-min", type=float, default=58.0)

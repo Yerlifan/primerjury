@@ -64,7 +64,7 @@ def get_args():
     p.add_argument("--out", required=True)
     p.add_argument("--max-okuma", type=int, default=20000)
     p.add_argument("--min-urun", type=int, default=30,
-                   help="konsensus kurmak icin gereken en az urun sayisi")
+                   help="minimum number of products needed to build a consensus")
     p.add_argument("--is-parcacigi", type=int, default=4)
     return p.parse_args()
 

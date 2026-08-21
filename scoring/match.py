@@ -11,7 +11,7 @@ yalniz -3 ve -4 konumlarina konur (-1/-2'ye konursa uye de cogalmaz).
 """
 import os, sys, json, argparse, bisect, time
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 
 KOK = '/sessions/dreamy-elegant-wozniak/mnt/PrimerTasarlama'
 TM_ALT, TM_UST = 58.0, 62.5

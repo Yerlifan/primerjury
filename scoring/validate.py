@@ -11,7 +11,7 @@ ve fark acikca yazilir.
 """
 import os, sys, json, time, argparse
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 KOK = '/sessions/dreamy-elegant-wozniak/mnt/PrimerTasarlama'
 
 
@@ -29,7 +29,7 @@ def kapsam_orani(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
-                    help='hedef::kp_dosya::N')
+                    help='target::checkpoint_file::N')
     ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
     ap.add_argument('--output', '--cikti', dest='cikti', default='/tmp/mrb/kontrol/dogrulama.json')
     g = ap.parse_args()

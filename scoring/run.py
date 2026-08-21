@@ -11,7 +11,7 @@ ve siralama ona gore yapilir. Ayrim kati UYDURULMAZ.
 """
 import os, sys, json, time, argparse
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 KOK = '/sessions/dreamy-elegant-wozniak/mnt/PrimerTasarlama'
 
 
@@ -29,7 +29,7 @@ def kapsam_orani(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
-                    help='hedef::kisa_dosya::kp_dosya')
+                    help='target::shortlist_file::checkpoint_file')
     ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
     # BELLEK: KutuHavuzu (otorite=False) kutu basina ~160 MB (1,5 kb okuma) ile
     # ~400 MB (3,7 kb okuma) tutar; tohum indeksi int64 anahtar dizisi yuzunden

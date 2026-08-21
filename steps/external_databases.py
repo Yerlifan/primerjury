@@ -404,14 +404,14 @@ def basliklari_coz(fna, kimlikler, onbellek):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--final", required=True, help="09'un cikti klasoru")
-    p.add_argument("--db", required=True, help="REFERANS_DB klasoru")
-    p.add_argument("--hedefler", default=None, help="hedefler.tsv")
+    p.add_argument("--final", required=True, help="09'un output directory")
+    p.add_argument("--db", required=True, help="REFERANS_DB directory")
+    p.add_argument("--hedefler", default=None, help="targets.tsv")
     p.add_argument("--adlar", default=None, help="taxid_adlari.tsv")
     p.add_argument("--kimlik", default=None,
-                   help="22'nin hedef_kimlik.tsv ciktisi (olculen kimlik)")
+                   help="hedef_kimlik.tsv from the target-identity step (measured identity)")
     p.add_argument("--kons", default=None,
-                   help="konsensus klasoru; verilirse her (sinif, veritabani) "
+                   help="consensus directory; if given, every (class, database) "
                         "ikilisi icin KAPSAM DENETIMI yapilir")
     p.add_argument("--out", default=None)
     p.add_argument("--prod-min", type=int, default=50)
@@ -420,10 +420,10 @@ def get_args():
     p.add_argument("--max-hedef", type=int, default=5000)
     p.add_argument("--is-parcacigi", type=int, default=4)
     p.add_argument("--genis", action="store_true",
-                   help="cevresel dizileri de iceren buyuk veritabanlarini da "
+                   help="also the large databases that include environmental sequences "
                         "tarar (SILVA, UNITE, ROD, PR2). Uzun surer.")
     p.add_argument("--yalniz-genis", action="store_true",
-                   help="yalnizca genis kumeyi tarar")
+                   help="only genis kumeyi tarar")
     p.add_argument("--zaman-asimi", type=int, default=14400,
                    help="veritabani basina saniye siniri")
     return p.parse_args()

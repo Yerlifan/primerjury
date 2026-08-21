@@ -34,7 +34,7 @@ def get_args():
     p.add_argument("--outdir", required=True)
     p.add_argument("--max-sets", type=int, default=6)
     p.add_argument("--min-members", type=int, default=2,
-                   help="bu sayidan az uyeli artik kume tek tek tasarlanir")
+                   help="leftover clusters with fewer members than this are designed one by one")
     p.add_argument("--extra", nargs=argparse.REMAINDER, default=[],
                    help="04'e aynen gecirilecek ek bayraklar")
     return p.parse_args()

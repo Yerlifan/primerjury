@@ -37,7 +37,7 @@ import sys, os, glob, argparse
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
 sys.path.insert(0, os.path.join(os.path.dirname(BURA), 'engine'))
-import okuma_motoru as om
+import read_engine as om
 try:
     import ispcr
     ISPCR = True

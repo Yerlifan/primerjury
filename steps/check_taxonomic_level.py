@@ -369,9 +369,9 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--hedefler", required=True)
     p.add_argument("--adlar", required=True)
-    p.add_argument("--final", required=True, help="primer_final klasoru")
+    p.add_argument("--final", required=True, help="primer_final directory")
     p.add_argument("--referans", default=None, help="primer_referans.tsv")
-    p.add_argument("--db", required=True, help="REFERANS_DB klasoru")
+    p.add_argument("--db", required=True, help="REFERANS_DB directory")
     p.add_argument("--kimlik", default=None, help="hedef_kimlik.tsv")
     p.add_argument("--out", required=True)
     p.add_argument("--prod-min", type=int, default=50)
@@ -383,7 +383,7 @@ def get_args():
     # Deger burada sabit yazilmaz, secenek olarak durur; degistirilirse
     # ciktinin basinda hangi esikle calisildigi yaziliyor.
     p.add_argument("--capraz-tur-esik", type=int, default=2,
-                   help="tur ozgullugunde hosgorulen capraz TUR sayisi "
+                   help="number of cross-reacting SPECIES tolerated at species-level specificity "
                         "(urun sayisi degil); varsayilan 2")
     return p.parse_args()
 

@@ -26,7 +26,7 @@ import argparse, csv, glob, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hizalama
+import alignment
 
 MAPPY = hizalama.ARKA_UC is not None
 
@@ -217,7 +217,7 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--kons", required=True)
     p.add_argument("--adlar", default=None,
-                   help="taxid<TAB>ad dosyasi, yalniz raporu okunakli kilar")
+                   help="taxid<TAB>ad file, only raporu okunakli kilar")
     p.add_argument("--out", default=None)
     p.add_argument("--ozdeslik-esik", type=float, default=OZDESLIK_ESIK)
     p.add_argument("--uzunluk-esik", type=int, default=UZUNLUK_ESIK)

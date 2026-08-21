@@ -66,12 +66,12 @@ def main():
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--target', '--hedef', dest='hedef', required=True)
     p.add_argument('--template', '--kalip', dest='kalip', required=True,
-                   help='olculen kimlikte aranacak metin, orn: Petriella')
+                   help='text to look for in the measured identity, e.g. Petriella')
     p.add_argument('--class', '--sinif', dest='sinif', default='',
-                   help='kutu sinifi (F2 gibi); bos ise siparis listesinden okunur')
+                   help='bin class (such as F2); read from the order list when empty')
     p.add_argument('--write', '--yaz', dest='yaz', action='store_true')
     p.add_argument('--panel-row', '--panel-satiri', dest='panel_satiri', default='',
-                   help='panel kaynagina satir ekle: PLAKA:Ta  (orn P1:55)')
+                   help='add a row to the panel source: PLATE:Ta  (e.g. P1:55)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

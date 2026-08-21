@@ -135,7 +135,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--selftest', '--sina', dest='sina', action='store_true',
-                   help='yalniz ad kurali sinavini kos, dosya okuma')
+                   help='only ad kurali sinavini kos, file reads')
     a = p.parse_args()
     if a.sina:
         return sinav()

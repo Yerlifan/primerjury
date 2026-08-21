@@ -60,9 +60,9 @@ def get_args():
     p.add_argument("--consensus", required=True)
     p.add_argument("--mask", default=None, help="02 betiginin urettigi BED")
     p.add_argument("--mask-contig", default=None,
-                   help="BED'in 1. sutununda bu ada sahip satirlar kullanilir; "
+                   help="only BED rows whose first column has this name are used; "
                         "verilmezse butun satirlar alinir")
-    p.add_argument("--ambig", default=None, help="IUPAC kodlu konsensus (bilgi amacli)")
+    p.add_argument("--ambig", default=None, help="IUPAC kodlu consensus (bilgi amacli)")
     p.add_argument("--out", required=True)
     p.add_argument("--label", default=None)
     # oligo kurallari
@@ -75,24 +75,24 @@ def get_args():
     p.add_argument("--gc-clamp-last", type=int, default=5,
                    help="son kac bazda GC sayilir")
     p.add_argument("--gc-clamp-max", type=int, default=3,
-                   help="son N bazda en fazla kac G veya C")
+                   help="maximum G or C in the last N bases")
     p.add_argument("--homopolymer-max", type=int, default=4)
     p.add_argument("--require-3p-gc", type=int, default=1,
-                   help="1 ise 3' uc G ya da C ile bitmeli")
+                   help="1 ise 3' uc G or C with bitmeli")
     p.add_argument("--degeneracy-budget", type=int, default=0,
                    help="ARTIK ETKISIZ. Toplanti karari geregi oligolar salt "
                         "ACGT uretiliyor; kalip belirsizligi --iupac-max ile "
                         "yonetiliyor. Bayrak geriye donuk uyum icin duruyor "
                         "ve verildiginde uyari basilir.")
     p.add_argument("--degeneracy-fold-max", type=int, default=4,
-                   help="ARTIK ETKISIZ, geriye donuk uyum icin duruyor")
+                   help="ARTIK ETKISIZ, geriye donuk uyum for duruyor")
     p.add_argument("--iupac-max", type=int, default=2,
-                   help="kalip penceresinde izin verilen IUPAC pozisyon sayisi; "
+                   help="number of IUPAC positions allowed in the template window; "
                         "bunlar somut baza cozulur, oligoya dejenere baz "
                         "girmez. 0 verilirse IUPAC iceren pencere hic "
                         "kullanilmaz.")
     p.add_argument("--iupac-son-yasak", type=int, default=5,
-                   help="oligonun son bu kadar bazinda IUPAC kabul edilmez")
+                   help="IUPAC is not accepted in the last this many bases of the oligo")
     # termodinamik
     p.add_argument("--tm-min", type=float, default=58.0)
     p.add_argument("--tm-max", type=float, default=62.0)
@@ -102,7 +102,7 @@ def get_args():
                    help="tolerans = k carpi kaymanin standart sapmasi; veriden "
                         "turetilir")
     p.add_argument("--tm-cross-tol", type=float, default=None,
-                   help="toleransi elle sabitler, verilirse k yok sayilir")
+                   help="pins the tolerance manually; k is ignored when given")
     p.add_argument("--hairpin-dg-min", type=float, default=-3000.0)
     p.add_argument("--homodimer-dg-min", type=float, default=-6000.0)
     p.add_argument("--heterodimer-dg-min", type=float, default=-6000.0)
@@ -121,9 +121,9 @@ def get_args():
     p.add_argument("--prod-gc-max", type=float, default=60.0)
     p.add_argument("--pair-tm-diff-max", type=float, default=1.5)
     p.add_argument("--max-pairs", type=int, default=5000,
-                   help="cikti satiri ust siniri, puana gore kirpilir")
+                   help="maximum output rows, trimmed by score")
     p.add_argument("--min-locus-spacing", type=int, default=0,
-                   help="ayni lokusun kaymis kopyalarini seyreltir: iki aday "
+                   help="thins out shifted copies of the same locus: two candidates "
                         "cifti hem F hem R baslangici bu kadar yakinsa daha "
                         "kotu puanli olan atilir. 0 kapatir.")
     return p.parse_args()

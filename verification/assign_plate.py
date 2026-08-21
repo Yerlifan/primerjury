@@ -71,7 +71,7 @@ def geo_tm(kok, ciftler):
         if os.path.exists(os.path.join(d, 'geometry_core.py')):
             sys.path.insert(0, d)
             try:
-                import geo
+                import geometry_core
             except Exception:
                 return None, u'geometry_core.py yuklenemedi (primer3 yok?)'
             sat = [l.rstrip('\n').split('\t')

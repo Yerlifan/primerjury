@@ -19,7 +19,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, Reference
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import alan_denetimi
+import field_audit
 
 YAZI = "Arial"
 BASLIK_DOLGU = PatternFill("solid", fgColor="1F4E78")
@@ -63,16 +63,16 @@ def get_args():
     p.add_argument("--final", required=True)
     p.add_argument("--bol", default=None)
     p.add_argument("--dis", default=None,
-                   help="14'un ciktisi (dis_veritabani.tsv)")
+                   help="output of the external-databases step (dis_veritabani.tsv)")
     p.add_argument("--referans", default=None,
-                   help="15'in ciktisi (primer_referans.tsv)")
+                   help="output of the design-from-reference step (primer_referans.tsv)")
     p.add_argument("--adlar", default=None)
     p.add_argument("--hedefler", default="hedefler.tsv")
     p.add_argument("--kimlik", default=None,
-                   help="22'nin ciktisi (hedef_kimlik.tsv); verilirse her "
+                   help="output of the target-identity step (hedef_kimlik.tsv); if given, every "
                         "satira olculen kimlik sutunu eklenir")
     p.add_argument("--kons", default=None,
-                   help="baskin alel konsensus klasoru; alan tutarliligi "
+                   help="baskin alel consensus directory; alan tutarliligi "
                         "denetimi icin gerekir")
     p.add_argument("--out", required=True)
     p.add_argument("--not-metni", default="")

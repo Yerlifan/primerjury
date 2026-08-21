@@ -16,7 +16,7 @@ Parti parti kosar (45 sn bash tavani). Durum /tmp/mrb/kontrol/kalib.json.
 """
 import os, sys, json, glob, argparse
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 
 KOK = '/sessions/dreamy-elegant-wozniak/mnt/PrimerTasarlama'
 KP = '/tmp/mrb/kontrol/kalib.json'

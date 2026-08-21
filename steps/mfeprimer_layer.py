@@ -68,25 +68,25 @@ SINIF_DB_GENIS = {
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--final", required=True, help="09'un cikti klasoru")
-    p.add_argument("--db", required=True, help="REFERANS_DB klasoru")
+    p.add_argument("--final", required=True, help="09'un output directory")
+    p.add_argument("--db", required=True, help="REFERANS_DB directory")
     p.add_argument("--mfe", required=True, help="mfeprimer calistirilabiliri")
     p.add_argument("--blast", default=None,
-                   help="14'un ciktisi; verilirse iki olcum karsilastirilir")
+                   help="output of the external-databases step; if given, the two measurements are compared")
     p.add_argument("--out", required=True)
     p.add_argument("--prod-min", type=int, default=50)
     p.add_argument("--prod-max", type=int, default=400)
     p.add_argument("--tm-min", type=float, default=30.0,
                    help="mfeprimer amplikon Tm alt siniri")
     p.add_argument("--mismatch", type=int, default=3,
-                   help="toplanti kararindaki toplam uyumsuzluk siniri")
+                   help="toplanti kararindaki toplam mismatch siniri")
     p.add_argument("--mis-end", type=int, default=3,
-                   help="mfeprimer'in uyumsuzluk penceresi. 3 hizli ve "
+                   help="mfeprimer'in mismatch penceresi. 3 hizli and "
                         "secici, 9 (mfeprimer varsayilani) asiri gevsek ve "
                         "cok yavas. Bu deger toplanti kararindaki 3' uc "
                         "kuralini UYGULAMAZ, betik basindaki nota bakin.")
     p.add_argument("--genis", action="store_true",
-                   help="14 ile ayni genis veritabani kumesini de tarar")
+                   help="also scan the same wide database set as the external-databases step")
     p.add_argument("--cpu", type=int, default=4)
     p.add_argument("--zaman-asimi", type=int, default=3600)
     return p.parse_args()

@@ -13,7 +13,7 @@ Kullanim:
 import argparse, csv, json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import alan_denetimi
+import field_audit
 
 
 def vir(x, n=1):

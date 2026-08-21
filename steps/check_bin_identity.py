@@ -44,12 +44,12 @@ def fasta(p):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--fastq", required=True, help="'fastq files' klasoru")
-    p.add_argument("--ref", required=True, help="referans FASTA (16S/ITS/28S)")
+    p.add_argument("--fastq", required=True, help="'fastq files' directory")
+    p.add_argument("--ref", required=True, help="reference FASTA (16S/ITS/28S)")
     p.add_argument("--desen", nargs="+", required=True,
-                   help="referans basliginda aranacak ad parcalari")
-    p.add_argument("--grup", default=None, help="yalniz bu grup (or. A2-4)")
-    p.add_argument("--ornek", type=int, default=1000, help="kutu basina okuma")
+                   help="name fragments to look for in the reference header")
+    p.add_argument("--grup", default=None, help="this group only (e.g. A2-4)")
+    p.add_argument("--ornek", type=int, default=1000, help="reads per bin")
     p.add_argument("--min-uzunluk", type=int, default=600)
     p.add_argument("--out", default=None)
     return p.parse_args()

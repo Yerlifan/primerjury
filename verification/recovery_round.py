@@ -1449,14 +1449,14 @@ def main():
     p.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=400,
                    help='yol 3 taramasinda olculecek en fazla aday cift')
     p.add_argument('--scan-max', '--tarama-ust', dest='tarama_ust', type=int, default=3000,
-                   help='yol 3 taramasinda omurgadan ornekle nen en fazla primer adayi')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='yalniz adi bunu iceren hedefler (sinama)')
+                   help='yol 3 taramasinda omurgadan examplele nen en fazla primer adayi')
+    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='only targets whose name contains this (test)')
     p.add_argument('--arms-max', '--arms-ust', dest='arms_ust', type=int, default=5,
                    help='kac adayin ARMS varyantlari uretilsin')
     p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=OKUMA_TAVANI,
-                   help='kutu basina okuma tavani (TEK PROTOKOL ile ayni olmali)')
+                   help='cap on reads per bin (must match the single-protocol measurement)')
     p.add_argument('--skip-if-no-panel', '--panelsiz-atla', dest='panelsiz_atla', action='store_true',
-                   help='panelde satiri olmayan talepleri atla (yalniz hizli test icin)')
+                   help='skip requests with no row in the panel (quick testing only)')
     p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

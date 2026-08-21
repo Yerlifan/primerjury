@@ -29,7 +29,7 @@ import argparse, csv, glob, math, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hizalama
+import alignment
 
 if hizalama.ARKA_UC is None:
     sys.exit(hizalama.durum())
@@ -70,18 +70,18 @@ def fastq_bul(kok, grp, taxid):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--kons", required=True, help="self konsensus klasoru")
-    p.add_argument("--fastq", required=True, help="'fastq files' klasoru")
+    p.add_argument("--kons", required=True, help="self consensus directory")
+    p.add_argument("--fastq", required=True, help="'fastq files' directory")
     p.add_argument("--out", required=True)
     p.add_argument("--max-okuma", type=int, default=3000)
     p.add_argument("--min-derinlik", type=int, default=20,
-                   help="bu derinligin altinda baz cagrilmaz, N yazilir")
+                   help="below this depth no base is called and N is written")
     p.add_argument("--min-oran", type=float, default=0.50,
-                   help="baskin alel bu orandan dusukse N yazilir")
+                   help="write N when the dominant allele is below this fraction")
     p.add_argument("--min-uzunluk", type=int, default=400)
     p.add_argument("--oran-yaz", type=int, default=1)
     p.add_argument("--yigin", type=int, default=2000,
-                   help="minimap2 komut satiri arka ucunda tek cagriya "
+                   help="single call on the minimap2 command-line backend "
                         "verilecek okuma sayisi")
     return p.parse_args()
 

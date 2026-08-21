@@ -527,15 +527,15 @@ def main(argv=None):
     ap.add_argument('--selftest', '--sina', dest='sina', action='store_true')
     ap.add_argument('--list-targets', '--hedefleri-listele', dest='hedefleri_listele', action='store_true')
     ap.add_argument('--skip-tests', '--sinama-atla', dest='sinama_atla', action='store_true',
-                    help='kendini sinamayi atla (yalniz gelistirme/test icin)')
+                    help='skip the self-test (development and testing only)')
     ap.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
-                    help='kontrol noktalarini yok say, bastan hesapla')
-    ap.add_argument('--light', '--hafif', dest='hafif', action='store_true', help='referans/kuresel adimlari atla')
+                    help='ignore checkpoints and recompute from scratch')
+    ap.add_argument('--light', '--hafif', dest='hafif', action='store_true', help='skip the reference and global scan steps')
     ap.add_argument('--full-depth', '--tam-derinlik', dest='tam_derinlik', action='store_true',
-                    help='kutudaki BUTUN okumalari kullan (--okuma 0 ile ayni)')
+                    help='use EVERY read in the bin (same as --reads 0)')
     ap.add_argument('--reads', '--okuma', dest='okuma', type=int, default=C.NUMUNE_OKUMA_SAYISI,
-                    help='kutu basina okuma; 0 = kutudaki BUTUN okumalar (yavas ama kesin)')
-    ap.add_argument('--target', '--hedef', dest='hedef', default=None, help='yalniz bu hedef (test icin)')
+                    help='reads per bin; 0 = EVERY read in the bin (slow but exact)')
+    ap.add_argument('--target', '--hedef', dest='hedef', default=None, help='this target only (for testing)')
     ap.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=None)
     a = ap.parse_args(argv)
 

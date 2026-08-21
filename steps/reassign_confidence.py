@@ -47,18 +47,18 @@ RUTBE_SIRA = ["U", "R", "D", "K", "P", "C", "O", "F", "G", "S"]
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--kraken", required=True,
-                   help="'kraken results' klasoru (rapor ve output dosyalari)")
+                   help="'kraken results' directory (report and output files)")
     p.add_argument("--out", required=True)
     p.add_argument("--confidence", type=float, default=0.1)
     p.add_argument("--desen-rapor", default="*_kraken2.report")
     p.add_argument("--desen-cikti", default="*_output")
     p.add_argument("--max-okuma", type=int, default=0,
-                   help="0 = hepsi; deneme icin kucultun")
+                   help="0 = all; deneme for kucultun")
     p.add_argument("--tarama", default=None,
-                   help="virgulle ayrilmis esikler; verilirse yalnizca tarama "
+                   help="comma-separated ayrilmis esikler; if given only tarama "
                         "yapilir, rapor yazilmaz. Ornek: 0,0.005,0.01,0.02,0.05")
     p.add_argument("--tarama-okuma", type=int, default=20000,
-                   help="tarama modunda dosya basina okuma sayisi")
+                   help="reads per file in scan mode")
     return p.parse_args()
 
 

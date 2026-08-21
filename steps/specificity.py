@@ -77,7 +77,7 @@ KURAL = Kural()
 
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import hizalama
+import alignment
 
 MAPPY = hizalama.ARKA_UC is not None
 
@@ -378,33 +378,33 @@ def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--adaylar", required=True, help="08'in cikti klasoru")
-    p.add_argument("--pt", required=True, help="PrimerTasarlama kok klasoru")
+    p.add_argument("--adaylar", required=True, help="08'in output directory")
+    p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
     p.add_argument("--out", required=True)
     p.add_argument("--hedefler", default=os.path.join(HERE, "hedefler.tsv"))
     p.add_argument("--top", type=int, default=15,
-                   help="hedef basina sinanacak en iyi aday sayisi")
+                   help="number of best candidates tested per target")
     p.add_argument("--max-okuma", type=int, default=20000,
-                   help="takson basina taranacak en fazla okuma; 0 sinirsiz. "
+                   help="taxon basina taranacak en fazla reads; 0 sinirsiz. "
                         "Kirpma yapilirsa log'a yazilir.")
     p.add_argument("--min-uye-orani", type=float, default=0.5,
-                   help="hedef uyelerin en az bu orani ham okumada dogrulanmali")
+                   help="at least this fraction of target members must be confirmed in the raw reads")
     p.add_argument("--kons", default=None,
-                   help="konsensus klasoru. Verilirse rakip kutulardaki "
+                   help="consensus directory. if given competitor kutulardaki "
                         "capraz bulasma olculur ve 'rakipte urun' karari bu "
                         "olculen sizintiyla karsilastirilarak verilir.")
     p.add_argument("--prod-min", type=int, default=70,
-                   help="tasarim asamasindakiyle ayni olmali")
+                   help="must match the value used at the design stage")
     p.add_argument("--prod-hard-max", type=int, default=300,
-                   help="tasarim asamasindakiyle ayni olmali")
+                   help="must match the value used at the design stage")
     p.add_argument("--bulasma-ornek", type=int, default=400)
     p.add_argument("--bulasma-min-okuma", type=int, default=100,
-                   help="capraz bulasma olcumu bu kadar okumadan az ise "
+                   help="when the carry-over measurement rests on fewer reads than this "
                         "sizintinin esigi acmasina izin verilmez")
     p.add_argument("--sizinti-tavan", type=float, default=0.15,
-                   help="sizinti esigi en fazla bu degere kadar acabilir")
+                   help="the leakage threshold may open up to this value at most")
     p.add_argument("--rakip-wilson-max", type=float, default=0.02,
-                   help="rakipte urun veren okuma oraninin Wilson alt siniri "
+                   help="rakipte urun veren reads oraninin Wilson alt siniri "
                         "bu degeri asarsa aday elenir")
     p.add_argument("--sus-ici-fark-max", type=float, default=0.40,
                    help="iki primerin baglanma orani arasindaki en buyuk fark; "

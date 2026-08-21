@@ -631,7 +631,7 @@ def _adsiz_mi(baslik):
     22 -> 1. Yeni kural anahtar kelime aramaz, AD arar.
     """
     try:
-        from ncbi_yeniden_siniflandir import adli_mi as _adli
+        from ncbi_reclassify import adli_mi as _adli
     except ImportError:
         b = baslik.lower()
         return any(iz in b for iz in _ADSIZ_IZLERI)
@@ -1285,6 +1285,23 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
 def raporla(cikti, satirlar, yaz):
     t = os.path.join(cikti, 'dogrulama_uc_sutun.tsv')
     with open(t, 'w', encoding='utf-8', newline='') as fh:
+        # 2026-08-21: English legend for human readers. Column NAMES are NOT
+        # translated -- they are the machine-readable contract that other
+        # stages and existing result files depend on.
+        try:
+            import sys as _s, os as _o
+            _k = _o.path.dirname(_o.path.dirname(_o.path.abspath(__file__)))
+            if _k not in _s.path:
+                _s.path.insert(0, _k)
+            from screening import labels as _L
+            fh.write(u'# FOUR INDEPENDENT MEASUREMENT LAYERS SIDE BY SIDE.\n')
+            fh.write(u'# If the measuring layers disagree, the row is CELISKILI\n')
+            fh.write(u'# (contradictory) and is NOT orderable.\n')
+            fh.write(_L.verdict_legend(_L.OZGULLUK, 'VERDICTS'))
+            fh.write(_L.verdict_legend(_L.KATMAN, 'PER-LAYER READINGS'))
+            fh.write(_L.legend(_L.SUTUN.keys()))
+        except Exception:
+            pass
         fh.write(u'# UC OLCUM KATMANI YAN YANA. Ayrilirsa satir CELISKILI - siparis edilemez.\n')
         # A3 (2026-08-21): esik artik PT_VURUS_ESIGI ile degistirilebiliyor.
         # Degistirilebilen bir olcut, hangi degerle kosuldugu YAZILMADIKCA
@@ -1552,7 +1569,7 @@ def main():
     p = argparse.ArgumentParser(description='Kurtarilan ciftlerin uc katmanli dogrulanmasi')
     p.add_argument('--root', '--kok', dest='kok', default='.')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle',
-                   help='oto: NCBI URL API; elle: yapistirilabilir girdi uret; yok: atla')
+                   help='auto: NCBI URL API; manual: write pasteable input; none: skip')
     p.add_argument('--ncbi-load', '--ncbi-yukle', dest='ncbi_yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
     p.add_argument('--organism', '--organizma', dest='organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
     # D-13c (2026-08-07, OLCULDU): ENTREZ_QUERY ile hedefin KENDI taksonu
@@ -1561,20 +1578,20 @@ def main():
     # CEVIRIR (yalniz o taksonu getirir). Dogru bicim 'all[filter] NOT
     # txidN[Organism]'. Kod bu oneki kendisi ekler.
     p.add_argument('--ncbi-exclude-taxid', '--ncbi-haric-taxid', dest='ncbi_haric_taxid', default='',
-                   help="NCBI'de DISLANACAK taxid (ornek: 2157). ENTREZ_QUERY'ye "
+                   help="taxid to EXCLUDE at NCBI (example: 2157). Added to ENTREZ_QUERY "
                         "'all[filter] NOT txid<N>[Organism]' olarak gonderilir.")
-    p.add_argument('--local-only', '--yalniz-yerel', dest='yalniz_yerel', action='store_true', help='yalniz katman 2 (yerel DB)')
+    p.add_argument('--local-only', '--yalniz-yerel', dest='yalniz_yerel', action='store_true', help='only katman 2 (yerel DB)')
     p.add_argument('--no-mfe', '--mfe-yok', dest='mfe_yok', action='store_true',
-                   help='MFEprimer katmanini atla')
+                   help='MFEprimer katmanini skip')
     p.add_argument('--cluster-max', '--kume-ust', dest='kume_ust', type=int, default=0,
-                   help='yalniz en kucuk N veritabani (hizli sinama)')
+                   help='only en kucuk N veritabani (hizli test)')
     p.add_argument('--parc-set', '--parc', dest='parc', action='store_true',
-                   help='SILVA LSU Parc kumesini de tara (yavas, ozgullukte gerekmez)')
+                   help='also scan the SILVA LSU Parc set (slow; not needed for specificity)')
     p.add_argument('--order', '--siparis', dest='siparis', action='store_true',
                    help='kurtarilanlar yerine SIPARIS LISTESINDEKI ciftleri dogrula '
                         '(siparis oncesi Primer-BLAST kontrolu icin)')
     p.add_argument('--order-all', '--siparis-hepsi', dest='siparis_hepsi', action='store_true',
-                   help='--siparis ile: KOSULLU ve ONERILMEZ satirlari da al')
+                   help='with --order: include CONDITIONAL and NOT-RECOMMENDED rows as well')
     # -----------------------------------------------------------------------
     # --tumu  (2026-08-07)
     # Kullanici istegi: "hepsini ekstra o veritabaninda da arasin". --siparis
@@ -1584,10 +1601,10 @@ def main():
     # --siparis kipi DEGISMEDI; --tumu onun uzerine kurulu ayri bir bayraktir.
     # -----------------------------------------------------------------------
     p.add_argument('--all', '--tumu', dest='tumu', action='store_true',
-                   help='paneldeki BUTUN ciftler (KESIN+EVRENSEL+KOSULLU+'
+                   help='EVERY pair in the panel (CERTAIN + UNIVERSAL + CONDITIONAL +'
                         'ONERILMEZ) butun indeksli veritabanlarina, SILVA dahil')
     p.add_argument('--ncbi-order-only', '--ncbi-yalniz-siparis', dest='ncbi_yalniz_siparis', action='store_true',
-                   help='--tumu ile: KATMAN 4 (NCBI) yalniz siparis listesindeki '
+                   help='--tumu with: KATMAN 4 (NCBI) only siparis listesindeki '
                         '(KESIN/EVRENSEL) ciftlere kosar. Listede olmayanlar '
                         'yalniz yerel + MFEprimer katmanlarini gorur. NCBI cift '
                         'basina ~75 sn + 10 sn bekleme oldugu icin sure kalemi.')
@@ -1766,7 +1783,7 @@ def main():
         _MK2 = None
         try:
             sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            import mfe_katmani as _MK2
+            import mfeprimer_layer as _MK2
         except ImportError:
             _MK2 = None
     if _MK2 is not None and hasattr(_MK2, 'klad_siniflandir'):

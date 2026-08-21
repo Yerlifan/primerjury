@@ -164,15 +164,15 @@ def kardes_turleri_bul(yollar, cinsler, hedef_turler, azami_tur,
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--db", required=True, help="REFERANS_DB klasoru")
-    p.add_argument("--pt", required=True, help="PrimerTasarlama kok klasoru")
+    p.add_argument("--db", required=True, help="REFERANS_DB directory")
+    p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
     p.add_argument("--hedefler-ref", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--max-okuma", type=int, default=3000)
     p.add_argument("--top", type=int, default=5)
     p.add_argument("--extra", default="")
     p.add_argument("--azami-uye", type=int, default=6,
-                   help="hedef ad basina alinacak en fazla referans dizi")
+                   help="target ad basina alinacak en fazla reference dizi")
     p.add_argument("--kardes-rakip", action="store_true", default=True,
                    help="hedefin cinsindeki oteki turleri VERIDEN bulup "
                         "rakip kumesine ekler (varsayilan acik)")
@@ -180,9 +180,9 @@ def get_args():
                    action="store_false",
                    help="kardes tur rakiplerini kapatir (eski davranis)")
     p.add_argument("--azami-kardes-tur", type=int, default=60,
-                   help="rakip olarak alinacak en fazla kardes TUR sayisi")
+                   help="maximum number of sibling SPECIES taken as competitors")
     p.add_argument("--azami-kardes-kayit", type=int, default=2,
-                   help="her kardes tur icin en fazla dizi")
+                   help="maximum sequences per sibling species")
     return p.parse_args()
 
 

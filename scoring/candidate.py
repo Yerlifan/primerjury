@@ -18,7 +18,7 @@ iki primerin ayni sablona baglanmasi gerekir.
 """
 import os, sys, json, argparse, time
 sys.path.insert(0, '/tmp/mrb')
-from ortak_puanlayici import Puanlayici
+from shared_scorer import Puanlayici
 
 KOK = '/sessions/dreamy-elegant-wozniak/mnt/PrimerTasarlama'
 UZ_ALT, UZ_UST = 18, 25

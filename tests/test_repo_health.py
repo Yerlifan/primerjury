@@ -187,6 +187,45 @@ def kontrol_yapilandirma(bulgu):
                           'required engine module not found: %s' % g))
 
 
+# ------------------------------------------------------------- 6 BARE IMPORTS
+def kontrol_ciplak_import(bulgu):
+    """Bare `import X` must name a module that exists.
+
+    Several scripts add their own directory to sys.path and import siblings
+    by bare name. Those imports carry no package prefix and no quotes, so a
+    rename pass that rewrites package imports and filename strings misses
+    them entirely -- measured: 24 bare imports still named modules that had
+    been renamed, and every one would have failed at runtime with
+    ModuleNotFoundError while every syntax check passed.
+    """
+    var = set()
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        for d in dosyalar:
+            if d.endswith('.py'):
+                var.add(d[:-3])
+    import sys as _sys
+    std = getattr(_sys, "stdlib_module_names", set())
+    DIS = {'numpy', 'Bio', 'primer3', 'openpyxl', 'pysam', 'matplotlib',
+           'mappy', 'requests', 'yaml', 'scipy', 'pandas', 'playwright',
+           'setuptools', 'pkg_resources'}
+    desen = re.compile(r'^\s*(?:import|from)\s+([a-z_][a-z0-9_]*)\s',
+                       re.M | re.I)
+    for y in metin_dosyalari():
+        if not y.endswith('.py'):
+            continue
+        for m in desen.finditer(oku(y)):
+            ad = m.group(1)
+            if ad in var or ad in std or ad in DIS:
+                continue
+            if ad in ('screening', 'verification', 'steps', 'protocol',
+                      'scoring', 'engine', 'tools', 'tests'):
+                continue
+            satir = oku(y)[:m.start()].count(chr(10)) + 1
+            bulgu.append(('IMPORT', '%s:%d' % (rel(y), satir),
+                          'bare import of unknown module: %s' % ad))
+
+
 # ------------------------------------------------------------ 6 LINE ENDINGS
 def kontrol_satir_sonu(bulgu):
     """Shell scripts and Python files must use LF, not CRLF.
@@ -255,6 +294,7 @@ KONTROLLER = [
     ('ENTRY',     'referenced scripts exist',            kontrol_giris_noktalari),
     ('NAME',      'no stale or personal names',          kontrol_yasak_adlar),
     ('CONFIG',    'config paths resolve',                kontrol_yapilandirma),
+    ('IMPORT',    'bare imports resolve',                kontrol_ciplak_import),
     ('EOL',       'text files use LF, not CRLF',         kontrol_satir_sonu),
     ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),
 ]

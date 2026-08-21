@@ -673,7 +673,7 @@ def main():
     ap.add_argument("--en-kisa", type=int, default=60)
     ap.add_argument("--en-uzun", type=int, default=400)
     ap.add_argument("--selftest", action="store_true")
-    ap.add_argument("--blast", action="store_true", help="blastn ile ikinci gorus (karar vermez)")
+    ap.add_argument("--blast", action="store_true", help="second opinion via blastn (does not decide)")
     a = ap.parse_args()
     if a.selftest: sys.exit(selftest())
     if not a.ali: ap.error("--ali gerekli")

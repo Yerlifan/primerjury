@@ -729,27 +729,27 @@ def main():
     p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
                    help=u'onay sormadan basla (menuden gelirken kullanilir)')
     p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
-                   help=u'durum.json sifirlanir, her sey bastan kosar')
+                   help=u'durum.json is reset and everything runs from scratch')
     p.add_argument('--from-scratch', '--sifirdan', dest='sifirdan', action='store_true',
-                   help=u'TEMIZ KOSU: yalniz bu betigin degil, CAGRILAN her '
+                   help=u'CLEAN RUN: not just this script, but every CALLED '
                         u'asamanin kontrol noktalarini da gecersiz kilar. '
                         u'Hicbir sey silinmez, zaman damgali klasorlere tasinir.')
     p.add_argument('--only', '--yalniz', dest='yalniz', default='',
-                   help=u'yalniz bu asamalar, virgulle: ornek 8,S')
+                   help=u'these stages only, comma-separated, e.g. 8,S')
     p.add_argument('--skip', '--atla', dest='atla', default='',
-                   help=u'bu asamalar atlanir, virgulle')
+                   help=u'skip these stages, comma-separated')
     p.add_argument('--pluspfp', default=os.environ.get('PLUSPFP', ''),
-                   help=u'PlusPFP veritabani yolu (verilmezse Y adimi atlanir)')
+                   help=u'PlusPFP veritabani yolu (if omitted Y adimi atlanir)')
     p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
-                   help=u'Kraken2 veritabani yolu (verilmezse ~/k2db, sonra arac diski tarar)')
+                   help=u'Kraken2 database path (default ~/k2db, then the tool scans the disk)')
     p.add_argument('--env', '--ortam', dest='ortam', default=os.environ.get('ORTAM', ''),
-                   help=u'micromamba/conda ortam adi (varsayilan: mikro). '
+                   help=u'micromamba/conda ortam adi (default: mikro). '
                         u'kraken2 baska bir ortamdaysa burada verin; '
                         u'ortam adlarini gormek icin: micromamba env list')
     p.add_argument('--dry-run', '--kuru', dest='kuru', action='store_true',
-                   help=u'komutlari CALISTIRMADAN plani ve denetimi gosterir')
+                   help=u'komutlari CALISTIRMADAN plani and denetimi gosterir')
     p.add_argument('--plan', action='store_true',
-                   help=u'YALNIZ plani basar ve cikar; hicbir sey kosulmaz. '
+                   help=u'only plani basar and cikar; hicbir sey kosulmaz. '
                         u'verification/full_chain.py once bunu cagirir, onayi kendi alir, '
                         u'sonra --onayla ile asil kosuyu baslatir. Boylece onay '
                         u'sorusu WSL yerine Windows tarafinda sorulur ve stdin '

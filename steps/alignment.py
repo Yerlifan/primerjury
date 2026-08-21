@@ -22,7 +22,7 @@ yapılabilir olmalı.
         blen       : hizalama blok uzunluğu
 
 Kullanım:
-    import hizalama
+    import alignment
     A = hizalama.Hizalayici(referans_dizisi, preset="map-ont")
     for h in A.map(okuma):
         ...

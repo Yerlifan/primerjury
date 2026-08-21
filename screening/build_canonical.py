@@ -47,7 +47,7 @@ import os, sys, re, csv, glob, argparse, shutil
 
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
-import yon
+import orientation
 
 # Oncelik: ayni kutu birden fazla klasorde varsa ilk sirada olan kazanir.
 #
