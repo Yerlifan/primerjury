@@ -1,55 +1,56 @@
 # -*- coding: utf-8 -*-
-"""SECENEK 9 - HER SEYI SIRAYLA KOS.
+"""OPTION 9 - RUN EVERYTHING IN ORDER.
 
-Kullanici aksam tek tik yapip yatabilsin diye butun asamalari dogru SIRADA
-kosar. Sira keyfi degil, bagimliliklara gore:
+It runs every stage in the right ORDER, so the user can click once in the evening
+and go to bed. The order is not arbitrary but follows the dependencies:
 
-  1. Kendini sinama          motorlar dogru mu (gecmezse hicbir sey kosmaz)
-  2. Konsensus yeniden uretim   ARAMA omurgayi kullanir -> ONCE bu
-  3. Panel yeniden olcum        tam derinlik, duzeltilmis motor
-  4. Uyelik denetimi            hangi sayi hangi tanima bagli
-  5. Kapsamli arama             sorunlu hedefler (2. adimin konsensusuyla)
-  6. BIRLESIK OZET RAPOR        ne degisti, ne dustu, nerede yeni aday var
+  1. The self test             are the engines right (nothing runs if it fails)
+  2. Consensus regeneration    THE SEARCH uses the backbone -> this comes FIRST
+  3. Panel re-measurement      full depth, the corrected engine
+  4. Membership audit          which number depends on which definition
+  5. The full search           the problem targets (with step 2's consensus)
+  6. THE COMBINED SUMMARY      what changed, what dropped, where a new candidate is
 
-Her asama bitince kontrol noktasi yazilir. Kesilirse aynen (9) secilerek
-kaldigi asamadan devam edilir; biten asamalar TEKRAR KOSULMAZ.
+A checkpoint is written as each stage finishes. If it is interrupted, choosing (9)
+again continues from the stage it stopped at; the finished stages ARE NOT RE-RUN.
 
-KONSENSUS -> ARAMA BAGI
------------------------
-Yeniden uretilen konsensus, arama omurgasi olarak KALITE KAPISINDAN gecerse
-kullanilir (N orani dusuk ve iki yontem ayrilmamis). Gecmezse eski konsensus
-kullanilir. Hangi omurganin kullanildigi her hedef icin rapora yazilir -
-sessiz degisiklik yapilmaz.
+THE CONSENSUS -> SEARCH LINK
+----------------------------
+A regenerated consensus is used as the search backbone if it passes THE QUALITY
+GATE (a low N proportion and no divergence between the two methods). If it does
+not pass, the old consensus is used. Which backbone was used is written into the
+report for every target; no change is made silently.
+
 """
-# ---------------------------------------------------------------------------
-# run_all.py — yedi asamayi bagimlilik sirasiyla kosan toplu akis ve butun
-#            asamalarin ciktilarini tek dosyada birlestiren ozet uretici.
+# -------------------------------------------------------------------------
+# run_all.py - the batch flow that runs seven stages in dependency order, and the
+#            summary producer that combines every stage's output into one file.
 #
-# GIRDI  : config.py'deki yollar; kontrol/hepsi_durum.json (hangi asama
-#          bitmis); KAPSAMLI_ARAMA_SONUC altindaki panel_yeniden_olcum.tsv,
-#          panel_kutu_duzeyi.tsv, uyelik_duyarlilik.tsv,
-#          konsensus_yeniden_uretim.tsv, adaylar.tsv ve kontrol/hedef_*.json.
-#          Asamalari kendisi cagirir: build_canonical.py (alt surec olarak),
+# INPUT  : the paths in config.py; kontrol/hepsi_durum.json (which stage has
+#          finished); panel_yeniden_olcum.tsv, panel_kutu_duzeyi.tsv,
+#          uyelik_duyarlilik.tsv, konsensus_yeniden_uretim.tsv, adaylar.tsv and
+#          kontrol/hedef_*.json under KAPSAMLI_ARAMA_SONUC.
+#          It calls the stages itself: build_canonical.py (as a subprocess),
 #          konsensus_uret.calistir, panel_olcum.calistir,
 #          uyelik_denetimi.calistir, __main__.aramayi_kos.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md (ozet_yaz'in dondurdugu yol);
-#          kontrol/hepsi_durum.json (asama durumu). calistir() cikis kodu
-#          dondurur: 0 tamam, 1 kullanici durdurdu, 2 kapi gecilemedi.
-# CAGRAN : verification/full_chain.py tusu 9 (--mod hepsi -> HP.calistir) ve tusu
-#          S (--mod ozet -> HP.yalniz_ozet). Ayrica yon_kapisi() fonksiyonu
-#          __main__.py, panel_measurement.py, membership_check.py ve build_consensus.py
-#          tarafindan cagrildigi icin 1, 2, 3, 4, 5, 6 ve 7 tuslarinda da
-#          dolayli olarak calisir.
-# ---------------------------------------------------------------------------
+# OUTPUT : KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md (the path ozet_yaz returns);
+#          kontrol/hepsi_durum.json (the stage state). calistir() returns an exit
+#          code: 0 fine, 1 the user stopped it, 2 a gate did not pass.
+# CALLED BY: verification/full_chain.py key 9 (--mod hepsi -> HP.calistir) and key
+#          S (--mod ozet -> HP.yalniz_ozet). Besides that, because the yon_kapisi()
+#          function is called by __main__.py, panel_measurement.py,
+#          membership_check.py and build_consensus.py, it also runs indirectly on
+#          keys 1, 2, 3, 4, 5, 6 and 7.
+# -------------------------------------------------------------------------
 import os, json, time, csv
 from . import config as C
 from . import checks
 
 ASAMA_YOLU = None
 
-# yeni konsensusun omurga olarak kullanilabilmesi icin kalite kapisi
-KONSENSUS_N_UST = 20.0        # %N bundan buyukse eski konsensus kullanilir
-KONSENSUS_AYRILMA_UST = 15    # iki yontemin celistigi sutun sayisi tavani
+# the quality gate for a new consensus to be usable as a backbone
+KONSENSUS_N_UST = 20.0        # above this N percentage the old consensus is used
+KONSENSUS_AYRILMA_UST = 15    # the cap on the number of columns where the two methods disagree
 
 
 def _durum_yolu():
@@ -79,12 +80,13 @@ def durum_yaz(d):
 
 # ---------------------------------------------------------------- konsensus kapisi
 def konsensus_kalite():
-    """Yeniden uretilen konsensuslerin kalite tablosu: kutu -> (gecti_mi, sebep).
+    """The quality table of the regenerated consensuses: bin -> (passed, reason).
 
-    NOT: bu fonksiyon bir ara duzenlemede yanlislikla silinmisti ve ozet_yaz()
-    icinden cagriliyordu -> 5 saatlik kosunun SON adimi NameError ile dustu.
-    Geri konuldu; ozet_yaz artik ayrica tek basina da kosturulabiliyor
-    (menu secenegi ve --mod ozet).
+        NOTE: this function was deleted by accident during an intermediate edit while
+        ozet_yaz() was still calling it, so the LAST step of a 5 hour run failed with
+        NameError. It was put back, and ozet_yaz can now also be run on its own (a menu
+        option and --mod ozet).
+
     """
     tsv = os.path.join(C.CIKTI, 'konsensus_yeniden_uretim.tsv')
     out = {}
@@ -110,27 +112,28 @@ def konsensus_kalite():
 
 # ---------------------------------------------------------------- yon kapisi
 def yon_kapisi(yaz, asama):
-    """Bir asama baslamadan ONCE girdisinin kanonik oldugunu dogrular.
+    """Verifies BEFORE a stage starts that its input is canonical.
 
-    Yon hatasi sessizdir: ters yonlu bir konsensuste in-silico PCR hicbir uyari
-    vermeden 0 urun dondurur ve butun gece "hicbir hedefte urun yok" sonucu
-    uretilir. Bu yuzden her asama kendi girdisini bastan sinar; gecmezse
-    ASAMA BASLAMAZ.
+        An orientation error is silent: on a reversed consensus, in-silico PCR returns 0
+        products with no warning at all and a whole night produces the result "no product
+        on any target". So every stage tests its own input first; if it does not pass, THE
+        STAGE DOES NOT START.
 
-    Donus: (gecti_mi, mesaj_satirlari)
+        Returns: (passed, message_lines)
+
     """
-    # NEDEN YON KANONIK KAYNAKTAN OKUNUR
-    # Nanopore okumalari cift yonludur; bir kutunun konsensusu okumalarin hangi
-    # yonde capalandigina gore SENSE ya da ANTISENSE uretilmis olabilir. Ham
-    # "consensus sequences" klasoru bu yuzden KARISIK yonludur (olculdu: 71
-    # antisense, 27 sense). Motorlar diziyi yalniz arti iplikte taradigi icin
-    # ters yonlu bir konsensuste in-silico PCR urunlerin TAMAMINI kaybeder ve
-    # bunu hicbir uyari vermeden yapar - cikti "urun yok" olur, "yon yanlis"
-    # olmaz. Bu yuzden konsensusler tek bir kanonik klasorden okunur ve her
-    # asama, kendi girdisinin kanonik oldugunu BASLAMADAN once burada dogrular.
-    # Kapi uc seyi sirayla sinar: orientation.py kendi sinavini geciyor mu, kanonik
-    # indeks okunabiliyor mu, indeksteki konsensuslerin hicbiri ANTISENSE degil
-    # mi. Ucunden biri duserse asama baslatilmaz.
+    # WHY THE ORIENTATION IS READ FROM THE CANONICAL SOURCE
+    # Nanopore reads are bidirectional; a bin's consensus may have been produced SENSE or
+    # ANTISENSE depending on which direction the reads were anchored. The raw "consensus
+    # sequences" directory is therefore MIXED orientation (measured: 71 antisense, 27
+    # sense). Because the engines scan the sequence only on the plus strand, in-silico
+    # PCR on a reversed consensus loses ALL the products, and does so with no warning at
+    # all: the output is "no product", not "the orientation is wrong". So the consensuses
+    # are read from a single canonical directory, and every stage verifies here, BEFORE
+    # it starts, that its own input is canonical.
+    # The gate tests three things in order: does orientation.py pass its own self test,
+    # can the canonical index be read, and is none of the consensuses in the index
+    # ANTISENSE. If any of the three fails, the stage is not started.
     from . import orientation as Y
     from . import targets as H
     m = []
@@ -155,7 +158,7 @@ def yon_kapisi(yaz, asama):
 
 
 def kanonik_kos(yaz, sure, oncelik='ozgun'):
-    """build_canonical.py'yi ayni surecte cagirir (ayri komut gerekmesin diye)."""
+    """Calls build_canonical.py in the same process (so that no separate command is needed)."""
     import subprocess, sys as _sys
     betik = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build_canonical.py')
     if not os.path.exists(betik):
@@ -233,7 +236,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'\n  THE ORIENTATION GATE DID NOT PASS - the later stages WERE NOT STARTED.')
         return 2
 
-    # ---- 3 konsensus yeniden uretim
+    # ---- 3 consensus regeneration
     if 'konsensus' in d['bitmis']:
         yaz(u'\n[STAGE 3/7] Consensus regeneration - SKIPPED (already finished)')
     else:
@@ -267,7 +270,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'\n  THE ORIENTATION GATE DID NOT PASS - the later stages WERE NOT STARTED.')
         return 2
 
-    # ---- 5 panel yeniden olcum
+    # ---- 5 panel re-measurement
     if 'panel' in d['bitmis']:
         yaz(u'\n[STAGE 5/7] Panel re-measurement - SKIPPED (already finished)')
     else:
@@ -323,7 +326,7 @@ def calistir(yaz, sure, cizgi, a):
         except Exception as e:
             yaz('\n  ASAMA 7 HATASI: %s' % e)
 
-    # ---- 6 birlesik ozet
+    # ---- 6 the combined summary
     yaz(u'\n[AFTER STAGE 7/7] Combined summary report')
     yol = ozet_yaz(d, sure, time.time() - t0)
     d['bitmis'] = list(dict.fromkeys(d['bitmis']))
@@ -345,7 +348,7 @@ def calistir(yaz, sure, cizgi, a):
     return 0
 
 
-# ---------------------------------------------------------------- ozet rapor
+# ---------------------------------------------------------------- the summary report
 def _oku_tsv(ad):
     p = os.path.join(C.CIKTI, ad)
     if not os.path.exists(p):
@@ -368,23 +371,23 @@ def _wilson(k, n, z=1.96):
 
 
 def _asama5_yeniden(asgari=None):
-    """Asama 5'in "en kotu tek kutu" oranini KAYITLI kutu sayilarindan,
-    asama 6 ile AYNI mutlak esikle yeniden hesapla.
+    """Recompute stage 5's "worst single bin" ratio from the RECORDED bin counts, with
+        THE SAME absolute threshold as stage 6.
 
-    Gerekce: kosu sirasinda esik "en buyuk kutunun yarisi" idi ve tam
-    derinlikte 10-33 rakip kutudan yalniz 1-5'i olcume giriyordu. Ayni cift
-    300 okumayla olculunce hepsi giriyordu. Iki asama arasindaki farkin buyuk
-    kismi bundan. Kutu bazli ham sayilar kayitli oldugu icin 5 saatlik kosuyu
-    tekrarlamadan duzeltilebiliyor.
+        The reason: during the run the threshold was "half the largest bin", and at full
+        depth only 1-5 of the 10-33 competitor bins entered the measurement. Measuring the
+        same pair with 300 reads let all of them in. Most of the difference between the two
+        stages comes from that. Because the raw per bin counts are recorded, it can be
+        corrected without repeating the 5 hour run.
+
     """
-    # Esigin MUTLAK olmasi sarttir: goreli bir esik (ornegin "en buyuk kutunun
-    # yarisi") derinlik degistikce baska kutulari olcume alir, boylece iki
-    # asamanin sayilari ayni seyi olcmez ve karsilastirilamaz hale gelir.
-    # Burada asama 5'in kayitli kutu sayilari, asama 6 ile AYNI mutlak esikle
-    # (C.ENKOTU_ASGARI_OKUMA) yeniden hesaplanir; kalan fark yalnizca okuma
-    # derinliginden gelir. Uye tarafinda Wilson ALT siniri, rakip tarafinda UST
-    # siniri kullanilir - iki taraf da muhafazakar yonde, yani oran asla oldugu
-    # degerden buyuk cikmaz.
+    # The threshold MUST be ABSOLUTE: a relative threshold ("half the largest bin", for
+    # instance) takes different bins into the measurement as the depth changes, so the
+    # numbers of two stages stop measuring the same thing and become incomparable.
+    # Here stage 5's recorded bin counts are recomputed with THE SAME absolute threshold
+    # as stage 6 (C.ENKOTU_ASGARI_OKUMA); the difference left comes only from the read
+    # depth. The Wilson LOWER bound is used on the member side and the UPPER bound on the
+    # competitor side - both conservative, so the ratio never comes out larger than it is.
     if asgari is None:
         asgari = getattr(C, 'ENKOTU_ASGARI_OKUMA', 150)
     rows = _oku_tsv('panel_kutu_duzeyi.tsv')
@@ -428,7 +431,7 @@ def _asama5_yeniden(asgari=None):
 
 
 def _arama_kontrolleri():
-    """Asama 7'nin hedef kontrol dosyalari: taban + adaylar (AYNI kosullarda)."""
+    """Stage 7's target checkpoint files: the baseline plus the candidates (under THE SAME conditions)."""
     import glob
     out = []
     for f in sorted(glob.glob(os.path.join(C.KONTROL, 'hedef_*.json'))):
@@ -440,16 +443,18 @@ def _arama_kontrolleri():
 
 
 def _oran_metni(v, rakip_kutu=None):
-    # EVRENSEL HEDEFLERDE AYRIM KATI TANIMSIZDIR. Ayrim kati, uye tarafinin
-    # Wilson alt sinirini rakip tarafinin Wilson ust sinirina boler. Evrensel
-    # bir hedefte (Arke_universal, Bakteri_universal, Mantar_universal F1/F2)
-    # uyelik tanimi geregi rakip kumesi bosa yaklasir; payda sifira gider ve
-    # oran tanimsizlasir. Kagit uzerinde ayni sutunda 0,00 ile 117 milyon yan
-    # yana durur - iki sayi da olcum degildir. Bu yuzden burada oran basilmaz:
-    # rakip kutusu hic yoksa "rakip kutusu yok", payda sifira yaklastigi icin
-    # sayi patlamissa "olcusuz (rakip ~0)" yazilir. Bu hedefler kapsama (kac
-    # kutuda urun veriyor) ve alan disi orani ile degerlendirilir. Bu, esigi
-    # DUSURMEK DEGILDIR - olcunun kendisini dogru olanla degistirmektir.
+    # THE DISCRIMINATION RATIO IS UNDEFINED ON UNIVERSAL TARGETS. The discrimination
+    # ratio divides the member side's Wilson lower bound by the competitor side's Wilson
+    # upper bound. On a universal target (Arke_universal, Bakteri_universal,
+    # Mantar_universal F1/F2) the competitor set approaches empty by the definition of
+    # the membership; the denominator goes to zero and the ratio becomes undefined. On
+    # paper, 0.00 and 117 million stand side by side in the same column, and neither
+    # number is a measurement. So no ratio is printed here: if there is no competitor bin
+    # at all it says "rakip kutusu yok", and if the number exploded because the
+    # denominator approached zero it says "olcusuz (rakip ~0)". Those targets are
+    # evaluated by coverage (in how many bins do they give a product) and by the outside
+    # the domain proportion. THIS IS NOT LOWERING the threshold; it is replacing the
+    # measure itself with the right one.
     if rakip_kutu == 0:
         return 'rakip kutusu yok'
     if v in (None, '', 'None'):
@@ -671,7 +676,7 @@ def ozet_yaz(durum, sure, gecen):
         A('Ayrinti: `PANEL_YENIDEN_OLCUM.md`, `panel_kutu_duzeyi.tsv`')
     A('')
 
-    # ============================================================ 3. esik alti
+    # ============================================================ 3. below threshold
     A('## 3. 10x esiginin ALTINA dusen ciftler')
     A('')
     dusen = [r for r in panel if r.get('ESIK_ALTINA_DUSTU')]
@@ -748,7 +753,7 @@ def ozet_yaz(durum, sure, gecen):
         A('Ayrinti: `KONSENSUS_YENIDEN_URETIM.md`')
     A('')
 
-    # ============================================================ 6. sirada ne var
+    # ============================================================ 6. what is next
     A('## 6. Sirada ne var')
     A('')
     A('1. **1. bolum** — daha iyi aday bulunan hedeflerde bedeli okuyup karar verin.')
@@ -768,10 +773,11 @@ def ozet_yaz(durum, sure, gecen):
 
 
 def yalniz_ozet(yaz, sure, cizgi):
-    """SADECE ozet raporu yeniden uret - olcum YAPMAZ, saniyeler surer.
+    """Regenerate ONLY the summary report - it MAKES NO measurement and takes seconds.
 
-    5 saatlik kosunun son adimi cokerse butun kosuyu tekrarlamak gerekmesin
-    diye ayrildi. Elindeki cikti dosyalarini okur, ozeti yeniden yazar.
+        Separated so that a crash in the last step of a 5 hour run does not mean repeating
+        the whole run. It reads the output files at hand and rewrites the summary.
+
     """
     import time as _t
     t0 = _t.time()
