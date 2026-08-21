@@ -59,7 +59,7 @@ def _panel_yolu():
     for p in (C.PANEL_TSV, C.PANEL_TSV_YEDEK):
         if os.path.exists(p):
             return p
-    raise SystemExit('HATA: panel TSV bulunamadi: %s' % C.PANEL_TSV)
+    raise SystemExit('ERROR: the panel TSV was not found: %s' % C.PANEL_TSV)
 
 
 def _sutun(basliklar, *onek):

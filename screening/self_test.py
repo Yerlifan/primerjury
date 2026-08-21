@@ -43,7 +43,7 @@ from . import config as C
 
 
 def _ok(yaz, ad, iyi, ek=''):
-    yaz('   %-58s %s %s' % (ad, 'GECTI' if iyi else '*** DUSTU ***', ek))
+    yaz('   %-58s %s %s' % (ad, 'PASSED' if iyi else '*** FAILED ***', ek))
     return iyi
 
 
@@ -65,7 +65,7 @@ def yon_sinamasi(yaz):
         kons = H.konsensusler()
         ters = [k['kutu'] for k in kons
                 if _Y.tespit(k['dizi'], _Y.sinifi(k['kutu']))[0] == 'ANTISENSE']
-        tum &= _ok(yaz, 'kanonik konsensuslerin HEPSI sense yonde',
+        tum &= _ok(yaz, u'orientation.py\'s own test (5 items)',
                    not ters, '%d ters: %s' % (len(ters), ', '.join(ters[:3])))
 
         # bilinen cevapli: evrensel cift kanonik sette urun vermeli, tersinde vermemeli
@@ -76,7 +76,7 @@ def yon_sinamasi(yaz):
                 if OM.urun_var(k['dizi'], fs, rs, len(F), len(R), 40, 600) is not None)
         t = sum(1 for k in A
                 if OM.urun_var(OM.rc(k['dizi']), fs, rs, len(F), len(R), 40, 600) is not None)
-        tum &= _ok(yaz, 'yon etkisi: Arke_universal dogru yonde urun, tersinde yok',
+        tum &= _ok(yaz, u'ALL the canonical consensuses are in the sense direction',
                    d > 0 and t == 0, 'dogru %d/%d, ters %d/%d' % (d, len(A), t, len(A)))
     except Exception as e:
         tum &= _ok(yaz, 'yon normalizasyonu sinamasi', False, str(e)[:90])
@@ -86,7 +86,7 @@ def yon_sinamasi(yaz):
 
 def calistir(yaz):
     from . import read_engine as OM
-    yaz('\nKENDINI SINAMA')
+    yaz(u'\nSELF TEST')
     tum = True
 
     # ---- 1 paketler
@@ -98,27 +98,27 @@ def calistir(yaz):
         return False
     try:
         import primer3
-        tum &= _ok(yaz, 'primer3-py', True)
+        tum &= _ok(yaz, u'the orientation effect: Arke_universal gives a product in the right direction and none in the reverse', True)
     except ImportError:
-        tum &= _ok(yaz, 'primer3-py', False,
+        tum &= _ok(yaz, u'the orientation effect: Arke_universal gives a product in the right direction and none in the reverse', False,
                    'pip3 install primer3-py --break-system-packages')
         return False
 
     from . import engine_gateway, geometry as G, targets as H, generator as U, sample as N
 
     # ---- 1b dosyalar
-    for ad, p in (('panel TSV', C.PANEL_TSV), ('hedefler.tsv', C.HEDEFLER_TSV),
-                  ('konsensus klasoru', C.KONSENSUS), ('fastq klasoru', C.FASTQ),
+    for ad, p in (('the panel TSV', C.PANEL_TSV), ('hedefler.tsv', C.HEDEFLER_TSV),
+                  ('the consensus directory', C.KONSENSUS), ('the fastq directory', C.FASTQ),
                   ('hedef_uyelik.tsv', H.UYELIK_TSV)):
         tum &= _ok(yaz, ad, os.path.exists(p), '' if os.path.exists(p) else p)
     var_ref = os.path.exists(C.SILVA_SSU)
-    _ok(yaz, 'REFERANS_DB/SILVA SSU (kuresel adim icin)', var_ref,
-        '' if var_ref else '-> kuresel adim atlanacak')
+    _ok(yaz, u'REFERANS_DB/SILVA SSU (for the global step)', var_ref,
+        '' if var_ref else u'-> the global step will be skipped')
 
     bilgi = engine_gateway.surum_bilgisi()
     for ad in ('ispcr', 'tarayici', 'cift', 'okuma_motoru', 'kaba_kuvvet'):
         p = bilgi.get(ad)
-        tum &= _ok(yaz, 'ice aktarilan motor: %s' % ad, p is not None,
+        tum &= _ok(yaz, 'engine loaded: %s' % ad, p is not None,
                    os.path.basename(p or '') +
                    (' ' + bilgi.get('okuma_motoru_surum', '')
                     if ad == 'okuma_motoru' else ''))
@@ -152,10 +152,10 @@ def calistir(yaz):
                         if not ilk:
                             ilk = '%s %s: bizde %s, geometry_core.py %s' % (p, k, m[k], ref)
                         break
-            tum &= _ok(yaz, 'geometri == engine/geometry_core.py (%d primer)' % n,
-                       f == 0 and n >= 42, ilk or '%d/%d birebir' % (n - f, n))
+            tum &= _ok(yaz, 'geometry == engine/geometry_core.py (%d primers)' % n,
+                       f == 0 and n >= 42, ilk or '%d/%d exactly' % (n - f, n))
         except Exception as e:
-            tum &= _ok(yaz, 'geometri == geometry_core.py', False, str(e)[:70])
+            tum &= _ok(yaz, 'geometry == geometry_core.py', False, str(e)[:70])
     else:
         _ok(yaz, 'geometry_core.py bulunamadi (karsilastirma atlandi)', True)
 
@@ -207,9 +207,9 @@ def calistir(yaz):
                                 'panel %d, olculen %s' % (
                                     d['urun_bp'],
                                     ','.join('%d(%d)' % x for x in sorted(boylar.items())))))
-        tum &= _ok(yaz, 'ispcr panel urun boylarini dogruluyor (+-%d bp)' % TOLERANS,
+        tum &= _ok(yaz, u'geometry_core.py was not found (the comparison was skipped)' % TOLERANS,
                    sapan == 0 and tutan >= 15,
-                   '%d tutan, %d sapan, %d urunsuz' % (tutan, sapan, urunsuz))
+                   u'ispcr confirms the panel\'s product lengths (+-%d bp)' % (tutan, sapan, urunsuz))
         for tip, ad, ek in ayrinti:
             if tip == 'SAPMA':
                 yaz('        *** %s: %s' % (ad[:34], ek))
@@ -267,18 +267,18 @@ def calistir(yaz):
                     en_kotu = (n_es / ref, d['hedef'], k['kutu'], n_es, ref)
         tum &= _ok(yaz, 'read_engine.py == brute_force.py (%d durum)' % denenen,
                    farkli_om == 0 and denenen > 0,
-                   'birebir' if farkli_om == 0 else '%d FARK' % farkli_om)
-        tum &= _ok(yaz, 'hizli numpy yolu == kaba kuvvet (%d durum)' % denenen,
+                   'identical' if farkli_om == 0 else '%d DIFFER' % farkli_om)
+        tum &= _ok(yaz, u'the fast numpy route == brute force (%d cases)' % denenen,
                    farkli_hv == 0 and denenen > 0,
-                   'birebir' if farkli_hv == 0 else '%d FARK' % farkli_hv)
+                   'identical' if farkli_hv == 0 else '%d DIFFER' % farkli_hv)
         if en_kotu[1]:
-            _ok(yaz, 'panelin ESKI motoru (reads.py/Sonda) site kaciriyor', True,
-                '%s: %d yerine %d (%%%.0f kayip)'
+            _ok(yaz, 'the panel ESKI engine (reads.py/Sonda) misses sites', True,
+                '%s: %d instead of %d (%%%.0f lost)'
                 % (en_kotu[2], en_kotu[3], en_kotu[4], 100 * (1 - en_kotu[0])))
             yaz(u'      -> This tool DOES NOT USE that engine. The panel\'s sample based')
             yaz(u'         the numbers have to be re-measured with option (4).')
     except Exception as e:
-        tum &= _ok(yaz, 'uc motor karsilastirmasi', False, str(e)[:70])
+        tum &= _ok(yaz, 'the three engine comparison', False, str(e)[:70])
 
     # ---- 4b gevsek olcut (<=3) yolu
     try:
@@ -294,26 +294,26 @@ def calistir(yaz):
             if a != b:
                 iyi = False
                 ayr = 'mm<=%d: hizli %d, otorite %d' % (mm, a, b)
-        tum &= _ok(yaz, 'cift taramasi hizli == otorite (mm<=1, <=2, <=3)', iyi, ayr)
+        tum &= _ok(yaz, u'the pair scan, fast == authoritative (mm<=1, <=2, <=3)', iyi, ayr)
     except Exception as e:
-        tum &= _ok(yaz, 'gevsek olcut karsilastirmasi', False, str(e)[:70])
+        tum &= _ok(yaz, u'the relaxed criterion comparison', False, str(e)[:70])
 
     # ---- 5 ureteciler
     try:
         omurga = 'ACGT' * 20
         pen = list(U.pencereler(omurga))
         bek = sum(max(0, min(25, len(omurga) - i) - 18 + 1) for i in range(len(omurga)))
-        tum &= _ok(yaz, 'pencere ureteci HER pozisyon x HER uzunluk',
+        tum &= _ok(yaz, u'the window generator gives EVERY position x EVERY length',
                    len(pen) == bek, '%d/%d' % (len(pen), bek))
         v = U.arms_varyantlari('ACGTACGTACGTACGTACGT')
-        tum &= _ok(yaz, "ARMS varyanti: -2 ve -3 icin dort baz (16-1)",
+        tum &= _ok(yaz, u'the ARMS variant: four bases for -2 and -3 (16-1)',
                    len(v) == 15, '%d varyant' % len(v))
         tum &= _ok(yaz, 'parametre izgarasi 144 hucre',
                    len(list(U.izgara_hucreleri())) == 144)
     except Exception as e:
-        tum &= _ok(yaz, 'uretec sinamasi', False, str(e)[:70])
+        tum &= _ok(yaz, u'the generator test', False, str(e)[:70])
 
     tum &= yon_sinamasi(yaz)
 
-    yaz('   ' + ('TUM SINAMALAR GECTI.' if tum else 'EN AZ BIR SINAMA DUSTU.'))
+    yaz('   ' + ('EVERY TEST PASSED.' if tum else 'AT LEAST ONE TEST FAILED.'))
     return tum
