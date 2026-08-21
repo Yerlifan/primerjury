@@ -1,44 +1,46 @@
 # -*- coding: utf-8 -*-
-"""HER KOSUDA CALISAN DENETIM KAPISI  -  "sormadan bak" isini kodun isi yapar.
+"""THE AUDIT GATE THAT RUNS ON EVERY RUN  -  it makes "look without being asked" the
+code's job.
 
-NEDEN VAR
----------
-Bu projede hatalarin cogu olcumde degil, olcumun DAYANDIGI tabloda cikti:
-bayat onbellek, bayat referans, hedefin adina gore secilmis dislama taksidi,
-NCBI'nin degistirdigi taksonomi, birbirine uymayan anahtar adlari. Hicbiri
-kosuyu dusurmuyordu; hepsi sonucu SESSIZCE yanlis yapiyordu ve ancak birisi
-"baska hata var mi" diye sordugunda bulunuyordu.
+WHY IT EXISTS
+-------------
+In this project most of the bugs were not in the measurement but in THE TABLE THE
+MEASUREMENT RESTED ON: a stale cache, a stale reference, an exclusion taxid chosen
+by the target's name, a taxonomy NCBI had changed, key names that did not match
+one another. None of them failed a run; every one of them made the result SILENTLY
+wrong and was found only when somebody asked "is there another bug".
 
-Sormaya bagli denetim denetim degildir. Bu betik o soruyu her kosuda kendisi
-sorar. Hicbir olcum yapmaz, hicbir dosya degistirmez; yalnizca bakar ve
-tutmayani yazar.
+An audit that depends on being asked is not an audit. This script asks that
+question itself on every run. It makes no measurement and changes no file; it only
+looks, and writes down what does not hold.
 
-DENETLENENLER
-  1  Dislama haritasi anahtarlari SIPARIS_LISTESI ile birebir mi
-  2  Dislama taksidleri NCBI'da var mi ve uyeleri KAPSIYOR mu (ag gerekir)
-  3  Hizli test referanslari hangi ciftten olculdu, cift o gunden beri degisti mi
-  4  Panel kaynagi ile SIPARIS_LISTESI ayni dizileri mi tasiyor
-  5  Kontrol noktasi muhurleri diziyi iceriyor mu (bayat onbellek tuzagi)
-  6  Cikti dosyalari girdilerinden TAZE mi
-  7  Paneldeki her cift geometri kapisindan AYNI diziyle gecti mi
-  8  Ayni plakadaki urunler jelde ayrilir mi, bant sinifi uygun mu
-  9  Yol gosterici belgelerdeki cift sayisi panelin bugunku sayisi mi
- 10  NCBI ad kurali bilinen cevapli sinavi geciyor mu
- 11  Siparis sayfasindaki (xlsx) diziler panelin su anki dizileri mi
- 12  KOSULSUZ siparis edilecek her ciftin kaniti tam mi
- 13  Tablodaki urun boyu, ciftin konsensusta URETTIGI boy mu
- 14  .bat dosyalari CRLF ve saf ASCII mi, goto hedefleri var mi
- 15  Kanonik konsensus klasorunde indekste olmayan kalinti var mi
- 16  P ile K ayni uyelik dosyasini mi okuyor
- 17  Indeksli veritabanlari DNA alfabesinde mi, ikizler gercekten ikiz mi
- 18  Evrensel/kontrol primerleri kendi hedeflerimizi goruyor mu
+WHAT IS AUDITED
+  1  Do the exclusion map keys match SIPARIS_LISTESI exactly
+  2  Do the exclusion taxids exist in NCBI and do they COVER their members (needs network)
+  3  Which pair were the quick test references measured from, and has that pair changed since
+  4  Do the panel source and SIPARIS_LISTESI carry the same sequences
+  5  Do the checkpoint seals include the sequence (the stale cache trap)
+  6  Are the output files FRESH relative to their inputs
+  7  Did every pair in the panel pass the geometry gate with THE SAME sequence
+  8  Do the products on one plate separate on a gel, and is the band class suitable
+  9  Is the pair count in the guidance documents the panel's current count
+ 10  Does the NCBI name rule pass its known-answer test
+ 11  Are the sequences on the order sheet (xlsx) the panel's current sequences
+ 12  Is the evidence complete for every pair to be ordered UNCONDITIONALLY
+ 13  Is the product length in the table the length the pair PRODUCES on the consensus
+ 14  Are the .bat files CRLF and pure ASCII, and do their goto targets exist
+ 15  Are there leftover files in the canonical consensus directory that are not in the index
+ 16  Do P and K read the same membership file
+ 17  Are the indexed databases in the DNA alphabet, and are the "twins" really twins
+ 18  Do the universal and control primers see our own targets
 
-Cikis kodu: 0 hepsi temiz, 1 en az bir denetim dustu, 2 ag gerektiren
-denetim atlandi ama yerel denetimler temiz.
+The exit code: 0 all clean, 1 at least one audit failed, 2 an audit needing the
+network was skipped but the local audits are clean.
 
-Kosum:
-    python verification/audit_all.py --kok .
-    python verification/audit_all.py --kok . --agsiz     (NCBI adimlarini atla)
+Run:
+    python verification/audit_all.py --root .
+    python verification/audit_all.py --root . --agsiz     (skip the NCBI steps)
+
 """
 from __future__ import print_function
 
@@ -55,8 +57,8 @@ BULGU = []
 ATLANAN = []
 
 
-# Onem dereceleri. Sozcukler bilerek acik: "BLOKE" bir yargi degil, "bu
-# giderilmeden siparis verilirse para ve zaman kaybi kesin" demek.
+# The severity levels. The wording is deliberately plain: "BLOKE" is not a judgement,
+# it means "order without fixing this and the loss of money and time is certain".
 BLOKE, DIKKAT, BILGI = u'SIPARISI DURDURUR', u'DIKKAT', u'BILGI'
 
 
@@ -182,7 +184,7 @@ def d3_referans_bayat(kok, yaz):
 
 # --- 4 ------------------------------------------------------------------
 def d4_kaynak_tutarliligi(kok, yaz):
-    """Panelin dizi kaynagi ile siparis listesi ayni diziyi mi soyluyor."""
+    """Do the panel's sequence source and the order list say the same sequence?"""
     sl = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
     pk = os.path.join(kok, 'primer_final',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
@@ -218,10 +220,10 @@ def d4_kaynak_tutarliligi(kok, yaz):
         simdi = ((r.get('F') or '').strip().upper(), (r.get('R') or '').strip().upper())
         if simdi[0] and panel[ad][0] and simdi != panel[ad]:
             fark.append(ad)
-    # EKSIK SATIR da bir farktir. Yalniz ORTAK hedefleri karsilastirmak,
-    # bir dosyada olup otekinde hic olmayan cifti gormezden gelir; 2026-08-10'da
-    # Petriella_cinsi siparis listesinde KESIN yaziliyken panel kaynaginda
-    # satiri yoktu ve bu denetim "0 fark" diyordu.
+    # A MISSING ROW is a difference too. Comparing only the SHARED targets ignores a pair
+    # that is in one file and absent from the other; on 2026-08-10 Petriella_cinsi read
+    # KESIN in the order list while it had no row at all in the panel source, and this
+    # check said "0 differences".
     yalniz_listede = sorted(liste_adlari - set(panel))
     yalniz_panelde = sorted(set(panel) - liste_adlari)
     yaz(u'  [4] source consistency: %d shared targets, %d sequence differences, %d only in the list, %d only in the panel'
@@ -240,10 +242,12 @@ def d4_kaynak_tutarliligi(kok, yaz):
 
 # --- 5 ------------------------------------------------------------------
 def d5_muhur_diziyi_iceriyor_mu(kok, yaz):
-    """Kontrol noktasi muhurleri primer DIZISINI iceriyor mu.
+    """Do the checkpoint seals include the primer SEQUENCE?
 
-    Icermeyen muhur, dizi degistiginde ESKI olcumu taze sanar. Bu proje bu
-    hatayi bir gunde uc ayri betikte yasadi; artik mekanik olarak aranir.
+        A seal that does not take a changed sequence's OLD measurement for a fresh one.
+        This project had that bug in three separate scripts in one day; it is now looked
+        for mechanically.
+
     """
     bakilacak = [
         ('protocol/single_protocol_measure.py', True),
@@ -273,12 +277,13 @@ def d5_muhur_diziyi_iceriyor_mu(kok, yaz):
 
 # --- 6 ------------------------------------------------------------------
 def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
-    """uretilecek: bu kosuda YENIDEN URETILECEK ciktilar - onlara bayat denmez.
+    """uretilecek: the outputs THIS RUN WILL REGENERATE - those are not called stale.
 
-    2026-08-10: NCBI kapisi, koşunun kendi uretecegi ncbi_katman4.tsv'yi
-    "bayat" diye gosterip onay sordu. Kapinin kurt masali anlatmasi, kapiyi
-    ciddiye alinmaz hale getirir. Bu yuzden kosunun uretecegi dosya hariç
-    tutulur ve hariç tutuldugu EKRANA YAZILIR - sessizce gizlenmez.
+        2026-08-10: the NCBI gate showed the ncbi_katman4.tsv the run itself would produce
+        as "stale" and asked for confirmation. A gate that cries wolf stops being taken
+        seriously. So a file the run will produce is excluded, and the fact that it was
+        excluded IS PRINTED TO THE SCREEN; it is not hidden silently.
+
     """
     ciftler = [
         ('primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv',
@@ -289,13 +294,13 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
          'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv'),
         ('screening/hedef_taxid.tsv',
          'DOGRULAMA_SONUC/ncbi_katman4.tsv'),
-        # 2026-08-11: uyelik tablosu degisince G asamasi tablosu bayatlar.
-        # Siparis listesindeki kimlik sutunlari (olculen_kimlik, ad_farkli_mi,
-        # uye sayisi) dogrudan o tablonun UYESI_OLDUGU_HEDEFLER sutunundan
-        # geliyor. Uyelik duzeltildi ama G yeniden kosulmadiysa, siparis satiri
-        # ARTIK UYE OLMAYAN kutularin adlarini sayar: Petriella_musispora
-        # satiri "10/10 kutu" deyip Microascus, Lomentospora ve Graphium'u
-        # sayiyordu, oysa olcum 9 kutuyla yapilmisti.
+        # 2026-08-11: when the membership table changes, stage G's table goes stale.
+        # The identity columns in the order list (olculen_kimlik, ad_farkli_mi, the member
+        # count) come straight from that table's UYESI_OLDUGU_HEDEFLER column. If the
+        # membership was corrected but G was not re-run, the order row counts the names of
+        # bins that ARE NO LONGER MEMBERS: the Petriella_musispora row said "10/10 bins" and
+        # counted Microascus, Lomentospora and Graphium, when the measurement had been made
+        # with 9 bins.
         ('screening/hedef_uyelik.tsv',
          'TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv'),
     ]
@@ -310,10 +315,11 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
 
     bayat = []
     for g, c in ciftler:
-        # ICERIK ONCE, ZAMAN SONRA. panel kaynagi ile P ciktisi arasinda
-        # yalniz Tm/urun boyu sutunlari degistiginde zaman damgasi "bayat"
-        # der ama olcum GECERLIDIR: dCq diziye baglidir, Tm'e degil.
-        # (2026-08-11 07:02'de tam bu oldu.) Diziler ayniysa bayat sayilmaz.
+        # CONTENT FIRST, TIME SECOND. When only the Tm or product length columns differ
+        # between the panel source and P's output, the timestamp says "stale" while the
+        # measurement IS VALID: dCq depends on the sequence, not on the Tm.
+        # (That is exactly what happened at 07:02 on 2026-08-11.) If the sequences are the
+        # same it does not count as stale.
         if (g.endswith('devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
                 and c.endswith('panel_tek_protokol.tsv')):
             gp2, cp2 = os.path.join(kok, g), os.path.join(kok, c)
@@ -357,12 +363,13 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
 
 # --- 7 ------------------------------------------------------------------
 def d7_geometri_kapisi(kok, yaz):
-    """Paneldeki her cift, geometri denetiminden AYNI diziyle gecmis mi.
+    """Did every pair in the panel pass the geometry check with THE SAME sequence?
 
-    2026-08-10: alti ciftin dizisi 2 Agustos'taki geometri denetiminden sonra
-    degistirilmis ama geometri yeniden kosulmamisti. Yani o alti cift panelin
-    kendi kurallarindan (uzunluk, GC, Tm penceresi, sac tokasi, dimer) HIC
-    gecmemisti ve bunu hicbir sey soylemiyordu.
+        2026-08-10: six pairs had their sequences changed after the geometry check of 2
+        August, and the geometry had not been re-run. So those six pairs had NEVER passed
+        the panel's own rules (length, GC, the Tm window, hairpin, dimer), and nothing said
+        so.
+
     """
     import glob
     pk = os.path.join(kok, 'primer_final',
@@ -415,13 +422,13 @@ def d7_geometri_kapisi(kok, yaz):
 
 # --- 8 ------------------------------------------------------------------
 def d8_plaka_jel_ve_bant(kok, yaz):
-    """Ayni plakada urunler jelde ayrilir mi + QuantiNova bant sinifi.
+    """Do the products on one plate separate on a gel, plus the QuantiNova band class.
 
-    2026-08-10: bugun degistirilen ciftler plaka ici jel ayrimini yeniden
-    bozdu. Bacteroidales urunu 241 bp'den 150 bp'ye dondu ve Mantar F2'nin
-    145 bp'siyle 5 bp'ye yaklasti - %2 agarozda ayirt edilemez. Cift
-    degistirmek yalniz o cifti degil, PLAKAYI da etkiliyor; bu yuzden her
-    kosuda bakilir.
+        2026-08-10: the pairs changed today broke the within-plate gel separation again.
+        The Bacteroidales product went from 241 bp to 150 bp and came within 5 bp of
+        Mantar F2's 145 bp, which cannot be told apart on a 2% agarose gel. Changing a pair
+        affects not only that pair but THE PLATE, which is why it is checked on every run.
+
     """
     import itertools
     import re as _re
@@ -445,7 +452,7 @@ def d8_plaka_jel_ve_bant(kok, yaz):
         if len(r) <= max(iU, iF) or not r[iH].strip():
             continue
         if not _re.fullmatch(r'[ACGT]+', (r[iF] or '').strip().upper()):
-            continue          # not satirlarini eler - primer dizisi yoksa cift degildir
+            continue          # drops the note rows - with no primer sequence it is not a pair
         try:
             u = int(_re.sub(r'\D', '', r[iU]))
         except ValueError:
@@ -476,12 +483,13 @@ def d8_plaka_jel_ve_bant(kok, yaz):
 
 
 # --- 9 ------------------------------------------------------------------
-# Sayinin ELLE yazildigi her belge bir gun bayatlar. Bu denetim, yol gosterici
-# belgelerdeki "N cift" iddiasini panelin BUGUNKU sayisiyla karsilastirir.
-# 2026-08-10: uc belge uc farkli sayi soyluyordu (16, 16, 11); dogrusu 20 idi.
-# TARIHLI denetim kayitlari (SON_KONTROL.md gibi) bu listede YOKTUR: onlarin
-# sayisi yazildigi gunun sayisidir ve degistirilmemelidir. Listede yalniz
-# "su an ne yapmaliyim" sorusuna cevap veren belgeler bulunur.
+# Every document where a number is written BY HAND goes stale one day. This check
+# compares the "N pairs" claim in the guidance documents against the panel's CURRENT
+# count. 2026-08-10: three documents said three different numbers (16, 16, 11); the
+# right one was 20.
+# DATED audit records (such as SON_KONTROL.md) are NOT in this list: their number is
+# the number of the day it was written and must not be changed. The list holds only
+# the documents that answer "what should I do right now".
 YOL_GOSTERICI = ('OKU_ONCE.md', 'NASIL_DEVAM_EDILIR.md', 'CALISTIRMA_KILAVUZU.md',
                  'GUNCEL_DURUM.md')
 
@@ -524,11 +532,12 @@ def d9_belgelerde_bayat_sayi(kok, yaz):
 
 # --- 10 -----------------------------------------------------------------
 def d10_ad_kurali_sinavi(kok, yaz):
-    """NCBI ad kurali (adli/adsiz) bilinen cevapli sinavi geciyor mu.
+    """Does the NCBI name rule (named or unnamed) pass its known-answer test?
 
-    Bu kural hedef disi SAYISINI belirliyor. Bozulursa rapora giren tabloda
-    "650 hedef disi" gibi sisirilmis sayilar cikar (2026-08-10'da tam olarak
-    boyle oldu: gevsek kural 650 diyordu, siki kural 82).
+        That rule determines the off-target COUNT. Broken, the table that reaches the
+        write-up carries inflated numbers such as "650 off-target" (which is exactly what
+        happened on 2026-08-10: the loose rule said 650, the strict rule 82).
+
     """
     bet = os.path.join(kok, 'verification', 'ncbi_reclassify.py')
     if not os.path.exists(bet):
@@ -554,20 +563,22 @@ def d10_ad_kurali_sinavi(kok, yaz):
 
 # --- 11 -----------------------------------------------------------------
 def d11_siparis_dizileri(kok, yaz):
-    """Rapora/tedarikciye giden xlsx ile panelin SU ANKI dizileri ayni mi.
+    """Are the sequences in the xlsx going to the write-up or the supplier the panel's CURRENT ones?
 
-    2026-08-10 gece: sabah ozeti "diziler buradan kopyalanacak" diye
-    PrimerJury_..._TESLIM.xlsx "2 Panel" sayfasini gosteriyordu; o sayfada
-    ALTI ciftin dizisi eskiydi. Oradan siparis verilseydi 20 ciftin 6'si
-    yanlis oligo olarak gelirdi. Bu, projenin verebilecegi en pahali hata.
+        The night of 2026-08-10: the morning summary pointed at the "2 Panel" sheet of
+        PrimerJury_..._TESLIM.xlsx saying "the sequences will be copied from here"; SIX of
+        the pairs on that sheet carried stale sequences. Had the order been placed from
+        there, 6 of the 20 pairs would have arrived as the wrong oligo. That is the most
+        expensive mistake this project can make.
+
     """
     import glob as _glob
     import re as _re
     pk = os.path.join(kok, 'primer_final',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
-    # 2026-08-11: eski teslim xlsx'i arsive tasindi. Artik her kosuda
-    # URETILEN PrimerJury_PANEL_*.xlsx denetlenir; o da yoksa denetim
-    # atlanir. Arsivdeki dosyaya BAKILMAZ.
+    # 2026-08-11: the old delivery xlsx was moved to the archive. What is audited now is
+    # the PrimerJury_PANEL_*.xlsx PRODUCED on every run; if that is missing too, the
+    # audit is skipped. The archived file IS NOT LOOKED AT.
     _p = sorted(_glob.glob(os.path.join(kok, 'PrimerJury_PANEL_*.xlsx')))
     xl = _p[-1] if _p else ''
     if not os.path.exists(pk):
@@ -606,10 +617,10 @@ def d11_siparis_dizileri(kok, yaz):
     except Exception as e:
         ATLANAN.append(u'11 siparis dizileri (xlsx okunamadi: %s)' % e)
         return
-    # YENI Excel bicimi: "1 Siparis" sayfasi, sutunlar "oligo adi",
-    # "dizi (5→3)", "hedef", "yon". Eski teslim dosyasinin bicimi degildi;
-    # basligi eski adlarla aramak "baslik bulunamadi" verip denetimi
-    # sessizce atlatiyordu (2026-08-11, ilk denemede oldu).
+    # THE NEW Excel format: a "1 Siparis" sheet with the columns "oligo adi",
+    # "dizi (5-3)", "hedef" and "yon". That was not the old delivery file's format;
+    # looking for the header under the old names returned "header not found" and let the
+    # audit be skipped silently (2026-08-11, on the first attempt).
     bas = None
     for i, r in enumerate(rows[:12]):
         if 'oligo adi' in r and 'hedef' in r:
@@ -632,10 +643,9 @@ def d11_siparis_dizileri(kok, yaz):
     xls = {k: (v.get('F', ''), v.get('R', '')) for k, v in xls.items() if len(v) == 2}
 
     fark = sorted(k for k in set(xls) & set(tsv) if xls[k] != tsv[k])
-    # EKSIK karsilastirmasi yalniz SIPARISE GIRENLER uzerinden yapilir.
-    # Siparis sayfasinda ONERILMEZ ciftler zaten YOKTUR; hepsiyle
-    # karsilastirmak "Proteiniphilum eksik" gibi yanlis alarm uretir
-    # (2026-08-11, ilk denemede oldu).
+    # The MISSING comparison is made only over THE ONES GOING TO ORDER. The order sheet
+    # does not hold ONERILMEZ pairs at all; comparing against all of them produces a false
+    # alarm such as "Proteiniphilum is missing" (2026-08-11, on the first attempt).
     _sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
     _sip = set((r.get('hedef') or '').strip() for r in _sl
                if (r.get('SINIF') or '').strip().upper() in ('KESIN', 'EVRENSEL'))
@@ -653,8 +663,8 @@ def d11_siparis_dizileri(kok, yaz):
         bulgu(u'xlsx\'te OLMAYAN cift',
               u'%s\n      Panelde var, siparis sayfasinda yok.' % ', '.join(eksik))
 
-    # BUTUN xlsx dosyalari: icinde primer dizisi tasiyan her dosya bir gun
-    # siparis kaynagi sanilabilir. Hangilerinin bayat oldugunu ADIYLA yaz.
+    # ALL the xlsx files: any file holding a primer sequence could one day be taken for
+    # the order source. Write out BY NAME which of them are stale.
     import glob as _glob
     guncel = set(v[0] for v in tsv.values()) | set(v[1] for v in tsv.values())
     bayat_dosya = []
@@ -687,14 +697,15 @@ def d11_siparis_dizileri(kok, yaz):
 
 # --- 12 -----------------------------------------------------------------
 def d12_kanitsiz_kosulsuz(kok, yaz):
-    """KOSULSUZ siparis edilecek bir ciftin kaniti eksik olabilir mi.
+    """Could the evidence be incomplete for a pair to be ordered UNCONDITIONALLY?
 
-    2026-08-10: Petriella_cinsi siparis listesinde SINIF=KESIN,
-    siparis_sarti=KOSULSUZ yaziyor; ama olculen_kimlik alani "G asamasinda
-    uyelik tanimi YOK" diyor, uyelik tablosunda satiri yok ve panel
-    kaynaginda plaka/Ta bilgisi yok. Yani kimligi dogrulanmamis bir hedefe
-    kosulsuz siparis hukmu verilmis. "Kosulsuz" sozcugu raporda "bunda
-    tartisilacak bir sey yok" diye okunur; oysa var.
+        2026-08-10: the order list said SINIF=KESIN and siparis_sarti=KOSULSUZ for
+        Petriella_cinsi; but its olculen_kimlik field says "there is NO membership
+        definition in stage G", it has no row in the membership table, and the panel source
+        holds no plate or Ta information. So an unconditional order verdict had been given
+        for a target whose identity was never verified. The word "unconditional" is read in
+        a report as "there is nothing to discuss here"; there is.
+
     """
     sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
     if not sl:
@@ -730,14 +741,16 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
 
 # --- 13 -----------------------------------------------------------------
 def d13_urun_boyu(kok, yaz):
-    """Tablodaki urun boyu, ciftin konsensusta URETTIGI boy mu.
+    """Is the product length in the table the length the pair PRODUCES on the consensus?
 
-    Urun boyu elle yazilabilen bir sayidir ve elle yazilan her sayi bir gun
-    kayar. 2026-08-10: Proteolitik_Synergistaceae satirinda 173 bp yaziyordu,
-    olcum 172 bp diyor (B-2-1197717 konsensusu, F@228 R@381, 381+19-228=172).
-    Bir bazlik fark jel ayrimi hesabina ve bant sinifina girer.
+        A product length is a number that can be typed by hand, and every number typed by
+        hand drifts one day. 2026-08-10: the Proteolitik_Synergistaceae row said 173 bp
+        while the measurement says 172 bp (the B-2-1197717 consensus, F@228 R@381,
+        381+19-228=172). A one base difference enters the gel separation calculation and
+        the band class.
 
-    Olcut panelin kendi olcutu: mm<=1 ve 3' son iki baz tam.
+        The criterion is the panel's own: mm<=1 and the last two bases at the 3' end exact.
+
     """
     import glob as _glob
     import re as _re
@@ -747,13 +760,13 @@ def d13_urun_boyu(kok, yaz):
     if not os.path.exists(pk) or not os.path.isdir(kd):
         ATLANAN.append(u'13 urun boyu (panel ya da konsensus klasoru yok)')
         return
-    # GLOB KULLANILMAZ. konsensus_kanonik klasorunde 250 dosya var ama yalniz
-    # 100'u gecerli; kalan 150'si bagli klasorde silinemeyen kalinti ve bir
-    # kismi ayni kutunun FARKLI icerikli eski surumu (33 kutuda olculdu).
-    # Panelin kendi yukleyicisi (hedefler.konsensusler) bu yuzden INDEKS.tsv
-    # okuyor; denetim de ayni kaynagi okumazsa panelin gormedigi bir diziyle
-    # olcum yapar ve uydurma bir "sapma" uretir. 2026-08-10 gece: ilk surumum
-    # tam bu hatayi yapiyordu.
+    # GLOB IS NOT USED. There are 250 files in the konsensus_kanonik directory but only
+    # 100 are valid; the other 150 are leftovers that cannot be deleted on a mounted
+    # drive, and some of them are an older version of the same bin WITH DIFFERENT CONTENT
+    # (measured on 33 bins). The panel's own loader (hedefler.konsensusler) therefore
+    # reads INDEKS.tsv; if the audit does not read the same source it measures with a
+    # sequence the panel never sees and produces an invented "deviation". On the night of
+    # 2026-08-10 my first version did exactly that.
     ixy = os.path.join(kd, 'INDEKS.tsv')
     if not os.path.exists(ixy):
         ATLANAN.append(u'13 urun boyu (konsensus_kanonik/INDEKS.tsv yok - '
@@ -840,12 +853,14 @@ def d13_urun_boyu(kok, yaz):
 
 # --- 14 -----------------------------------------------------------------
 def d14_bat_dosyalari(kok, yaz):
-    """.bat dosyalari CRLF ve saf ASCII mi, goto hedefleri var mi.
+    """Are the .bat files CRLF and pure ASCII, and do their goto targets exist?
 
-    2026-08-09: SINA_BAT.bat LF satir sonluydu ve on bes sinamanin on ucu
-    SESSIZCE atlanmisti - goto hedefini bulamiyor, hata da vermiyor.
-    2026-08-10: verification/one_key.py ve verification/full_chain.py da LF cikti.
-    Turkce karakter de yorumlayiciyi bozar; bu yuzden saf ASCII sarti var.
+        2026-08-09: SINA_BAT.bat had LF line endings and thirteen of fifteen tests were
+        SILENTLY skipped; the goto target could not be found and no error was raised.
+        2026-08-10: verification/one_key.py and verification/full_chain.py came out LF too.
+        A non-ASCII character also breaks the interpreter, which is why pure ASCII is
+        required.
+
     """
     import glob as _glob
     import re as _re
@@ -871,11 +886,11 @@ def d14_bat_dosyalari(kok, yaz):
         eksik = sorted(x for x in git - et if x != 'eof')
         if eksik:
             sorun.append(u'%s: karsiligi olmayan goto hedefi: %s' % (ad, ', '.join(eksik)))
-        # TEKRAR EDEN ETIKET. goto her zaman ILK etikete atlar; ayni ad iki kez
-        # geciyorsa menunun bir tusu sessizce yanlis yere gider. 2026-08-11'de
-        # PANEL.bat'a yeni tus eklerken tam bu oldu: dagitim satirinin altina
-        # ikinci bir ":sk" dustu ve K tusu kutu planini degil, dagitimin
-        # devamini calistirir hale geldi. Hicbir hata mesaji cikmadi.
+        # A REPEATED LABEL. goto always jumps to the FIRST label; if the same name appears
+        # twice, one key of the menu silently goes to the wrong place. That happened on
+        # 2026-08-11 while adding a new key to PANEL.bat: a second ":sk" fell below the
+        # dispatch line and the K key stopped running the plate plan and ran the continuation
+        # of the dispatch instead. No error message appeared at all.
         tekrar = {}
         for m in _re.finditer(r'^:([a-z0-9_]+)', t, _re.M | _re.I):
             k = m.group(1).lower()
@@ -896,16 +911,18 @@ def d14_bat_dosyalari(kok, yaz):
 
 # --- 15 -----------------------------------------------------------------
 def d15_konsensus_kalintilari(kok, yaz):
-    """Kanonik konsensus klasorunde indekste OLMAYAN kalinti dosya var mi.
+    """Are there leftover files in the canonical consensus directory that are NOT in the index?
 
-    2026-08-10 gece: klasorde 250 dosya var, INDEKS.tsv 100 tanesini
-    tanimliyor. Kalan 150'si silinemeyen kalinti ve 33 kutuda ayni kutunun
-    FARKLI icerikli iki-uc surumu duruyor (A1-1_2223.kanonik.fa ile
-    A1-1_2223_kanonik.fasta ayni kutu, ayri dizi).
+        The night of 2026-08-10: there are 250 files in the directory and INDEKS.tsv
+        defines 100 of them. The other 150 are leftovers that cannot be deleted, and on 33
+        bins two or three versions of the same bin WITH DIFFERENT CONTENT are sitting there
+        (A1-1_2223.kanonik.fa and A1-1_2223_kanonik.fasta are the same bin with different
+        sequences).
 
-    Panelin kendi yukleyicisi indeks okudugu icin bundan etkilenmiyor. Ama
-    glob yazan HER yeni betik sessizce yanlis diziyi secer - benim ilk urun
-    boyu denetimim tam bunu yapti. Bu madde, tuzagin durdugunu hatirlatir.
+        The panel's own loader is unaffected because it reads the index. But EVERY new
+        script that writes a glob silently picks the wrong sequence - my first product
+        length check did exactly that. This item is a reminder that the trap is still there.
+
     """
     import glob as _glob
     d = os.path.join(kok, 'konsensus_kanonik')
@@ -942,12 +959,14 @@ def d15_konsensus_kalintilari(kok, yaz):
 
 # --- 16 -----------------------------------------------------------------
 def d16_uyelik_kaynagi(kok, yaz):
-    """P (tek protokol) ile K (kurtarma) AYNI uyelik dosyasini mi okuyor.
+    """Do P (the single protocol) and K (the recovery) read THE SAME membership file?
 
-    Ikisi ayri dosya secerse dCq'lari ayri zeminde olcer ve karsilastirilamaz
-    hale gelir. 2026-08-10: her ikisi de iki globu birlestirip a[-1] aliyordu;
-    bu "en yeni" degil "alt klasor her zaman kazanir" demekti. Duzeltildi ama
-    kural kodun disinda da sinanmali - iki betikten biri yarin degisebilir.
+        If the two pick different files they measure their dCq values on different ground
+        and become incomparable. 2026-08-10: both were concatenating two globs and taking
+        a[-1], which does not mean "the newest" but "the subdirectory always wins". It was
+        fixed, but the rule has to be tested outside the code too; either of the two
+        scripts could change tomorrow.
+
     """
     sec = {}
     for ad, dizin, mod in (('P', 'protocol', 'tek_protokol_olc'),
@@ -982,16 +1001,18 @@ def d16_uyelik_kaynagi(kok, yaz):
 
 # --- 17 -----------------------------------------------------------------
 def d17_veritabani_alfabesi(kok, yaz):
-    """Taranan her FASTA DNA alfabesinde mi, "ikiz" denen dosyalar gercekten ikiz mi.
+    """Is every scanned FASTA in the DNA alphabet, and are the files called "twins" really twins?
 
-    Iki ayri tuzak, ikisi de yasanmis:
-      1) SILVA RNA saklar (U). RNA alfabeli bir indeks DNA sorgularini HIC
-         tutturmaz ve sonuc "0 hedef disi" yani TEMIZ gorunur. 2026-08-09'da
-         SILVA indeksi tam bunu yapiyordu (3^9 k-mer alfabesinden anlasildi).
-      2) identity_verification.py iki dosyayi "BAYT BAYT AYNI (cmp ile dogrulandi)"
-         diye isaretlemisti. 2026-08-10 olcumu: SSU ciftinin boyutlari ayni
-         ama ICERIKLERI farkli - 138.2 surumu U->T cevrilmis, ikizi hala RNA.
-         Not, donusumden onceye aitti ve kimse geri donup bakmamisti.
+        Two separate traps, and both have happened:
+          1) SILVA stores RNA (U). An index in the RNA alphabet matches NO DNA query at all
+             and the result looks like "0 off-target", that is, CLEAN. On 2026-08-09 the
+             SILVA index was doing exactly that (it showed in the 3^9 k-mer alphabet).
+          2) identity_verification.py had marked two files as "BYTE FOR BYTE IDENTICAL
+             (verified with cmp)". The 2026-08-10 measurement: the SSU pair have the same
+             size but DIFFERENT CONTENT - release 138.2 had been converted U->T while its
+             twin was still RNA. The note dated from before the conversion and nobody had
+             gone back to look.
+
     """
     import hashlib as _h
     d = os.path.join(kok, 'REFERANS_DB')
@@ -1006,7 +1027,7 @@ def d17_veritabani_alfabesi(kok, yaz):
             continue
         y2 = os.path.join(d, f)
         if not any(os.path.exists(y2 + e) for e in ('.primerqc.bin', '.nsq')):
-            continue          # indekssiz dosya taranmiyor, alfabesi onemsiz
+            continue          # an unindexed file is not scanned, so its alphabet does not matter
         bakilan += 1
         u = t = 0
         with io.open(y2, encoding='utf-8', errors='replace') as fh:
@@ -1019,8 +1040,8 @@ def d17_veritabani_alfabesi(kok, yaz):
                     break
         if u:
             rna.append(u'%s: U=%d T=%d' % (f, u, t))
-    # indeks FASTA'dan TAZE mi: FASTA sonradan degistiyse indeks eski veriyi
-    # tarar ve bunu hicbir sey soylemez.
+    # Is the index FRESH relative to the FASTA: if the FASTA changed later, the index
+    # scans the old data and nothing says so.
     bayat_ix = []
     for f in sorted(os.listdir(d)):
         if not f.endswith(('.fna', '.fasta', '.fa')):
@@ -1073,22 +1094,22 @@ def d17_veritabani_alfabesi(kok, yaz):
 
 # --- 18 -----------------------------------------------------------------
 def d18_evrensel_kapsam(kok, yaz):
-    """Evrensel/kontrol primerleri KENDI hedeflerimizi goruyor mu.
+    """Do the universal and control primers see OUR OWN targets?
 
-    Evrensel primerlerde dCq TANIMSIZDIR (rakip kumesinin paydasi sifira
-    gider); olcu KAPSAMDIR. Ama projede yazili bir kapsam esigi YOK ve
-    verilen etiketler olculen degerlerle tutmuyor: 8 Agustos tablosunda
-    Metanojen_universal'e %88 kapsamla "kapsam dusuk" denmis,
-    Arke_universal'e %74 kapsamla hicbir sey denmemis.
+        On universal primers dCq IS UNDEFINED (the denominator of the competitor set goes
+        to zero); the measure is COVERAGE. But there is NO written coverage threshold in
+        the project, and the labels given do not match the measured values: in the table of
+        8 August, Metanojen_universal was called "low coverage" at 88% while Arke_universal
+        was called nothing at 74%.
 
-    Daha onemlisi: 2026-08-11 olcumu, Arke_universal'in kendi uye
-    kutularinin altisinda urun VERMEDIGINI gosteriyor ve bunlarin ucu
-    Nitrosocosmicus (panelin KENDI hedefi), biri Methanomassiliicoccus
-    (metilotrofik metanojen hedefi). Normallestirme kontrolu, normalize
-    edecegi hedefi gormuyor.
+        More importantly: the 2026-08-11 measurement shows Arke_universal gives NO PRODUCT
+        in six of its own member bins, three of which are Nitrosocosmicus (a target of the
+        panel itself) and one Methanomassiliicoccus (the methylotrophic methanogen target).
+        The normalisation control does not see the target it is meant to normalise.
 
-    Bu madde hukum vermez; sayilari yan yana koyar ve yazili bir olcut
-    olmadigini soyler. Esigi insan koyar.
+        This item passes no verdict; it puts the numbers side by side and says that there
+        is no written criterion. A human sets the threshold.
+
     """
     import csv as _csv
     import re as _re
@@ -1124,25 +1145,26 @@ def d18_evrensel_kapsam(kok, yaz):
 
 
 def d19_uyelik_icerigi(kok, yaz):
-    u"""IKI UYELIK KAYNAGI AYNI KUTULARI MI SOYLUYOR.
+    """DO THE TWO MEMBERSHIP SOURCES NAME THE SAME BINS?
 
-    16. madde iki betigin AYNI DOSYAYI okudugunu sinar. Ama proje iki AYRI
-    uyelik dosyasi kullaniyor ve bu bilerek boyle:
-        screening/hedef_uyelik.tsv          - arama/tarama tarafi
-        uyelik_yeniden_turetme_uyelik_*.tsv      - tek protokol olcumu
-    Ikisi ayni dosya olmadigi icin 16. madde bu ikisini hic karsilastirmaz.
-    Icerikleri sessizce ayrisirsa arama bir kumeyi hedef sanip optimize eder,
-    olcum baska bir kumeye gore not verir.
+        Item 16 tests that two scripts read THE SAME FILE. But the project uses two
+        SEPARATE membership files, and that is deliberate:
+            screening/hedef_uyelik.tsv          - the search and scan side
+            uyelik_yeniden_turetme_uyelik_*.tsv - the single protocol measurement
+        Because they are not the same file, item 16 never compares these two. If their
+        contents diverge silently, the search optimises for one set while the measurement
+        grades against another.
 
-    2026-08-11'de tam bu oldu: Petriella_cinsi icin arama tarafi F2-4_500148'i
-    UYE sayiyordu (taxid 500148 uzerinden), olcum tarafi ayni kutuyu RAKIP
-    sayiyordu - ve o kutu cifti dusuren karar kutusuydu (1655/3000 okuma).
-    Yani lokus taramasi, olcumun ISTEDIGININ TERSINI optimize etti. On kadar
-    hedefte buna benzer ayrisma vardi.
+        That is exactly what happened on 2026-08-11: for Petriella_cinsi the search side
+        counted F2-4_500148 as a MEMBER (through taxid 500148) while the measurement side
+        counted the same bin as a COMPETITOR - and that bin was the deciding bin that
+        failed the pair (1655/3000 reads). So the locus scan optimised THE OPPOSITE of what
+        the measurement wanted. About ten targets had a similar divergence.
 
-    Kural: fark varsa ve farktaki kutunun OLCULEN kimligi varsa -> SIPARISI
-    DURDURUR. Kimligi hic olculmemis kutulardan kaynaklanan fark -> DIKKAT
-    (once o kutu olculmeli, karar ondan sonra verilir).
+        The rule: if there is a difference and the bin in question HAS a measured identity
+        -> IT STOPS THE ORDER. A difference arising from bins whose identity was never
+        measured -> DIKKAT (that bin must be measured first, and the decision comes after).
+
     """
     import glob as _glob
     uy = [x for x in _glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
@@ -1161,11 +1183,11 @@ def d19_uyelik_icerigi(kok, yaz):
         'for r in sat[1:] if r and r[0].strip()}\n'
         'panel,_=H.panel_oku(); kons=H.konsensusler(); kut=H.kutular()\n'
         'var={k["kutu"] for k in kut}\n'
-        # KIMLIGI OLCULMUS kutular IKI kaynaktan toplanir. Yalniz G asamasi
-        # tablosuna bakmak yaniltiyordu: F1-*_44689 kutulari o tabloda "hicbir
-        # hedefin uyesi degil" diye ATLANMIS, ama bolluk calismasi (11 Agustos)
-        # dordunu de olcmus (Zoopagomycota / Nucletmycea). Tek tabloya bakan
-        # denetim "olculmemis" deyip yanlis onem veriyordu.
+        # The bins WHOSE IDENTITY HAS BEEN MEASURED are collected from TWO sources. Looking
+        # only at stage G's table was misleading: the F1-*_44689 bins were SKIPPED in that
+        # table as "not a member of any target", while the abundance study (11 August)
+        # measured all four of them (Zoopagomycota / Nucletmycea). An audit looking at one
+        # table said "not measured" and assigned the wrong severity.
         'kim=set()\n'
         'y=os.path.join(%r,"TUM_KIMLIK_SONUC","tum_kutu_kimlikleri.tsv")\n'
         'if os.path.exists(y):\n'
@@ -1309,7 +1331,7 @@ def main():
     if any(o == BLOKE for _b, _a, o in BULGU):
         return 1
     if BULGU:
-        return 3          # yalniz DIKKAT/BILGI - kosu durdurulmaz
+        return 3          # DIKKAT and BILGI only - the run is not stopped
     return 2 if ATLANAN else 0
 
 
