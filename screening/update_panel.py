@@ -59,12 +59,8 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'1. WHAT THE BUG WAS', bold=True, fill=GRI); n += 1
     for s in [
-        'engine/reads.py -> sinif `Sonda` (ve engine/scb.py -> sinif `S`) '
-        'primeri okumada ararken 13 BAZLIK TAM ESLESEN TEK BIR TOHUM kullaniyordu:  '
-        's = primer[-13:] ;  i = seq.find(s)',
-        'Olcut "toplam uyumsuzluk <= max_mm" oldugu halde, uyumsuzluk 13 bazlik tohumun ICINE '
-        'dustugunde find() hicbir sey bulamiyor ve baglanma yeri SESSIZCE kayboluyor. '
-        'Program hata atmiyor, "urun yok" diyor. Bes onceki olcum hatasi gibi bu da sessiz.',
+        'engine/reads.py -> class `Sonda` (and engine/scb.py -> class `S`) looked for the primer in a read using A SINGLE 13 BASE EXACT MATCHING SEED:  s = primer[-13:] ;  i = seq.find(s)',
+        'Although the criterion is "total mismatches <= max_mm", find() returns nothing whenever the mismatch falls INSIDE the 13 base seed, and the binding site disappears SILENTLY. The program raises no error, it simply reports "no product". Like the five earlier measurement bugs, this one is silent.',
         'EK BULGU: 3\' son 2 baz TAM ESLESME kurali kodda HICBIR YERDE acikca uygulanmiyordu - '
         '13 bazlik tohumun yan etkisiydi. Duzeltilmis motorda kural acikca uygulanir.',
     ]:
@@ -73,7 +69,7 @@ def sayfa16(wb, rows):
     n += 1
 
     yaz(ws, n, 1, u'2. EVIDENCE - A TEST WITH A KNOWN ANSWER (bin A1-4_3078083, first 400 reads, the M. mazei pair, the SAME criterion mm<=1)', bold=True, fill=GRI); n += 1
-    bas = ['Motor', 'Urun veren okuma / 400', 'Yuzde', 'Not']
+    bas = ['Engine', 'reads giving a product / 400', 'Percent', 'Note']
     for j, h in enumerate(bas, 1):
         yaz(ws, n, j, h, bold=True, fill=GRI)
     n += 1
@@ -91,19 +87,10 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'3. HOW IT WAS FIXED', bold=True, fill=GRI); n += 1
     for s in [
-        'GUVERCIN YUVASI (pigeonhole) TOHUMLAMASI: primer max_mm+1 tane ORTUSMEYEN bloga bolunur. '
-        'En fazla max_mm uyumsuzluk varsa bu bloklardan EN AZ BIRI tam tutmak zorundadir; dolayisiyla '
-        'bloklardan herhangi birinin tam eslesmesini aramak KAYIPSIZDIR. Her aday yer sonra tam kuralla '
-        '(toplam uyumsuzluk + 3\' son 2 baz) tek tek dogrulanir.',
-        'KAYIPSIZLIK KANITLANDI: screening/engine_test.py duzeltilmis motoru, tohum kullanmayan ve her '
-        'pozisyonu tek tek deneyen bagimsiz bir kaba kuvvet uygulamasiyla karsilastirir. '
-        'T1 sentetik (2 439 baglanma yeri, fark 0) - T2 gercek okuma (fark 0) - T3 urun sayisi (fark 0). '
-        'Ayni testte ESKI motor sentetikte 1 386 yeri (%56,8), gercek okumada %35,2\'sini kaciriyor.',
-        'HIZ: 400 okuma/cift icin kaba kuvvet 0,30 sn, duzeltilmis motor 0,03 sn (~10x). Kaba kuvvetle ayni '
-        'sonucu verdigi icin hiz kazanci dogruluktan odun vermez.',
-        'DOSYALAR: screening/read_engine.py (motor), brute_force.py (referans), engine_test.py (kanit), '
-        'measure_panel.py (panel olcumu), independent_check.py, '
-        'python3 -m screening --mod panel-olc --full-depth',
+        "PIGEONHOLE SEEDING: the primer is split into max_mm+1 NON-OVERLAPPING blocks. If there are at most max_mm mismatches then AT LEAST ONE of those blocks must match exactly, so searching for an exact match of any block is LOSSLESS. Every candidate site is then verified one by one under the full rule (total mismatches plus the last 2 bases at the 3' end).",
+        'LOSSLESSNESS WAS PROVEN: screening/engine_test.py compares the corrected engine against an independent brute force implementation that uses no seed and tries every position one at a time. T1 synthetic (2 439 binding sites, difference 0), T2 real reads (difference 0), T3 product count (difference 0). In the same test the OLD engine misses 1 386 sites on the synthetic data (56.8%) and 35.2% on the real reads.',
+        'SPEED: for 400 reads per pair, brute force takes 0.30 s and the corrected engine 0.03 s (~10x). Since it gives the same answer as brute force, the speed gain costs no accuracy.',
+        'FILES: screening/read_engine.py (the engine), brute_force.py (the reference), engine_test.py (the evidence), measure_panel.py (the panel measurement), independent_check.py, python3 -m screening --mod panel-olc --full-depth',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 46; n += 1
@@ -112,17 +99,10 @@ def sayfa16(wb, rows):
     yaz(ws, n, 1, u'4. THE SECOND FINDING - CRITERION INCONSISTENCY (at least as important as the seed bug)',
         bold=True, fill=GRI); n += 1
     for s in [
-        '"2 Panel" sayfasindaki olcut notu numune olcutunu "uyumsuzluk <=1, 3\' son 2 baz TAM eslesme" '
-        'diye tanimliyor. Ama satirlar TEK BIR OLCUTLE OLCULMEMIS. Her satirin yayimlanmis uye % araligi, '
-        'dort motor/olcut kombinasyonuyla yeniden uretilerek hangi olcutle olculdugu tespit edildi:',
-        'mm<=1 (tohumlu motor): Metanomikrobiyales (uye %51,2-80,0 BIREBIR), Proteolitik_Synergistaceae '
-        '(%81,5 -> %81,2), Methanosarcina_mazei_turu (%40,6-60,7 ve rakip %4,49 BIREBIR).',
-        'mm<=3 (tohumsuz motor = ispcr.amplify varsayilani): Proteiniphilum (panelde %29,0 -> mm<=3 ile '
-        '%28,6, mm<=1 ile %1,6), Metilotrofik (%71,0 -> %72,4), Cloacimonas (%78,5 -> %77,8), '
-        'Sakarolitik_Sphaerochaeta, Methanosarcina_cinsi.',
-        'SONUC: "Ayrim (x)" sutunundaki degerler birbirleriyle KARSILASTIRILAMAZ. Bu tabloda her satir '
-        'TEK motorla ve IKI olcutle (mm<=1 ve mm<=3) yeniden olculdu; her deger olcut etiketi tasiyor. '
-        'OLCUT ETIKETI OLMAYAN HICBIR SAYIYI KULLANMAYIN.',
+        'The criterion note on the "2 Panel" sheet defines the sample criterion as "mismatches <=1, the last 2 bases at the 3\' end an EXACT match". But the rows were NOT MEASURED UNDER A SINGLE CRITERION. Each row\'s published member % range was regenerated under four engine and criterion combinations, which identified the criterion it had actually been measured with:',
+        'mm<=1 (the seeded engine): Metanomikrobiyales (member 51.2-80.0% EXACTLY), Proteolitik_Synergistaceae (81.5% -> 81.2%), Methanosarcina_mazei_turu (40.6-60.7% and competitor 4.49% EXACTLY).',
+        'mm<=3 (the seedless engine, the ispcr.amplify default): Proteiniphilum (29.0% in the panel -> 28.6% under mm<=3, 1.6% under mm<=1), Metilotrofik (71.0% -> 72.4%), Cloacimonas (78.5% -> 77.8%), Sakarolitik_Sphaerochaeta, Methanosarcina_cinsi.',
+        'CONCLUSION: the values in the "Ayrim (x)" column CANNOT be compared with one another. In this table every row was re-measured with ONE engine under TWO criteria (mm<=1 and mm<=3), and every value carries its criterion label. DO NOT USE ANY NUMBER THAT HAS NO CRITERION LABEL.',
     ]:
         yaz(ws, n, 1, s, fill=(SARI if s.startswith('SONUC') else None))
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
@@ -156,19 +136,11 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'6. THE ONE REAL REGRESSION - Methanosarcina_mazei_turu (row 22)', bold=True, fill=KIRMIZI); n += 1
     for s in [
-        'Duzeltmenin bir paneli degeri ESIGIN ALTINA dusurdugu TEK satir budur. Digerlerinde duzeltme '
-        'ya hicbir sey degistirmiyor ya da degeri YUKARI cekiyor (kapsam eksik olculmustu).',
-        'Sebep tek bir rakip kutu: A1-4_3078083 (Methanosarcina hadiensis, n=2215). Eski motorla %0,72 '
-        'olculuyordu; dogru deger %47,22. Ikinci kutu A2-4_3078083 %4,49 -> %33,33. Uye kutulari yalniz '
-        '+1,4 ile +2,2 puan oynuyor. Yani duzeltme neredeyse tamamen RAKIP tarafta - yani hata '
-        'ozgullugu OLDUGUNDAN IYI gosteriyordu. Tehlikeli yon.',
-        'ESKI (mm<=1): uye %40,63-60,63 / rakip maks %4,49 / en kotu kat 4,23x / havuz kat 49,96x. '
-        'Panelde yayimlanan deger 187,9x (cins ici havuz - daha dar havuz, ayni hatayi tasiyor).',
-        'YENI (mm<=1): uye %42,23-62,20 / rakip maks %47,22 / EN KOTU KAT 0,82x / havuz kat 11,41x.',
-        'ANLAMI: bu cift Methanosarcina hadiensis\'i M. mazei kadar iyi cogaltiyor. "M. mazei / '
-        'M. soligelidi grubu" iddiasi bu haliyle TASINMIYOR: ya cogalttigi kume M. hadiensis\'i de '
-        'kapsayacak sekilde genisletilmeli, ya cift dusurulmeli, ya da amplikon dizilemesi sarti '
-        'konmalidir. KARAR SIZIN - panel bu satiri "ESIK ALTI" olarak isaretledi, sessizce birakilmadi.',
+        'This is the ONLY row where the fix pushed a panel value BELOW THE THRESHOLD. On the others the fix either changes nothing or pulls the value UP (their coverage had been under measured).',
+        'The cause is a single competitor bin: A1-4_3078083 (Methanosarcina hadiensis, n=2215). The old engine measured it at 0.72%, and its correct value is 47.22%. A second bin, A2-4_3078083, went 4.49% -> 33.33%. The member bins move by only +1.4 to +2.2 points. In other words the correction lands almost entirely on the COMPETITOR side, which means the bug made the specificity look BETTER THAN IT WAS. That is the dangerous direction.',
+        'OLD (mm<=1): member 40.63-60.63% / competitor max 4.49% / worst fold 4.23x / pool fold 49.96x. The value published in the panel is 187.9x (the within genus pool, a narrower pool, carrying the same bug).',
+        'NEW (mm<=1): member 42.23-62.20% / competitor max 47.22% / WORST FOLD 0.82x / pool fold 11.41x.',
+        'WHAT IT MEANS: this pair amplifies Methanosarcina hadiensis as well as it amplifies M. mazei. The claim "the M. mazei / M. soligelidi group" DOES NOT HOLD as it stands. Either the amplified set has to be widened to cover M. hadiensis, or the pair has to be dropped, or amplicon sequencing has to be made a condition. THE DECISION IS YOURS. The panel marked this row "ESIK ALTI" rather than leaving it in silently.',
     ]:
         yaz(ws, n, 1, s, fill=(KIRMIZI if s.startswith('ANLAMI') else None))
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
@@ -177,16 +149,11 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'7. ROWS THAT IMPROVED (their coverage had been under measured)', bold=True, fill=YESIL); n += 1
     for s in [
-        'Methanosarcina_cinsi (satir 7): yedi M. mazei UYE kutusu eski motorla %0,5-26,5 olculuyordu; '
-        'dogru deger %79,4-82,9. En kotu kat 0,04x -> 4,37x (mm<=1) / 4,66x (mm<=3), havuz 2,51x -> 81,59x. '
-        'Panelde yayimlanan 28,4x havuz olcusudur; EN KOTU TEK KUTU olcusu hala 10x altinda.',
-        'Asetoklastik_metanojenler (satir 16): uye alt sinir %0,0 -> %58,6; en kotu kat ~0 -> 4,22x, '
-        'havuz ~0 -> 50,84x.',
+        'Methanosarcina_cinsi (row 7): seven M. mazei MEMBER bins measured 0.5-26.5% under the old engine, and their correct value is 79.4-82.9%. The worst fold went 0.04x -> 4.37x (mm<=1) / 4.66x (mm<=3), and the pool 2.51x -> 81.59x. The 28.4x published in the panel is a pool measure; the WORST SINGLE BIN measure is still below 10x.',
+        'Asetoklastik_metanojenler (row 16): the member floor went 0.0% -> 58.6%; the worst fold ~0 -> 4.22x, and the pool ~0 -> 50.84x.',
         'Kapsam olculeri: Arke_universal 11/39 -> 32/39 (mm<=1; panelin 39/39 iddiasi mm<=3 degeridir), '
         'Bakteri_universal 4/20 -> 13/20 (mm<=1), Mantar_universal F1 14/20 -> 16/20.',
-        'Methanothrix_cinsi (satir 3): mm<=1\'de degismiyor (13,54x -> 13,74x) ama mm<=3\'te 0,86x\'e '
-        'dusuyor (bir rakip kutu %76,92). Bu satirin kaderi tamamen OLCUT SECIMINE bagli - olcut '
-        'kararlastirilmadan siparise gitmemeli.',
+        'Methanothrix_cinsi (row 3): under mm<=1 it does not change (13.54x -> 13.74x), but under mm<=3 it drops to 0.86x (one competitor bin amplifies at 76.92%). The fate of this row depends entirely on THE CHOICE OF CRITERION, and it should not go to order before that criterion is settled.',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 46; n += 1
@@ -194,14 +161,9 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'8. INDEPENDENT VERIFICATION (a route that does NOT USE the corrected engine)', bold=True, fill=GRI); n += 1
     for s in [
-        'Baslik sayilari UC ayri yolla olculdu: (A) ispcr.find_sites - numpy vektor tarama, tohumsuz, '
-        'panelin KENDI kodu, bu oturumda degistirilmedi; (B) brute_force.py - saf python, her pozisyon '
-        'tek tek, ortak kod paylasmaz; (C) duzeltilmis read_engine.py.',
-        'Yedi baslik kutusunun YEDISINDE de ucu ayni sayiyi verdi: A1-4_3078083 1046/2215 (%47,22), '
-        'A2-4_3078083 52/156 (%33,33), A2-2_2209 1866/3000 (%62,20), A1-3_2209 1267/3000 (%42,23), '
-        'A1-2_2209 (Methanosarcina_cinsi) 2389/3000 (%79,63), A2-3_2223 15/199 (%7,54), '
-        'A1-2_2209 (Asetoklastik) 1828/3000 (%60,93).',
-        'Kosmak icin: python screening/independent_check.py --fastq "fastq files"',
+        "The headline numbers were measured by THREE separate routes: (A) ispcr.find_sites, a numpy vector scan, seedless, the panel's OWN code, untouched in this session; (B) brute_force.py, pure Python, every position one at a time, sharing no code with the others; (C) the corrected read_engine.py.",
+        'All SEVEN of the seven headline bins gave the same number by all three routes: A1-4_3078083 1046/2215 (47.22%), A2-4_3078083 52/156 (33.33%), A2-2_2209 1866/3000 (62.20%), A1-3_2209 1267/3000 (42.23%), A1-2_2209 (Methanosarcina_cinsi) 2389/3000 (79.63%), A2-3_2223 15/199 (7.54%), A1-2_2209 (Asetoklastik) 1828/3000 (60.93%).',
+        'To run it: python screening/independent_check.py --fastq "fastq files"',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 46; n += 1
@@ -209,22 +171,10 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'9. STILL OPEN - WHAT THE NEXT PERSON NEEDS TO KNOW', bold=True, fill=SARI); n += 1
     for s in [
-        'TAM DERINLIK: bu sayfadaki sayilar kutu basina <=3000 okuma alt kumesiyle uretildi. '
-        'python3 -m screening --mod panel-olc --full-depth runs with no sampling. '
-        'Egilim degisirse bu sayfa guncellenmelidir.',
-        'UYE KUMELERI: panelin ozgun uye takson kumeleri hicbir betikte saklanmamis (komut satiri '
-        'argumaniydi). screening/ciftler.tsv\'de hedef adlarindan ve taxid_adlari.tsv\'den yeniden '
-        'kuruldu. "PANELLE_TUTUYOR" isaretli satirlarda yeniden kurulan kume panelin yayimladigi uye % '
-        'araligini yeniden uretiyor; "YENIDEN_KURULDU" isaretlilerde uretmiyor - o satirlarda eski<->yeni '
-        'FARKI gecerlidir (iki motor ayni kutularda kosuldu) ama mutlak degerler panelin ozgun kume '
-        'tanimiyla ortusmeyebilir. Ozellikle Proteiniphilum (satir 10) ve Bacteroidales (satir 12) '
-        'kumeleri kontrol edilmelidir.',
-        'OLCUT KARARI: panelin tek bir numune olcutu secmesi gerekiyor. Onerilen mm<=1 (yayimlanan olcut '
-        'etiketiyle tutarli olan); mm<=3 tasarim boru hattinin olcutudur ve daha gevsektir. Karar '
-        'verilmeden "Ayrim (x)" sutunu satirlar arasi karsilastirilamaz.',
-        'KONSENSUS: bu duzeltme HAM OKUMA olcumleridir; konsensus dosyalarina dokunulmadi. Konsensus '
-        'yeniden uretimi ayrica yapilacaktir (iki yontemle: kalite agirlikli esigi dusurulmus + cogunluk '
-        'oyu; ayrilan pozisyonlar maskelenecek, dejenere baz KULLANILMAYACAK - toplanti karari).',
+        'FULL DEPTH: the numbers on this page were produced from a subset of at most 3000 reads per bin. python3 -m screening --mod panel-olc --full-depth runs with no sampling. If the trend changes, this page must be updated.',
+        'MEMBER SETS: the panel\'s original member taxon sets were never stored in any script (they were a command line argument). They were rebuilt from the target names in screening/ciftler.tsv and from taxid_adlari.tsv. On rows marked "PANELLE_TUTUYOR" the rebuilt set reproduces the member % range the panel published; on rows marked "YENIDEN_KURULDU" it does not, and on those rows the old vs new DIFFERENCE is valid (both engines ran on the same bins) but the absolute values may not match the panel\'s original set definition. The Proteiniphilum (row 10) and Bacteroidales (row 12) sets in particular should be checked.',
+        'THE CRITERION DECISION: the panel needs to settle on a single sample criterion. mm<=1 is the recommended one, since it is consistent with the published criterion label; mm<=3 is the design pipeline\'s criterion and is looser. Until that decision is made, the "Ayrim (x)" column cannot be compared across rows.',
+        'CONSENSUS: this correction covers RAW READ measurements only, and no consensus file was touched. Consensus regeneration will be done separately (by two methods: quality weighted with a lowered threshold, plus a majority vote; positions that disagree will be masked and NO degenerate base will be used, by decision).',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 56; n += 1
@@ -234,9 +184,9 @@ def sayfa16(wb, rows):
 def panel_sutunlari(wb, rows):
     ws = wb['2 Panel']
     c0 = ws.max_column + 1
-    basliklar = ['OKUMA MOTORU DUZELTMESI - olcut etiketi',
-                 'DUZELTILMIS ayrim (mm<=1) en kotu / havuz',
-                 'DUZELTILMIS ayrim (mm<=3) en kotu / havuz',
+    basliklar = ['READ ENGINE FIX - criterion label',
+                 'CORRECTED discrimination (mm<=1) worst / pool',
+                 'CORRECTED discrimination (mm<=3) worst / pool',
                  'DEGISTI MI',
                  '10x ESIGININ ALTINDA MI']
     for j, h in enumerate(basliklar):
