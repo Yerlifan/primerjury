@@ -34,8 +34,9 @@ from collections import Counter, defaultdict
 
 # ------------------------------------------------------------------ yardimci
 def isimleri_oku(kok):
-    """taxid -> ad. ozgun calismanin Kraken ozet betigiyle ayni yol; modul CALISTIRILMAZ,
-    kaynak metinden ast ile okunur, numpy'a bagimlilik olmaz."""
+    "taxid -> name. The same route the source study's Kraken summary script "
+    'takes:     the module IS NOT RUN, it is read out of the source text with '
+    'ast, so there is     no dependency on numpy.'
     adaylar = [os.path.join(kok, "tools", "blast_ispcr.py") if kok else "",
                os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
@@ -59,13 +60,11 @@ def isimleri_oku(kok):
 UST_DUZEY = re.compile(r"(aceae|ales|mycota|mycetes|bacteria|archaea|idae|inae)$", re.I)
 
 def cins(ad):
-    """
-    Bir addan cins belirtecini cikarir.
-    'Methanosarcina mazei (taxid 2209)' -> 'methanosarcina'
-    'Microascaceae askomikot'           -> ''   (aile duzeyi, cins degil)
-    Cins cikmayan ad karsilastirmaya SOKULMAZ; zorlama esitlik, bu projede
-    tekrar tekrar cikan "yanlis cevabi temiz gosterme" hatasinin ta kendisidir.
-    """
+    "     Pulls the genus token out of a name.     'Methanosarcina mazei "
+    "(taxid 2209)' -> 'methanosarcina'     'Microascaceae askomikot' "
+    "-> ''   (a family level name, not a genus)     A name with no genus IS "
+    'NOT PUT into the comparison. Forcing an equality is     exactly the '
+    'fault this project keeps meeting: making a wrong answer look     clean.'
     if not ad:
         return ""
     a = re.sub(r"\(taxid[^)]*\)", "", ad).strip()
@@ -78,20 +77,20 @@ def cins(ad):
     return ilk.lower()
 
 def ust_taksonlar(ad):
-    """Addaki aile/takim gibi ust duzey belirtecleri. Aile duzeyi etiketler
-    icin tek karsilastirma zemini budur."""
+    'The higher level tokens in a name, such as a family or an order. For a '
+    'family     level label that is the only ground there is to compare on.'
     if not ad:
         return set()
     a = re.sub(r"\(taxid[^)]*\)", "", ad)
     return {k.lower() for k in re.findall(r"[A-Za-z]+", a) if UST_DUZEY.search(k)}
 
 def karsilastir(a, b):
-    """
-    'uyusuyor' / 'ayrisiyor' / 'karsilastirilamaz'
-    Once cins duzeyinde bakilir. Iki taraftan biri cins tasimiyorsa (aile duzeyi
-    etiket gibi) ust duzey belirtec ortakligina bakilir. O da yoksa karar
-    verilmez; "karsilastirilamaz" ile "ayrisiyor" ayni cumleye sokulmaz.
-    """
+    "     Returns 'uyusuyor', 'ayrisiyor' or 'karsilastirilamaz'.     The "
+    'genus level is looked at first. When one of the two sides carries no '
+    'genus, as with a family level label, the higher level tokens they share '
+    'are     looked at instead. When there is no ground at all, no verdict is '
+    'given:     "cannot be compared" and "they disagree" are never put in the '
+    'same sentence.'
     if not a or not b:
         return "karsilastirilamaz"
     ca, cb = cins(a), cins(b)
@@ -104,11 +103,11 @@ def karsilastir(a, b):
 
 # ------------------------------------------------------------------ kraken okuma
 def tur_haritasi(rapor):
-    """
-    tum.report'tan taxid -> (tur_taxid, tur_adi). ozgun calismanin Kraken ozet betigindeki
-    haritanin aynisi: kraken2 LCA'yi turun ALTINDA birakabilir (S1, S2 sus
-    duzeyleri) ve ayni turun iki susu kutuyu bosuna KARISIK gosterir.
-    """
+    '     From the merged report, taxid -> (species_taxid, species_name). The '
+    "same map     the source study's Kraken summary script builds: kraken2 "
+    'can leave the LCA     BELOW the species (the S1 and S2 strain levels), '
+    'and two strains of the same     species then make a bin look MIXED for '
+    'nothing.'
     harita = {}
     if not rapor or not os.path.exists(rapor):
         return harita
@@ -135,11 +134,9 @@ def taxid_cek(k):
     return ""
 
 def kutulari_oku(out_yol, rapor_yol):
-    """
-    esik_<C>.out dosyasini kaynak kutuya boler ve her kutunun hakim kimligini
-    tur duzeyinde bulur.
-    Doner: {kaynak_taxid: (hakim_ad, oran, toplam, sinifsiz_oran)}
-    """
+    '     Splits the threshold output file by source bin and finds the '
+    'dominant     identity of each bin at species level.     Returns: '
+    '{source_taxid: (dominant_name, fraction, total, unclassified_fraction)}'
     if not os.path.exists(out_yol):
         return {}
     TUR = tur_haritasi(rapor_yol)
@@ -180,7 +177,7 @@ def kutulari_oku(out_yol, rapor_yol):
     return sonuc
 
 def esik_dosyalari(klasor, esik):
-    """Istenen esige en yakin esik_<C> dosya ciftini bulur. Bulunamazsa bos."""
+    'Finds the threshold file pair closest to the threshold asked for. Empty when there is none.'
     if not klasor or not os.path.isdir(klasor):
         return "", "", None
     en_iyi = None
@@ -201,12 +198,10 @@ def esik_dosyalari(klasor, esik):
 
 # ------------------------------------------------------------------ hizalama
 def hizalama_oku(kok):
-    """
-    Bizim hizalama tabanli kimligimiz: 0_TESLIM_RAPOR/kimlik_sonuc.csv
-    Sutunlar: taxid, iddia_tur, iddia_cins, eslesen_baz, en_iyi_referans,
-              eslesme_cins, SONUC
-    Doner: {taxid: (gosterilecek_ad, sonuc_metni, eslesen_baz)}
-    """
+    '     Our own alignment based identity, read from the identity result '
+    'CSV.     The columns: taxid, iddia_tur, iddia_cins, eslesen_baz, '
+    'en_iyi_referans,                  eslesme_cins, SONUC     Returns: '
+    '{taxid: (name_to_show, result_text, matching_bases)}'
     adaylar = [os.path.join(kok, "tools", "0_TESLIM_RAPOR", "kimlik_sonuc.csv"),
                os.path.join(kok, "VALIDASYON_v2", "primerler", "PIPELINE_TEMIZ",
                             "cikti", "NIHAI", "kimlik_sonuc.csv")]
@@ -443,7 +438,7 @@ def selftest():
     K("senaryo b: PlusPFP eski etiketi tekrarliyor",
       _senaryo(s_b), "b) PlusPFP ESKI ETIKETI TEKRARLIYOR")
     s_c = dict(genis_ad="Fusarium oxysporum", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
-    K("senaryo c: PlusPFP ucuncu bir sey diyor",
+    K('scenario c: PlusPFP says a third thing',
       _senaryo(s_c), "c) PlusPFP UCUNCU BIR SEY DIYOR")
     s_d = dict(genis_ad="", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
     K(u'a PlusPFP that does not decide does not count as a disagreement',
@@ -455,7 +450,7 @@ def selftest():
     return 0 if hata == 0 else 1
 
 def _senaryo(s):
-    """selftest icin senaryo kurali, tablo_kur icindekiyle ayni mantik."""
+    'The scenario rule for the self test, the same logic as in the table builder.'
     g, a, h = s["genis_ad"], s["kaynak"], s["hiz_ad"]
     ugh, uga, uah = karsilastir(g, h), karsilastir(g, a), karsilastir(a, h)
     if not g:
@@ -505,7 +500,7 @@ def main():
     if not bilgi["e_var"]:
         eksikler.append(u'there is no threshold scan (column 2 is empty)')
     if not bilgi["h_var"]:
-        eksikler.append(u'kimlik_sonuc.csv was not found (column 4 is empty)')
+        eksikler.append('the identity result CSV was not found, so column 4 is empty')
     if eksikler:
         print(u'WARNING, the table is produced incomplete:')
         for e in eksikler:

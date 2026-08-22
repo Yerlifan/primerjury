@@ -102,7 +102,8 @@ def konsensus_kalite():
             if n > KONSENSUS_N_UST:
                 out[row['kutu']] = (False, 'N orani %%%.1f > %%%.0f' % (n, KONSENSUS_N_UST))
             elif ayr > KONSENSUS_AYRILMA_UST:
-                out[row['kutu']] = (False, 'iki yontem %d sutunda ayrildi' % ayr)
+                out[row['kutu']] = (False, 'the two methods diverged at %d '
+                                           'columns' % ayr)
             else:
                 out[row['kutu']] = (True, 'N %%%.1f, ayrilma %d' % (n, ayr))
     except Exception:
@@ -140,20 +141,20 @@ def yon_kapisi(yaz, asama):
     try:
         h = Y.kendini_sina()
         if h:
-            return False, ['orientation.py kendi sinavindan GECEMEDI: ' + '; '.join(h)]
+            return False, ['orientation.py DID NOT PASS its own test:' + '; '.join(h)]
         kons = H.konsensusler()
     except Exception as e:
-        return False, ['Kanonik konsensus okunamadi: %s' % e,
+        return False, ['The canonical consensus could not be read: %s' % e,
                        'To generate it:  python3 screening/build_canonical.py --root . ']
     if not kons:
-        return False, ['Kanonik konsensus indeksi BOS.']
+        return False, ['The canonical consensus index is EMPTY.']
     ters = [k['kutu'] for k in kons
             if Y.tespit(k['dizi'], Y.sinifi(k['kutu']))[0] == 'ANTISENSE']
     if ters:
-        return False, ['%d konsensus TERS yonde: %s' % (len(ters), ', '.join(ters[:5])),
-                       'Ters yonlu konsensuste urunlerin TAMAMI kaybolur.',
+        return False, ['%d consensuses are in the REVERSE orientation: %s' % (len(ters), ', '.join(ters[:5])),
+                       'In a reversed consensus EVERY product is lost.',
                        'To fix it:  python3 screening/build_canonical.py --root . --rerun']
-    m.append('yon kapisi [%s]: %d kutu, hepsi SENSE - GECTI' % (asama, len(kons)))
+    m.append('the orientation gate [%s]: %d bins, all of them SENSE, PASSED' % (asama, len(kons)))
     return True, m
 
 
@@ -169,7 +170,7 @@ def kanonik_kos(yaz, sure, oncelik='ozgun'):
     try:
         r = subprocess.run(komut, capture_output=True, text=True, timeout=7200)
     except subprocess.TimeoutExpired:
-        return False, 'kanonik uretim 2 saati asti'
+        return False, 'the canonical generation passed 2 hours'
     for satir in (r.stdout or '').strip().split('\n')[-6:]:
         if satir.strip():
             yaz('    ' + satir.strip())
@@ -179,7 +180,7 @@ def kanonik_kos(yaz, sure, oncelik='ozgun'):
     from . import targets as H
     if hasattr(H, '_kons_onbellek'):
         H._kons_onbellek = None
-    return True, 'kanonik uretim tamam (%s)' % sure(time.time() - t)
+    return True, 'the canonical generation is done (%s)' % sure(time.time() - t)
 
 
 # ---------------------------------------------------------------- asamalar
@@ -229,7 +230,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'  The following stages were NOT STARTED (so that no wrong result is produced).')
         return 2
     yaz('  ' + msj)
-    ok, msj = yon_kapisi(yaz, 'kanonik uretim sonrasi')
+    ok, msj = yon_kapisi(yaz, 'after the canonical generation')
     for x in msj:
         yaz('  ' + x)
     if not ok:
@@ -263,7 +264,7 @@ def calistir(yaz, sure, cizgi, a):
         yaz(u'  The canonical update could not be made (%s); the reference set stays valid.' % msj)
     else:
         yaz('  ' + msj)
-    ok, msj = yon_kapisi(yaz, 'yeni konsensus sonrasi')
+    ok, msj = yon_kapisi(yaz, 'after the new consensus')
     for x in msj:
         yaz('  ' + x)
     if not ok:
@@ -456,7 +457,7 @@ def _oran_metni(v, rakip_kutu=None):
     # the domain proportion. THIS IS NOT LOWERING the threshold; it is replacing the
     # measure itself with the right one.
     if rakip_kutu == 0:
-        return 'rakip kutusu yok'
+        return 'there is no competitor bin'
     if v in (None, '', 'None'):
         return '-'
     try:
@@ -464,7 +465,7 @@ def _oran_metni(v, rakip_kutu=None):
     except (TypeError, ValueError):
         return str(v)
     if f > 100000:
-        return 'olcusuz (rakip ~0)'
+        return 'no measure (the competitor set is about zero)'
     return '%.2f' % f
 
 
@@ -486,7 +487,7 @@ def ozet_yaz(durum, sure, gecen):
     A('Baslangic: %s · bitis: %s · sure: %s'
       % (durum.get('baslangic', '?'), time.strftime('%Y-%m-%d %H:%M:%S'), sure(gecen)))
     A('')
-    A('Kosulan asamalar: %s' % (', '.join(durum.get('bitmis', [])) or 'yok'))
+    A('The stages that ran: %s' % (', '.join(durum.get('bitmis', [])) or 'yok'))
     A('')
     eksik = [ad for ad, v in (('panel_yeniden_olcum.tsv', panel),
                               ('uyelik_duyarlilik.tsv', uyelik),
@@ -509,7 +510,7 @@ def ozet_yaz(durum, sure, gecen):
     A(u'| membership definition | the same (`target_membership.tsv`) | the same |')
     A(u'| engine | the same (`read_engine.py`) | the same |')
     A('')
-    A('**Farkin iki sebebi var:**')
+    A('**The difference has two causes:**')
     A('')
     A(u'1. **The Wilson interval narrows with depth.** The LOWER bound is used for a member and the UPPER bound for a competitor; as the reads grow the lower bound rises, the upper bound falls, and the ratio **grows**. That is why the ratios come out different although the member percentages below them are almost the same: what changes is not the measurement but the **margin of uncertainty**.')
     A(u'2. **The "worst single bin" measure was sliding with depth during the run.** The threshold was "half of the largest bin"; at full depth, with the largest bin at about 46 000 reads, the threshold became about 23 000 and **only 1 to 5 of the 10 to 33 competitor bins** entered the measurement. Measured with 300 reads the threshold became 150 and **all of them** entered. So stage 5\'s "worst bin" number really meant "**the deepest bin**", and the true worst competitor may have been left outside.')
@@ -699,7 +700,7 @@ def ozet_yaz(durum, sure, gecen):
     A('')
 
     # ============================================================ 5. konsensus
-    A('## 5. Konsensusler')
+    A('## 5. The consensuses')
     A('')
     if not kons:
         A(u'*The consensus reproduction was not run.*')
@@ -722,7 +723,7 @@ def ozet_yaz(durum, sure, gecen):
     A('')
 
     # ============================================================ 6. what is next
-    A('## 6. Sirada ne var')
+    A('## 6. What comes next')
     A('')
     A(u'1. **Section 1**: on the targets where a better candidate was found, read the cost and decide.')
     A(u'2. **The pairs below the threshold in section 3**: they have to be discussed at the meeting.')
