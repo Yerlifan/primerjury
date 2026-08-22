@@ -275,7 +275,7 @@ echo "Output:"
 echo "  $OUT/N_pozisyonlari.tsv   every N position, its depth, the IUPAC call and the class"
 echo "  $OUT/hedef_ozeti.tsv      a summary per target"
 echo "  $OUT/maske/*.bed          regions where a primer may not be placed"
-echo "  $OUT/ambig/*.fa           IUPAC kodlarina izin veren konsensus (referans, kullanilmayacak)"
+echo "  $OUT/ambig/*.fa           the consensus that allows IUPAC codes (a reference, not to be used)"
 echo "  $OUT/pileup/*.txt         depth and base string per position"
 echo
 echo "Share these outputs. The count of biallelic positions says which targets"
