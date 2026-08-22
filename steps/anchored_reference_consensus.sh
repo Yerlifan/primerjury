@@ -1,41 +1,43 @@
 #!/usr/bin/env bash
 # =====================================================================
 # anchored_reference_consensus.sh
-# Amaç: her taksonun konsensüsünü keyfî bir çekirdek okuma yerine ORTAK BİR
-#       REFERANS dizisinin koordinat sisteminde kurmak.
+# The aim: to build each taxon's consensus in the coordinate system of A SHARED
+#          REFERENCE sequence rather than around an arbitrary seed read.
 #
-# Neden gerekli:
-#   consensus2.sh her takson için okumalardan bir çekirdek okuma seçip
-#   konsensüsü onun etrafında kuruyor. Okuma uzunluğu ve kapsama değişince
-#   çekirdek okuma operonun başka bir parçasına düşüyor. Ölçtüm: F1 grubunda
-#   taxid 44689'un dört yıla ait konsensüsü üç ayrı bölgeyi kapsıyor
-#   (F1-2 ile F1-3 arasında 12-mer benzerliği 0,987 ama F1-1 ile F1-2
-#   arasında 0,065). Yani konsensüsler tanımlı bir amplikon değil, keyfî bir
-#   çekirdek okumanın etrafındaki yerel birleştirme.
-#   Referans çapalı kurulumda dört yılın konsensüsü aynı pencereye oturur,
-#   hem yıllar arası karşılaştırma hem tek bir universal primer mümkün olur.
+# Why it is needed:
+#   consensus2.sh picks a seed read out of the reads for each taxon and builds the
+#   consensus around it. When the read length and the coverage change, the seed read
+#   falls on another part of the operon. Measured: in group F1 the consensuses of
+#   taxid 44689 across four years cover three separate regions (the 12-mer
+#   similarity between F1-2 and F1-3 is 0.987, and between F1-1 and F1-2 it is
+#   0.065). So the consensuses are not a defined amplicon but a local assembly
+#   around an arbitrary seed read.
+#   Anchored to a reference, the consensuses of four years sit in the same window,
+#   which makes both a year to year comparison and a single universal primer
+#   possible.
 #
-# Yöntem, takson başına:
-#   1. Okumalardan bir örneklem alınıp uygun BLAST veritabanına karşı blastn
-#      ile en iyi referans seçilir (en yüksek toplam bit skoru).
-#   2. Referans dizi blastdbcmd ya da samtools faidx ile çıkarılır.
-#      SILVA gibi RNA alfabeli veritabanlarında U harfleri T'ye çevrilir.
-#   3. Bütün okumalar minimap2 ile o referansa hizalanır.
-#   4. samtools consensus iki bağımsız ölçüm üretir: -a -A ile IUPAC kodlu
-#      konsensüs, -a -A -f PILEUP ile pozisyon başına derinlik ve baz dizisi.
-#   5. Çıktı referans koordinatındadır, yani bütün yıllar hizalıdır.
+# The method, per taxon:
+#   1. A sample of the reads is taken and the best reference is chosen with blastn
+#      against a suitable BLAST database (the highest total bit score).
+#   2. The reference sequence is pulled out with blastdbcmd or samtools faidx. In
+#      databases with an RNA alphabet such as SILVA the U's are turned into T.
+#   3. Every read is aligned to that reference with minimap2.
+#   4. samtools consensus produces two independent measurements: an IUPAC coded
+#      consensus with -a -A, and the depth plus base string per position with
+#      -a -A -f PILEUP.
+#   5. The output is in reference coordinates, so every year is aligned.
 #
-# Kullanım:
+# Usage:
 #   bash anchored_reference_consensus.sh \
 #        --pt  /path/to/project \
 #        --out /path/to/project/referans_konsensus \
 #        [--groups F1,F2] [--threads N] [--sample 50] [--min-depth N]
-#        [--db ROD_v1.2_operon_variants.fasta]   REFERANS_DB icinde, virgulle
+#        [--db ROD_v1.2_operon_variants.fasta]   inside REFERANS_DB, comma separated
 # =====================================================================
 set -euo pipefail
 
-# DIKKAT: GROUPS bash'in yerlesik dizisidir (kullanicinin grup kimlikleri),
-# ona atama sessizce yok sayilir. Bu yuzden GRUP_SEC adi kullanilir.
+# CAREFUL: GROUPS is a bash builtin array (the user's group ids) and assigning to
+# it is silently ignored. That is why the name GRUP_SEC is used.
 PT=""; OUT=""; THREADS=""; SAMPLE=50; GRUP_SEC=""; MINDEPTH=""; DB_OVERRIDE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -46,7 +48,7 @@ while [ $# -gt 0 ]; do
     --groups) GRUP_SEC="$2"; shift 2;;
     --min-depth) MINDEPTH="$2"; shift 2;;
     --db) DB_OVERRIDE="$2"; shift 2;;
-    *) echo "bilinmeyen secenek: $1" >&2; exit 2;;
+    *) echo "unknown option: $1" >&2; exit 2;;
   esac
 done
 [ -n "$PT" ] && [ -n "$OUT" ] || {
@@ -55,14 +57,14 @@ done
 [ -d "$PT/REFERANS_DB" ] || { echo "ERROR: no such directory: '$PT/REFERANS_DB'" >&2; exit 1; }
 
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
-die(){ printf 'HATA: %s\n' "$*" >&2; exit 1; }
+die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 for t in minimap2 samtools blastn python3; do
-  command -v "$t" >/dev/null 2>&1 || die "$t PATH'te yok"
+  command -v "$t" >/dev/null 2>&1 || die "$t is not on PATH"
 done
 HAS_BDC=0; command -v blastdbcmd >/dev/null 2>&1 && HAS_BDC=1
 [ -z "$THREADS" ] && THREADS=$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))
 
-# bayrak dogrulamasi, hafizadan varsayim yok
+# flag verification; nothing is assumed from memory
 CH=$(samtools consensus 2>&1 || true)
 for fl in "--ambig" "--format"; do
   grep -q -- "$fl" <<<"$CH" || die "samtools consensus $fl tanimiyor"
@@ -72,14 +74,15 @@ log "araclar hazir, is parcacigi=$THREADS, blastdbcmd=$HAS_BDC"
 mkdir -p "$OUT"/{ref,bam,konsensus,pileup,maske,blast,log}
 DB="$PT/REFERANS_DB"
 
-# --- grup basina veritabani secimi ------------------------------------
-# F gruplari icin once ROD (tam boy rDNA operonlari, yalnizca okaryot) denenir.
-# Sebep: NCBI'nin fungi.ITS ve fungi.28S kayitlari tek bir alt bolgeyi kapsar
-# (yaklasik 750-1450 bp). F1 okumalari 1204-1479 bp, F2 okumalari 3697-3700 bp
-# oldugu icin amplikon referanstan uzundur ve referansin kenarlari okumalarla
-# ortusmez; ilk kosumda F1 grubunda 900 bp referansin ancak 600 bp'si kapsandi.
-# ROD tam operon tuttugu icin amplikonun tamamini kapsar.
-# A ve B gruplarinda ROD kullanilamaz, cunku ROD bakteri ve arkeyi disliyor.
+# --- choosing a database per group -------------------------------------
+# For the F groups ROD (full length rDNA operons, eukaryotes only) is tried first.
+# The reason: NCBI's fungi.ITS and fungi.28S records cover a single subregion (about
+# 750-1450 bp). Because the F1 reads are 1204-1479 bp and the F2 reads 3697-3700 bp,
+# the amplicon is longer than the reference and the reference's edges do not overlap
+# the reads; on the first run only 600 bp of a 900 bp reference was covered in group
+# F1. Because ROD holds the full operon it covers the whole amplicon.
+# ROD cannot be used for the A and B groups, because ROD excludes bacteria and
+# archaea.
 db_for() {
   case "$1" in
     A*) echo "$DB/archaea.16S.fna $DB/SILVA_138.2_SSURef_NR99.fasta";;
@@ -88,7 +91,7 @@ db_for() {
     *)  echo "";;
   esac
 }
-# --db ile elle secim, virgulle ayrilmis dosya adlari (REFERANS_DB icinde)
+# a hand selection with --db, comma separated file names (inside REFERANS_DB)
 if [ -n "$DB_OVERRIDE" ]; then
   db_for() { echo "$DB_OVERRIDE" | tr ',' '\n' | sed "s#^#$DB/#" | tr '\n' ' '; }
 fi
@@ -99,9 +102,9 @@ printf 'grup\ttaxid\tfastq\tveritabani\treferans_id\tref_uzunluk\tbit_toplam\thi
 shopt -s nullglob
 TOTAL=0; DONE=0; SKIPPED=0
 for fq in "$PT/fastq files"/*/*.fastq; do TOTAL=$((TOTAL+1)); done
-log "toplam fastq: $TOTAL"
-[ "$TOTAL" -gt 0 ] || die "hic fastq bulunamadi: $PT/fastq files"
-if [ -n "$GRUP_SEC" ]; then log "grup suzgeci: $GRUP_SEC"; fi
+log "fastq files in total: $TOTAL"
+[ "$TOTAL" -gt 0 ] || die "no fastq was found at all: $PT/fastq files"
+if [ -n "$GRUP_SEC" ]; then log "the group filter: $GRUP_SEC"; fi
 
 for fq in "$PT/fastq files"/*/*.fastq; do
   base=$(basename "$fq" .fastq)
@@ -120,12 +123,12 @@ for fq in "$PT/fastq files"/*/*.fastq; do
 
   reffa="$OUT/ref/${tag}_ref.fasta"
   if [ ! -s "$reffa" ]; then
-    # 1. okuma ornegi -> fasta
+    # 1. a sample of the reads -> fasta
     q="$OUT/blast/${tag}_sorgu.fasta"
     awk -v n="$SAMPLE" 'NR%4==1{h=substr($1,2)} NR%4==2{print ">"h"\n"$0; c++; if(c>=n) exit}' \
         "$fq" > "$q"
     [ -s "$q" ] || { echo "  no reads, skipped" >&2; continue; }
-    # 2. aday veritabanlarina blastn, en yuksek toplam bit skoru kazanir
+    # 2. blastn against the candidate databases; the highest total bit score wins
     best_db=""; best_id=""; best_bit=0; best_n=0
     for d in $(db_for "$grp"); do
       [ -e "$d.nin" ] || { echo "  no index, skipped: $d" >&2; continue; }
@@ -159,7 +162,7 @@ for l in open(inp):
         if name is None: name=l.strip()
         else: break            # yalnizca ilk kayit
     else: seq.append(l.strip())
-s="".join(seq).upper().replace("U","T")     # SILVA gibi RNA alfabeleri icin
+s="".join(seq).upper().replace("U","T")     # for RNA alphabets such as SILVA
 open(outp,"w").write((name or ">ref")+"\n"+"\n".join(s[i:i+70] for i in range(0,len(s),70))+"\n")
 print("  referans uzunlugu: %d bp"%len(s))
 PY
@@ -170,7 +173,7 @@ PY
       "$rl" "$best_bit" "$best_n" >> "$MAP"
   fi
 
-  # 4. butun okumalari referansa hizala
+  # 4. align every read to the reference
   bam="$OUT/bam/${tag}.bam"
   if [ ! -s "$bam" ]; then
     minimap2 -ax map-ont -t "$THREADS" "$reffa" "$fq" 2> "$OUT/log/${tag}_minimap2.log" \
@@ -178,18 +181,18 @@ PY
     samtools index "$bam"
   fi
 
-  # 5. iki bagimsiz olcum, KATI referans koordinatinda
-  #    --show-ins no  : eklemeler gosterilmez, aksi halde cikti referanstan
-  #                     uzar ve koordinatlar kayar
-  #    --show-del yes : silmeler * olarak korunur, aksi halde cikti kisalir
-  #    Ikisi birlikte cikti uzunlugunu referansa esitler. Sentetik BAM ile
-  #    dogrulandi: 200 bp referans, 6 baz ekleme ve 5 baz silme tasiyan
-  #    okumalar; bayraksiz 201, yalniz --show-ins no ile 195, yalniz
-  #    --show-del yes ile 206, ikisi birlikte tam 200.
+  # 5. two independent measurements, in STRICT reference coordinates
+  #    --show-ins no  : insertions are not shown; otherwise the output grows longer
+  #                     than the reference and the coordinates shift
+  #    --show-del yes : deletions are kept as *; otherwise the output shortens
+  #    Together they make the output length equal the reference's. Confirmed with a
+  #    synthetic BAM: a 200 bp reference with reads carrying a 6 base insertion and
+  #    a 5 base deletion; with no flags 201, with --show-ins no alone 195, with
+  #    --show-del yes alone 206, and with both exactly 200.
   samtools consensus -a -A --show-ins no --show-del yes \
     -o "$OUT/konsensus/${tag}_ref_konsensus.fasta.raw" "$bam" \
     2> "$OUT/log/${tag}_cons.log"
-  # silme isareti * primer tasarimi icin bir baz degildir; N'e cevrilir ki
+  # the deletion mark * is not a base for primer design; it is turned into an N so
   # 02'nin maskesi orayi dusuk_derinlik gibi yasaklasin
   python3 - "$OUT/konsensus/${tag}_ref_konsensus.fasta.raw" \
             "$OUT/konsensus/${tag}_ref_konsensus.fasta" <<'PY2'
@@ -208,8 +211,8 @@ PY2
     -o "$OUT/pileup/${tag}_pileup.txt" "$bam" 2> "$OUT/log/${tag}_pileup.log"
 done
 
-# --- islenen dosya yoksa sessizce bitme --------------------------------
-log "islenen: $DONE, grup suzgeciyle atlanan: $SKIPPED, toplam: $TOTAL"
+# --- do not finish quietly when no file was processed -------------------
+log "processed: $DONE, skipped by the group filter: $SKIPPED, in total: $TOTAL"
 if [ "$DONE" -eq 0 ]; then
   echo >&2
   echo "ERROR: not one file was processed." >&2
@@ -225,8 +228,8 @@ if [ "$DONE" -eq 0 ]; then
   exit 1
 fi
 
-# --- ozet ve hizalilik denetimi ---------------------------------------
-log "ozet"
+# --- the summary and the alignment check --------------------------------
+log "the summary"
 python3 - "$OUT" "$MAP" "${MINDEPTH:-AUTO}" <<'PY'
 import sys,os,glob,csv,re,statistics,collections
 out,mapf,mind=sys.argv[1],sys.argv[2],sys.argv[3]
@@ -234,23 +237,24 @@ rows=list(csv.DictReader(open(mapf),delimiter="\t"))
 print("referans secilen takson-barkod: %d"%len(rows))
 byref=collections.defaultdict(list)
 for r in rows: byref[(r["taxid"],r["referans_id"])].append(r["grup"])
-# Ayni taksonun farkli barkodlarda AYNI referansa oturmasi, hizaliligin sarti
+# The same taxon sitting on THE SAME reference across different barcodes is the
+# condition for them to be aligned
 bytax=collections.defaultdict(set)
 for r in rows: bytax[r["taxid"]].add(r["referans_id"])
 coklu={t:v for t,v in bytax.items() if len(v)>1}
-print("ayni taksonda farkli referans secilen: %d"%len(coklu))
+print("taxa where a different reference was chosen: %d"%len(coklu))
 for t,v in sorted(coklu.items()):
     print("   taxid %-9s -> %s"%(t,", ".join(sorted(v))))
-print("   (bu taksonlarda referansi elle sabitlemek gerekir, aksi halde")
-print("    yillar yine ayni koordinat sistemine oturmaz; 07 betigi bunu yapar)")
+print("   (on those taxa the reference has to be fixed by hand, otherwise")
+print("    the years still do not sit in one coordinate system)")
 print()
 print("### REFERANS TAKSONOMISI UYARISI")
-print("ROD genomlardan turetilmis bir veritabani ve yalnizca 11.935 genom")
-print("kapsiyor. Hedef taksonun kendisi yoksa blastn en yakin akrabayi secer.")
-print("Asagida her hedefin oturdugu referansin taksonomisi var; hedefle ayni")
+print("ROD is a database derived from genomes and covers only 11,935 genomes.")
+print("If the target taxon itself is absent, blastn picks the nearest relative.")
+print("Below is the taxonomy of the reference each target sits on; where it is not")
 print("cins ya da aile degilse konsensus yabanci bir iskelet uzerine kuruluyor")
 print("demektir. Dizinin kendisi okumalardan cagriliyor, ama indeller ve")
-print("kenarlar referansa gore yorumlanir.")
+print("the same as the target, the edges are read against the reference.")
 for r in sorted(rows,key=lambda x:(x["grup"],x["taxid"])):
     rid=r["referans_id"]
     tax=rid.split("|")[2] if rid.count("|")>=2 else ""
@@ -266,7 +270,7 @@ for r in rows:
     if os.path.exists(p):
         reflen[(r["grup"],r["taxid"])]=sum(len(l.strip()) for l in open(p) if not l.startswith(">"))
 print()
-print("%-26s %8s %8s %8s %8s %s"%("hedef","ref_uz","kapsanan","N","medyan_der","koordinat"))
+print("%-26s %8s %8s %8s %8s %s"%("target","ref_len","covered","N","median_depth","coordinate"))
 for p in sorted(glob.glob(os.path.join(out,"konsensus","*_ref_konsensus.fasta"))):
     tag=os.path.basename(p).replace("_ref_konsensus.fasta","")
     s="".join(l.strip() for l in open(p) if not l.startswith(">")).upper()
@@ -284,7 +288,7 @@ for p in sorted(glob.glob(os.path.join(out,"konsensus","*_ref_konsensus.fasta"))
           int(statistics.median([d for d in dep if d>0])) if any(dep) else "-", koord))
 PY
 
-log "bitti"
+log "finished"
 echo
 echo "Output:"
 echo "  $OUT/referans_secimi.tsv        which taxon settled on which reference"
