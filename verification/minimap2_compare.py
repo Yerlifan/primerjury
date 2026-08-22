@@ -6,34 +6,38 @@ Sorusu tek: minimap2, saf Python motorunun bulduğu kimligi ayni sekilde buluyor
 mu ve ne kadar hizli. Cevap "evet" ise minimap2 varsayilan yapilabilir; "hayir"
 ise mevcut motorda kalinir. Hizli olan DOGRU SAYILMAZ.
 """
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # minimap2_compare.py
 #
-# GIRDI  : REFERANS_DB/ altindaki gercek veritabanlari ve gercek kutu
-#          konsensusleri (consensus sequences/ ya da konsensus_kanonik/)
-# CIKTI  : MINIMAP2_KARSILASTIRMA.md (kok dizinde) ve ayni adin .tsv'si
-# CAGRAN : elle. Menuye BAGLANMADI, cunku bu bir karar belgesi uretir,
-#          zincirin bir asamasi degildir.
+# INPUT  : the real databases under REFERANS_DB/ and the real bin consensuses
+#          (consensus sequences/ or konsensus_kanonik/)
+# OUTPUT : MINIMAP2_KARSILASTIRMA.md (in the root directory) and the .tsv of the
+#          same name
+# CALLED BY: by hand. It IS NOT WIRED into the menu, because it produces a decision
+#          document rather than being a stage of the chain.
 #
-# NEYI OLCER
-#   1) AYNI EN IYI ISABET MI. Iki motor ayni kaydi mi birinci sirada getiriyor.
-#      Bu en onemli olcut: kimlik karari en iyi isabetten cikar.
-#   2) KIMLIK YUZDESI SAPMASI. Ayni kayit icin iki motorun verdigi yuzde farki.
-#   3) SIRALAMA KORUNUYOR MU. Ilk 5 isabetin kumesi ne kadar ortusuyor.
-#   4) HIZLANMA. Ayni is icin gecen sure orani.
+# WHAT IT MEASURES
+#   1) IS THE BEST HIT THE SAME. Do the two engines bring the same record first.
+#      That is the most important criterion: the identity decision comes out of the
+#      best hit.
+#   2) THE IDENTITY PERCENT DEVIATION. The difference between the percentages the
+#      two engines give for the same record.
+#   3) IS THE RANKING KEPT. How far the sets of the first 5 hits overlap.
+#   4) THE SPEED-UP. The ratio of the time taken for the same work.
 #
-# NEDEN BU DORT OLCUT
-# Yalniz hiza bakmak yanlis olurdu: hizli ama farkli cevap veren bir motor
-# bize zaman kazandirmaz, yanlis primer siparis ettirir. Yalniz en iyi isabete
-# bakmak da yetmez: siralama bozulursa "en az iki bagimsiz veritabani uyusmali"
-# kurali baska kayitlar uzerinden calisir ve hukum degisebilir.
+# WHY THESE FOUR
+# Looking at speed alone would be wrong: an engine that is fast but answers
+# differently does not save us time, it makes us order the wrong primer. Looking at
+# the best hit alone is not enough either: if the ranking breaks, the "at least two
+# independent databases must agree" rule runs over different records and the
+# verdict can change.
 #
-# AYRILIK CIKARSA
-# Rapor AYRILAN satirlari ayrica listeler. O satirlarda karar minimap2'ye
-# birakilmaz; elle hizalama ile hangisinin hakli oldugu belirlenir. Bu betik
-# hangisinin hakli oldugunu KENDI BASINA soylemez, yalnizca ayrildiklari yeri
-# gosterir.
-# ---------------------------------------------------------------------------
+# IF THEY DISAGREE
+# The report lists the rows that DISAGREE separately. On those rows the decision is
+# not left to minimap2; which one is right is settled by hand, with an alignment.
+# This script DOES NOT SAY on its own which one is right, it only shows where they
+# came apart.
+# -------------------------------------------------------------------------
 
 from __future__ import print_function
 import argparse
@@ -141,7 +145,7 @@ def main():
                 py[bas] = kd.hizala(q, diz)
             t_py = time.time() - t0
 
-            # --- motor 2: minimap2, toplu indeks ---
+            # --- engine 2: minimap2, a bulk index ---
             t0 = time.time()
             mmr = mm.toplu_hizala(q, [(bas, diz) for bas, diz in kayitlar])
             t_mm = time.time() - t0
@@ -180,8 +184,8 @@ def main():
     tam_ortusen = sum(1 for s in satirlar if s['ust5_ortusme'] == '5/5')
     hiz = (t_py_top / t_mm_top) if t_mm_top > 0.001 else 0
 
-    # --- KARAR ---
-    # Uc sart birden saglanmadikca minimap2 varsayilan YAPILMAZ.
+    # --- THE DECISION ---
+    # minimap2 IS NOT made the default unless all three conditions are met.
     sartlar = [
         (u'butun satirlarda ayni en iyi isabet', ayni == len(satirlar)),
         (u'kimlik sapmasi her satirda 0,5 puanin altinda', en_buyuk_sapma < 0.5),

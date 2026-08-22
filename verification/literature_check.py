@@ -1,47 +1,53 @@
 # -*- coding: utf-8 -*-
-"""LITERATUR KONTROLU - onerilen ad gecerli mi, es anlamlisi var mi, cinsi
-yakin zamanda revize edilmis mi?
+"""THE LITERATURE CHECK: is the suggested name valid, does it have a synonym, has
+its genus been revised recently?
 
-NEDEN VAR
----------
-Parascedosporium olayi gosterdi ki veritabanindaki ad ile GUNCEL KABUL EDILEN ad
-ayni olmayabilir ve cins sinirlari revizyon altinda olabilir. Bu, sonucu degistirir.
-Bu yuzden literatur kontrolu artik ZORUNLU BIR ADIMDIR, soru geldikce yapilan bir
-sey degil.
+WHY IT EXISTS
+-------------
+The Parascedosporium case showed that the name in the database and the CURRENT
+ACCEPTED name may not be the same, and that genus boundaries can be under revision.
+That changes the result. So the literature check is now A REQUIRED STEP rather than
+something done when the question comes up.
 
-UC KATMAN - ve sinirlari acikca yazili
-  1) NCBI Taxonomy (OTOMATIK, E-utilities): erisim numarasi -> taxid -> guncel ad,
-     es anlamlilar, rutbe, soy zinciri. HIZLI ve kuyruksuz. AMA NCBI Taxonomy bir
-     NOMENKLATUR OTORITESI DEGILDIR - pratik bir siniflandirmadir.
-  2) NOMENKLATUR OTORITESI (mantar: MycoBank / Index Fungorum; bakteri-arke: LPSN).
-     Aga cikilabiliyorsa sorgulanir; cikilamiyorsa ELLE KONTROL LISTESI uretilir:
-     hangi ad, hangi otoritede, dogrudan sorgu baglantisiyla.
-  3) REVIZYON UYARISI (PubMed, hafif arama): cins adi + "comb. nov." / "gen. nov."
-     / "revision". GURULTULU olabilir - KARAR VERDIRMEZ, yalniz satiri isaretler.
+THREE LAYERS, and their limits written out plainly
+  1) NCBI Taxonomy (AUTOMATIC, E-utilities): accession -> taxid -> the current name,
+     synonyms, rank, lineage. FAST and with no queue. BUT NCBI Taxonomy IS NOT A
+     NOMENCLATURAL AUTHORITY, it is a practical classification.
+  2) THE NOMENCLATURAL AUTHORITY (fungi: MycoBank / Index Fungorum; bacteria and
+     archaea: LPSN). It is queried if the network is reachable; if it is not, A
+     MANUAL CHECK LIST is produced: which name, at which authority, with a direct
+     query link.
+  3) THE REVISION WARNING (PubMed, a light search): the genus name plus "comb. nov."
+     / "gen. nov." / "revision". It can be NOISY, so IT DOES NOT DECIDE, it only
+     marks the row.
 
-AG YOKSA adim ATLANMAZ: "literatur kontrolu yapilamadi" diye isaretlenir ve elle
-kontrol listesi yine uretilir.
+WITH NO NETWORK the step IS NOT SKIPPED: it is marked "the literature check could
+not be made" and the manual check list is produced all the same.
+
 """
 
-# -------------------------------------------------------------------------
-# literature_check.py — bir isabetin adinin GUNCEL kabul edilen ad olup
-# olmadigini, es anlamlilarini ve cinsin yakin zamanda revize edilip
-# edilmedigini uc katmanda sorgular.
+# -----------------------------------------------------------------------
+# literature_check.py asks, in three layers, whether a hit's name is the CURRENT
+# accepted name, what its synonyms are, and whether the genus has been revised
+# recently.
 #
-# GİRDİ  : cagiran betikten gelen referans kaydi basligi (icinden erisim
-#          numarasi cikarilir) ve onerilen ad; ag uzerinden NCBI E-utilities
-#          (esummary / efetch / esearch) ve PubMed. Yerel dosya okumaz.
-# ÇIKTI  : cagirana dondurulen dict (guncel ad, es anlamlilar, rutbe, soy,
-#          revizyon uyarisi, otorite baglantilari) ve istege bagli olarak
-#          <cikti>/LITERATUR_ELLE_KONTROL.tsv dosyasi.
-# ÇAĞRAN : verification/full_chain.py -> I ve G tuslari (dolayli: identity_verification.py
-#          ve all_bin_identities.py bu modulu ZORUNLU adim olarak yukler).
+# INPUT  : the reference record header coming from the calling script (the accession
+#          number is taken out of it) and the suggested name; over the network, the
+#          NCBI E-utilities (esummary / efetch / esearch) and PubMed. It reads no
+#          local file.
+# OUTPUT : the dict returned to the caller (the current name, synonyms, rank,
+#          lineage, a revision warning, authority links) and, optionally, the file
+#          <output>/LITERATUR_ELLE_KONTROL.tsv.
+# CALLED BY: verification/full_chain.py -> keys I and G (indirectly:
+#          identity_verification.py and all_bin_identities.py load this module as a
+#          REQUIRED step).
 #
-# SINIR: NCBI Taxonomy pratik bir siniflandirmadir, NOMENKLATUR OTORITESI
-# DEGILDIR. Bu yuzden otomatik katman hicbir zaman tek basina karar vermez;
-# mantar icin MycoBank/Index Fungorum, bakteri-arke icin LPSN baglantisi her
-# satirda uretilir ve "otorite kontrolu GEREKLI" damgasi dusurulmez.
-# -------------------------------------------------------------------------
+# THE LIMIT: NCBI Taxonomy is a practical classification, NOT A NOMENCLATURAL
+# AUTHORITY. That is why the automatic layer never decides on its own; a MycoBank
+# or Index Fungorum link for fungi and an LPSN link for bacteria and archaea is
+# produced on every row, and the "an authority check IS NEEDED" stamp is not
+# dropped.
+# -----------------------------------------------------------------------
 import os, re, json, time, urllib.parse
 
 EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
@@ -69,8 +75,9 @@ def erisim_no(baslik):
     return m.group(1) if m else None
 
 
-# Erisim numarasi -> taxid. esummary yanitindaki "uids" anahtari kayit degil
-# indeks oldugu icin atlanir; ilk taxid tasiyan kayit dondurulur.
+# An accession number -> taxid. The "uids" key in the esummary reply is an index
+# rather than a record, so it is skipped; the first record carrying a taxid is
+# returned.
 def taxid_al(acc):
     u = (EUTILS + 'esummary.fcgi?db=nuccore&id=%s&retmode=json&tool=%s'
          % (urllib.parse.quote(acc), ARAC)) + (('&email=%s' % POSTA) if POSTA else '')
@@ -85,10 +92,11 @@ def taxid_al(acc):
     return None
 
 
-# taxid -> guncel bilimsel ad, rutbe, soy zinciri ve es anlamlilar. Es anlamlilar
-# hem <Synonym> hem <EquivalentName> etiketlerinden toplanir: veritabaninda gecen
-# ad bunlardan biriyse "ad farkli" uyarisi gercek bir celiski degil sadece eskimis
-# bir kullanimdir; ikisini ayirt edebilmek icin ikisi de raporlanir.
+# taxid -> the current scientific name, rank, lineage and synonyms. The synonyms
+# are collected from both the <Synonym> and the <EquivalentName> tags: if the name
+# in the database is one of those, the "the name differs" warning is not a real
+# contradiction but merely an outdated usage; both are reported so the two can be
+# told apart.
 def taxonomy_cek(taxid):
     u = (EUTILS + 'efetch.fcgi?db=taxonomy&id=%s&retmode=xml&tool=%s' % (taxid, ARAC))
     x = _al(u)
@@ -102,7 +110,7 @@ def taxonomy_cek(taxid):
 
 
 def revizyon_ara(cins, yil=8):
-    """PubMed'de cins + nomenklatur terimleri. KARAR VERDIRMEZ, uyari uretir."""
+    """The genus plus nomenclature terms in PubMed. IT DOES NOT DECIDE, it produces a warning."""
     if not cins:
         return dict(sayi=0, pmid=[], not_='cins adi yok')
     terim = ('%s[Title/Abstract] AND ("comb. nov."[All Fields] OR "gen. nov."[All Fields] '
@@ -116,16 +124,17 @@ def revizyon_ara(cins, yil=8):
                 not_=(u'son %d yilda %s kayit' % (yil, r.get('count', '0'))))
 
 
-# Hangi nomenklatur otoritesine gidilecegini belirler (mantar mi, bakteri-arke mi).
-# Bu bir KIMLIK karari degildir, yalnizca hangi baglantinin uretilecegini secer;
-# yanlis tahmin sonucu bozmaz, kullaniciya fazladan bir baglanti gosterir.
+# It decides which nomenclatural authority to go to (fungi, or bacteria and
+# archaea). This IS NOT an identity decision, it only chooses which link is
+# produced; a wrong guess does not spoil the result, it shows the user one link too
+# many.
 def alan_tahmin(baslik, lokus=''):
     s = ((baslik or '') + ' ' + (lokus or '')).lower()
     return 'mantar' if any(k in s for k in MANTAR_IPUCU) else 'bakteri_arke'
 
 
-# Index Fungorum ve LPSN cins bazli sorgu alir, MycoBank tam ad alir; bu yuzden
-# hedef dizge kalibin kendisine gore secilir.
+# Index Fungorum and LPSN take a genus level query while MycoBank takes the full
+# name; that is why the target string is chosen according to the template itself.
 def otorite_baglantilari(ad, alan):
     out = []
     if not ad or ad == '-':
@@ -141,7 +150,7 @@ def otorite_baglantilari(ad, alan):
 
 
 def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
-    """Tek bir isabet icin uc katmanli literatur kontrolu."""
+    """The three layer literature check for a single hit."""
     acc = erisim_no(baslik)
     alan = alan_tahmin(baslik, lokus)
     sonuc = dict(erisim_no=acc or '-', alan=alan, vtb_adi='-', ncbi_guncel_ad='-',
@@ -196,7 +205,7 @@ def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
 
 
 def elle_liste_yaz(cikti, satirlar):
-    """Aga cikilamayan ya da otorite gerektiren adlar icin hazir kontrol listesi."""
+    """A ready check list for the names the network could not reach, or that need an authority."""
     yol = os.path.join(cikti, 'LITERATUR_ELLE_KONTROL.tsv')
     with open(yol, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# MANUAL LITERATURE CHECK - every name must be verified against an authority.\n')
