@@ -174,7 +174,7 @@ def d_tsv_dolu(yollar, en_az=1):
                 eksik.append(y)
             elif y.endswith('.tsv') or y.endswith('.csv'):
                 n = veri_satiri_say(t)
-                (tamam if n >= en_az else bos).append(u'%s (%d satir)' % (y, n))
+                (tamam if n >= en_az else bos).append(u'%s (%d rows)' % (y, n))
             elif os.path.getsize(t) < 40:
                 bos.append(u'%s (%d bayt)' % (y, os.path.getsize(t)))
             else:
@@ -308,6 +308,13 @@ def ASAMALAR(ayar):
                     'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'],
              cikti=['TEK_TUS_SONUC/DENETIM_RAPORU.md'], bagimli=[],
              sure_sn=90.0, kaynak=u'olculdu 2026-08-10 (yerel 2 sn + NCBI kapsama ~85 sn)',
+             # OLCULDU: bu asama eklendiginde 'denet' anahtari yazilmamisti.
+             # main() her asama icin a['denet'] cagirir, dolayisiyla zincir N
+             # bittigi anda KeyError ile cokuyordu. Kosuyu on kontrol
+             # engelledigi icin bu hic gorulmemisti. Denetim raporunun
+             # URETILDIGI dogrulanir; icinde bulgu olmasi bir sorun degildir,
+             # danisma asamasi zaten bunun icin var.
+             denet=d_tsv_dolu(['TEK_TUS_SONUC/DENETIM_RAPORU.md']),
              hep_kos=True, danisma=True),
 
         dict(kod='H', ad=u'HIZLI TUTARLILIK TESTI - uzun kosudan ONCE gerileme kapisi',
@@ -479,27 +486,32 @@ def on_kontrol(kok, ayar, yaz):
             satir(u'python paketi: %s' % paket, True, getattr(m, '__version__', 'var'))
         except Exception:
             satir(u'python paketi: %s' % paket, False,
-                  u'YOK - kurulum: pip3 install %s --break-system-packages' % kurulum)
+                  u'MISSING, to install: pip3 install %s --break-system-packages' % kurulum)
 
     # --- 2) Betikler -------------------------------------------------------
     for a in ASAMALAR(ayar):
         if not a.get('betik'):
             continue
         t = os.path.join(kok, a['betik'])
-        satir(u'betik: %s' % a['betik'], os.path.exists(t),
-              boyut_metni(os.path.getsize(t)) if os.path.exists(t) else u'BULUNAMADI')
+        satir(u'script: %s' % a['betik'], os.path.exists(t),
+              boyut_metni(os.path.getsize(t)) if os.path.exists(t) else u'NOT FOUND')
 
     # --- 3) Veri klasorleri ------------------------------------------------
+    # OLCULDU: bu liste 'engine' klasorunu DORT KEZ sayiyordu. Yeniden
+    # adlandirmada dort ayri kaynak klasoru tek ada dusmus, kopyalar
+    # temizlenmemisti; on kontrol ayni klasoru dort kez olcup ekrana dort
+    # ayni satir basiyordu. Liste artik depoda gercekten bulunan klasorleri
+    # birer kez sayiyor.
     for d, zor in (('fastq files', True), ('consensus sequences', True),
                    ('primer_final', True), ('REFERANS_DB', True),
                    ('screening', True), ('protocol', True),
-                   ('engine', True), ('engine', True),
-                   ('engine', True), ('engine', True),
+                   ('engine', True), ('steps', True),
+                   ('tools', True), ('verification', True),
                    ('konsensus_kanonik', False)):
         t = os.path.join(kok, d)
         var = os.path.isdir(t)
-        satir(u'klasor: %s' % d, var,
-              (u'%d oge' % len(os.listdir(t))) if var else u'BULUNAMADI', zor)
+        satir(u'directory: %s' % d, var,
+              (u'%d oge' % len(os.listdir(t))) if var else u'NOT FOUND', zor)
 
     # --- 4) MFEprimer ikilisi ve indeksleri --------------------------------
     mfe = None
@@ -508,8 +520,7 @@ def on_kontrol(kok, ayar, yaz):
             mfe = aday + (u'' if os.access(aday, os.X_OK) else u'  (CALISTIRMA IZNI YOK)')
             if not os.access(aday, os.X_OK):
                 mfe = None
-                uyari.append(u'tools/mfeprimer var ama calistirilabilir degil: '
-                             u'chmod +x tools/mfeprimer')
+                uyari.append(u'tools/mfeprimer is there but is not executable: chmod +x tools/mfeprimer')
             break
         try:
             from shutil import which
@@ -520,16 +531,16 @@ def on_kontrol(kok, ayar, yaz):
         except Exception:
             pass
     satir(u'MFEprimer ikilisi', bool(mfe),
-          mfe or u'tools/mfeprimer YOK ya da calistirilabilir degil')
+          mfe or u'tools/mfeprimer IS MISSING or is not executable')
 
     MFE_IX = ['archaea.16S.fna', 'bacteria.16S.fna', 'fungi.ITS.fna',
               'fungi.28SrRNA.fna', 'fungi.18SrRNA.fna',
               'SILVA_138.2_SSURef_NR99.fasta']
     for f in MFE_IX:
         p = os.path.join(kok, 'REFERANS_DB', f + '.primerqc.bin')
-        satir(u'MFE indeksi: %s' % f, os.path.exists(p),
+        satir(u'MFE index: %s' % f, os.path.exists(p),
               boyut_metni(os.path.getsize(p)) if os.path.exists(p)
-              else u'YOK - kurulum: mfeprimer index -i REFERANS_DB/%s' % f)
+              else u'MISSING, to install: mfeprimer index -i REFERANS_DB/%s' % f)
 
     # --- 5) Katman 2'nin taradigi 11 kume ----------------------------------
     KUMELER = ['SILVA_138.2_SSURef_NR99.fasta', 'SILVA_138.2_LSURef_NR99.fasta',
@@ -539,8 +550,8 @@ def on_kontrol(kok, ayar, yaz):
                'fungi.18SrRNA.fna', 'ref_all2.fna']
     eksik_kume = [f for f in KUMELER
                   if not os.path.exists(os.path.join(kok, 'REFERANS_DB', f))]
-    satir(u'katman 2 veritabanlari (11 kume)', not eksik_kume,
-          u'11/11 yerinde' if not eksik_kume else u'EKSIK: %s' % u', '.join(eksik_kume))
+    satir(u'the layer 2 databases (11 sets)', not eksik_kume,
+          u'11/11 yerinde' if not eksik_kume else u'MISSING: %s' % u', '.join(eksik_kume))
 
     # --- 6) The SILVA SSU RNA/DNA gate -------------------------------------
     # In the past SILVA's RNA alphabet (U) broke the index and every binding came back
@@ -555,21 +566,21 @@ def on_kontrol(kok, ayar, yaz):
             satir(u'SILVA SSU alfabesi DNA mi (U=0 olmali)', nu == 0 and nt > 0,
                   u'U=%d  T=%d' % (nu, nt))
         except Exception as e:
-            satir(u'SILVA SSU alfabesi', False, u'okunamadi: %s' % e, zorunlu=False)
+            satir(u'SILVA SSU alfabesi', False, u'could not be read: %s' % e, zorunlu=False)
 
     # --- 7) Disk alani -----------------------------------------------------
     try:
         st = os.statvfs(kok)
         bos_gb = st.f_bavail * st.f_frsize / 1073741824.0
-        satir(u'bagli klasorde bos disk (>= 5 GB)', bos_gb >= 5, u'%.1f GB bos' % bos_gb)
+        satir(u'free disk on the mounted directory (>= 5 GB)', bos_gb >= 5, u'%.1f GB bos' % bos_gb)
     except Exception as e:
-        satir(u'bagli klasorde bos disk', False, u'olculemedi: %s' % e, zorunlu=False)
+        satir(u'free disk on the mounted directory', False, u'olculemedi: %s' % e, zorunlu=False)
     try:
         st = os.statvfs('/tmp')
         tmp_gb = st.f_bavail * st.f_frsize / 1073741824.0
         # MFEprimer kaniti YEREL diskte uretilip toplu kopyalaniyor (D-11).
         # Olculen en buyuk kanit 282 MB; 2 GB rahat pay birakir.
-        satir(u'yerel /tmp bos alani (>= 2 GB, D-11 icin)', tmp_gb >= 2,
+        satir(u'free space on the local /tmp (>= 2 GB, for D-11)', tmp_gb >= 2,
               u'%.1f GB bos' % tmp_gb)
     except Exception as e:
         satir(u'yerel /tmp bos alani', False, u'olculemedi: %s' % e, zorunlu=False)
@@ -585,26 +596,23 @@ def on_kontrol(kok, ayar, yaz):
         # Olculen tepe bellek: mfeprimer indeksleme 6,06 GB
         # (REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta.BOZUK_KANIT.txt).
         # Tarama tarafi bundan dusuk; 4 GB alt sinir, 8 GB rahat.
-        satir(u'WSL toplam bellek (>= 4 GB)', top_gb >= 3.8, u'%.1f GB' % top_gb)
+        satir(u'total WSL memory (>= 4 GB)', top_gb >= 3.8, u'%.1f GB' % top_gb)
         if 3.8 <= top_gb < 7.5:
-            uyari.append(u'WSL bellegi %.1f GB - Kraken adimlari (X) buyuk '
-                         u'veritabaninda bogulabilir. KILITLENME_COZUMU.md, '
-                         u'verification/full_chain.py -> M tusu.' % top_gb)
+            uyari.append(u'WSL memory %.1f GB. The Kraken steps (X) can choke on a large database. KILITLENME_COZUMU.md, verification/full_chain.py -> key M.' % top_gb)
     except Exception as e:
         satir(u'WSL bellegi', False, u'olculemedi: %s' % e, zorunlu=False)
 
     # --- 9) Kraken araci (istege bagli) ------------------------------------
     satir(u'Kraken araci (tools/kraken_tool.sh)', bool(ayar.get('karac')),
-          ayar.get('karac') or ayar.get('kraken_sebep', u'yok - W/X/Z ATLANACAK'),
+          ayar.get('karac') or ayar.get('kraken_sebep', u'missing, W/X/Z WILL BE SKIPPED'),
           zorunlu=False)
 
     # --- 10) The network (for the NCBI layer) ------------------------------
     if ayar.get('ncbi') == 'oto':
         ok, ayr = _ag_dene()
-        satir(u'NCBI erisimi (--ncbi oto secildi)', ok, ayr, zorunlu=False)
+        satir(u'NCBI access (--ncbi oto was chosen)', ok, ayr, zorunlu=False)
         if not ok:
-            uyari.append(u'NCBI\'ye ulasilamadi. D asamasinin 4. katmani '
-                         u'"BILINMIYOR" kalir; yerel katmanlar yine kosar.')
+            uyari.append(u'NCBI could not be reached. The 4th layer of stage D stays "BILINMIYOR"; the local layers still run.')
 
     # --- 11) Write permission -----------------------------------------------
     # The only thing asked is CAN WE WRITE. Permission to delete is A SEPARATE question,
@@ -622,9 +630,9 @@ def on_kontrol(kok, ayar, yaz):
         except Exception:
             ek = u'yazilabiliyor (deneme dosyasi silinemedi - silme yetkisi yok, ' \
                  u'zincir zaten hicbir sey silmiyor)'
-        satir(u'bagli klasore yazma izni', True, u'%s/ %s' % (CIKTI_KLASOR, ek))
+        satir(u'write permission on the mounted directory', True, u'%s/ %s' % (CIKTI_KLASOR, ek))
     except Exception as e:
-        satir(u'bagli klasore yazma izni', False, u'YAZILAMIYOR: %s' % e)
+        satir(u'write permission on the mounted directory', False, u'CANNOT BE WRITTEN: %s' % e)
 
     yaz(u'')
     if uyari:
@@ -913,13 +921,13 @@ def siparis_tablosu(kok):
             y, hk = t, sut_adi
             break
     if not y:
-        return (u'Nihai hüküm tablosu bulunamadı. Aranan dosyalar: %s\n'
+        return (u'The final verdict table was not found. Files looked for: %s\n'
                 % u', '.join(u'`%s`' % a for a, _ in SIPARIS_KAYNAKLARI))
     with io.open(y, encoding='utf-8', errors='ignore') as fh:
         r = list(csv.DictReader((s for s in fh if not s.startswith('#')), delimiter='\t'))
     ad = os.path.basename(y)
     if not r:
-        return u'`%s` boş.\n' % ad
+        return u'`%s` is empty.\n' % ad
     sut = [k for k in r[0].keys() if k]
     if not hk or hk not in sut:
         hk = (next((k for k in sut if 'HUKUM' in k.upper()), None)
@@ -927,8 +935,8 @@ def siparis_tablosu(kok):
               or next((k for k in sut if 'SINIF' in k.upper()), None))
     hd = next((k for k in sut if 'hedef' in k.lower()), None)
     if not hk or not hd:
-        return (u'`%s` okundu (%d satır) ama hüküm/hedef sütunu tanınamadı. '
-                u'Sütunlar: %s\n' % (ad, len(r), u', '.join(sut)))
+        return (u'`%s` was read (%d rows) but the verdict or target column was not '
+                u'recognised. Columns: %s\n' % (ad, len(r), u', '.join(sut)))
 
     def hukum(s):
         return (s.get(hk) or u'?').strip()
@@ -952,29 +960,32 @@ def siparis_tablosu(kok):
     for s in r:
         say[hukum(s)] = say.get(hukum(s), 0) + 1
 
-    out = [u'Kaynak: `%s` (%d satır), sütun `%s`. '
-           u'**Bu tabloyu bu koşu yeniden ÜRETMEDİ**, dosyadan okudu.\n\n' % (ad, len(r), hk),
-           u'**SİPARİŞ EDİLEBİLİR: %d çift = %d oligo** · kalan %d çift '
-           u'sipariş dışı (silinmedi, aşağıda).\n\n' % (len(girer), 2 * len(girer),
+    out = [u'Source: `%s` (%d rows), column `%s`. '
+           u'**This summary DID NOT RECOMPUTE the table**, it read it from the '
+           u'file.\n\n' % (ad, len(r), hk),
+           u'**ORDERABLE: %d pairs = %d oligos** · the remaining %d pairs are '
+           u'not ordered (they were not deleted, they are listed below).\n\n'
+           % (len(girer), 2 * len(girer),
                                                         len(girmez)),
-           (u'Kural: `SINIF` sütunu `KESIN` ya da `EVRENSEL` olan satır siparişe '
-            u'girer. Evrensel/kontrol primerlerinde dCq TANIMSIZDIR (rakip '
-            u'kümesinin paydası sıfıra gider) ve tablo onlara "OLCULEMEDI - KARAR '
-            u'YOK" yazar; ölçü kapsamdır, eşik değil.\n\n') if sinif_s else
-           (u'Kural: hükmü `SIPARIS EDILEBILIR...` ya da `KOSULLU...` ile başlayan '
-            u'satır siparişe girer.\n\n'),
-           u'| %s | kaç çift |\n|---|---|\n' % hk]
+           (u'The rule: a row whose `SINIF` column is `KESIN` or `EVRENSEL` goes '
+            u'into the order. On universal and control primers dCq IS UNDEFINED '
+            u'(the denominator of the competitor set goes to zero) and the table '
+            u'writes "OLCULEMEDI - KARAR YOK" for them; the measure is coverage, '
+            u'not a threshold.\n\n') if sinif_s else
+           (u'The rule: a row whose verdict starts with `SIPARIS EDILEBILIR...` '
+            u'or `KOSULLU...` goes into the order.\n\n'),
+           u'| %s | how many pairs |\n|---|---|\n' % hk]
     for k in sorted(say, key=lambda x: (-say[x], x)):
         out.append(u'| %s | %d |\n' % (k, say[k]))
 
     dcq = next((k for k in sut if 'dCq' in k), None)
-    out.append(u'\n### Sipariş edilecek %d çift\n\n| hedef | hüküm | dCq |\n|---|---|---|\n'
+    out.append(u'\n### The %d pairs to order\n\n| target | verdict | dCq |\n|---|---|---|\n'
                % len(girer))
     for s in girer:
         out.append(u'| %s | %s | %s |\n' % (s.get(hd) or u'?', hukum(s),
                                             (s.get(dcq) or u'-') if dcq else u'-'))
-    out.append(u'\n### Sipariş dışı %d çift (silinmedi)\n\n'
-               u'| hedef | hüküm | dCq |\n|---|---|---|\n' % len(girmez))
+    out.append(u'\n### The %d pairs not ordered (they were not deleted)\n\n'
+               u'| target | verdict | dCq |\n|---|---|---|\n' % len(girmez))
     for s in girmez:
         out.append(u'| %s | %s | %s |\n' % (s.get(hd) or u'?', hukum(s),
                                             (s.get(dcq) or u'-') if dcq else u'-'))
@@ -1039,21 +1050,28 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
         w(u'\n## 4. Files you should look at\n\n')
         w(u'| question | file |\n|---|---|\n')
         for soru, dosya in (
-            (u'Ne sipariş edeyim (NİHAİ)',
-             u'`TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` — `durum` ve '
-             u'`siparis_sarti` sütunları (bu koşunun KENDİ ürettiği tablo)'),
-            (u'Toplantıda ne istendi, hangisi oldu', u'`TOPLANTI_DURUMU.md`'),
-            (u'NCBI 4. katman ne dedi', u'`DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md`'),
-            (u'Bu koşuda denetimler temiz mi', u'`TEK_TUS_SONUC/DENETIM_RAPORU.md`'),
-            (u'Eşik kuralı neden değişti', u'`ESIK_VE_OLCUT_2026-08-08.md`'),
-            (u'Diziler nereden kopyalanacak',
-             u'`PrimerJury_PANEL_*.xlsx` (`1 Siparis` sayfası)'),
-            (u'Hangi çift riskli, neden', u'`SIPARIS_KARARI_2026-08-07.md`'),
-            (u'Bu koşuda çelişki çıktı mı', u'`DOGRULAMA_SONUC/CELISKILER.md`'),
-            (u'Doğrulama katmanları yan yana', u'`DOGRULAMA_SONUC/DOGRULAMA_RAPORU.md`'),
-            (u'Hedef dışı ürünlerin ayrıntısı', u'`HEDEF_DISI_AYRINTI_2026-08-07.tsv`'),
-            (u'Kutu kimlikleri doğru mu', u'`TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md`'),
-            (u'Bu koşunun ham çıktısı',
+            (u'What should I order (FINAL)',
+             u'`TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv`, the `durum` and '
+             u'`siparis_sarti` columns (the table THIS RUN produced itself)'),
+            (u'What was asked for at the meeting, and what came of it',
+             u'`TOPLANTI_DURUMU.md`'),
+            (u'What the NCBI 4th layer said',
+             u'`DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md`'),
+            (u'Are the audits clean in this run',
+             u'`TEK_TUS_SONUC/DENETIM_RAPORU.md`'),
+            (u'Why the threshold rule changed', u'`ESIK_VE_OLCUT_2026-08-08.md`'),
+            (u'Where to copy the sequences from',
+             u'`PrimerJury_PANEL_*.xlsx` (the `1 Siparis` sheet)'),
+            (u'Which pair is risky, and why', u'`SIPARIS_KARARI_2026-08-07.md`'),
+            (u'Did a contradiction come up in this run',
+             u'`DOGRULAMA_SONUC/CELISKILER.md`'),
+            (u'The verification layers side by side',
+             u'`DOGRULAMA_SONUC/DOGRULAMA_RAPORU.md`'),
+            (u'The detail of the off target products',
+             u'`HEDEF_DISI_AYRINTI_2026-08-07.tsv`'),
+            (u'Are the bin identities right',
+             u'`TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md`'),
+            (u'The raw output of this run',
              u'`%s`' % os.path.relpath(gunluk_yolu, kok).replace('\\', '/')),
         ):
             w(u'| %s | %s |\n' % (soru, dosya))
@@ -1306,7 +1324,7 @@ def main():
             yaz(u'   << %s DUSTU (%s) - %s' % (kod, sn_metni(sure), mesaj))
             bagimlilar = [x['kod'] for x in sec if kod in x['bagimli']]
             if bagimlilar:
-                yaz(u'   Buna bagimli asamalar KOSULMAYACAK: %s' % u', '.join(bagimlilar))
+                yaz(u'   The stages that depend on it WILL NOT RUN: %s' % u', '.join(bagimlilar))
             else:
                 yaz(u'   Nothing else depends on it; the chain continues.')
         else:
