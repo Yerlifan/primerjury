@@ -295,39 +295,33 @@ def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
 
     md = os.path.join(C.CIKTI, 'PANEL_YENIDEN_OLCUM.md')
     L = []; A = L.append
-    A('# Panelin duzeltilmis motorla yeniden olcumu')
+    A(u'# The panel remeasured with the corrected engine')
     A('')
-    A('Uretim zamani: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    A(u'Generated: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     A('')
-    A('Kaynak panel: `%s` · okuma derinligi: **%s** (toplam %d okuma)'
+    A(u'Source panel: `%s` · read depth: **%s** (%d reads in total)'
       % (os.path.basename(panel_yolu),
          'TAM' if not okuma_sayisi else '%d/kutu' % okuma_sayisi, top_okuma))
     A('')
-    A('## Neden yeniden olculdu')
+    A(u'## Why it was measured again')
     A('')
-    A('Panelin ham okuma motoru `engine/reads.py` icindeki `Sonda` sinifi, '
-      "primerin 3' ucundaki 13 bazi **tam eslesen** bir tohum olarak arar. "
-      '`variants()` yalniz IUPAC kodlarini acar, **uyumsuzluk varyanti uretmez**. '
-      "Sonuc: tek uyumsuzlugu 3' uctaki 13 baza dusen butun baglanma yerleri kacar.")
+    A(u'The panel\'s raw read engine, the `Sonda` class inside `engine/reads.py`, searches for the 13 bases at the primer\'s 3\' end as an **exactly matching** seed. `variants()` only expands the IUPAC codes, it **produces no mismatch variant**. The consequence: every binding site whose single mismatch falls inside those 13 bases at the 3\' end is missed.')
     A('')
-    A('Bu kosuda olculen ornekler (200 okuma, ileri primer, ayni olcut):')
+    A(u'The examples measured in this run (200 reads, the forward primer, the same criterion):')
     A('')
-    A('| hedef / kutu | Sonda (reads.py) | kaba kuvvet | kayip |')
+    A(u'| target / bin | Sonda (reads.py) | brute force | lost |')
     A('|---|---|---|---|')
     A('| Asetoklastik_metanojenler / A1-1_394967 | 0 | 146 | %100 |')
     A('| Arke_universal / A1-1_394967 | 6 | 163 | %96 |')
     A('| Asetoklastik_metanojenler / A1-1_1826872 | 0 | 2 | %100 |')
     A('')
-    A('Bu tabloda kullanilan motor kaba kuvvetle **birebir ayni** sonucu verir '
-      '(kendini sinama her kosuda dogrular).')
+    A(u'The engine used in this table gives a result **identical** to brute force (the self test confirms it on every run).')
     A('')
-    A('### Bu kosuda olculen gercek etki')
+    A(u'### The real effect measured in this run')
     A('')
-    A('Asagidaki tablo, **ayni okumalarda** eski ve yeni motorun uye kutularinda '
-      'buldugu urun sayisini karsilastirir. `kutu duzeyi` sutunlarinin tamami '
-      '`panel_kutu_duzeyi.tsv` dosyasindadir.')
+    A(u'The table below compares, **on the same reads**, the product count the old and the new engine find in the member bins. All the `kutu duzeyi` columns are in the `panel_kutu_duzeyi.tsv` file.')
     A('')
-    A('| hedef | olcut | ESKI motor | YENI motor | eski motorun kaybi |')
+    A(u'| target | criterion | the OLD engine | the NEW engine | what the old engine lost |')
     A('|---|---|---|---|---|')
     for s2 in _satirlar(sonuclar):
         if s2.get('ESKI_motor_kayip_uye_%') in ('', None):
@@ -336,12 +330,9 @@ def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
             s2['hedef'], s2['olcut'], s2['ESKI_motor_uye_urun'],
             s2['YENI_motor_uye_urun'], s2['ESKI_motor_kayip_uye_%']))
     A('')
-    A('## Iki olcut ayri ayri verildi')
+    A(u'## The two criteria are given separately')
     A('')
-    A('Panelin bazi satirlari `<=1`, bazilari `<=3` uyumsuzlukla olculmustu. '
-      'Burada **her satir iki olcutle birden** olculdu; `olcut` sutunu her satirda '
-      'hangisinin kullanildigini acikca yazar. Iki olcut **ayridir ve birbirinin '
-      'yerine kullanilamaz**.')
+    A(u'Some of the panel\'s rows had been measured with `<=1` mismatch and some with `<=3`. Here **every row is measured under both criteria**; the `olcut` column says plainly which one was used on each row. The two criteria are **separate and cannot stand in for one another**.')
     A('')
 
     degisen = [s for s in _satirlar(sonuclar) if s['DEGISIM'].startswith(('YUKARI', 'ASAGI'))]
@@ -350,40 +341,35 @@ def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
 
     A('## Ozet')
     A('')
-    A('- Olculen cift: **%d**' % len(sonuclar))
-    A('- Degeri DEGISEN satir (>%%30 sapma): **%d**' % len(degisen))
-    A('- %.0fx esiginin ALTINA DUSEN satir: **%d**' % (ESIK, len(dusen)))
-    A('- Olculemeyen satir: **%d**' % len(olculemeyen))
+    A(u'- Pairs measured: **%d**' % len(sonuclar))
+    A(u'- Rows whose value CHANGED (a deviation above %%30): **%d**' % len(degisen))
+    A(u'- Rows that FELL BELOW the %.0fx threshold: **%d**' % (ESIK, len(dusen)))
+    A(u'- Rows that could not be measured: **%d**' % len(olculemeyen))
     A('')
     if dusen:
-        A('### %.0fx esiginin altina dusenler - ONCELIKLE BAKILMALI' % ESIK)
+        A(u'### The rows that fell below the %.0fx threshold, LOOK AT THESE FIRST' % ESIK)
         A('')
-        A('| hedef | olcut | panel | yeni | uye kapsam |')
+        A(u'| target | criterion | panel | new | member coverage |')
         A('|---|---|---|---|---|')
         for s in dusen:
             A('| %s | %s | %s | %s x | %s |' % (s['hedef'], s['olcut'],
               s['PANEL_ayrim_sayi'], s['ayrim_en_kotu_x'], s['uye_kapsam']))
         A('')
-    A('## Butun satirlar')
+    A(u'## Every row')
     A('')
-    A('| hedef | olcut | uye % | kapsam | ayrim havuz x | ayrim en kotu x | PANEL ayrim | degisim |')
+    A(u'| target | criterion | member % | coverage | discrimination pool x | discrimination worst x | PANEL discrimination | change |')
     A('|---|---|---|---|---|---|---|---|')
     for s in _satirlar(sonuclar):
         A('| %s | %s | %s-%s | %s | %s | %s | %s | %s |' % (
             s['hedef'], s['olcut'], s['uye_min_%'], s['uye_max_%'], s['uye_kapsam'],
             s['ayrim_havuz_x'], s['ayrim_en_kotu_x'], s['PANEL_ayrim'], s['DEGISIM']))
     A('')
-    A('Butun sutunlar: `panel_yeniden_olcum.tsv`')
+    A(u'Every column: `panel_yeniden_olcum.tsv`')
     A('')
     A('## Sinirlar')
     A('')
-    A('- Panelin yayimladigi sayilar farkli okuma derinliginde ve bazi satirlarda '
-      'farkli uye kutu alt kumesiyle olculmustu; **mutlak** sayilarin birebir '
-      'tutmasi beklenmez. Bu tablonun degeri, butun satirlarin **ayni motorla, '
-      'ayni kutularda, ayni olcutle** olculmus olmasidir.')
-    A('- Uye/rakip kutu tanimi `screening/hedef_uyelik.tsv` dosyasindandir. '
-      'Bir satirin sayisi beklenmedik cikiyorsa **once o dosyaya bakin**; '
-      '`uyelik_kaynagi` sutunu her satirin kaynagini yazar.')
+    A(u'- The numbers the panel published were measured at a different read depth and, on some rows, with a different subset of member bins; the **absolute** numbers are not expected to match exactly. The value of this table is that every row was measured **with the same engine, on the same bins, under the same criterion**.')
+    A(u'- The member and competitor bin definition comes from `screening/hedef_uyelik.tsv`. If a row\'s number comes out unexpectedly, **look at that file first**; the `uyelik_kaynagi` column names the source of each row.')
     A('')
     with open(md, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))
