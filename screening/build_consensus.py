@@ -344,38 +344,33 @@ def rapor_yaz(satirlar, cikti):
             w.writerow([s.get(k, '') for k in SUT])
     md = os.path.join(C.CIKTI, 'KONSENSUS_YENIDEN_URETIM.md')
     L = []; A = L.append
-    A('# Konsensuslerin ham okumalardan yeniden uretimi')
+    A(u'# The consensuses reproduced from the raw reads')
     A('')
-    A('Uretim zamani: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    A(u'Generated: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     A('')
-    A('Yeni fasta dosyalari: `%s`' % cikti)
+    A(u'The new fasta files: `%s`' % cikti)
     A('')
     A('## Yontem')
     A('')
-    A('Her kutu icin okumalar bir sablona ortak %d-mer capalariyla oturtuldu ve '
-      'her sutun **iki ayri yontemle** cagrildi:' % K)
+    A(u'For every bin the reads were seated on a template with shared %d-mer anchors, and each column was called **by two separate methods**:' % K)
     A('')
     A('- **A - kalite agirlikli (esigi dusurulmus):** her oy Phred kalitesiyle '
       'agirliklandi; agirlikli cogunluk >= %.0f%% ise baz cagrildi.' % (100 * AGIRLIK_ESIGI))
-    A('- **B - cogunluk oyu:** agirliksiz plurality, esik %.0f%%.' % (100 * COGUNLUK_ESIGI))
+    A(u'- **B, the majority vote:** unweighted plurality, threshold %.0f%%.' % (100 * COGUNLUK_ESIGI))
     A('')
-    A('Iki yontem ayni bazi verirse baz **kesindir**. Ayrilirlarsa sutun **N ile '
-      'maskelenmistir**. Cikti yalniz `A/C/G/T/N` icerir - **dejenere baz yoktur**.')
+    A(u'If the two methods give the same base, the base is **definite**. If they diverge the column is **masked with N**. The output holds only `A/C/G/T/N`: **there is no degenerate base**.')
     A('')
-    A('### Bilinen tuzaklar - hepsi bilerek ele alindi')
+    A(u'### The known traps, every one handled deliberately')
     A('')
-    A('| tuzak | ne yapildi |')
+    A(u'| trap | what was done |')
     A('|---|---|')
-    A('| Okuma uzunluk filtresi A2 (4,2-4,5 kb) ve F2 (~3,7 kb) sinifini eliyordu '
-      '| Filtre **%d-%d bp**; iki sinif da elenmiyor |' % (OKUMA_MIN, OKUMA_MAX))
-    A('| Konsensus yonu karisik (bazilari ters tumleyen) | Her okuma **iki yonde de** '
-      'capalandi, cok capa tutan yon secildi - yon normalize edildi (`ters_yonde` sutunu) |')
-    A("| 5' uc kesiliyordu | Cikti **sablon boyunda**; kapsanmayan sutunlar "
-      'kirpilmadi, `N` ile isaretlendi - koordinatlar korunuyor |')
+    A(u'| The read length filter was eliminating class A2 (4,2-4,5 kb) and F2 (~3,7 kb) | The filter is **%d-%d bp**; neither class is eliminated |' % (OKUMA_MIN, OKUMA_MAX))
+    A(u'| The consensus orientation was mixed (some reverse complemented) | Every read was anchored **in both directions** and the direction holding more anchors was chosen, so the orientation is normalised (the `ters_yonde` column) |')
+    A(u'| The 5\' end was being cut | The output is **the length of the template**; the uncovered columns were not trimmed but marked with `N`, so the coordinates are kept |')
     A('')
     A('## Sonuclar')
     A('')
-    A('| kutu | sinif | uzunluk | derinlik | N %% | yontemler ayrildi | eskiyle farkli baz | sablon |')
+    A(u'| bin | class | length | depth | N %% | the methods diverged | bases differing from the old one | template |')
     A('|---|---|---|---|---|---|---|---|')
     for s in satirlar:
         A('| %s | %s | %s | %s | %s | %s | %s | %s |' % (
@@ -384,15 +379,10 @@ def rapor_yaz(satirlar, cikti):
     A('')
     A('## Sinirlar - bu ONEMLI')
     A('')
-    A('- Bu bir **sablona dayali yeniden cagirma**dir, sifirdan (de novo) birlestirme '
-      'DEGILDIR. Sutun bazli ikame hatalarini duzeltir; sablonda olmayan buyuk '
-      'yapisal farklari (uzun ekleme/silme) **bulamaz**.')
-    A('- Capalar tekrar etmeyen %d-mer\'lerdir; tekrarli bolgelerde kapsama duser ve '
-      'o sutunlar `N` olur. `N_yuzde` sutunu bunu gosterir.' % K)
-    A('- `yontemler_ayrildi` sutunu iki yontemin celistigi sutun sayisidir. Bu sayi '
-      'yuksekse o kutunun konsensusu **guvenilmez**; once ona bakin.')
-    A('- Yeni konsensuslar **panele otomatik islenmedi**. Kullanilmadan once '
-      '`eski_ile_farkli` ve `N_yuzde` sutunlari gozden gecirilmelidir.')
+    A(u'- This is a **template based recall**, NOT a de novo assembly. It corrects column level substitution errors; large structural differences that are not in the template (long insertions or deletions) it **cannot find**.')
+    A(u'- The anchors are non-repeating %d-mers; in repetitive regions the coverage falls and those columns become `N`. The `N_yuzde` column shows that.' % K)
+    A(u'- The `yontemler_ayrildi` column is the number of columns where the two methods contradict each other. Where that number is high the consensus of that bin is **not reliable**; look at it first.')
+    A(u'- The new consensuses were **not written into the panel automatically**. Before they are used, the `eski_ile_farkli` and `N_yuzde` columns have to be reviewed.')
     A('')
     with open(md, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))
