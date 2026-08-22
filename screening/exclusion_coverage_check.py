@@ -98,16 +98,16 @@ def ad_adaylari(kimlik):
 
     There are two forms:
       "Petriella setifera"                       -> a direct name
-      "adlandirilamayan soy - EN YAKIN KAYIT: ...Fungi;Dikarya;Ascomycota;..."
+      "an unnameable lineage - THE NEAREST RECORD: ...Fungi;Dikarya;Ascomycota;..."
                                                  -> the NARROWEST name in the lineage
 
     """
     k = (kimlik or '').strip()
     if not k:
         return []
-    if 'EN YAKIN KAYIT' in k:
-        gov = k.split('EN YAKIN KAYIT:', 1)[1]
-        gov = re.sub(r'\(%[^)]*\)', ' ', gov)
+    if 'THE NEAREST RECORD' in k:
+        gov = k.split('THE NEAREST RECORD:', 1)[1]
+        gov = re.sub(r'\([^)]*per cent\)', ' ', gov)
         parca = [x.strip() for x in re.split(r'[;|]', gov) if x.strip()]
         parca = [x for x in parca
                  if re.match(r'^[A-Z][A-Za-z\- ]{2,}$', x)

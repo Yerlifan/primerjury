@@ -111,16 +111,17 @@ def kimlik_tablosu(kok):
                 hed[t].append(d)
 
     def _kisalt(v):
-        """Makes the long 'an unnameable lineage - THE NEAREST RECORD: <a very long
-        taxonomy> (%X)' string readable. The number and the meaning are kept and the
-        taxonomy is dropped; the full form is already in TUM_KUTU_KIMLIK_RAPORU.md.
+        """Makes the long 'an unnameable lineage - THE NEAREST RECORD: <a very
+        long taxonomy> (N per cent)' string readable. The number and the meaning
+        are kept and the taxonomy is dropped; the full form is already in the
+        bin identity report.
 
         """
         v = (v or '').strip()
-        if v.lower().startswith('adlandirilamayan'):
-            m = re.search(r'\(%\s*([\d,\.]+)\)\s*$', v)
-            c = re.search(r'([A-Z][a-z]+);?[^;]*$', v.split('(%')[0]) if '(%' in v else None
-            return (u'adlandirilamayan soy (%%%s)' % m.group(1)) if m else u'adlandirilamayan soy'
+        if v.lower().startswith('an unnameable'):
+            m = re.search(r'\(\s*([\d,\.]+) per cent\)\s*$', v)
+            return (u'an unnameable lineage (%s per cent)' % m.group(1)) if m \
+                else u'an unnameable lineage'
         return v
 
     def _teklestir(vals):
@@ -192,8 +193,8 @@ def _cins(ad):
     ad = (ad or '').strip()
     if not ad or ad.startswith('-'):
         return ''
-    if ad.lower().startswith('adlandirilamayan'):
-        return u'(adlandirilamayan)'
+    if ad.lower().startswith('an unnameable'):
+        return u'(unnameable)'
     m = re.search(r'[;|]g__([A-Za-z0-9_]+)', ad)          # UNITE
     if m:
         return m.group(1).replace('_', ' ').split()[0]
@@ -241,7 +242,7 @@ def kaynak_sutunlari_kutu(d):
     # If the bin's confirmed name is 'an unnameable lineage' the genus comparison CANNOT
     # BE MADE from it; the winning hit's own genus is used.
     _da = (d.get('DOGRULANAN_KIMLIK') or '').strip()
-    hedef_cins = _cins(basl if (not _da or _da.lower().startswith('adlandirilamayan'))
+    hedef_cins = _cins(basl if (not _da or _da.lower().startswith('an unnameable'))
                        else _da)
     uy, uym = [], []
     for vtb, _kap, sonuc, _y in vtb_ayristir(d.get('HER_VTB_NE_DEDI', '')):

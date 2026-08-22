@@ -76,7 +76,7 @@ def run_engine(members, outg, label, out_tsv, extra):
                 except ValueError:
                     pass
     best = ""
-    mb = re.search(r"En iyi bes aday:\n(.+)", txt, re.S)
+    mb = re.search(r"Five best candidates:\n(.+)", txt, re.S)
     if mb:
         best = mb.group(1).strip().splitlines()[0].strip() if mb.group(1).strip() else ""
     return n, blockers, best, txt

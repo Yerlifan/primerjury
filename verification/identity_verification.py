@@ -1114,7 +1114,7 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
     # name", when the problem is not the reference's CLOSENESS but its NAMELESSNESS.
     if not t1 and not c1:
         return dict(duzey='ADLANDIRILAMIYOR (referans adsiz)',
-                    onerilen_ad='an unnameable lineage; THE NEAREST RECORD: %s (%s per cent)'
+                    onerilen_ad='an unnameable lineage - THE NEAREST RECORD: %s (%s per cent)'
                                 % (tam1, vir(k1)),
                     gerekce="the best hit's identity is %s per cent (the "
                             'species threshold is %s per cent) BUT the record '
@@ -1155,7 +1155,7 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
                             % (vir(k1), vir(te), vir(ce)),
                     en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
     return dict(duzey='AILE ve USTU (ad VERILEMEZ)',
-                onerilen_ad='an unnameable lineage; THE NEAREST RECORD: %s (%s per cent)'
+                onerilen_ad='an unnameable lineage - THE NEAREST RECORD: %s (%s per cent)'
                             % ((t1 or c1 or tam1), vir(k1)),
                 gerekce='the identity of %s per cent is BELOW even the genus '
                         'threshold of %s per cent. This IS NOT AN IDENTITY, '

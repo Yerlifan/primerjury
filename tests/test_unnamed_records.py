@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
-"""ADSIZ CEVRE KAYDI tuzaginin KANITI (kimlik_dogrulama.ad_coz / savunulabilir_duzey).
+"""THE EVIDENCE for the unnamed environmental record trap, in the identity
+verification's name resolver and its defensible level rule.
 
-NE SINANIYOR
-------------
-NCBI nt gibi kumeler adlandirilmamis kayitlarla doludur:
+WHAT IS TESTED
+--------------
+Sets such as NCBI nt are full of unnamed records:
     KJ734864.1 Uncultured prokaryote clone D5 16S ribosomal RNA gene
     GQ503828.1 Bacterium enrichment culture clone R4-53B 16S ribosomal RNA
 
-Duzeltme oncesi ad_coz bunlari ikili ad saniyordu ('Uncultured prokaryote',
-'Bacterium enrichment') ve kimlik %99 oldugu icin savunulabilir_duzey TUR
-duzeyinde bir ad uretiyordu. Sonuc: IDENTITY_RESULT/kimlik_iddialari.tsv icinde
-CEVAPSIZLIK, DOGRULANDI damgali kimlik gibi duruyordu.
+Before the fix the resolver took these for binomials ('Uncultured prokaryote',
+'Bacterium enrichment'), and because the identity was 99 per cent the defensible
+level rule produced a name at SPECIES level. The result: in the identity claims
+table, having no answer stood there as a CONFIRMED identity.
 
-Iki sey ayni anda dogru olmali:
-  1) adsiz kayit AD URETMEMELI  (yanlis pozitif gitmeli)
-  2) gercek ad BOZULMAMALI      (yanlis negatif olusmamali)
+Two things have to be true at once:
+  1) an unnamed record MUST NOT PRODUCE A NAME (the false positive has to go)
+  2) a real name MUST NOT BE BROKEN (no false negative may appear)
 
-Ikincisi birincisi kadar onemlidir: fazla genis bir suzgec gercek kimlikleri de
-susturur ve bu daha sinsi bir hatadir.
+The second matters as much as the first: a filter that is too wide silences real
+identities too, and that is the more insidious fault.
 
-KOSMA
------
+TO RUN IT
+---------
     python3 tests/test_unnamed_records.py
 """
 from __future__ import print_function

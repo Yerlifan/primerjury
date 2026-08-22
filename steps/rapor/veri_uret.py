@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-veri_uret.py
-Rapor verisini (veri.json) primer_final.tsv'den ELLE DEGIL, veriden uretir.
-Alan karisimi nedeniyle teslimden cikarilan ciftler burada da cikarilir;
-rapor ile Excel ayni kumeyi anlatmak zorundadir.
+veri_uret.py builds the report data from the final table, FROM THE DATA rather
+than by hand. The pairs taken out of the delivery because of a field mixture are
+taken out here too; the report and the workbook have to describe the same set.
 
-Kullanim:
-  python3 rapor/veri_uret.py --final <FINAL> --consensus <KONS> \
+Usage:
+  python3 rapor/veri_uret.py --final <the final table> --consensus <the consensus>
       --targets targets.tsv --names taxid_names.tsv --out rapor/veri.json
 """
 import argparse, csv, json, os, sys
