@@ -706,7 +706,7 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
         % (sum(1 for r in sl if (r.get('siparis_sarti') or '').strip().upper()
                .startswith('KOSULSUZ')), len(supheli)))
     if supheli:
-        bulgu(u'Written KOSULSUZ but the evidence is missing',
+        bulgu('Written as unconditional while the evidence is missing',
               u'\n      '.join(supheli) +
               u'\n      "Unconditional" reads in the report as "there is nothing to discuss". A row whose evidence is missing has to be made KOSULLU, or the gap has to be filled.', BLOKE)
 
@@ -812,7 +812,8 @@ def d13_urun_boyu(kok, yaz):
                         if 40 <= L <= 600:
                             boylar.add(L)
         if boylar and u not in boylar:
-            sapan.append(u'%s: tabloda %d bp, olculen %s'
+            sapan.append('%s: the table says %d bp and the measured value is '
+                         '%s'
                          % (r[iH].strip(), u, sorted(boylar)[:5]))
     yaz(u'  [13] product length: %d pairs measured, %d deviations' % (bakilan, len(sapan)))
     if sapan:
