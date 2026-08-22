@@ -47,7 +47,7 @@ def yaz(ws, r, c, v, fill=None, bold=False, wrap=True):
 
 
 def sayfa16(wb, rows):
-    ad = '16 Okuma Motoru Duzeltmesi'
+    ad = '16 The read engine fix'
     if ad in wb.sheetnames:
         del wb[ad]
     ws = wb.create_sheet(ad)
@@ -62,8 +62,7 @@ def sayfa16(wb, rows):
     for s in [
         'engine/reads.py -> class `Sonda` (and engine/scb.py -> class `S`) looked for the primer in a read using A SINGLE 13 BASE EXACT MATCHING SEED:  s = primer[-13:] ;  i = seq.find(s)',
         'Although the criterion is "total mismatches <= max_mm", find() returns nothing whenever the mismatch falls INSIDE the 13 base seed, and the binding site disappears SILENTLY. The program raises no error, it simply reports "no product". Like the five earlier measurement bugs, this one is silent.',
-        'EK BULGU: 3\' son 2 baz TAM ESLESME kurali kodda HICBIR YERDE acikca uygulanmiyordu - '
-        '13 bazlik tohumun yan etkisiydi. Duzeltilmis motorda kural acikca uygulanir.',
+        "AN EXTRA FINDING: the rule that the last 2 bases at the 3' end must match EXACTLY was applied NOWHERE explicitly in the code; it was a side effect of the 13 base seed. In the corrected engine the rule is applied explicitly.",
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 42; n += 1
@@ -74,9 +73,9 @@ def sayfa16(wb, rows):
     for j, h in enumerate(bas, 1):
         yaz(ws, n, j, h, bold=True, fill=GRI)
     n += 1
-    for r in [('okuma.Sonda (panelin kullandigi)', '2', '0,50%', 'tohumlu'),
-              ('kaba kuvvet (saf python, tohumsuz, bagimsiz yazildi)', '174', '43,50%', 'dogru cevap'),
-              ('ispcr.find_sites (numpy, tohumsuz, panelin kendi kodu)', '174', '43,50%', 'kaba kuvvetle BIREBIR'),
+    for r in [("the panel's own probe engine", '2', '0,50%', 'tohumlu'),
+              ('brute force: pure Python, seedless, written independently', '174', '43,50%', 'dogru cevap'),
+              ("ispcr.find_sites: numpy, seedless, the panel's own code", '174', '43,50%', 'kaba kuvvetle BIREBIR'),
               ('read_engine.py (duzeltilmis)', '174', '43,50%', 'kaba kuvvetle BIREBIR')]:
         for j, v in enumerate(r, 1):
             yaz(ws, n, j, v, fill=(KIRMIZI if r[1] == '2' else YESIL))
@@ -152,8 +151,7 @@ def sayfa16(wb, rows):
     for s in [
         'Methanosarcina_cinsi (row 7): seven M. mazei MEMBER bins measured 0.5-26.5% under the old engine, and their correct value is 79.4-82.9%. The worst fold went 0.04x -> 4.37x (mm<=1) / 4.66x (mm<=3), and the pool 2.51x -> 81.59x. The 28.4x published in the panel is a pool measure; the WORST SINGLE BIN measure is still below 10x.',
         'Asetoklastik_metanojenler (row 16): the member floor went 0.0% -> 58.6%; the worst fold ~0 -> 4.22x, and the pool ~0 -> 50.84x.',
-        'Kapsam olculeri: Arke_universal 11/39 -> 32/39 (mm<=1; panelin 39/39 iddiasi mm<=3 degeridir), '
-        'Bakteri_universal 4/20 -> 13/20 (mm<=1), Mantar_universal F1 14/20 -> 16/20.',
+        "The coverage measures: the archaeal universal goes from 11 of 39 to 32 of 39 at mm<=1, where the panel's claim of 39 of 39 is the mm<=3 value; the bacterial universal from 4 of 20 to 13 of 20 at mm<=1; and the fungal universal F1 from 14 of 20 to 16 of 20.",
         'Methanothrix_cinsi (row 3): under mm<=1 it does not change (13.54x -> 13.74x), but under mm<=3 it drops to 0.86x (one competitor bin amplifies at 76.92%). The fate of this row depends entirely on THE CHOICE OF CRITERION, and it should not go to order before that criterion is settled.',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
@@ -233,12 +231,10 @@ def ozet_ve_karar(wb):
     # M. mazei satirlari
     for r in (8, 23):
         h = ws.cell(r, 6)
-        h.value = 'GECERSIZ: 187,9x -> duzeltilmis 11,41x (havuz) / 0,82x (en kotu tek kutu). ' \
-                  'Bkz. "16 Okuma Motoru Duzeltmesi".'
+        h.value = 'NOT VALID: 187.9x becomes a corrected 11.41x for the pool and 0.82x for the worst single bin. See the read engine fix sheet.'
         h.fill = KIRMIZI; h.alignment = SAR
     h = ws.cell(9, 6)   # Methanosarcina cinsi
-    h.value = '28,4x -> duzeltilmis havuz 81,59x, en kotu tek kutu 4,66x (10x ALTINDA). ' \
-              'Kapsam eksik olculmustu, duzeltme degeri yukari cekti.'
+    h.value = '28.4x becomes a corrected pool of 81.59x with a worst single bin of 4.66x, which is BELOW tenfold. The coverage had been measured short and the fix pulled the value up.'
     h.fill = SARI; h.alignment = SAR
 
     ws = wb['6 Karar Durumu']

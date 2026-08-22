@@ -48,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_engine():
-    """03 betigindeki kural fonksiyonlarini tek kaynak olarak kullanir."""
+    'It uses the rule functions of the candidate generator as its one source.'
     p = os.path.join(HERE, "generate_primer_candidates.py")
     if not os.path.exists(p):
         sys.exit(u'generate_primer_candidates.py was not found in the same directory: %s' % HERE)
@@ -74,7 +74,7 @@ IUPAC_SET = {"A": "A", "C": "C", "G": "G", "T": "T",
 
 
 def base_match(p, t):
-    """Primer bazi p, kalip bazi t ile uyusuyor mu. IUPAC kumesi kesisimi."""
+    'Does the primer base p agree with the template base t. The intersection of their IUPAC sets.'
     if t == "N":
         return False          # an N in the template does not count as a match, there is no information
     return bool(set(IUPAC_SET.get(p, "")) & set(IUPAC_SET.get(t, "")))
@@ -120,12 +120,12 @@ def build_index(seq, k, azami_acilim=64):
 
 
 def seed_variants(tail, max_mm_in_tail, exact_last):
-    """Son 'tail' icin izin verilen KALIP k-mer varyantlari.
-    Son 'exact_last' baz sabit, geri kalanda en fazla max_mm_in_tail
-    uyumsuzluk. Kalipta N bulunabilir; base_match N'i uyumsuzluk sayar,
-    dolayisiyla serbest konumlarda N de bir varyanttir. N sadece serbest
-    konumlarda uretilir, cunku son iki bazin birebir uymasi gerekir ve
-    N ile birebir uyum mumkun degildir."""
+    "The TEMPLATE k-mer variants allowed for the last 'tail' bases.     The "
+    "last 'exact_last' bases are fixed and the rest may carry at most "
+    'max_mm_in_tail mismatches. The template can hold an N; base_match counts '
+    'an N     as a mismatch, so at the free positions N is a variant too. N '
+    'is produced at     the free positions alone, because the last two bases '
+    'have to match exactly     and an exact match with N is not possible.'
     n = len(tail)
     free = n - exact_last
     out = set()
@@ -155,11 +155,12 @@ def seed_variants(tail, max_mm_in_tail, exact_last):
 
 
 def find_bindings(oligo, seq, idx, k, a):
-    """Oligo'nun seq uzerindeki baglanma yerleri.
-    Toplanti karari geregi 5' tarafta sarkma serbesttir: oligonun 5' ucu
-    kalibin disina tasabilir ve tasan kisim uyumsuzluk sayilmaz. 3' uc
-    kalibin icinde olmak zorundadir, cunku uzama oradan baslar.
-    Doner: [(3'_uc_pozisyonu, ortusen_bolgedeki_uyumsuzluk)] , 0 tabanli."""
+    "The oligo's binding sites on seq.     An overhang on the 5' side is free "
+    "by rule: the oligo's 5' end may run past     the template and the part "
+    "that runs past does not count as a mismatch. The     3' end has to be "
+    'inside the template, because extension starts there.     Returns: [(the '
+    "3' end position, the mismatches in the overlapping region)],     zero "
+    'based.'
     L, n = len(seq), len(oligo)
     tail = oligo[-k:]
     hits = []
@@ -190,7 +191,7 @@ def find_bindings(oligo, seq, idx, k, a):
 
 
 def load_set(patterns, mask_dir=None):
-    """Desenlerden konsensus kumesi yukler. Doner: [(etiket, dizi)]"""
+    'Loads a consensus set from the patterns. Returns [(label, sequence)].'
     out, seen = [], set()
     for pat in patterns:
         for p in sorted(glob.glob(pat)):
@@ -573,19 +574,21 @@ def main():
     print(u'forward candidates: %d   reverse candidates: %d' % (len(Fs), len(Rs)))
 
     def ozgulluk_skoru(k):
-        """Oligonun rakiplerdeki EN IYI yerlesiminin uyumsuzluk sayisi.
-        Rakiplerde hic baglanmiyorsa 99 sayilir. Buyuk olan daha ozguldur."""
+        "The mismatch count of the oligo's BEST placement in the competitors. "
+        'When it binds nowhere in them it counts as 99. Larger is more '
+        'specific.'
         v = rakip_en_iyi.get(k["oligo"], None)
         return 99 if v is None else v
 
     def tabakala(lst, n):
-        """Pozisyona gore tabakali secim: kalip n dilime bolunur ve her
-        dilimden bir oligo alinir. Dilim icindeki secim once OZGULLUGE,
-        sonra Tm'in 58-62 bandinin ortasina yakinligina gore yapilir.
-        Sadece Tm'e bakmak, korunmus bolgelerde binlerce ayirt edici
-        olmayan oligonun ayirt edici olanlari disari itmesine yol aciyordu;
-        rDNA'da korunmus omurga ile degisken bolgelerin sayica orani
-        buyuk oldugu icin bu secim olcutu sonucu belirliyor."""
+        'Stratified selection by position: the template is cut into n slices '
+        'and         one oligo is taken from each. Inside a slice the choice '
+        'goes first by         SPECIFICITY and then by how close the Tm is to '
+        'the middle of the 58 to 62         band. Going by Tm alone let '
+        'thousands of non-discriminating oligos in the         conserved '
+        'regions push the discriminating ones out; because the '
+        'conserved backbone outnumbers the variable regions so heavily in '
+        'rDNA,         this selection criterion decides the result.'
         if not n or len(lst) <= n:
             return lst
         lst = sorted(lst, key=lambda k: k["start"])
@@ -772,8 +775,9 @@ def main():
 
 
 def _one_config(b_plus, b_minus, ln_plus, ln_minus, L, pmin, pmax):
-    """Bir primer arti zincirde, oteki eksi zincirde. Koordinat cevrimi:
-    eksi zincirdeki m pozisyonunun arti zincirdeki karsiligi L-1-m'dir."""
+    'One primer on the plus strand and the other on the minus strand. The '
+    'coordinate conversion: position m on the minus strand corresponds to '
+    'L-1-m on     the plus strand.'
     best = None
     for fend, _ in b_plus:
         fstart = fend - ln_plus + 1
@@ -793,12 +797,13 @@ def _one_config(b_plus, b_minus, ln_plus, ln_minus, L, pmin, pmax):
 
 
 def product_len(bf, br, lnf, lnr, a, pmax=None, pmin=None):
-    """Kalip cift sarmal oldugu icin IKI konfigurasyon da gercek urun verir:
-    (1) birinci primer arti zincirde, ikincisi eksi zincirde
-    (2) birinci primer eksi zincirde, ikincisi arti zincirde
-    Yalnizca birine bakmak, ters saklanmis bir diziyi 'urun yok' diye
-    isaretler; rakiplerde bu, ozgulluk denetimini tamamen atlatir.
-    Doner: gecerli en kisa urun uzunlugu ya da None."""
+    'Because the template is double stranded, BOTH configurations give a real '
+    'product:     (1) the first primer on the plus strand and the second on '
+    'the minus strand     (2) the first primer on the minus strand and the '
+    'second on the plus strand     Looking at only one of them marks a '
+    'sequence stored the other way round as     "no product", and in a '
+    'competitor that escapes the specificity check     entirely.     Returns: '
+    'the shortest valid product length, or None.'
     L = bf.get("L") or br.get("L")
     if not L:
         return None

@@ -1,37 +1,28 @@
 # -*- coding: utf-8 -*-
-"""OLCULMEYEN TAKSONLAR ICIN KUTU URET  -  "hicbir veri bosta kalmasin".
-
-DURUM
------
-Simdiye kadar barkod basina yalnizca 5 kutu (Bracken'in ilk 5'i) ayristirilip
-olculdu. Bu, tur duzeyi okumalarin ortanca %83'unu kapsiyor ama EN KOTU
-barkodda %27'de kaliyor. Yani sorun ortalamada degil dagilimda.
-
-Bu betik kalan taksonlari da kutuya cevirir: Kraken'in okuma duzeyi
-ciktisindan (edited_barcodeNN_output) o taksonun KLADINA atanmis okumalari
-ham fastq'tan cikarir ve "fastq files/<kutu>/" altina mevcut adlandirmayla
-yazar. Boylece var olan konsensus ureteci ve kimlik dogrulama zinciri onlari
-kendiliginden gorur - yeni bir olcum yolu ACILMAZ, var olan yol beslenir.
-
-KLAD KURALI (olculdu, varsayilmadi)
------------------------------------
-Bir kutunun okumalari, o taksonun TAM KLADINA atanmis okumalardir; yalniz
-taksonun kendisine atananlar DEGIL. Ornek: A1-1'deki 2223 kutusunda 19 757
-okuma var ama Kraken'de tam olarak 2223'e atanmis okuma SIFIR - hepsi sus
-duzeyindeki 990316'ya (M. soehngenii GP6) atanmis. Klad kurali uygulanmadan
-o kutu bos cikardi.
-
-KALIBRASYON KAPISI - ONCE KANITLA, SONRA URET
----------------------------------------------
-Betik once ELDE HAZIR olan kutulari yeniden hesaplar ve okuma kimligi
-kumelerinin BIREBIR tutup tutmadigina bakar. Tutmuyorsa hicbir sey uretmez ve
-duser. 2026-08-10'da 14/14 birebir tutmustur; yeni bir barkod ya da yeni bir
-Kraken kosusu bu varsayimi bozarsa kapi onu yakalar.
-
-Kosum:
-    python verification/build_bins.py --root . --calibration-only
-    python verification/build_bins.py --root . --coverage 0.95
-"""
+'BUILD BINS FOR THE TAXA NEVER MEASURED, so that no data is left idle.  THE '
+"SITUATION ------------- Until now only 5 bins per barcode, Bracken's top "
+'five, were split out and measured. That covers a median of 83 per cent of '
+'the species level reads but stops at 27 per cent on the WORST barcode. So '
+'the problem is not in the average but in the spread.  This script turns the '
+"remaining taxa into bins as well: from Kraken's read level output it pulls "
+"the reads assigned to that taxon's CLADE out of the raw fastq and writes "
+'them under the fastq directory with the existing naming. The existing '
+'consensus generator and identity verification chain then see them by '
+'themselves: NO new measurement route is opened, the existing one is fed. '
+'THE CLADE RULE, measured rather than assumed '
+"-------------------------------------------- A bin's reads are the ones "
+"assigned to that taxon's WHOLE CLADE, NOT only the ones assigned to the "
+'taxon itself. An example: one bin holds 19,757 reads while the number '
+'assigned in Kraken to exactly that taxid is ZERO, because all of them are '
+'assigned to a strain level node below it. Without the clade rule that bin '
+'would have come out empty.  THE CALIBRATION GATE: PROVE IT FIRST, PRODUCE '
+'AFTERWARDS -------------------------------------------------------- The '
+'script first recomputes the bins that are ALREADY on disk and checks whether '
+'the read identity sets match EXACTLY. If they do not, it produces nothing '
+'and fails. On 2026-08-10 all 14 of 14 matched exactly; if a new barcode or a '
+'new Kraken run breaks that assumption, the gate catches it.  To run it: '
+'python verification/build_bins.py --root . --calibration-only     python '
+'verification/build_bins.py --root . --coverage 0.95'
 from __future__ import print_function
 
 import argparse
@@ -47,7 +38,7 @@ KRAKEN_KOK = 'kraken results'
 
 # --------------------------------------------------------------- agac ve klad
 def agac_kur(report):
-    """Kraken raporunun GIRINTISINDEN takson agacini kurar (ust haritasi)."""
+    'Builds the taxon tree FROM THE INDENTATION of the Kraken report, as a parent map.'
     ust = {}
     yol = []
     for l in io.open(report, encoding='utf-8', errors='replace'):
@@ -81,7 +72,7 @@ def klad_kumesi(ust, kok):
 
 
 def tur_satirlari(report):
-    """(taxid, ad, klad_okuma) - yalniz rutbe S."""
+    '(taxid, name, clade_reads) for rank S alone.'
     out = []
     for l in io.open(report, encoding='utf-8', errors='replace'):
         p = l.rstrip('\n').split('\t')
@@ -99,7 +90,7 @@ def tur_satirlari(report):
 
 
 def kraken_okuma_taxid(output_yolu):
-    """okuma_id -> atanan taxid (yalniz siniflandirilmis okumalar)."""
+    'read id -> the taxid assigned, for the classified reads alone.'
     d = {}
     for l in io.open(output_yolu, encoding='utf-8', errors='replace'):
         p = l.rstrip('\n').split('\t')
@@ -120,7 +111,7 @@ def fastq_idler(yol):
 
 # ------------------------------------------------------- barkod <-> kutu esleme
 def esleme_kur(kok, yaz):
-    """sinif klasorlerinden kutu <-> barkod eslemesi. VARSAYILMAZ, DOGRULANIR."""
+    'The bin to barcode mapping from the class directories. It IS NOT ASSUMED, it is CONFIRMED.'
     esleme = {}
     kr = os.path.join(kok, KRAKEN_KOK)
     if not os.path.isdir(kr):
@@ -145,7 +136,7 @@ def esleme_kur(kok, yaz):
 
 # ------------------------------------------------------------- kalibrasyon
 def kalibrasyon(kok, esleme, yaz):
-    """Elde HAZIR kutular klad kuraliyla birebir yeniden uretilebiliyor mu."""
+    'Can the bins ALREADY on disk be reproduced exactly under the clade rule.'
     tam = sapan = 0
     ayrinti = []
     for kutu, (sinif, bc) in sorted(esleme.items()):
@@ -174,8 +165,8 @@ def kalibrasyon(kok, esleme, yaz):
                 tam += 1
             else:
                 sapan += 1
-                ayrinti.append(u'%s taxid %s: fastq %d, klad %d, yalniz fastq %d, '
-                               u'yalniz klad %d'
+                ayrinti.append('%s taxid %s: fastq %d, clade %d, fastq only '
+                               '%d, clade only %d'
                                % (kutu, tx, len(a), len(b), len(a - b), len(b - a)))
     yaz(u'  kalibrasyon: %d birebir, %d sapan' % (tam, sapan))
     for x in ayrinti[:10]:
@@ -303,7 +294,7 @@ def main():
     for (sinif, bc, kutu), isler in sorted(bc_grup.items()):
         ham = ham_fastq_bul(kok, bc, ek)
         if not ham:
-            atlanan.append(u'%s: ham fastq bulunamadi (%s)' % (bc, kutu))
+            atlanan.append('%s: the raw fastq was not found (%s)' % (bc, kutu))
             continue
         rep = os.path.join(kok, KRAKEN_KOK, sinif, 'edited_%s_kraken2.report' % bc)
         out = os.path.join(kok, KRAKEN_KOK, sinif, 'edited_%s_output' % bc)

@@ -102,24 +102,24 @@ def tespit(dizi, sinif):
     # cannot hold all the motifs, the counts become accidental.
     dizi = temizle(dizi)
     if len(dizi) < 200:
-        return 'BELIRSIZ', dict(sebep='dizi 200 bp\'den kisa', uzunluk=len(dizi))
+        return 'BELIRSIZ', dict(sebep='the sequence is shorter than 200 bp', uzunluk=len(dizi))
     o1, d1, t1 = _olcut1(dizi, sinif)
     o2, d2, t2 = _olcut2(dizi, sinif)
     ay = dict(olcut1=o1, olcut1_duz=d1, olcut1_ters=t1,
               olcut2=o2, olcut2_duz=d2, olcut2_ters=t2)
     if o1 == o2 and o1 != 'BELIRSIZ':
-        ay['sebep'] = 'iki olcut de ayni yonu veriyor'
+        ay['sebep'] = 'both criteria give the same orientation'
         return o1, ay
     if o1 != 'BELIRSIZ' and o2 == 'BELIRSIZ':
-        ay['sebep'] = 'yalniz olcut 1 karar verdi (olcut 2 sessiz)'
+        ay['sebep'] = 'criterion 1 decided on its own; criterion 2 is silent'
         return o1, ay
     if o2 != 'BELIRSIZ' and o1 == 'BELIRSIZ':
-        ay['sebep'] = 'yalniz olcut 2 karar verdi (olcut 1 sessiz)'
+        ay['sebep'] = 'criterion 2 decided on its own; criterion 1 is silent'
         return o2, ay
     if o1 != o2:
-        ay['sebep'] = 'IKI OLCUT AYRILDI - normalize edilmez, maskelenir'
+        ay['sebep'] = 'THE TWO CRITERIA DIVERGED, so it is not normalised but masked'
         return 'BELIRSIZ', ay
-    ay['sebep'] = 'iki olcut de sessiz (motif bulunamadi)'
+    ay['sebep'] = 'both criteria are silent; no motif was found'
     return 'BELIRSIZ', ay
 
 
@@ -174,18 +174,18 @@ def kendini_sina():
     if karar2 != 'ANTISENSE' or not cev2:
         hata.append('sentetik antisense SSU yanlis: %s' % karar2)
     elif k2 != temizle(s):
-        hata.append('cevirme diziyi geri getirmedi')
+        hata.append('flipping it did not bring the sequence back')
     # 3) motifsiz dizi BELIRSIZ olmali
     _, karar3, _ = kanonik('A' * 400, 'A')
     if karar3 != 'BELIRSIZ':
-        hata.append('motifsiz dizi BELIRSIZ degil: %s' % karar3)
+        hata.append('a sequence with no motif is not marked UNDECIDED: %s' % karar3)
     # 4) idempotans: kanonigi tekrar kanoniklestirmek degistirmemeli
     k4, _, cev4 = kanonik(k2, 'A')
     if cev4 or k4 != k2:
         hata.append('idempotans bozuk')
     # 5) sinif tespiti
     if sinifi('A1-4_2209_konsensus.fasta') != 'A' or sinifi('F2-1_101201.fasta') != 'F2':
-        hata.append('sinif tespiti bozuk')
+        hata.append('the class detection is broken')
     return hata
 
 
