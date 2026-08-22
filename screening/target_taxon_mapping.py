@@ -1,30 +1,32 @@
 # -*- coding: utf-8 -*-
-"""target_taxon_mapping.py - iki tabloyu uretir:
-  Tablo A  paneldeki 21 hedef -> hangi toplanti kararindan geliyor
-  Tablo B  numunedeki 44 takson -> hangi hedefin kapsamina giriyor (olculmus)
+"""target_taxon_mapping.py produces two tables:
+  Table A  the 21 targets in the panel -> which meeting decision each comes from
+  Table B  the 44 taxa in the sample -> which target covers each (measured)
 
-Cikti: hedef_takson_eslemesi_20260802.md + panelde "18 Hedef-Takson Eslemesi"
+Output: hedef_takson_eslemesi_20260802.md plus "18 Hedef-Takson Eslemesi" in the
+panel
+
 """
-# ---------------------------------------------------------------------------
-# target_taxon_mapping.py — iki soruyu tabloya baglar: paneldeki her hedef hangi
-#                          toplanti kararindan geliyor, ve numunedeki her takson
-#                          hangi hedefin kapsamina giriyor.
+# -------------------------------------------------------------------------
+# target_taxon_mapping.py ties two questions to a table: which meeting decision
+#                          each target in the panel comes from, and which target
+#                          covers each taxon in the sample.
 #
-# GIRDI  : --r2 ile olcum sonuclari deseni, --capraz ile cross_coverage.py'nin
-#          urettigi json, --ciftler ile cift tablosu, --taxid ile
-#          taxid_adlari.tsv, --xlsx ile teslim paneli. Hedef -> karar eslemesi
-#          (KARAR sozlugu) dosyanin icinde sabittir; toplanti kararlarindan
-#          gelmeyen satirlar orada acikca "Karar 5 - olcumden turetilen" diye
-#          isaretlidir.
-# CIKTI  : --md ile verilen Markdown dosyasi ve --xlsx dosyasina eklenen
-#          "18 Hedef-Takson Eslemesi" sayfasi (wb.save).
-# CAGRAN : MENUDE DEGILDIR - elle calistirilir; teslim xlsx'ini degistirir.
-#          Girdilerinden biri olan cross_coverage.py de elle calistirilir.
+# INPUT  : the measurement result pattern given with --r2, the json cross_coverage.py
+#          produces given with --capraz, the pair table with --ciftler,
+#          taxid_adlari.tsv with --taxid and the delivery panel with --xlsx. The
+#          target to decision mapping (the KARAR dictionary) is fixed inside the
+#          file; the rows that do not come from a meeting decision are marked there
+#          plainly as "Karar 5 - derived from the measurement".
+# OUTPUT : the Markdown file given with --md and the sheet
+#          "18 Hedef-Takson Eslemesi" added to the --xlsx file (wb.save).
+# CALLED BY: IT IS NOT IN THE MENU, it is run by hand; it changes the delivery
+#          xlsx. cross_coverage.py, one of its inputs, is run by hand as well.
 #
-# Tablo B'nin degeri, hicbir ozgul hedefin kapsamadigi taksonlari gorunur
-# kilmasidir: bir takson yalniz evrensel/kontrol primeriyle cogaliyorsa o
-# organizma icin panelde ozgul bir olcum yok demektir.
-# ---------------------------------------------------------------------------
+# The value of Table B is that it makes visible the taxa no specific target covers:
+# if a taxon amplifies only with a universal or control primer, there is no specific
+# measurement in the panel for that organism.
+# -------------------------------------------------------------------------
 import sys, os, json, glob, csv, argparse
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -36,7 +38,7 @@ YESIL   = PatternFill('solid', fgColor='C6EFCE')
 KALIN   = Font(bold=True)
 SAR     = Alignment(wrap_text=True, vertical='top')
 
-# panel satiri -> (hedef adi, duzey, karar, kaynak aciklamasi)
+# the panel row -> (target name, level, decision, an explanation of the source)
 KARAR = {
  2:  ('Metanojen_universal',              'grup (islevsel)', 'Karar 4 - alan/evrensel',
       'Toplanti: "universal metanojen" kontrol primeri.'),
@@ -86,7 +88,7 @@ KARAR = {
       'OKUMA MOTORU DUZELTMESI SONRASI ESIK ALTI - bkz. "16 Okuma Motoru Duzeltmesi".'),
 }
 
-# Karar 1 ve 2'de istenip PANELE HEDEF OLARAK GIREMEYEN talepler
+# requests asked for under Decisions 1 and 2 that COULD NOT ENTER THE PANEL AS A TARGET
 KARSILANMAYAN = [
  ('Karar 1 - tur ozgul', 'Methanosarcina barkeri',
   'Organizma numunede yok (2208 kutusu M. vacuolata %97,4-97,9). Yerine satir 7 Methanosarcina_cinsi.'),

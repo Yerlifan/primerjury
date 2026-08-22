@@ -1,30 +1,34 @@
 # -*- coding: utf-8 -*-
-"""BOLLUGA AGIRLIKLI ESIGI GUNCEL VERIYLE YENIDEN HESAPLA.
+"""RECOMPUTE THE ABUNDANCE WEIGHTED THRESHOLD WITH CURRENT DATA.
 
-KURAL (2026-08-08 esik belgesinden, degistirilmedi)
----------------------------------------------------
-    gerekli dCq = max( log2(R) + 4,3 ,  3,32 )
+THE RULE (from the 2026-08-08 threshold document, unchanged)
+------------------------------------------------------------
+    required dCq = max( log2(R) + 4,3 ,  3,32 )
 
-R  = rakip havuzunun uye havuzuna okuma orani (bolluk orani)
-4,3 = Fierer ve ark.'nin fiilen uyguladigi %5 saflik olcutunun dongu karsiligi
-3,32 = taban; R<=1 olsa bile bir hedefin en az 10 kat ayrim gostermesi istenir
-      (log2(10) = 3,32)
+R  = the read ratio of the competitor pool to the member pool (the abundance ratio)
+4,3 = the cycle equivalent of the 5 percent purity criterion Fierer et al. actually
+      applied
+3,32 = the floor; even with R<=1 a target is expected to show at least a tenfold
+      discrimination (log2(10) = 3,32)
 
-NEDEN YENIDEN
--------------
-Esik tablosu 8 Agustos'ta uretildi. O gunden sonra iki sey degisti:
-  1) uyelikler OLCULEN kimlikten yeniden turetildi (21 hedefin 2'sinde degisti),
-  2) alti ciftin dizisi degisti.
-R iki degisiklikten de etkilenir. Yani 8 Agustos'un gerekli-dCq degerleri
-bugunku panele ait DEGILDIR. Bu betik onlari bugunku sayilarla yeniden uretir.
+WHY AGAIN
+---------
+The threshold table was produced on 8 August. Two things have changed since:
+  1) the memberships were re-derived from the MEASURED identity (they changed on 2
+     of the 21 targets),
+  2) the sequence of six pairs changed.
+R is affected by both. So the required dCq values of 8 August DO NOT BELONG to
+today's panel. This script reproduces them with today's numbers.
 
-HUKUM VERMEZ. Iki kurali (duz esik 3,00 ve bolluga agirlikli esik) YAN YANA
-koyar. Hangisinin uygulanacagi bilimsel bir tercihtir ve bu betigin isi degil.
+IT GIVES NO VERDICT. It puts the two rules (the flat threshold 3,00 and the
+abundance weighted threshold) SIDE BY SIDE. Which one is applied is a scientific
+preference and not this script's business.
 
-Kosum:
+To run:
     python verification/recompute_thresholds.py --kok .
-Cikti:
-    ESIK_IKI_KURAL.tsv  ve  ESIK_IKI_KURAL.md
+Output:
+    ESIK_IKI_KURAL.tsv  and  ESIK_IKI_KURAL.md
+
 """
 from __future__ import print_function
 
@@ -67,37 +71,38 @@ def main():
     if not panel:
         sys.exit(u'ERROR: panel_tek_protokol.tsv could not be read.')
 
-    # R NEREDEN GELIYOR - ve neden yeniden hesaplanmiyor
-    # ---------------------------------------------------
-    # R (bolluk orani) ESIK_VE_OLCUT_2026-08-08.tsv icinde YAZILI ama onu
-    # ureten betik projede YOK. cross_check.py yalnizca aritmetigi
-    # dogruluyor (max(log2(R)+4,3; 3,32)), R'nin kendisini hesaplamiyor.
+    # WHERE R COMES FROM, and why it is not recomputed
+    # ------------------------------------------------
+    # R (the abundance ratio) IS WRITTEN inside ESIK_VE_OLCUT_2026-08-08.tsv but the
+    # script that produced it is NOT in the project. cross_check.py only confirms the
+    # arithmetic (max(log2(R)+4,3; 3,32)); it does not compute R itself.
     #
-    # 2026-08-10'da R'yi "rakip kutu okumalari / uye kutu okumalari" diye
-    # yeniden hesaplamayi denedim: 17 satirin 0'inda tabloyu tutturdu
-    # (ornek Metilotrofik: tablo 1,760, benim hesabim 293,685). Demek ki
-    # tablodaki R baska bir normalizasyon kullaniyor. Hangisi oldugunu
-    # BILMIYORUM; bilmedigim bir sayiyi uydurmaktansa tablodakini
-    # KAYNAGIYLA BIRLIKTE tasiyorum ve ureteci olmadigini yaziyorum.
+    # On 2026-08-10 I tried recomputing R as "competitor bin reads / member bin reads":
+    # it matched the table on 0 of 17 rows (Metilotrofik, for one: the table says
+    # 1,760, my calculation 293,685). So the R in the table uses some other
+    # normalisation. I DO NOT KNOW which one; rather than invent a number I do not
+    # know, I carry the one in the table TOGETHER WITH ITS SOURCE and write down that
+    # it has no producer.
     #
-    # 2026-08-10 gece, oturum kayitlarinda tanim BULUNDU:
-    #     "R = en yakin rakibin hedefe gore bolluk orani"
-    # Bu tanimin akla gelen alti varyantini (en bol rakip kutu / uye havuzu,
-    # en yuksek urun oranli rakip / uye orani, toplam rakip / toplam uye, ...)
-    # bugunku sayilarla denedim: 18 satirin 1'inde tuttu (Asetoklastik
-    # metanojenler, 0,130 birebir). Cifti DEGISMEYEN 14 satirin de yalniz
-    # 1'i tuttugu icin bu bir rastlanti sayilmali.
+    # On the night of 2026-08-10 the definition WAS FOUND in the session records:
+    #     "R = the abundance ratio of the nearest competitor to the target"
+    # I tried the six variants of that definition that come to mind (the most abundant
+    # competitor bin / the member pool, the competitor with the highest product ratio /
+    # the member ratio, total competitor / total member, and so on) against today's
+    # numbers: it matched on 1 of 18 rows (Asetoklastik metanojenler, 0,130 exactly).
+    # Since only 1 of the 14 rows whose pair DID NOT CHANGE matched either, that has to
+    # count as a coincidence.
     #
-    # Sonuc: 8 Agustos'un R degerleri O GUNKU uyelikle hesaplanmis; uyelikler
-    # 3 Agustos'ta olculen kimlikten yeniden turetildi ve 10 Agustos'ta alti
-    # cift degisti. Yani sayilar bugunku panele ait DEGIL.
+    # The conclusion: the R values of 8 August were computed with THAT DAY'S
+    # membership; the memberships were re-derived on 3 August from the measured
+    # identity and six pairs changed on 10 August. So the numbers DO NOT BELONG to
+    # today's panel.
     #
-    # Bu bir eksiktir ve raporda oyle gecer: rapora giren bir karar
-    # tablosundaki sayinin yeniden uretilebilir olmasi gerekir. Karar
-    # verilmesi gereken sey: R'nin tanimini yazip BUGUNKU uyelikle bastan
-    # hesaplamak (yeniden uretilebilir olur) ya da bolluk kuralini bu teslimde
-    # hic kullanmamak. Ikisi de savunulabilir; sessizce eski sayiyi kullanmak
-    # savunulamaz.
+    # That is a gap and it goes into the report as one: a number in a decision table
+    # that enters a report has to be reproducible. What has to be decided: write down
+    # the definition of R and recompute it from scratch with TODAY'S membership (which
+    # makes it reproducible), or do not use the abundance rule in this delivery at all.
+    # Both are defensible; using the old number silently is not.
     esik08 = {}
     ey = os.path.join(kok, 'ESIK_VE_OLCUT_2026-08-08.tsv')
     for r in _tsv(ey):
@@ -114,9 +119,10 @@ def main():
         e8 = esik08.get(ad, {})
         R = e8.get('R')
         ger = max(math.log(R, 2) + FIERER, TABAN) if (R and R > 0) else None
-        # R 8 Agustos'ta hesaplandi. O gunden sonra uyelikler yeniden
-        # turetildi ve alti cift degisti; dCq degistiyse R de degismis
-        # olabilir. Degisen satirlar isaretlenir - sessizce kullanilmaz.
+        # R was computed on 8 August. Since that day the memberships were
+        # re-derived and six pairs changed; if dCq changed then R may have
+        # changed too. The rows that changed are marked, they are not used
+        # silently.
         d08 = e8.get('dcq08')
         bayat = (d08 is not None and dcq is not None and abs(d08 - dcq) > 0.05)
         satir.append(dict(
