@@ -161,37 +161,34 @@ def takson_tablosu(R, CP, ad, uye):
 
 def md_yaz(yol, satirlar):
     L = []
-    L.append('# Hedef - takson eşlemesi — 2 Ağustos 2026\n')
-    L.append('Paneldeki 21 hedef, numunedeki 44 taksonun kendisi değildir. Hedefler '
-             'toplantı kararlarından ve ölçümden türetilmiştir.\n')
-    L.append('\n## Tablo A — paneldeki 21 hedef, kaynağına göre\n')
-    L.append('| # | Hedef | Düzey | Kaynak | Açıklama |')
+    L.append(u'# The target to taxon mapping, 2 August 2026\n')
+    L.append(u'The 21 targets in the panel are not the 44 taxa in the sample themselves. The targets are derived from the meeting decisions and from the measurement.\n')
+    L.append(u'\n## Table A, the 21 targets in the panel by their source\n')
+    L.append(u'| # | Target | Level | Source | Explanation |')
     L.append('|---|---|---|---|---|')
     for s in sorted(KARAR):
         h, dz, kr, ac = KARAR[s]
         L.append('| %d | %s | %s | %s | %s |' % (s, h, dz, kr, ac))
-    L.append('\n### Karar başına sayım\n')
+    L.append(u'\n### The count per decision\n')
     say = {}
     for s in KARAR:
         k = KARAR[s][2].split(' (')[0]
         say[k] = say.get(k, 0) + 1
-    L.append('| Kaynak | Hedef sayısı | Hangileri |')
+    L.append(u'| Source | Targets | Which ones |')
     L.append('|---|---|---|')
     for k in sorted(say):
         h = [KARAR[s][0] for s in sorted(KARAR) if KARAR[s][2].split(' (')[0] == k]
         L.append('| %s | %d | %s |' % (k, say[k], ', '.join(h)))
-    L.append('\n### Toplantı kararlarında istenip panele hedef olarak giremeyenler\n')
-    L.append('| Karar | İstenen | Ne oldu |')
+    L.append(u'\n### Asked for in the meeting decisions but not admitted to the panel as a target\n')
+    L.append(u'| Decision | Asked for | What happened |')
     L.append('|---|---|---|')
     for a, b, c in KARSILANMAYAN:
         L.append('| %s | %s | %s |' % (a, b, c))
-    L.append('\n### Aile düzeyi hedef\n')
-    L.append('Tek aile düzeyi hedef: **Microascaceae_askomikot** (satır 14, Karar 5). '
-             'Panelden çıkarıldı (ayrım 0,7x).\n')
-    L.append('\n## Tablo B — numunedeki 44 takson, hangi hedefin kapsamına giriyor\n')
-    L.append('Ölçüm: düzeltilmiş okuma motoru, kutu başına ≤3000 okuma, eşik ≥%10 ürün. '
-             'Evrensel/geniş beş hedef sınıf sınırı olmadan 99 kutunun hepsinde ölçüldü.\n')
-    L.append('| taxid | Takson | Üyesi olduğu hedef(ler) | Çoğaltan hedefler (mm≤1) | Ek (yalnız mm≤3) | Durum |')
+    L.append(u'\n### The family level target\n')
+    L.append(u'The one family level target: **Microascaceae_askomikot** (row 14, Decision 5). It was removed from the panel (discrimination 0,7x).\n')
+    L.append(u'\n## Table B, the 44 taxa in the sample and which target covers them\n')
+    L.append(u'The measurement: the corrected read engine, at most 3000 reads per bin, a threshold of >=%10 product. The five universal and broad targets were measured in all 99 bins with no class boundary.\n')
+    L.append(u'| taxid | Taxon | The target(s) it is a member of | The targets that amplify it (mm<=1) | Extra (mm<=3 only) | State |')
     L.append('|---|---|---|---|---|---|')
     for r in satirlar:
         L.append('| %s | %s | %s | %s | %s | %s |' % (r['taxid'], r['ad'], r['uye'],
@@ -199,16 +196,16 @@ def md_yaz(yol, satirlar):
     bos = [r for r in satirlar if r['durum'].startswith('BOSLUK')]
     yev = [r for r in satirlar if r['durum'] == 'yalniz evrensel/kontrol']
     m3 = [r for r in satirlar if r['durum'] == 'yalniz mm<=3 ile']
-    L.append('\n### Boşluklar\n')
-    L.append('| Durum | Sayı | Taksonlar |')
+    L.append(u'\n### The gaps\n')
+    L.append(u'| State | Count | Taxa |')
     L.append('|---|---|---|')
-    L.append('| Hiçbir hedef çoğaltmıyor | %d | %s |' % (len(bos), ', '.join(r['ad'] for r in bos) or '-'))
-    L.append('| Yalnız mm≤3 ölçütüyle çoğalıyor | %d | %s |' % (len(m3), ', '.join(r['ad'] for r in m3) or '-'))
-    L.append('| Yalnız evrensel/kontrol primeri çoğaltıyor, özgül hedefi yok | %d | %s |'
+    L.append(u'| No target amplifies it | %d | %s |' % (len(bos), ', '.join(r['ad'] for r in bos) or '-'))
+    L.append(u'| It amplifies only under the mm<=3 criterion | %d | %s |' % (len(m3), ', '.join(r['ad'] for r in m3) or '-'))
+    L.append(u'| Only a universal or control primer amplifies it, it has no specific target | %d | %s |'
              % (len(yev), ', '.join(r['ad'] for r in yev) or '-'))
-    L.append('| Özgül bir hedefin kapsamında | %d | - |'
+    L.append(u'| It is covered by a specific target | %d | - |'
              % len([r for r in satirlar if r['durum'].startswith('kapsanan')]))
-    L.append('\nToplam takson: **%d**\n' % len(satirlar))
+    L.append(u'\nTaxa in total: **%d**\n' % len(satirlar))
     open(yol, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 
 

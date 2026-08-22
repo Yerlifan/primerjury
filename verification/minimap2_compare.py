@@ -202,53 +202,45 @@ def main():
     md = os.path.join(kok, 'MINIMAP2_KARSILASTIRMA.md')
     L = []
     A = L.append
-    A(u'# minimap2 ile saf Python hizalayıcının karşılaştırması\n')
-    A(u'Üretim: %s · mappy %s\n' % (time.strftime('%Y-%m-%d %H:%M'), mm.surum()))
-    A(u'Ölçüm: %d kutu × %d veritabanı = %d karşılaştırma, veritabanı başına '
-      u'%d kayıt.\n' % (len(kutular), len(vtb), len(satirlar), a.kayit))
+    A(u'# minimap2 against the pure Python aligner\n')
+    A(u'Generated: %s · mappy %s\n' % (time.strftime('%Y-%m-%d %H:%M'), mm.surum()))
+    A(u'The measurement: %d bins x %d databases = %d comparisons, %d records per database.\n' % (len(kutular), len(vtb), len(satirlar), a.kayit))
     A(u'## Karar\n')
-    A(u'**%s**\n' % (u'minimap2 VARSAYILAN YAPILABİLİR.' if gecti
-                     else u'MEVCUT MOTORDA KALINIR. minimap2 varsayılan yapılmadı.'))
-    A(u'| Şart | Sonuç |')
+    A(u'**%s**\n' % (u'minimap2 CAN BE MADE THE DEFAULT.' if gecti
+                     else u'WE STAY ON THE CURRENT ENGINE. minimap2 was not made the default.'))
+    A(u'| Condition | Result |')
     A(u'|---|---|')
     for ad, ok in sartlar:
         A(u'| %s | %s |' % (ad, u'geçti' if ok else u'**KALDI**'))
     A(u'')
-    A(u'Hızlanma: **%.1f kat** (saf Python %.1f sn, minimap2 %.1f sn).\n'
+    A(u'Speed-up: **%.1f fold** (pure Python %.1f s, minimap2 %.1f s).\n'
       % (hiz, t_py_top, t_mm_top))
     if not gecti:
-        A(u'> Hızlı olan doğru sayılmaz. Yukarıdaki şartlardan biri bile '
-          u'kalırsa, ayrılan satırlarda hangisinin haklı olduğu elle hizalamayla '
-          u'belirlenmeden minimap2 varsayılan yapılmaz.\n')
+        A(u'> Being fast does not make it right. If even one of the conditions above is not met, minimap2 is not made the default until it is settled by hand, with an alignment, which side is right on the rows that disagree.')
     ayrilan = [s for s in satirlar if s['ayni_isabet'] == 'HAYIR'
                or s['ust5_ortusme'] != '5/5' or s['ayni_kayitta_sapma'] >= 0.5]
     if ayrilan:
-        A(u'## Ayrılan satırlar — elle doğrulama gerekir\n')
-        A(u'| Kutu | Veritabanı | Python en iyi | % | minimap2 en iyi | % | İlk 5 |')
+        A(u'## The rows that disagree, they need confirmation by hand\n')
+        A(u'| Bin | Database | Python best | % | minimap2 best | % | First 5 |')
         A(u'|---|---|---|---|---|---|---|')
         for s in ayrilan:
             A(u'| %s | %s | %s | %s | %s | %s | %s |'
               % (s['kutu'], s['vtb'], s['py_en_iyi'], s['py_yuzde'],
                  s['mm_en_iyi'], s['mm_yuzde'], s['ust5_ortusme']))
         A(u'')
-    A(u'## Bütün ölçümler\n')
-    A(u'Ham tablo: `MINIMAP2_KARSILASTIRMA.tsv`\n')
-    A(u'| Kutu | Veritabanı | Aynı isabet | Sapma | İlk 5 | Python sn | minimap2 sn | Hızlanma |')
+    A(u'## Every measurement\n')
+    A(u'The raw table: `MINIMAP2_KARSILASTIRMA.tsv`\n')
+    A(u'| Bin | Database | Same hit | Deviation | First 5 | Python s | minimap2 s | Speed-up |')
     A(u'|---|---|---|---|---|---|---|---|')
     for s in satirlar:
         A(u'| %s | %s | %s | %s | %s | %s | %s | %s |'
           % (s['kutu'], s['vtb'], s['ayni_isabet'], s['ayni_kayitta_sapma'],
              s['ust5_ortusme'], s['py_sn'], s['mm_sn'], s['hizlanma']))
-    A(u'\n## Nerede kullanılmaz\n')
-    A(u'Bu karşılaştırma yalnız **kimlik aşamasının veritabanı taramasını** '
-      u'kapsar. minimap2 primer bağlanma aramasında ve in-siliko PCR ürün '
-      u'hesabında **kullanılmaz**: primerler 18-25 bazdır, minimap2 bu boydaki '
-      u'sorgular için tasarlanmadı ve tohum bulamadığında bağlanma yerini '
-      u'sessizce kaçırır. Oralarda güvercin yuvası motoru kalır, çünkü onun '
-      u'kayıpsızlığı bir garantidir.\n')
+    A(u'\n## Where it is not used\n')
+    A(u'This comparison covers **the database scan of the identity stage** only. minimap2 **is not used** in the primer binding search or in the in-silico PCR product calculation: primers are 18 to 25 bases, minimap2 was not designed for queries of that length, and when it finds no seed it misses the binding site silently. The pigeonhole engine stays there, because its losslessness is a guarantee.')
     io.open(md, 'w', encoding='utf-8').write(u'\n'.join(L) + u'\n')
 
-    print(u'\nyazildi: %s' % md)
+    print(u'\nwritten: %s' % md)
     print(u'         %s' % tsv)
     print(u'VERDICT: %s' % (u'minimap2 as the default IS POSSIBLE'
                             if gecti else u'MEVCUT MOTORDA KALINIR'))

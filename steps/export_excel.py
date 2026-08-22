@@ -93,7 +93,7 @@ def main():
                          os.path.join(a.final, "primer_final.tsv"))
              if not os.path.exists(y)]
     if eksik:
-        sys.exit("Girdi dosyasi bulunamadi, Excel uretilmedi:\n   %s"
+        sys.exit(u'The input file was not found, so no Excel was produced:\n   %s'
                  % "\n   ".join(eksik))
     ozet = tsv(os.path.join(a.aday, "ozet.tsv"))
     ayirt = tsv(os.path.join(a.aday, "ayirt_edilemez.tsv"))
@@ -580,7 +580,7 @@ def main():
                          "hedefleri birbirinden AYIRMAZ; hedef tanımları "
                          "veride örtüşüyor demektir.")
                 tur = "Dikkat"
-            uyarilar.append((tur, "Aynı primer çifti birden çok hedefte",
+            uyarilar.append((tur, u'The same primer pair on more than one target',
                              "%s / %s" % k, yorum + "  Hedefler: " + ", ".join(sorted(v))))
 
     # 1a. Hedef adi ile olculen kimlik uyusmazligi
@@ -592,64 +592,53 @@ def main():
         if u in ("tur_uyusuyor", ""):
             continue
         tur = "Dikkat" if u == "cins_uyusuyor_tur_farkli" else "Eksik"
-        uyarilar.append((tur, "Hedef adı ile ölçülen kimlik uyuşmuyor",
-                         "%s: Kraken2 %s der, dizi %s gösterir (%s/%s kutu)"
+        uyarilar.append((tur, u'The target name and the measured identity disagree',
+                         u'%s: Kraken2 says %s, the sequence shows %s (%s/%s bins)'
                          % (x, r.get("kraken_etiketi", "")[:40],
                             r.get("olculen_kimlik", ""),
                             r.get("destekleyen_kutu", "?"),
                             r.get("kutu_sayisi", "?")),
-                         "Kanıt: %s. Hedef adı toplantı kararından gelir ve "
-                         "korunmuştur; primerin gerçekte hangi organizmayı "
-                         "çoğalttığı Ölçülen kimlik sütunundadır."
+                         u'Evidence: %s. The target name comes from the meeting decision and was kept; which organism the primer really amplifies is in the Measured identity column.'
                          % (r.get("kanit", "")[:150] or "yok")))
 
     # 1b. Alan karisimi nedeniyle teslimden cikarilan ciftler
     for x in alan_disi:
-        uyarilar.append(("Eksik", "Alan karışımı, teslimden çıkarıldı",
+        uyarilar.append(("Eksik", u'A mixture of domains, taken out of the delivery',
                          "%s (%s): F=%s R=%s"
                          % (x["hedef"], x["sinif"], x["ileri_dizi"],
                             x["geri_dizi"]),
                          x.get("alan_gerekce", "")))
     if alan_disi:
         for h in sorted(set(x["hedef"] for x in alan_disi)):
-            uyarilar.append(("Eksik", "Hedef karşılanamadı",
+            uyarilar.append(("Eksik", u'The target was not met',
                              h,
-                             "Bu hedefin kendi alanındaki tasarımı geçerli çift "
-                             "vermedi; geçen tek çift yanlış lokus "
-                             "kitaplığından geliyordu ve çıkarıldı. Hedef "
-                             "KARŞILANMAMIŞ sayılmalıdır."))
+                             u'The design in this target\'s own domain gave no valid pair; the single pair that passed came from the wrong locus library and was removed. The target has to count as NOT MET.'))
 
     # 2. Ayirt edilemez kutular
     for x in ayirt:
         t1, t2 = x.get("taxid1", ""), x.get("taxid2", "")
-        uyarilar.append(("Dikkat", "Ayırt edilemeyen takson kutusu",
-                         "%s: %s ~ %s (katı özdeşlik %%%s)"
+        uyarilar.append(("Dikkat", u'An indistinguishable taxon bin',
+                         u'%s: %s ~ %s (strict identity %%%s)'
                          % (x.get("sinif", ""), ad.get(t1, t1), ad.get(t2, t2),
                             x.get("kati_ozdeslik", x.get("ozdeslik_yuzde", ""))),
-                         "Bu iki kutu dizi düzeyinde ayrılmıyor. Rakip "
-                         "listesinden çıkarıldı; ilgili hedefin özgüllüğü bu "
-                         "takson için iddia edilmiyor."))
+                         u'These two bins do not separate at sequence level. It was taken out of the competitor list; the specificity of that target is not claimed for this taxon.'))
 
     # 3. Aday uretemeyen hedefler
     for x in ozet:
         if not str(x.get("durum", "")).startswith("TAMAM"):
-            uyarilar.append(("Eksik", "Aday üretilemedi",
-                             "%s (%s), üye=%s rakip=%s"
+            uyarilar.append(("Eksik", u'No candidate could be produced',
+                             u'%s (%s), members=%s competitors=%s'
                              % (x["hedef"], x["sinif"], x.get("uye", ""),
                                 x.get("rakip", "")),
-                             "Engelleyen üye: %s. Alt küme bölmesi sayfasına "
-                             "bakınız." % (x.get("engelleyen", "") or "kayıt yok")))
+                             u'The member that blocks it: %s. See the subset split sheet.' % (x.get("engelleyen", "") or "kayıt yok")))
 
     # 4. Gevsetilmis kademeyle gecen hedefler
     for x in ozet:
         if x.get("kademe") and x.get("kademe") != "kati":
-            uyarilar.append(("Dikkat", "Gevşetilmiş kademeyle aday üretildi",
+            uyarilar.append(("Dikkat", u'A candidate was produced with a relaxed step',
                              "%s (%s), kademe=%s" % (x["hedef"], x["sinif"],
                                                      x["kademe"]),
-                             "Katı kural (yetim primer rakiplerde hiç "
-                             "bağlanmamalı) sağlanamadı; yetim primer, "
-                             "rakiplerdeki en iyi yerleşiminde en az üç "
-                             "uyumsuzluk taşıyor."))
+                             u'The strict rule (the orphan primer must not bind anywhere in the competitors) could not be met; at its best placement in the competitors the orphan primer carries at least three mismatches.'))
 
     # 5. Dis veritabaninda cok hedef disi urun veren ozgul hedefler
     for x in gecen:
@@ -658,11 +647,9 @@ def main():
         except (TypeError, ValueError):
             continue
         if n > 100 and not x["hedef"].endswith("universal"):
-            uyarilar.append(("Dikkat", "Dış veritabanında çok hedef dışı ürün",
-                             "%s (%s): %d ürün" % (x["hedef"], x["sinif"], n),
-                             "Numunede temiz ama referans veritabanındaki "
-                             "akrabalarda ürün veriyor. Aynı hedefin daha "
-                             "düşük sayılı adayları tercih edilmeli."))
+            uyarilar.append(("Dikkat", u'Many off target products in an external database',
+                             u'%s (%s): %d products' % (x["hedef"], x["sinif"], n),
+                             u'Clean in the sample but it gives a product in the relatives in the reference database. Candidates of the same target with a lower count should be preferred.'))
 
     i = 4
     for t, konu, ayrinti, yorum in uyarilar:
@@ -840,7 +827,7 @@ def main():
         i += 1
 
     wb.save(a.out)
-    print("yazildi: %s" % a.out)
+    print(u'written: %s' % a.out)
     print("sayfa: %s" % ", ".join(wb.sheetnames))
     print(u'primer pairs passing: %d, targets covered: %d' % (len(gecen), len(kapsanan)))
 
