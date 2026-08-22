@@ -107,22 +107,22 @@ def main():
            for c in ciftler}
 
     # ------------------------------------------------------------------
-    # KESINTIYE DAYANIKLILIK
+    # RESILIENCE AGAINST INTERRUPTION
     #
-    # Ilk surumde tara() 'durum_yolu=None' ile cagriliyordu, yani kontrol
-    # noktasi KAPALIYDI. Bu bir hataydi: kuresel_tarama zaten parca parca
-    # kontrol noktasi tutar (katman1_yerel de onu kullanir) ve bu projenin
-    # kurali uzun kosunun kesintiye dayanikli olmasidir. Kapali kontrol
-    # noktasiyla 28 dakikalik SILVA taramasi bir kapanmada tumden kayboluyordu.
+    # In the first version tara() was called with durum_yolu=None, that is, with the
+    # checkpoint OFF. That was a fault: kuresel_tarama keeps a checkpoint chunk by chunk
+    # already (katman1_yerel uses it), and this project's rule is that a long run must
+    # survive interruption. With the checkpoint off, a 28 minute SILVA scan was lost
+    # entirely on a single shutdown.
     #
-    # Iki duzeyli koruma:
-    #   1) tara() icin parca duzeyi kontrol noktasi (durum_yolu)
-    #   2) HER VERITABANI bitince kismi sonuc diske yazilir; kosu kesilse bile
-    #      o ana kadarki olcum durur ve okunabilir.
+    # Two levels of protection:
+    #   1) a chunk level checkpoint for tara() (durum_yolu)
+    #   2) a partial result is written to disk as EVERY DATABASE finishes; even if the
+    #      run is cut, the measurement up to that point stands and can be read.
     #
-    # Kontrol noktasi anahtari aday DIZILERINI de tasir: yalniz adlarla
-    # muhurlenirse dizi degistiginde eski tarama sessizce geri gelir
-    # (dogrulama_turu'nda 2026-08-10'da tam bu hata olculmustu).
+    # The checkpoint key carries the candidate SEQUENCES too: sealed by name alone, an
+    # old scan comes back silently when a sequence changes (that fault was measured in
+    # dogrulama_turu on 2026-08-10).
     kn_dizin = os.path.join(KOK, 'KAPSAMLI_ARAMA_SONUC', 'kontrol', 'A2_olcum')
     try:
         os.makedirs(kn_dizin)

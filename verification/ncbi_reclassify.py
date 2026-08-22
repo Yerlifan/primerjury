@@ -1,34 +1,17 @@
 # -*- coding: utf-8 -*-
-"""NCBI SONUCLARINI YENIDEN SINIFLANDIR  -  aga cikmadan, kayitli sayfalardan.
+"""RECLASSIFY THE NCBI RESULTS, from the saved pages, without going to the network.
 
-NEDEN
------
-Katman 4'un ilk siniflandiricisi "adsiz" saymak icin anahtar kelime ariyordu
-(uncultured, clone, metagenome...). Kosu bitince ornek basliklara bakinca
-suradaki kayitlarin da ADSIZ oldugu gorulduw ama "adli" sayilmislardi:
+WHY
+---
+Layer 4's first classifier looked for keywords to count a record as "unnamed"
+(uncultured, clone, metagenome and so on). Once the run finished, a look at the
+example headers showed that the records below are UNNAMED as well, and yet they had
+been counted as named:
 
     Bacterium LC2012 16S ribosomal RNA gene
     Archaeon 2022-TM-MRBT1 gene for 16S rRNA
     anaerobic methanogenic archaeon E15-5 16S rRNA gene
-    Environmental 16s rDNA sequence from Evry wastewater treatment plant
 
-Hicbirinin cins adi yok; "Bacterium", "Archaeon" birer takson adi degil,
-"bir bakteri" demek. Bunlari adli saymak hedef disi sayisini SISIRIYOR ve
-rapora giren tabloyu gereksiz yere korkutucu yapiyor.
-
-YENI KURAL - anahtar kelime ARAMAK yerine AD ARAR
---------------------------------------------------
-Bir kayit ancak basligi "Cins tur" bicimiyle basliyorsa ADLIDIR:
-ilk sozcuk buyuk harfle baslayan gercek bir cins adi, ikinci sozcuk kucuk
-harfli tur epiteti. "Candidatus" oneki ve koseli parantezli esanlamlilar
-([Petriella] asymmetrica) kabul edilir - onlar gercek adlardir.
-
-Bu betik AGA CIKMAZ. DOGRULAMA_SONUC/ncbi_ham/ altindaki kayitli sayfalari
-yeniden okur, yani ayni veriden daha dogru bir sayim uretir. Eski sayim da
-tabloda kalir; hangi kuralin ne verdigi gorulebilsin diye.
-
-Kosum:
-    python verification/ncbi_reclassify.py --kok .
 """
 from __future__ import print_function
 
@@ -39,8 +22,8 @@ import re
 import sys
 import time
 
-# Takson adi OLMAYAN, "bir sey" anlamina gelen sozcukler. Baslik bunlarla
-# basliyorsa kayit adsizdir.
+# The words that are NOT a taxon name and mean "something". If a header starts with
+# one of them the record is unnamed.
 AD_DEGIL = {
     'bacterium', 'archaeon', 'organism', 'prokaryote', 'eukaryote',
     'uncultured', 'unidentified', 'unclassified', 'environmental',
@@ -52,8 +35,8 @@ AD_DEGIL = {
     'endophyte', 'contaminant', 'unverified', 'predicted', 'putative',
 }
 
-# Anahtar kelime suzgeci (eski kural) - hala uygulanir, yalniz artik TEK
-# olcut degil.
+# The keyword filter (the old rule); it is still applied, only it is no longer the
+# ONLY criterion.
 ADSIZ_IZ = ('uncultured', 'unidentified', 'unclassified', 'metagenome',
             'environmental', 'enrichment culture', 'clone', 'synthetic construct',
             'consortium', 'isolate ')
@@ -178,8 +161,8 @@ def main():
             continue
         adli = [x for x in ur if adli_mi(x[1])]
         ad = f[:-5]
-        # dosya adi ile hedef adi arasindaki esleme: TSV'deki hedeflerden
-        # en iyi eslesen secilir (dosya adinda noktalama sadelestirilmis).
+        # the mapping between the file name and the target name: the best match among the
+        # targets in the TSV is chosen (the punctuation in the file name is simplified).
         hedef = ad
         for h2 in eski:
             if re.sub(r'\W+', '_', h2) == ad:

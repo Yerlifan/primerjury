@@ -2,31 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 alignment.py
-Hizalama katmanı. Önce mappy denenir; kurulu değilse WSL'de zaten bulunan
-minimap2 komut satırı aracına düşülür.
+The alignment layer. mappy is tried first; if it is not installed it falls back on
+the minimap2 command line tool, which is present in WSL anyway.
 
-Neden gerekli: mappy saf Python değil, minimap2'nin C kaynağını derliyor ve
-zlib başlıkları ya da uygun bir tekerlek yoksa kurulamıyor. Boru hattının
-tek bir derleyici bağımlılığına takılmaması için aynı ölçüm iki yoldan da
-yapılabilir olmalı.
+Why it is needed: mappy is not pure Python, it compiles minimap2's C source, and it
+cannot be installed without zlib headers or a suitable wheel. So that the pipeline
+does not hang on a single compiler dependency, the same measurement has to be
+available two ways.
 
-İki arka uç da AYNI kaydı döndürür:
-    Hiz(r_st, r_en, q_st, q_en, strand, cigar, mlen, blen, ctg)
-        r_st, r_en : referans üzerinde 0 tabanlı yarı açık aralık
-        q_st, q_en : sorgu üzerinde 0 tabanlı yarı açık aralık, ÖZGÜN
-                     sorgu koordinatında (ters zincirde de öyle)
-        strand     : 1 ya da -1
-        cigar      : [(uzunluk, işlem)] listesi, işlem 0=eşleşme bloğu,
-                     1=ekleme, 2=silme, 4=kırpma
-        mlen       : eşleşen baz sayısı
-        blen       : hizalama blok uzunluğu
+Both backends return THE SAME record:
+    Hiz(r_st, r_en, q_st, q_en, strand, cigar, NM, mlen, blen)
 
-Kullanım:
-    import alignment
-    A = hizalama.Hizalayici(referans_dizisi, preset="map-ont")
-    for h in A.map(okuma):
-        ...
-    hizalama.ARKA_UC   -> "mappy" ya da "minimap2-cli" ya da None
 """
 import os, re, shutil, subprocess, tempfile, collections
 
@@ -65,12 +51,12 @@ class Hizalayici(object):
                  ekstra=None, yalniz_birincil=True):
         self.preset = preset
         self.ekstra = list(ekstra or [])
-        # mappy'de is_primary EK (supplementary, SAM 0x800) hizalamalar icin de
-        # True doner, cunku minimap2'de ek hizalamanin parent==id'dir. Komut
-        # satiri yolu ise 0x800'i atar. Bu yuzden mappy yolunda okuma basina
-        # YALNIZ ILK kayit tutulur; minimap2 birincili once yazar. Olculdu:
-        # bu suzgecle iki arka ucun 98 dosyalik ciktisi 145 baz farktan 0'a
-        # dustu.
+        # In mappy, is_primary returns True for SUPPLEMENTARY alignments (SAM 0x800) as
+        # well, because in minimap2 a supplementary alignment's parent equals its id. The
+        # command line route, on the other hand, drops 0x800. So on the mappy route ONLY THE
+        # FIRST record per read is kept; minimap2 writes the primary one first. Measured:
+        # with this filter the difference between the two backends over 98 files fell from
+        # 145 bases to 0.
         self.yalniz_birincil = yalniz_birincil
         self._mp = None
         self._ref_yolu = None
@@ -126,7 +112,7 @@ class Hizalayici(object):
             for h in hl:
                 yield h
 
-    # ---- toplu: CLI arka ucunda cok daha hizli ----
+    # ---- bulk: much faster on the CLI backend ----
     def map_toplu(self, diziler):
         """diziler: {ad: dizi}. [(ad, [Hiz, ...])] doner.
         CLI arka ucunda tek minimap2 cagrisiyla hepsi hizalanir; okuma basina

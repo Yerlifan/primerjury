@@ -2,31 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 recover_bins.py
-REFERANSSIZ KONSENSUS: kendi self referansi kullanilamayan kutulari kurtarir.
+A CONSENSUS WITH NO REFERENCE: it rescues the bins whose own self reference cannot
+be used.
 
-Sorun: 06/07 her kutu icin bir "self referans" uretiyor ve 12 o referansa
-hizalayarak baskin alel konsensusunu kuruyor. Referansin kendisi asiri
-belirsizse (cok IUPAC kodu) minimap2 o diziden neredeyse hic k-mer
-cikaramiyor. Olculdu: B-1_2233851 referansi 1454 bp ve %19'u IUPAC;
-minimap2 yalnizca 2 minimizer buldu ve konsensus sifir uzunlukta cikti.
-Kutuda 5914 okuma var, yani veri kaybi degil, kalip kaybi.
+The problem: the earlier steps produce a "self reference" for each bin and the
+consensus builder aligns to that reference to build the dominant allele consensus.
+If the reference itself is too ambiguous (too many IUPAC codes), minimap2 can pull
+almost no k-mer out of it. Measured: the B-1_2233851 reference is 1454 bp and 19
+percent of it is IUPAC; minimap2 found only 2 minimizers and the consensus came out
+zero length.
 
-Cozum: kalip disaridan gelmesin, okumalarin kendisinden gelsin.
-  1. Medyan uzunluga yakin okumalardan aday tohumlar secilir.
-  2. Her tohuma butun okumalar (altorneklem) hizalanir; en cok okuma
-     toplayan tohum kalip olur. Boylece kalip en temsili okumadir.
-  3. O kalip uzerinde baskin alel cagrilir (12 ile ayni kural: derinlik
-     esigi, oran esigi, esitlikte N).
-  4. Sonuc yeni kalip yapilip 2 ve 3 bir kez daha calistirilir; tohum
-     okumasinin kendi hatalari boylece silinir.
-
-Iki bagimsiz olcum: okumalar iki ayrik yariya bolunur ve konsensus iki
-kez ayri ayri kurulur. Iki yari birbirinden ayrisiyorsa sonuc SUPHELI
-isaretlenir ve fark raporlanir; sessizce tek bir dizi uretilmez.
-
-Kullanim:
-  python3 recover_bins.py --fastq "fastq files/B-1/B-1-reads_2233851.fastq" \
-      --etiket B-1_2233851 --out referans_konsensus/baskin/konsensus
 """
 import argparse, os, random, statistics, sys
 
@@ -140,7 +125,7 @@ def konsensus_cagir(say, min_derinlik, min_oran):
 
 
 def kur(okumalar, a, gunluk):
-    """Tohum sec, kalip kur, iyilestir. Doner: (dizi, tohum_hizalanan)."""
+    """Pick a seed, build a template, refine it. Returns: (sequence, seed_aligned)."""
     uzunluklar = sorted(len(r) for r in okumalar)
     orta = statistics.median(uzunluklar)
     # medyan uzunluga en yakin okumalar aday tohum
@@ -159,7 +144,7 @@ def kur(okumalar, a, gunluk):
         if say is None:
             return None, 0
         dizi, dusuk, belirsiz = konsensus_cagir(say, a.min_derinlik, a.min_oran)
-        # bastaki ve sondaki N'ler kirpilir, ic N'ler yerinde birakilir
+        # the N's at the start and the end are trimmed, the inner N's are left in place
         b = 0
         while b < len(dizi) and dizi[b] == "N":
             b += 1
@@ -173,26 +158,25 @@ def kur(okumalar, a, gunluk):
         if not dizi:
             return None, hiz
         kalip = dizi.replace("N", "A") if "N" in dizi else dizi
-        # bir sonraki turda kalip olarak kullanilacak; N'ler hizalamayi
-        # bozmasin diye gecici olarak doldurulur, cagrilan diziye dokunulmaz
+        # it will be used as the template in the next round; the N's are filled in
+        # temporarily so they do not spoil the alignment, and the sequence called is
+        # not touched
         son = dizi
     return son, hiz
 
 
 def fark_olc(x, y):
-    """Iki dizinin farkini IKI AYRI SAYI olarak verir: (ikame, indel).
+    """Gives the difference between two sequences AS TWO SEPARATE NUMBERS:
+    (substitution, indel).
 
-    Ayrimin sebebi olculdu: bu kutunun iki yarisi 1449 bazda yalnizca 3
-    ikame ile ayrildi (%0,21), ama 32 insersiyon ve 32 delesyonla. Indel
-    farki homopolimer uzunlugundan geliyor; kalip tabanli baskin alel
-    yontemi kalip pozisyonlarindaki bazi duzeltir, kalibin uzunlugunu
-    duzeltmez, dolayisiyla tohum okumanin homopolimer uzunlugu sonuca
-    gecer. Ikisini tek sayida toplamak, biyolojik sinyali ONT'nin bilinen
-    homopolimer hatasiyla karistirir.
+    The reason for the split was measured: the two halves of this bin differed over 1449
+    bases by only 3 substitutions (0.21 percent) but by 32 insertions and 32 deletions.
+    The indel difference comes from homopolymer length; a template based dominant allele
+    method corrects the bases at the template's positions and not the template's length,
+    so the seed read's homopolymer length carries through to the result. Summing the two
+    into one number would hide that.
 
-    Yon farkindan bagimsizdir: tohum okumalardan secildigi icin iki yarinin
-    konsensusu birbirinin ters tumleyeni olabilir.
-    Doner: (ikame_orani, indel_orani, kapsam, hizalanan_baz)"""
+    """
     if not x or not y:
         return 1.0, 1.0, 0.0, 0
 
@@ -236,11 +220,11 @@ def fark_olc(x, y):
         if ortak == 0:
             return None
         kapsam = min(1.0, ortak / min(len(a), len(b)))
-        # UC SAYI AYRI VERILIR. Bunlari tek sayida toplamak, kapsama
-        # eksigini ikame farki gibi gostermeye yol aciyordu: bu kutuda
-        # gercek ikame orani 0,0021 iken birlestirilmis sayi 0,0145
-        # cikiyordu, yani karar biyolojik sinyale degil indellerin yedigi
-        # pozisyonlara dayaniyordu.
+        # THE THREE NUMBERS ARE GIVEN SEPARATELY. Summing them into one number
+        # made a coverage gap look like a substitution difference: in this bin the
+        # real substitution rate is 0.0021 while the combined number came out
+        # 0.0145, so the decision rested on the positions the indels ate rather
+        # than on a biological signal.
         return (ikame / ortak, indel / ortak, kapsam, ortak)
 
     d = [z for z in (olc(x, y), olc(y, x)) if z is not None]
@@ -267,7 +251,7 @@ def main():
     if not tam:
         sys.exit(u'the consensus could not be built')
 
-    # iki bagimsiz olcum: ayrik yarilar
+    # two independent measurements: disjoint halves
     karisik = okumalar[:]
     random.shuffle(karisik)
     yarim = len(karisik) // 2
