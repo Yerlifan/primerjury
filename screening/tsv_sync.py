@@ -40,19 +40,19 @@ import openpyxl
 
 ESLEME = [
     ('1 Rapora Ozet',            'degerlendiriciya_ozet_20260802_TESLIM.tsv'),
-    ('2 Panel',                  'primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv'),
-    ('3 Triyaj (matris ilgisi)', 'primer_final/triyaj_20260802_TESLIM.tsv'),
-    ('4 Degisiklikler',          'primer_final/degisiklikler_20260802_TESLIM.tsv'),
-    ('5 Dusen ciftler',          'primer_final/devir_dusenler_20260802_sonrotus_TESLIM.tsv'),
-    ('6 Karar Durumu',           'primer_final/karar_durumu_20260802_TESLIM.tsv'),
-    ('7 Ayrilik Tablosu',        'primer_final/ayrilik_tablosu_20260802_TESLIM.tsv'),
-    ('8 Geometri Denetimi',      'primer_final/geometri_denetimi_20260802_TESLIM.tsv'),
-    ('9 Kurtarma ve Onarim',     'primer_final/kurtarma_ve_onarim_20260802_TESLIM.tsv'),
-    ('10 Olcum Hatalari',        'primer_final/olcum_hatalari_20260802_TESLIM.tsv'),
-    ('11 B-F Yeniden Olcum',     'primer_final/bf_yeniden_olcum_20260802_TESLIM.tsv'),
-    ('13 Oksuz Kutular',         'primer_final/oksuz_kutular_20260802_TESLIM.tsv'),
-    ('14 Plaka ve Jel',          'primer_final/plaka_ve_jel_20260802_TESLIM.tsv'),
-    ('15 On Kararlar',           'primer_final/on_kararlar_20260802_TESLIM.tsv'),
+    ('2 Panel',                  'final_primers/devir_ciftleri_20260802_sonrotus_TESLIM.tsv'),
+    ('3 Triyaj (matris ilgisi)', 'final_primers/triyaj_20260802_TESLIM.tsv'),
+    ('4 Degisiklikler',          'final_primers/degisiklikler_20260802_TESLIM.tsv'),
+    ('5 Dusen ciftler',          'final_primers/devir_dusenler_20260802_sonrotus_TESLIM.tsv'),
+    ('6 Karar Durumu',           'final_primers/karar_durumu_20260802_TESLIM.tsv'),
+    ('7 Ayrilik Tablosu',        'final_primers/ayrilik_tablosu_20260802_TESLIM.tsv'),
+    ('8 Geometri Denetimi',      'final_primers/geometri_denetimi_20260802_TESLIM.tsv'),
+    ('9 Kurtarma ve Onarim',     'final_primers/kurtarma_ve_onarim_20260802_TESLIM.tsv'),
+    ('10 Olcum Hatalari',        'final_primers/olcum_hatalari_20260802_TESLIM.tsv'),
+    ('11 B-F Yeniden Olcum',     'final_primers/bf_yeniden_olcum_20260802_TESLIM.tsv'),
+    ('13 Oksuz Kutular',         'final_primers/oksuz_kutular_20260802_TESLIM.tsv'),
+    ('14 Plaka ve Jel',          'final_primers/plaka_ve_jel_20260802_TESLIM.tsv'),
+    ('15 On Kararlar',           'final_primers/on_kararlar_20260802_TESLIM.tsv'),
 ]
 # the column headers carrying a primer sequence (for the critical difference check)
 DIZI_BASLIK = ("Ileri primer", "Geri primer")

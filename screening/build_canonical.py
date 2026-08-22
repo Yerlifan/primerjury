@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-build_canonical.py - it produces THE ONE CANONICAL SOURCE: konsensus_kanonik/
+build_canonical.py - it produces THE ONE CANONICAL SOURCE: canonical_consensus/
 
 It reads every consensus (from the mixed orientation directories), turns them to the
 SENSE direction with orientation.py and writes them into a SINGLE directory. From
@@ -14,9 +14,9 @@ atlandi):
     3. consensus sequences                   (the original output)
 
 The output:
-    konsensus_kanonik/<bin>_kanonik.fasta
-    konsensus_kanonik/MANIFEST.tsv           per file: source, old orientation, flipped
-    konsensus_kanonik/BELIRSIZ.tsv           files whose orientation could not be settled
+    canonical_consensus/<bin>_kanonik.fasta
+    canonical_consensus/MANIFEST.tsv           per file: source, old orientation, flipped
+    canonical_consensus/UNDECIDED.tsv           files whose orientation could not be settled
 
 Usage:
     python build_canonical.py --root ..
@@ -34,9 +34,9 @@ Usage:
 #          on), SCREENING_RESULT/konsensus_yeni (the new production) and
 #          referans_konsensus/konsensus. The orientation decision is made with
 #          orientation.dosya_kanonik().
-# OUTPUT : <bin>.kanonik.fa per bin under konsensus_kanonik/; besides that
-#          INDEKS.tsv (the one list consumers must read), MANIFEST.tsv (the source,
-#          the old orientation, whether it was flipped), BELIRSIZ.tsv and
+# OUTPUT : <bin>.canonical.fa per bin under canonical_consensus/; besides that
+#          INDEX.tsv (the one list consumers must read), MANIFEST.tsv (the source,
+#          the old orientation, whether it was flipped), UNDECIDED.tsv and
 #          README.txt. Exit code 0 = no file needing a flip is left in the
 #          canonical directory.
 # CALLED BY: hepsi.kanonik_kos() runs it as a separate process, as the 2nd stage of
@@ -44,7 +44,7 @@ Usage:
 #          the command suggested for running by hand in the error message of every
 #          stage whose orientation gate fails.
 #
-# WHY INDEKS.tsv EXISTS: leftover old files on the mounted directory CANNOT BE
+# WHY INDEX.tsv EXISTS: leftover old files on the mounted directory CANNOT BE
 # DELETED. A consumer reading with glob collects those leftovers too and takes old
 # mixed orientation files for canonical ones. That is why the list of valid files is
 # kept separately.
@@ -112,7 +112,7 @@ def kutu_adi(yol):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', dest='kok', required=True)
-    ap.add_argument('--output', dest='cikti', default='konsensus_kanonik')
+    ap.add_argument('--output', dest='cikti', default='canonical_consensus')
     ap.add_argument('--rerun', dest='yeniden', action='store_true')
     ap.add_argument('--priority', dest='oncelik', default='ozgun', choices=sorted(ONCELIK))
     a = ap.parse_args()
@@ -126,8 +126,8 @@ def main():
     cik = os.path.join(a.kok, a.cikti)
     os.makedirs(cik, exist_ok=True)
     # NOTE: a file CANNOT BE DELETED on the mounted directory (Operation not
-    # permitted). That is why valid files are written to the *.kanonik.fa pattern and
-    # recorded in INDEKS.tsv. Consumers must read THE INDEX, NOT a glob; the old
+    # permitted). That is why valid files are written to the *.canonical.fa pattern and
+    # recorded in INDEX.tsv. Consumers must read THE INDEX, NOT a glob; the old
     # *_kanonik.fasta leftovers are inert.
 
     manifest, belirsiz, gorulen = [], [], {}
@@ -163,7 +163,7 @@ def main():
                                      durum='UNDECIDED, not written'))
                 continue
             gorulen[k] = etiket
-            cy = os.path.join(cik, '%s.kanonik.fa' % k)
+            cy = os.path.join(cik, '%s.canonical.fa' % k)
             with open(cy, 'w', encoding='utf-8') as fh:
                 fh.write('>%s kanonik=%s kaynak=%s eski_yon=%s cevrildi=%s\n'
                          % (k, orientation.KANONIK_YON, etiket, karar, int(cev)))
@@ -183,14 +183,14 @@ def main():
             for r in rows:
                 w.writerow(r)
     yaz('MANIFEST.tsv', manifest)
-    yaz('BELIRSIZ.tsv', belirsiz)
-    yaz('INDEKS.tsv', [dict(kutu=m['kutu'], sinif=m['sinif'],
-                            dosya='%s.kanonik.fa' % m['kutu'], kaynak=m['kaynak'],
+    yaz('UNDECIDED.tsv', belirsiz)
+    yaz('INDEX.tsv', [dict(kutu=m['kutu'], sinif=m['sinif'],
+                            dosya='%s.canonical.fa' % m['kutu'], kaynak=m['kaynak'],
                             eski_yon=m['eski_yon'], cevrildi=m['cevrildi'],
                             uzunluk=m['uzunluk'])
                        for m in manifest if m['durum'] == 'yazildi'])
     open(os.path.join(cik, 'README.txt'), 'w', encoding='utf-8').write(
-        u'CANONICAL CONSENSUS DIRECTORY\nValid files: *.kanonik.fa  (listed in INDEKS.tsv)\nThis directory can hold LEFTOVER files ending in *_kanonik.fasta. Those are the\nmisnamed output of the first run and could not be deleted on a mounted drive. IGNORE THEM.\nEvery consumer must read INDEKS.tsv and must NOT use glob.\nCanonical orientation: SENSE. Definition and criterion: screening/orientation.py\n')
+        u'CANONICAL CONSENSUS DIRECTORY\nValid files: *.canonical.fa  (listed in INDEX.tsv)\nThis directory can hold LEFTOVER files ending in *_kanonik.fasta. Those are the\nmisnamed output of the first run and could not be deleted on a mounted drive. IGNORE THEM.\nEvery consumer must read INDEX.tsv and must NOT use glob.\nCanonical orientation: SENSE. Definition and criterion: screening/orientation.py\n')
 
     yazilan = [m for m in manifest if m['durum'] == 'yazildi']
     cevrilen = [m for m in yazilan if m['cevrildi'] == 'EVET']
@@ -198,7 +198,7 @@ def main():
     print(u'bins written        : %d' % len(yazilan))
     print(u'  converted           : %d (ANTISENSE -> SENSE)' % len(cevrilen))
     print(u'  already sense       : %d' % (len(yazilan) - len(cevrilen)))
-    print(u'BELIRSIZ       : %d (not written, BELIRSIZ.tsv)' % len(belirsiz))
+    print(u'BELIRSIZ       : %d (not written, UNDECIDED.tsv)' % len(belirsiz))
     kay = {}
     for m in yazilan:
         kay[m['kaynak']] = kay.get(m['kaynak'], 0) + 1
@@ -206,7 +206,7 @@ def main():
 
     # VERIFICATION: is every file written really SENSE
     kotu = 0
-    for y in sorted(glob.glob(os.path.join(cik, '*.kanonik.fa'))):
+    for y in sorted(glob.glob(os.path.join(cik, '*.canonical.fa'))):
         kayitlar, sn = orientation.dosya_kanonik(y)
         for ad, dizi, karar, cev in kayitlar:
             if cev:

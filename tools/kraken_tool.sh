@@ -1229,7 +1229,7 @@ tus_ozelvt_kur() {
       printf "  %-12s %-42s ABSENT\n" "$k" "$(basename "$f")"
     fi
   done
-  [ "$var" -gt 0 ] || { echo; echo "ERROR: not one reference set was found ($PROJE/REFERANS_DB)"; exit 1; }
+  [ "$var" -gt 0 ] || { echo; echo "ERROR: not one reference set was found ($PROJE/REFERENCE_DB)"; exit 1; }
   local gb=$((toplam / 1073741824)); [ "$gb" -lt 1 ] && gb=1
   echo
   echo "  total sequence : about ${gb} GB"
@@ -1271,11 +1271,11 @@ tus_ozelvt_kur() {
 
 kume_dosya() {
   case "$1" in
-    silva_ssu) echo "$PROJE/REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta" ;;
-    silva_lsu) echo "$PROJE/REFERANS_DB/SILVA_138.2_LSURef_NR99.fasta" ;;
-    unite)     echo "$PROJE/REFERANS_DB/UNITE_ITS.fasta" ;;
-    pr2)       echo "$PROJE/REFERANS_DB/PR2_SSU_taxo_long.fasta" ;;
-    rod)       echo "$PROJE/REFERANS_DB/ROD_v1.2_operon_variants.fasta" ;;
+    silva_ssu) echo "$PROJE/REFERENCE_DB/SILVA_138.2_SSURef_NR99.fasta" ;;
+    silva_lsu) echo "$PROJE/REFERENCE_DB/SILVA_138.2_LSURef_NR99.fasta" ;;
+    unite)     echo "$PROJE/REFERENCE_DB/UNITE_ITS.fasta" ;;
+    pr2)       echo "$PROJE/REFERENCE_DB/PR2_SSU_taxo_long.fasta" ;;
+    rod)       echo "$PROJE/REFERENCE_DB/ROD_v1.2_operon_variants.fasta" ;;
     *) return 1 ;;
   esac
 }

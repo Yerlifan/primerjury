@@ -24,7 +24,7 @@ THE PROJECT'S CANONICAL ORIENTATION: SENSE (the reference, or plus, strand).
 #          kanonik() the triple (canonical_sequence, verdict, was_flipped);
 #          dosya_kanonik() a record list; kendini_sina() an empty list (passed) or
 #          error texts. Run directly, it prints the test result to the screen.
-# CALLED BY: build_canonical.py (producing konsensus_kanonik), hepsi.yon_kapisi (the
+# CALLED BY: build_canonical.py (producing canonical_consensus), hepsi.yon_kapisi (the
 #          gate at the head of every stage), kendini_sina.yon_sinamasi and
 #          build_consensus.py. So it runs indirectly on all of full_chain.py's
 #          stages 1 to 9.

@@ -26,11 +26,11 @@ Sorunlu sayilma gerekceleri (hepsi panel dosyasindan turetilir):
 #               bin and consensus lists from the files and resolves the member and
 #               competitor set for every target.
 #
-# INPUT  : primer_final/devir_ciftleri_*.tsv (the panel, or its backup),
+# INPUT  : final_primers/devir_ciftleri_*.tsv (the panel, or its backup),
 #          steps/targets.tsv (the decision table, group membership),
 #          steps/taxid_names.tsv, screening/target_membership.tsv (the explicit,
 #          hand editable membership), "fastq files/*/reads_*.fastq" (the bins) and
-#          konsensus_kanonik/INDEKS.tsv (the canonical consensuses).
+#          canonical_consensus/INDEX.tsv (the canonical consensuses).
 # OUTPUT : it writes no file. panel_oku() returns (rows, path); sorunlu_hedefler()
 #          returns (problem targets, panel, path); kutular() and konsensusler()
 #          return dictionary lists; hedef_baglami() returns a dictionary of the
@@ -268,7 +268,7 @@ def kutular():
 
 
 def konsensusler():
-    """The CANONICAL consensuses. The source: konsensus_kanonik/INDEKS.tsv (all SENSE).
+    """The CANONICAL consensuses. The source: canonical_consensus/INDEX.tsv (all SENSE).
         The orientation normalisation of 2026-08-02: the 'consensus sequences' directory
         used to be read directly; that directory is MIXED orientation (71 antisense / 27
         sense) and on a reversed consensus in-silico PCR SILENTLY gives 0 products. A

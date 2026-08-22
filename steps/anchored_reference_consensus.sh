@@ -32,7 +32,7 @@
 #        --pt  /path/to/project \
 #        --out /path/to/project/referans_konsensus \
 #        [--groups F1,F2] [--threads N] [--sample 50] [--min-depth N]
-#        [--db ROD_v1.2_operon_variants.fasta]   inside REFERANS_DB, comma separated
+#        [--db ROD_v1.2_operon_variants.fasta]   inside REFERENCE_DB, comma separated
 # =====================================================================
 set -euo pipefail
 
@@ -54,7 +54,7 @@ done
 [ -n "$PT" ] && [ -n "$OUT" ] || {
   echo "usage: bash $0 --pt <project directory> --out <output>" >&2; exit 2; }
 [ -d "$PT/fastq files" ] || { echo "ERROR: no such directory: '$PT/fastq files'" >&2; exit 1; }
-[ -d "$PT/REFERANS_DB" ] || { echo "ERROR: no such directory: '$PT/REFERANS_DB'" >&2; exit 1; }
+[ -d "$PT/REFERENCE_DB" ] || { echo "ERROR: no such directory: '$PT/REFERENCE_DB'" >&2; exit 1; }
 
 log(){ printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 die(){ printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -72,7 +72,7 @@ done
 log "araclar hazir, is parcacigi=$THREADS, blastdbcmd=$HAS_BDC"
 
 mkdir -p "$OUT"/{ref,bam,konsensus,pileup,maske,blast,log}
-DB="$PT/REFERANS_DB"
+DB="$PT/REFERENCE_DB"
 
 # --- choosing a database per group -------------------------------------
 # For the F groups ROD (full length rDNA operons, eukaryotes only) is tried first.
@@ -91,7 +91,7 @@ db_for() {
     *)  echo "";;
   esac
 }
-# a hand selection with --db, comma separated file names (inside REFERANS_DB)
+# a hand selection with --db, comma separated file names (inside REFERENCE_DB)
 if [ -n "$DB_OVERRIDE" ]; then
   db_for() { echo "$DB_OVERRIDE" | tr ',' '\n' | sed "s#^#$DB/#" | tr '\n' ' '; }
 fi

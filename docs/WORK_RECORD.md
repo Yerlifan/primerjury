@@ -425,7 +425,7 @@ clean; it is reported separately as `OLCUM GECERSIZ`.
 
 ### 3.22 The level check silently dropped the reference pairs
 
-In `primer_referans.tsv` the name is `Methanosarcina_barkeri_referans`, and
+In `reference_primers.tsv` the name is `Methanosarcina_barkeri_referans`, and
 stripping the `_referans` suffix gives `Methanosarcina_barkeri`, while the name in
 `targets.tsv` is `Methanosarcina_barkeri_turu`. When the match failed, the
 target's **only** primer set, since it has no de novo pair at all, dropped
@@ -782,11 +782,11 @@ bash heavy_jobs.sh --only H
 ```
 
 ```bash
-python3 check_taxonomic_level.py --targets targets.tsv --names taxid_names.tsv --final "$PT/primer_final" --reference "$PT/primer_referans/primer_referans.tsv" --db "$PT/REFERANS_DB" --identity "$PT/primer_final/hedef_kimlik.tsv" --threads 4 --out "$PT/primer_final/duzey_denetimi.tsv"
+python3 check_taxonomic_level.py --targets targets.tsv --names taxid_names.tsv --final "$PT/final_primers" --reference "$PT/reference_primers/reference_primers.tsv" --db "$PT/REFERENCE_DB" --identity "$PT/final_primers/hedef_kimlik.tsv" --threads 4 --out "$PT/final_primers/duzey_denetimi.tsv"
 ```
 
 ```bash
-python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" --reference-targets reference_targets.tsv --out "$PT/primer_referans"
+python3 design_from_reference.py --db "$PT/REFERENCE_DB" --pt "$PT" --reference-targets reference_targets.tsv --out "$PT/reference_primers"
 ```
 
 The wide outside database sweep takes about 12 minutes, the level check about 5

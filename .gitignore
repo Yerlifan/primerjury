@@ -1,12 +1,12 @@
 # ---------------------------------------------------------------------------
 # Reference databases and sequencing data are NEVER committed.
 #
-# Measured on the source project: 113 GB total, of which REFERANS_DB alone is
+# Measured on the source project: 113 GB total, of which REFERENCE_DB alone is
 # 28 GB. The code itself is a few MB. Databases are fetched and verified by
 # `bash install.sh databases`, which checks record counts and alphabet after every
 # download instead of trusting the URL.
 # ---------------------------------------------------------------------------
-REFERANS_DB/
+REFERENCE_DB/
 sequences/*
 !sequences/.gitkeep
 !sequences/README.md

@@ -32,7 +32,7 @@ import re
 import sys
 import time
 
-PANEL = os.path.join('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
+PANEL = os.path.join('final_primers', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
 
 
 def _tsv(yol):

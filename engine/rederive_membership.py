@@ -58,10 +58,10 @@ USAGE
 # from the MEASURED identity rather than the Kraken label, and re-measures every
 # panel pair with the corrected membership.
 #
-# INPUT  : konsensus_kanonik/*.kanonik.fa (the bin consensuses),
+# INPUT  : canonical_consensus/*.canonical.fa (the bin consensuses),
 #          "fastq files"/*/*.fastq(.gz) (the raw reads),
 #          screening/target_membership.tsv (the current membership definition),
-#          primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (the panel pairs).
+#          final_primers/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (the panel pairs).
 # OUTPUT : engine_RESULT/engine_TURETME.md,
 #          engine_RESULT/ciftler_yeniden_olcum.tsv,
 #          engine_RESULT/kutu_olculen_kimlik.tsv,
@@ -370,9 +370,9 @@ def main():
         for f in glob.glob(os.path.join(CIK, '_ck_*.json')): os.remove(f)
         print(u'checkpoints deleted.')
 
-    KONS = os.path.join(KOK, 'konsensus_kanonik')
+    KONS = os.path.join(KOK, 'canonical_consensus')
     FQ = os.path.join(KOK, 'fastq files')
-    for p, adi in ((KONS, 'konsensus_kanonik'), (FQ, 'fastq files')):
+    for p, adi in ((KONS, 'canonical_consensus'), (FQ, 'fastq files')):
         if not os.path.isdir(p): sys.exit(u'ERROR: there is no %s directory: %s' % (adi, p))
 
     print('=' * 70); print(u'  RE-DERIVING MEMBERSHIP FROM THE MEASURED IDENTITY'); print('=' * 70)
@@ -380,8 +380,8 @@ def main():
 
     # --- 0. envanter
     kons = {}
-    for p in glob.glob(os.path.join(KONS, '*.kanonik.fa')):
-        kons[os.path.basename(p).replace('.kanonik.fa', '')] = temizle(list(dict(fasta(p)).values())[0])
+    for p in glob.glob(os.path.join(KONS, '*.canonical.fa')):
+        kons[os.path.basename(p).replace('.canonical.fa', '')] = temizle(list(dict(fasta(p)).values())[0])
     fq = {}
     for p in glob.glob(os.path.join(FQ, '*', '*.fastq')) + glob.glob(os.path.join(FQ, '*', '*.fastq.gz')):
         fq[kutu_adi(p)] = p
@@ -515,7 +515,7 @@ def main():
     # --- 3. re-deriving the membership
     print(u'  [3/4] Re-deriving membership')
     uyelik_tsv = os.path.join(KOK, 'screening', 'target_membership.tsv')
-    panel_tsv = os.path.join(KOK, 'primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
+    panel_tsv = os.path.join(KOK, 'final_primers', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(uyelik_tsv): sys.exit(u'ERROR: %s is missing' % uyelik_tsv)
     if not os.path.exists(panel_tsv): sys.exit(u'ERROR: %s is missing' % panel_tsv)
     uyelik = {}

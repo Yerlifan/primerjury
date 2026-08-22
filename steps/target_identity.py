@@ -20,7 +20,7 @@ Conserved regions (18S, 28S) do not separate at genus level; the script writes o
 every row which region it measured from, so the level of confidence is not hidden.
 
 Usage:
-  python3 target_identity.py --consensus referans_konsensus/baskin/konsensus       --db REFERANS_DB --targets targets.tsv --names taxid_names.tsv       --out primer_final/hedef_kimlik.tsv
+  python3 target_identity.py --consensus referans_konsensus/baskin/konsensus       --db REFERENCE_DB --targets targets.tsv --names taxid_names.tsv       --out final_primers/hedef_kimlik.tsv
 
 """
 import argparse, csv, collections, glob, os, re, subprocess, sys, tempfile, shutil

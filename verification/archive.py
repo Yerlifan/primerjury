@@ -52,7 +52,7 @@ def kod_dosyalari(kok):
 
 def _guncel_diziler(kok):
     'Every primer sequence the panel holds NOW.'
-    y = os.path.join(kok, 'primer_final',
+    y = os.path.join(kok, 'final_primers',
                      'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     out = set()
     if not os.path.exists(y):
@@ -126,8 +126,8 @@ def adaylar(kok):
         a.append(('geo.json', 'it used to be written whenever '
                               'geometry_core.py was imported; it is no longer '
                               'produced, since a __main__ guard was added'))
-    for f in ('REFERANS_DB/SILVA_SSURef_NR99.fasta',
-              'REFERANS_DB/SILVA_LSURef_NR99.fasta'):
+    for f in ('REFERENCE_DB/SILVA_SSURef_NR99.fasta',
+              'REFERENCE_DB/SILVA_LSURef_NR99.fasta'):
         if os.path.exists(os.path.join(kok, *f.split('/'))):
             a.append((f, 'a twin copy. It does not enter the vote, and the '
                          'SSU one is NO LONGER a twin: the 138.2 release was '
@@ -176,11 +176,11 @@ def main():
         'PrimerJury_Primer_Tasarimi.xlsx':
             'the step scripts PRODUCE this file with --out rather than '
             'reading it, so it can be produced again',
-        'REFERANS_DB/SILVA_SSURef_NR99.fasta':
+        'REFERENCE_DB/SILVA_SSURef_NR99.fasta':
             'taken out of the identity_verification.py list today. It never '
             'entered the vote, and it is NO LONGER a twin: this copy is RNA '
             'while the 138.2 release is DNA',
-        'REFERANS_DB/SILVA_LSURef_NR99.fasta':
+        'REFERENCE_DB/SILVA_LSURef_NR99.fasta':
             'taken out of the identity_verification.py list today',
     }
 

@@ -8,7 +8,7 @@
 #  USAGE
 #  -----
 #      bash build_index.sh                                  # SSU (the old behaviour)
-#      bash build_index.sh SILVA_138.2_LSURef_NR99.fasta    # a name inside REFERANS_DB
+#      bash build_index.sh SILVA_138.2_LSURef_NR99.fasta    # a name inside REFERENCE_DB
 #      bash build_index.sh /full/path/other.fasta           # a full path works too
 #      bash build_index.sh --list                           # show the candidate files
 #      CPU=8 MEMPCT=60 bash build_index.sh <file>           # resource settings
@@ -55,14 +55,14 @@ set -o pipefail
 # ---- The paths are derived from the script's own location, so they work even if
 #      the directory is renamed
 KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB="$KOK/REFERANS_DB"
+DB="$KOK/REFERENCE_DB"
 MFE="$KOK/tools/mfeprimer"
 
 VARSAYILAN="SILVA_138.2_SSURef_NR99.fasta"   # a call with no argument = the old behaviour
 
 # ---- --list / --yardim (help)
 if [ "${1:-}" = "--list" ] || [ "${1:-}" = "-l" ]; then
-  echo "the indexable files inside REFERANS_DB:"
+  echo "the indexable files inside REFERENCE_DB:"
   printf '%-42s %10s  %s\n' "FILE" "MB" "INDEX"
   for f in "$DB"/*.fasta "$DB"/*.fna; do
     [ -f "$f" ] || continue
@@ -76,7 +76,7 @@ if [ "${1:-}" = "--yardim" ] || [ "${1:-}" = "-h" ]; then
   sed -n '2,40p' "${BASH_SOURCE[0]}"; exit 0
 fi
 
-# ---- Resolve the target FASTA: a full path, a name inside REFERANS_DB, or the
+# ---- Resolve the target FASTA: a full path, a name inside REFERENCE_DB, or the
 #      default with no argument
 GIRDI="${1:-$VARSAYILAN}"
 if [ -f "$GIRDI" ]; then

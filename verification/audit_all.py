@@ -179,7 +179,7 @@ def d3_referans_bayat(kok, yaz):
 def d4_kaynak_tutarliligi(kok, yaz):
     """Do the panel's sequence source and the order list say the same sequence?"""
     sl = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
-    pk = os.path.join(kok, 'primer_final',
+    pk = os.path.join(kok, 'final_primers',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(sl) or not os.path.exists(pk):
         ATLANAN.append(u'4 source consistency (no such file)')
@@ -276,7 +276,7 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
 
     """
     ciftler = [
-        ('primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv',
+        ('final_primers/devir_ciftleri_20260802_sonrotus_TESLIM.tsv',
          'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'),
         ('ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
          'QUICK_TEST/referans_degerler.tsv'),
@@ -362,9 +362,9 @@ def d7_geometri_kapisi(kok, yaz):
 
     """
     import glob
-    pk = os.path.join(kok, 'primer_final',
+    pk = os.path.join(kok, 'final_primers',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
-    adaylar = sorted(glob.glob(os.path.join(kok, 'primer_final',
+    adaylar = sorted(glob.glob(os.path.join(kok, 'final_primers',
                                             'geometri_denetimi_*.tsv')))
     adaylar = [x for x in adaylar if 'yedek' not in x]
     if not os.path.exists(pk) or not adaylar:
@@ -419,7 +419,7 @@ def d8_plaka_jel_ve_bant(kok, yaz):
     """
     import itertools
     import re as _re
-    pk = os.path.join(kok, 'primer_final',
+    pk = os.path.join(kok, 'final_primers',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(pk):
         ATLANAN.append(u'8 plate and gel (there is no panel file)')
@@ -554,7 +554,7 @@ def d11_siparis_dizileri(kok, yaz):
     """
     import glob as _glob
     import re as _re
-    pk = os.path.join(kok, 'primer_final',
+    pk = os.path.join(kok, 'final_primers',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     # 2026-08-11: the old delivery xlsx was moved to the archive. What is audited now is
     # the PrimerJury_PANEL_*.xlsx PRODUCED on every run; if that is missing too, the
@@ -727,22 +727,22 @@ def d13_urun_boyu(kok, yaz):
     """
     import glob as _glob
     import re as _re
-    pk = os.path.join(kok, 'primer_final',
+    pk = os.path.join(kok, 'final_primers',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
-    kd = os.path.join(kok, 'konsensus_kanonik')
+    kd = os.path.join(kok, 'canonical_consensus')
     if not os.path.exists(pk) or not os.path.isdir(kd):
         ATLANAN.append(u'13 product length (there is no panel or consensus directory)')
         return
-    # GLOB IS NOT USED. There are 250 files in the konsensus_kanonik directory but only
+    # GLOB IS NOT USED. There are 250 files in the canonical_consensus directory but only
     # 100 are valid; the other 150 are leftovers that cannot be deleted on a mounted
     # drive, and some of them are an older version of the same bin WITH DIFFERENT CONTENT
     # (measured on 33 bins). The panel's own loader (hedefler.konsensusler) therefore
-    # reads INDEKS.tsv; if the audit does not read the same source it measures with a
+    # reads INDEX.tsv; if the audit does not read the same source it measures with a
     # sequence the panel never sees and produces an invented "deviation". On the night of
     # 2026-08-10 my first version did exactly that.
-    ixy = os.path.join(kd, 'INDEKS.tsv')
+    ixy = os.path.join(kd, 'INDEX.tsv')
     if not os.path.exists(ixy):
-        ATLANAN.append(u'13 product length (there is no konsensus_kanonik/INDEKS.tsv; NO measurement is made with leftover files)')
+        ATLANAN.append(u'13 product length (there is no canonical_consensus/INDEX.tsv; NO measurement is made with leftover files)')
         return
     kons = {}
     for r in _tsv(ixy):
@@ -882,10 +882,10 @@ def d14_bat_dosyalari(kok, yaz):
 def d15_konsensus_kalintilari(kok, yaz):
     """Are there leftover files in the canonical consensus directory that are NOT in the index?
 
-        The night of 2026-08-10: there are 250 files in the directory and INDEKS.tsv
+        The night of 2026-08-10: there are 250 files in the directory and INDEX.tsv
         defines 100 of them. The other 150 are leftovers that cannot be deleted, and on 33
         bins two or three versions of the same bin WITH DIFFERENT CONTENT are sitting there
-        (A1-1_2223.kanonik.fa and A1-1_2223_kanonik.fasta are the same bin with different
+        (A1-1_2223.canonical.fa and A1-1_2223_kanonik.fasta are the same bin with different
         sequences).
 
         The panel's own loader is unaffected because it reads the index. But EVERY new
@@ -894,8 +894,8 @@ def d15_konsensus_kalintilari(kok, yaz):
 
     """
     import glob as _glob
-    d = os.path.join(kok, 'konsensus_kanonik')
-    ix = os.path.join(d, 'INDEKS.tsv')
+    d = os.path.join(kok, 'canonical_consensus')
+    ix = os.path.join(d, 'INDEX.tsv')
     if not os.path.isdir(d):
         ATLANAN.append(u'15 consensus leftovers (there is no such directory)')
         return
@@ -915,7 +915,7 @@ def d15_konsensus_kalintilari(kok, yaz):
         % (len(gecerli), len(hepsi), len(kalinti)))
     if kalinti:
         bulgu(u'A LEFTOVER file in the canonical consensus directory',
-              u'%d files are not in the index (%d in the directory, %d valid). An example: %s\n      The panel\'s loader reads the index, so it is unaffected, but any script writing a GLOB like konsensus_kanonik/*.fa* can pick an old version of the same bin. Read INDEKS.tsv when you write a new script.'
+              u'%d files are not in the index (%d in the directory, %d valid). An example: %s\n      The panel\'s loader reads the index, so it is unaffected, but any script writing a GLOB like canonical_consensus/*.fa* can pick an old version of the same bin. Read INDEX.tsv when you write a new script.'
               % (len(kalinti), len(hepsi), len(gecerli),
                  ', '.join(sorted(kalinti)[:3])), BILGI)
 
@@ -978,9 +978,9 @@ def d17_veritabani_alfabesi(kok, yaz):
 
     """
     import hashlib as _h
-    d = os.path.join(kok, 'REFERANS_DB')
+    d = os.path.join(kok, 'REFERENCE_DB')
     if not os.path.isdir(d):
-        ATLANAN.append(u'17 database alphabet (there is no REFERANS_DB)')
+        ATLANAN.append(u'17 database alphabet (there is no REFERENCE_DB)')
         return
     # indeksi olan FASTA'lar taranan veritabanlaridir; alfabeleri DNA olmali
     rna = []

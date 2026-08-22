@@ -11,7 +11,7 @@ as "off target", 95.7 percent were from INSIDE the target clade and only their
 length differed. So the length criterion is misleading; layer 2 has to look at the
 taxon too.
 
-The real obstacle to that is this: the files in REFERANS_DB use FIVE DIFFERENT
+The real obstacle to that is this: the files in REFERENCE_DB use FIVE DIFFERENT
 header formats. Assuming a single parser means counting most records as "a different
 domain" (class c), that is, producing a larger version of the very fault being
 fixed. The formats WERE MEASURED (2026-08-21, the first record of each file):

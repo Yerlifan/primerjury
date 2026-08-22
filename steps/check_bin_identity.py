@@ -18,7 +18,7 @@ referans oylanir. Kutunun kimligi bu oylamanin cogunlugudur.
 
 Kullanim:
   python3 check_bin_identity.py \
-      --fastq "/.../fastq files" --reference REFERANS_DB/archaea.16S.fna \
+      --fastq "/.../fastq files" --reference REFERENCE_DB/archaea.16S.fna \
       --pattern "Methanosarcina" --out kutu_kimlik.tsv
 """
 import argparse, csv, glob, os, sys

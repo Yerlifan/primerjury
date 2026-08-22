@@ -4,7 +4,7 @@
 check_deliverables.py
 AN INDEPENDENT AUDIT OF THE DELIVERED TABLE.
 
-This script imports not one function of the design code. It reads primer_final.tsv
+This script imports not one function of the design code. It reads final_primers.tsv
 and measures every row again FROM SCRATCH against the rules of the meeting decision.
 The aim is to show that no silent drift is left between the design code and the
 delivered table: the Tm, GC, product length and tm_farki values written in the table
@@ -122,7 +122,7 @@ def kalip_yukle(kok):
 
 def main():
     a = get_args()
-    tsv = os.path.join(a.final, "primer_final.tsv")
+    tsv = os.path.join(a.final, "final_primers.tsv")
     if not os.path.exists(tsv):
         sys.exit(u'not found: %s' % tsv)
     rows = list(csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t"))

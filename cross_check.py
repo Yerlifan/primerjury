@@ -622,9 +622,9 @@ class Kaynaklar(object):
         self.literatur = y('LITERATUR_2026-08-07.md')
         self.toplanti = y('TOPLANTI_KARARLARI_SON_DURUM.md')
         # --- veri
-        self.refdb = y('REFERANS_DB')
-        self.konsensus_indeks = y('konsensus_kanonik', 'INDEKS.tsv')
-        self.konsensus_kok = y('konsensus_kanonik')
+        self.refdb = y('REFERENCE_DB')
+        self.konsensus_indeks = y('canonical_consensus', 'INDEX.tsv')
+        self.konsensus_kok = y('canonical_consensus')
         self.fastq = y('fastq files')
         self.kraken = y('kraken results')
         self.bracken = y('bracken results')
@@ -1158,7 +1158,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
     # --- the bin inventory: the CANONICAL consensus index (all of it SENSE)
     ind = tsv_oku(kay.konsensus_indeks, yorum=None)
     if ind is None:
-        rap.atla(M, u'M1-ENVANTER', u'konsensus_kanonik/INDEKS.tsv must be readable',
+        rap.atla(M, u'M1-ENVANTER', u'canonical_consensus/INDEX.tsv must be readable',
                  u'there is no such file', kay.konsensus_indeks)
         return
     if not ind:
@@ -2595,7 +2595,7 @@ def modul_5_desenler(kay, rap):
     ind = tsv_oku(kay.konsensus_indeks, yorum=None)
     if ind is None:
         rap.atla(M, u'M5-D9', u'the orientation error scan',
-                 u'there is no konsensus_kanonik/INDEKS.tsv', kay.konsensus_indeks)
+                 u'there is no canonical_consensus/INDEX.tsv', kay.konsensus_indeks)
     else:
         yon_yok = [r for r in ind if not (r.get(u'eski_yon') or u'').strip()]
         cevrilen = [r for r in ind if (r.get(u'cevrildi') or u'').strip().lower()
@@ -2627,7 +2627,7 @@ def modul_5_desenler(kay, rap):
                     continue
                 ham = metin_oku(yol) or u''
                 vurus = d9_karisik_klasor_yollari(ham, yol)
-                if vurus and u'konsensus_kanonik' not in _kod_govdesi(ham):
+                if vurus and u'canonical_consensus' not in _kod_govdesi(ham):
                     rap.ekle(M, u'M5-D9-KARISIK-KLASOR', CIDDI,
                              u'the consensus reads must be made from the CANONICAL directory',
                              u'%s: it reads the mixed orientation "consensus sequences" directory IN THE CODE (line %s) and never mentions the canonical directory'
@@ -2664,7 +2664,7 @@ def modul_6_veritabani(kay, rap, baglanma_sinamasi=True):
     beklenen_kayit = getattr(T, 'BEKLENEN_KAYIT', {}) if T else {}
 
     if not os.path.isdir(kay.refdb):
-        rap.atla(M, u'M6-REFDB', u'the REFERANS_DB directory must be present', u'there is no such directory',
+        rap.atla(M, u'M6-REFDB', u'the REFERENCE_DB directory must be present', u'there is no such directory',
                  kay.refdb)
         return
 
@@ -3173,8 +3173,8 @@ def _sinama_kok_kur(gecici, kay):
     """Set up a small, complete and SOUND fake project root. Errors are seeded into it after."""
     os.makedirs(os.path.join(gecici, 'screening'))
     os.makedirs(os.path.join(gecici, 'verification'))
-    os.makedirs(os.path.join(gecici, 'REFERANS_DB'))
-    os.makedirs(os.path.join(gecici, 'konsensus_kanonik'))
+    os.makedirs(os.path.join(gecici, 'REFERENCE_DB'))
+    os.makedirs(os.path.join(gecici, 'canonical_consensus'))
     y = lambda *p: os.path.join(gecici, *p)
 
     def d(yol, icerik):
@@ -3223,10 +3223,10 @@ def _sinama_kok_kur(gecici, kay):
       u'| *Taxon A* | Present, it is ordered |\n'
       u'| *Taxon C* | **Not achieved.** The species is not in the sample |\n')
     # --- the consensus index and its file
-    d(y('konsensus_kanonik', 'A-1_111.kanonik.fa'), u'>x\n%s\n' % (u'ACGT' * 200))
-    d(y('konsensus_kanonik', 'INDEKS.tsv'),
+    d(y('canonical_consensus', 'A-1_111.canonical.fa'), u'>x\n%s\n' % (u'ACGT' * 200))
+    d(y('canonical_consensus', 'INDEX.tsv'),
       u'kutu\tsinif\tdosya\tkaynak\teski_yon\tcevrildi\tuzunluk\n'
-      u'A-1_111\tA\tA-1_111.kanonik.fa\tkons\tSENSE\thayir\t800\n')
+      u'A-1_111\tA\tA-1_111.canonical.fa\tkons\tSENSE\thayir\t800\n')
     # --- copy the identity engine (the VTB list is needed for M6)
     if os.path.exists(kay.kimlik_dogrulama):
         with io.open(kay.kimlik_dogrulama, encoding='utf-8', errors='replace') as fh:
@@ -3256,7 +3256,7 @@ def _sinama_vtb_dosyalari(gecici, kay, kmer_satiri=u'kvalue=9, kmer_count=262144
     for etiket, dosya, _lokus, kullan, _n in K.VTB:
         if not kullan:
             continue
-        yol = os.path.join(gecici, 'REFERANS_DB', dosya)
+        yol = os.path.join(gecici, 'REFERENCE_DB', dosya)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             for i in range(3):
                 fh.write(u'>RECORD_%d Example organism %d; from TYPE material\n%s\n'
@@ -3280,8 +3280,8 @@ def kendini_sina(kay, cikti):
 
     def kur_m1(g):
         # THE ERROR: the consensus file named in the index IS NOT on disk.
-        os.remove(os.path.join(g, 'konsensus_kanonik', 'A-1_111.kanonik.fa'))
-        return u'INDEKS.tsv names a consensus file but the file was deleted'
+        os.remove(os.path.join(g, 'canonical_consensus', 'A-1_111.canonical.fa'))
+        return u'INDEX.tsv names a consensus file but the file was deleted'
 
     def kur_m2(g):
         # THE ERROR: the forward primer of the same target DIFFERS between two files.
@@ -3318,7 +3318,7 @@ def kendini_sina(kay, cikti):
         # THE ERROR: a database's k-mer count is 3^9 = 19683 (the broken index signature).
         K, _h = modul_yukle(kay.kimlik_dogrulama, 'kd_sinama6')
         ilk = next(d for _e, d, _t, k, _n in K.VTB if k)
-        yol = os.path.join(g, 'REFERANS_DB', ilk + u'.log')
+        yol = os.path.join(g, 'REFERENCE_DB', ilk + u'.log')
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(u'Binary index v5 created: kvalue=9, kmer_count=19683\n')
         return u'the %s index log says kmer_count=19683 (3^9, the signature of a broken index)' % ilk

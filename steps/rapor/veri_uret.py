@@ -31,7 +31,7 @@ def main():
     p.add_argument("--out", required=True)
     a = p.parse_args()
 
-    tsv = os.path.join(a.final, "primer_final.tsv")
+    tsv = os.path.join(a.final, "final_primers.tsv")
     rows = list(csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t"))
     toplam = len(rows)
     gecen = [r for r in rows if r.get("ozgulluk_durum") == "GECTI"]

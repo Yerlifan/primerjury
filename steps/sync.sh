@@ -50,12 +50,12 @@ uret() {
        'bol_*.sh' 'bol2_*.sh' 'kimlik/kimlik_*.tsv' \
        'rapor/rapor_uret.js' 'rapor/veri_uret.py' 'rapor/veri.json' | sort -k2
   echo "[CIKTI]"
-  ozet "$PT" 'primer_final/primer_final.tsv' 'primer_final/dis_veritabani.tsv' \
-       'primer_final/mfeprimer.tsv' 'primer_final/hedef_kimlik.tsv' \
-       'primer_final/teslim_denetimi.tsv' \
-       'primer_referans/primer_referans.tsv' \
-       'primer_adaylari/ozet.tsv' 'primer_adaylari/ayirt_edilemez.tsv' \
-       'primer_adaylari/dislanan_takson.tsv' \
+  ozet "$PT" 'final_primers/final_primers.tsv' 'final_primers/dis_veritabani.tsv' \
+       'final_primers/mfeprimer.tsv' 'final_primers/hedef_kimlik.tsv' \
+       'final_primers/teslim_denetimi.tsv' \
+       'reference_primers/reference_primers.tsv' \
+       'primer_candidates/ozet.tsv' 'primer_candidates/ayirt_edilemez.tsv' \
+       'primer_candidates/dislanan_takson.tsv' \
        'kraken_guven/esik_taramasi.tsv' \
        'PrimerJury_Primer_Tasarimi.xlsx' \
        'PrimerJury_Primer_Raporu.docx' \

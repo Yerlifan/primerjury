@@ -89,7 +89,7 @@ def veri_satiri_say(yol):
 def dosya_parmak(kok, yol):
     """A DETERMINISTIC fingerprint of a file: relative path | size | mtime_ns.
 
-        Why not a content md5: a single file inside REFERANS_DB is 1.5 GB. Reading
+        Why not a content md5: a single file inside REFERENCE_DB is 1.5 GB. Reading
         30 GB on every run is unacceptable. The size plus mtime_ns pair changes when the
         file changes and is CONSTANT between runs for THE SAME file, and those are the
         two properties we need. For directories: the file count plus the newest mtime.
@@ -351,7 +351,7 @@ def ASAMALAR(ayar):
              argv=lambda kok, a: [_py(os.path.join('protocol', 'single_protocol_measure.py'),
                                       '--root', '.')],
              # 2026-08-09: pairs.tsv eklendi, gerekce D asamasindaki notta.
-             girdi=['protocol/single_protocol_measure.py', 'primer_final',
+             girdi=['protocol/single_protocol_measure.py', 'final_primers',
                     'screening/pairs.tsv',
                     'GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'],
              cikti=['ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
@@ -390,7 +390,7 @@ def ASAMALAR(ayar):
                     'SIPARIS_LISTESI.tsv',
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv',
                     'RECOVERY_RESULT/kurtarma_satirlari.tsv',
-                    'REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta.primerqc.bin'],
+                    'REFERENCE_DB/SILVA_138.2_SSURef_NR99.fasta.primerqc.bin'],
              cikti=['VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'], bagimli=['P', 'K'],
              sure_sn=6900.0,
              kaynak='from the run of 2026-08-07: layer 2 took 81 minutes cold over 22 pairs, layer 3 took 2.5 minutes and layer 4 at NCBI took 31 minutes, about 1 hour 55 in total',
@@ -499,11 +499,11 @@ def on_kontrol(kok, ayar, yaz):
     # four times and printed four identical lines. The list now names the
     # directories this repository actually has, once each.
     for d, zor in (('fastq files', True), ('consensus sequences', True),
-                   ('primer_final', True), ('REFERANS_DB', True),
+                   ('final_primers', True), ('REFERENCE_DB', True),
                    ('screening', True), ('protocol', True),
                    ('engine', True), ('steps', True),
                    ('tools', True), ('verification', True),
-                   ('konsensus_kanonik', False)):
+                   ('canonical_consensus', False)):
         t = os.path.join(kok, d)
         var = os.path.isdir(t)
         satir(u'directory: %s' % d, var,
@@ -533,7 +533,7 @@ def on_kontrol(kok, ayar, yaz):
               'fungi.28SrRNA.fna', 'fungi.18SrRNA.fna',
               'SILVA_138.2_SSURef_NR99.fasta']
     for f in MFE_IX:
-        p = os.path.join(kok, 'REFERANS_DB', f + '.primerqc.bin')
+        p = os.path.join(kok, 'REFERENCE_DB', f + '.primerqc.bin')
         satir(u'MFE index: %s' % f, os.path.exists(p),
               boyut_metni(os.path.getsize(p)) if os.path.exists(p)
               else 'MISSING, to build it: mfeprimer index -i REFERENCE_DB/%s' % f)
@@ -545,14 +545,14 @@ def on_kontrol(kok, ayar, yaz):
                'archaea.16S.fna', 'fungi.ITS.fna', 'fungi.28SrRNA.fna',
                'fungi.18SrRNA.fna', 'ref_all2.fna']
     eksik_kume = [f for f in KUMELER
-                  if not os.path.exists(os.path.join(kok, 'REFERANS_DB', f))]
+                  if not os.path.exists(os.path.join(kok, 'REFERENCE_DB', f))]
     satir(u'the layer 2 databases (11 sets)', not eksik_kume,
           u'11/11 yerinde' if not eksik_kume else u'MISSING: %s' % u', '.join(eksik_kume))
 
     # --- 6) The SILVA SSU RNA/DNA gate -------------------------------------
     # In the past SILVA's RNA alphabet (U) broke the index and every binding came back
     # 0/0. We confirm it is DNA by counting U against T in the first few thousand lines.
-    sp = os.path.join(kok, 'REFERANS_DB', 'SILVA_138.2_SSURef_NR99.fasta')
+    sp = os.path.join(kok, 'REFERENCE_DB', 'SILVA_138.2_SSURef_NR99.fasta')
     if os.path.exists(sp):
         try:
             with io.open(sp, encoding='utf-8', errors='ignore') as fh:
@@ -590,7 +590,7 @@ def on_kontrol(kok, ayar, yaz):
                 mem[p[0]] = int(p[1].strip().split()[0])
         top_gb = mem.get('MemTotal', 0) / 1048576.0
         # Olculen tepe bellek: mfeprimer indeksleme 6,06 GB
-        # (REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta.BOZUK_KANIT.txt).
+        # (REFERENCE_DB/SILVA_138.2_SSURef_NR99.fasta.BOZUK_KANIT.txt).
         # Tarama tarafi bundan dusuk; 4 GB alt sinir, 8 GB rahat.
         satir(u'total WSL memory (>= 4 GB)', top_gb >= 3.8, u'%.1f GB' % top_gb)
         if 3.8 <= top_gb < 7.5:

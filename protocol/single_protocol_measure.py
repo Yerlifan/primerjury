@@ -15,7 +15,7 @@ must clear.
 # single_protocol_measure.py re-measures EVERY pair in the panel under one rule and
 # at one depth, and produces a single order list. There is no per-row exception.
 #
-# INPUT  : the panel table under primer_final/ (through
+# INPUT  : the panel table under final_primers/ (through
 #          screening.targets.panel_oku), protocol/extra_pairs.tsv (pairs that are
 #          not in the panel), uyelik_yeniden_turetme_uyelik_*.tsv (stage U's
 #          MEASURED membership), the raw reads under "fastq files".

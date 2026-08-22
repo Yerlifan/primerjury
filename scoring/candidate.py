@@ -30,7 +30,7 @@ GC_ALT, GC_UST = 35.0, 65.0
 
 def konsensus_tablosu(kok):
     import csv
-    ix = os.path.join(kok, 'konsensus_kanonik', 'INDEKS.tsv')
+    ix = os.path.join(kok, 'canonical_consensus', 'INDEX.tsv')
     out = {}
     for r in csv.DictReader(open(ix, encoding='utf-8'), delimiter='\t'):
         y = os.path.join(os.path.dirname(ix), r['dosya'])

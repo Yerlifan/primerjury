@@ -10,7 +10,7 @@ import sys
 VARSAYILAN_KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 KARISIK = u'consensus sequences'
-KANONIK = u'konsensus_kanonik'
+KANONIK = u'canonical_consensus'
 
 # --- sentetik ornekler: her biri TEK bir ayrimi sinar --------------------
 GERCEK_RISK = u'''

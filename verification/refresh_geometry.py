@@ -39,7 +39,7 @@ import re
 import sys
 import time
 
-PANEL = os.path.join('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
+PANEL = os.path.join('final_primers', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
 
 
 def geo_yukle(kok):
@@ -91,9 +91,9 @@ def _yer(p, d):
 
 
 def konsensus_yukle(kok):
-    """The canonical consensuses, from INDEKS.tsv and NOT from a glob.
+    """The canonical consensuses, from INDEX.tsv and NOT from a glob.
 
-    There are 250 files in the konsensus_kanonik directory and only 100 of them are
+    There are 250 files in the canonical_consensus directory and only 100 of them are
     valid. The other 150 are leftovers that cannot be deleted on the mounted directory;
     in 33 bins two or three versions of the same bin with DIFFERENT content sit side by
     side. Reading with a glob leaves the choice of version to file name order, so we
@@ -102,8 +102,8 @@ def konsensus_yukle(kok):
 
     """
     import csv as _csv
-    d = os.path.join(kok, 'konsensus_kanonik')
-    ix = os.path.join(d, 'INDEKS.tsv')
+    d = os.path.join(kok, 'canonical_consensus')
+    ix = os.path.join(d, 'INDEX.tsv')
     out = {}
     if not os.path.exists(ix):
         return out
@@ -166,7 +166,7 @@ def yalniz_urun_boyu(kok, yaz_mi):
     'The part that runs even without primer3: measuring the product length.'
     kons = konsensus_yukle(kok)
     if not kons:
-        print(u'  konsensus_kanonik is empty or missing, so product length could not be measured either.')
+        print(u'  canonical_consensus is empty or missing, so product length could not be measured either.')
         return 2
     ciftler, bas, sat, panel_yolu = panel_oku(kok)
     sapan = []
@@ -311,9 +311,9 @@ def main():
             print('      %s' % x)
     else:
         print()
-        print(u'  product length NOT MEASURED: the konsensus_kanonik directory is empty or missing.')
+        print(u'  product length NOT MEASURED: the canonical_consensus directory is empty or missing.')
 
-    cy = os.path.join(kok, 'primer_final',
+    cy = os.path.join(kok, 'final_primers',
                       'geometri_denetimi_%s.tsv' % time.strftime('%Y%m%d'))
     with io.open(cy, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# The geometry audit, with the panel sequences AS THEY ARE NOW. Produced %s\n'

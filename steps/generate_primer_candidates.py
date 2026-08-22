@@ -22,18 +22,18 @@ The design principles:
     only.
 
 WHICH DIRECTORY THE CONSENSUS MUST BE READ FROM (the 2026-08-21 fix)
-  Use `konsensus_kanonik/` only. The old examples pointed at the
+  Use `canonical_consensus/` only. The old examples pointed at the
   `consensus sequences/` directory; that directory is MIXED ORIENTATION (measured:
   71 antisense / 27 sense). On a reversed consensus, in-silico PCR SILENTLY gives 0
   products; the measured loss is 100 percent and the evidence is
   `screening/orientation_impact_test.py`. The prohibition is written in
   `screening/config.py` as well (KONSENSUS_KANONIK).
   The canonical directory is produced with `screening/build_canonical.py`. Which bin
-  corresponds to which file is in `konsensus_kanonik/INDEKS.tsv`; do not guess the
+  corresponds to which file is in `canonical_consensus/INDEX.tsv`; do not guess the
   file name, read it from the index.
 
 Usage:
-  python3 generate_primer_candidates.py       --consensus "konsensus_kanonik/A1-1_2209.kanonik.fa"       --mask      "N_analizi/maske/A1-1_2209_maske.bed"       --out       "primer_adaylari/A1-1_2209.tsv"
+  python3 generate_primer_candidates.py       --consensus "canonical_consensus/A1-1_2209.canonical.fa"       --mask      "N_analizi/maske/A1-1_2209_maske.bed"       --out       "primer_candidates/A1-1_2209.tsv"
 
 """
 import argparse, csv, itertools, os, statistics, sys
@@ -559,7 +559,7 @@ def main():
               % (p["ceza"], p["urun_uzunluk"], p["urun_gc"], p["ileri_dizi"],
                  p["ileri_tm_primer3"], p["geri_dizi"], p["geri_tm_primer3"]))
     print(u'\nNext stage: the specificity filter. These candidates will be tested against')
-    print(u'competitor consensus sequences and the REFERANS_DB databases with mfeprimer and blastn.')
+    print(u'competitor consensus sequences and the REFERENCE_DB databases with mfeprimer and blastn.')
 
 
 if __name__ == "__main__":

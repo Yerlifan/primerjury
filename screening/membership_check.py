@@ -45,7 +45,7 @@ The module tests BOTH and writes down which it is.
 #          hedefler.konsensusler(); screening/target_membership.tsv through
 #          hedefler.acik_uyelik(); steps/targets.tsv through hedefler.uyelik_oku();
 #          screening/pairs.tsv (or eski/pairs.tsv);
-#          primer_final/hedef_kimlik.tsv. numune.Numune does the measuring.
+#          final_primers/hedef_kimlik.tsv. numune.Numune does the measuring.
 # OUTPUT : SCREENING_RESULT/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
 #          (calistir returns those two paths as a list); plus a
 #          kontrol/uyelik_*.json checkpoint per target.
@@ -96,7 +96,7 @@ def _ciftler_tsv_uyelik():
 
 def _kimlik_uyelik():
     'Derive a taxid set from the MEASURED identity in the identity table.'
-    yol = os.path.join(C.KOK, 'primer_final', 'hedef_kimlik.tsv')
+    yol = os.path.join(C.KOK, 'final_primers', 'hedef_kimlik.tsv')
     taxad = H.taxid_adlari()
     ad2tax = {}
     for t, a in taxad.items():
@@ -476,7 +476,7 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
     A(u'| **B** | `steps/targets.tsv`, the project\'s decision table (the group row) |')
     A(u'| **C** | a single member, the one taxon that gives the best result |')
     A(u'| **D** | `pairs.tsv`, the definition from the read engine correction session |')
-    A(u'| **E** | `primer_final/hedef_kimlik.tsv`, derived from the MEASURED identity |')
+    A(u'| **E** | `final_primers/hedef_kimlik.tsv`, derived from the MEASURED identity |')
     A('')
 
     A(u'## LOOK AT THESE FIRST: the rows marked `TURETILDI`')

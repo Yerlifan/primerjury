@@ -36,9 +36,9 @@ WHICH DIRECTORY THE CONSENSUS COMES FROM
 
 Usage:
   python3 design_group_primers.py \
-     --in-group  "canonical_consensus/*_2209.kanonik.fa" \
-                 "canonical_consensus/*_2223.kanonik.fa" \
-     --out-group "canonical_consensus/*_394967.kanonik.fa" \
+     --in-group  "canonical_consensus/*_2209.canonical.fa" \
+                 "canonical_consensus/*_2223.canonical.fa" \
+     --out-group "canonical_consensus/*_394967.canonical.fa" \
      --label acetoclastic_methanogens \
      --out primer_candidates/acetoclastic.tsv
 """

@@ -182,7 +182,7 @@ def main():
             plaka, ta = a.panel_satiri.split(':')
         except ValueError:
             sys.exit(u'ERROR: --panel-row must have the form PLATE:Row (for example P1:55)')
-        py = os.path.join(kok, 'primer_final',
+        py = os.path.join(kok, 'final_primers',
                           'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
         psat = [l.rstrip('\n').split('\t') for l in io.open(py, encoding='utf-8')]
         pb = psat[0]

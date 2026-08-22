@@ -19,7 +19,7 @@ The group and year mapping is built from the barcode NUMBER rather than from the
 directory name: F1 and F2 had been swapped in the source study's directory names.
 
 Usage:
-  python3 community_trends.py --bracken "bracken results"       --distinguishable primer_adaylari/ayirt_edilemez.tsv       --identity t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv       --names taxid_names.tsv --out Topluluk_Trend.xlsx
+  python3 community_trends.py --bracken "bracken results"       --distinguishable primer_candidates/ayirt_edilemez.tsv       --identity t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv       --names taxid_names.tsv --out Topluluk_Trend.xlsx
 
 """
 import argparse, csv, datetime, glob, math, os, re, sys

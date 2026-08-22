@@ -220,7 +220,7 @@ def main():
     T = lambda *y: os.path.join(kok, *y)
 
     # ---------------- kaynaklar ----------------
-    panel_yolu = T('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
+    panel_yolu = T('final_primers', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     kaynaklar = {
         'the panel (sequences, plate, Ta)': panel_yolu,
         'the order list (the verdict)': T('ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'),
@@ -233,7 +233,7 @@ def main():
         'the state of the requests': T('toplanti_durumu.tsv'),
     }
     import glob
-    gl = sorted(glob.glob(T('primer_final', 'geometri_denetimi_2026*.tsv')),
+    gl = sorted(glob.glob(T('final_primers', 'geometri_denetimi_2026*.tsv')),
                 key=os.path.getmtime)
     kaynaklar['the geometry (primer3)'] = gl[-1] if gl else None
 

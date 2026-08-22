@@ -30,7 +30,7 @@ divergence is not passed over silently, it is reported in a separate column and 
 the summary row.
 
 Usage:
-  python3 mfeprimer_layer.py --final primer_final --db REFERANS_DB       --mfe tools/mfeprimer --out primer_final/mfeprimer.tsv
+  python3 mfeprimer_layer.py --final final_primers --db REFERENCE_DB       --mfe tools/mfeprimer --out final_primers/mfeprimer.tsv
 
 """
 import argparse, csv, collections, os, re, shutil, subprocess, sys, tempfile
@@ -122,7 +122,7 @@ def main():
             os.chmod(a.mfe, 0o755)
         except OSError:
             sys.exit(u'mfeprimer is not executable: %s\n   try chmod +x \'%s\'' % (a.mfe, a.mfe))
-    tsv = os.path.join(a.final, "primer_final.tsv")
+    tsv = os.path.join(a.final, "final_primers.tsv")
     if not os.path.exists(tsv):
         sys.exit(u'not found: %s' % tsv)
     rows = [r for r in csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t")
