@@ -579,7 +579,11 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
             # It is now written from the count.
             _bozan = [s['hedef'] for s in sonuc['satir'] if not s.get('sinif_ok')]
             if _bozan:
-                fh.write(u'The ranking held and all four stages produced non-empty output. %d of the %d rows tested kept their class'
+                fh.write(u'The ranking held and all four stages produced non-empty '
+                         u'output. %d of the %d rows tested kept their class; %d rows '
+                         u'sat ON THE EDGE of the threshold and changed side at a '
+                         u'low depth, which was deliberately NOT counted as an error '
+                         u'(detail: Warnings): %s\n\n'
                          % (len(sonuc['satir']), len(sonuc['satir']) - len(_bozan),
                             len(_bozan), ', '.join(_bozan)))
             else:

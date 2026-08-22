@@ -95,16 +95,13 @@ def main():
         if not ad:
             continue
         if not re.fullmatch(r'[ACGT]+', F or '') or not re.fullmatch(r'[ACGT]+', R or ''):
-            uyari.append(u'%s: siparis listesinde dizi yok ya da A/C/G/T disi '
-                         u'karakter var - forma ALINMADI' % ad)
+            uyari.append(u'%s: there is no sequence in the order list, or it holds a character outside A/C/G/T, so it WAS NOT TAKEN into the form' % ad)
             continue
         p = PN.get(ad)
         if p is None:
-            uyari.append(u'%s: siparis listesinde VAR ama panel kaynaginda SATIRI '
-                         u'YOK. Plaka ve Ta bilgisi bu cift icin bilinmiyor.' % ad)
+            uyari.append(u'%s: it IS in the order list but it HAS NO ROW in the panel source. The plate and Ta of this pair are unknown.' % ad)
         elif (p['F'], p['R']) != (F, R):
-            uyari.append(u'%s: siparis listesi ile panel kaynagi FARKLI dizi '
-                         u'soyluyor. Form siparis listesini kullandi.' % ad)
+            uyari.append(u'%s: the order list and the panel source give DIFFERENT sequences. The form used the order list.' % ad)
         sinif = (r.get('SINIF') or '').strip().upper()
         c = dict(hedef=ad, F=F, R=R, sinif=sinif or '?',
                  plaka=(p or {}).get('plaka', '?'), ta=(p or {}).get('ta', '?'),
@@ -121,7 +118,7 @@ def main():
         fh.write(u'# This file is NEVER WRITTEN BY HAND; it is generated from the panel source.\n')
         fh.write(u'# DO NOT COPY FROM THE xlsx FILE: as of 2026-08-10 the sequence of six\n# pairs there IS OUT OF DATE (Bacteroidales, Bakteri_universal,\n# Mantar F1, Microascaceae, Petriella_musispora, Petrimonas).\n')
         for u_ in uyari:
-            fh.write(u'# UYARI: %s\n' % u_)
+            fh.write(u'# WARNING: %s\n' % u_)
         fh.write(u'oligo_adi\tdizi_5_3\tuzunluk\thedef\tyon\tplaka\tTa_C\turun_bp\tsinif\n')
         for c in girer:
             for ad, d, yon in ((c['adF'], c['F'], 'ileri'), (c['adR'], c['R'], 'geri')):
@@ -154,8 +151,8 @@ def main():
         fh.write(u'\n## What this form does not tell you\n\n')
         fh.write(u'This form tells you **which sequences to order**. It does not tell you that these pairs passed the geometry gate, that the in-plate gel separation is clean, or which threshold rule was applied. Those live in `TEK_TUS_SONUC/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`, and both should be read before an order is placed.\n')
 
-    print('yazildi: %s' % ty)
-    print('yazildi: %s' % my)
+    print(u'written: %s' % ty)
+    print(u'written: %s' % my)
     print(u'  going into the order: %d pairs = %d oligos' % (len(girer), 2 * len(girer)))
     print(u'  not ordered        : %d pairs' % len(girmez))
     print('  kaynak md5    : %s' % ozet)

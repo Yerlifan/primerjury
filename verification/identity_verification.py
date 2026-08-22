@@ -1946,7 +1946,9 @@ def raporla(CIKTI, sonuc, var, yaz):
                 fh.write(u'> **WARNING.** In %d queries the winner came from beyond position %d. The cut off may still be binding; raise `--kisa-liste` (to %d, say) and repeat'
                          % (n400, SIRA_UYARI_ESIGI, boy * 2))
             elif n100:
-                fh.write(u'> %d of the winners came from outside the first %d, which means **the old list of 60 WOULD HAVE MISSED those hits**. All of them'
+                fh.write(u'> %d of the winners came from outside the first %d, which '
+                         u'means **the old list of 60 WOULD HAVE MISSED those hits**. '
+                         u'All of them stayed under %d, so a list of %d is enough.\n\n'
                          % (n100, SIRA_GUVENLI_BOLGE, SIRA_UYARI_ESIGI, boy))
             else:
                 fh.write(u'> Every winner came from within the first %d. The cut-off is **not binding**: alignment decides entirely' % SIRA_GUVENLI_BOLGE)

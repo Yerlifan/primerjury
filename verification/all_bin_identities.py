@@ -835,7 +835,12 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         fh.write(u'| of those, the ones whose MEMBERSHIP set changed | %d |\n' % len(uye_etkilenen))
         fh.write(u'| skipped bins (not in the measurement) | %d |\n\n' % len(atlanan))
         if degisen:
-            fh.write(u'> **RE-MEASUREMENT IS NEEDED.** %d bins changed identity, and that affects the member or competitor set of %d targets'
+            fh.write(u'> **RE-MEASUREMENT IS NEEDED.** %d bins changed identity, and '
+                     u'that affects the member or competitor set of %d targets. On '
+                     u'the %d targets whose member set changed the backbone consensus '
+                     u'can change too, so the primer and discrimination values have '
+                     u'to be recomputed.\n\n'
+                     u'The targets affected: %s\n\n'
                      % (len(degisen), len(etkilenen), len(uye_etkilenen),
                         ', '.join(sorted(etkilenen))))
         else:

@@ -121,7 +121,7 @@ def main():
     if h:
         sys.exit(u'orientation.py DID NOT PASS its self test: %s' % h)
     print(u'orientation.py self test: PASSED. The canonical orientation =', orientation.KANONIK_YON)
-    print('kaynak onceligi :', ' > '.join(e for e, _ in ONCELIK[a.oncelik]))
+    print(u'source precedence :', ' > '.join(e for e, _ in ONCELIK[a.oncelik]))
 
     cik = os.path.join(a.kok, a.cikti)
     os.makedirs(cik, exist_ok=True)
@@ -202,7 +202,7 @@ def main():
     kay = {}
     for m in yazilan:
         kay[m['kaynak']] = kay.get(m['kaynak'], 0) + 1
-    print('kaynak dagilimi:', ', '.join('%s=%d' % x for x in sorted(kay.items())))
+    print(u'source distribution:', ', '.join('%s=%d' % x for x in sorted(kay.items())))
 
     # VERIFICATION: is every file written really SENSE
     kotu = 0

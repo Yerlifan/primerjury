@@ -507,7 +507,7 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
 
     sorunlu = [r for r in sonuclar if r['tani'] != 'SORUN YOK']
     if sorunlu:
-        A('## Tani gereken hedefler')
+        A(u'## The targets that need a diagnosis')
         A('')
         for r in sorunlu:
             A('### %s — %s' % (r['hedef'], r['tani']))
@@ -515,9 +515,9 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
             A(r['tani_aciklama'])
             A('')
             if r['urun_veren_kutular']:
-                A('Bu siniftaki kutulardan urun verenler:')
+                A(u'The bins of this class that give a product:')
                 A('')
-                A('| kutu | takson | urun/okuma | %% | boy |')
+                A(u'| bin | taxon | product/reads | %% | length |')
                 A('|---|---|---|---|---|')
                 for v in r['urun_veren_kutular']:
                     A('| %s | %s | %s/%s | %s | %s |' % (
@@ -525,9 +525,9 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
                         v['boy'][0][0] if v['boy'] else '-'))
                 A('')
             if r['konsensus_veren']:
-                A('Konsensuste urun veren kutular (ham okumalarda vermiyor):')
+                A(u'The bins that give a product on the consensus (but not on the raw reads):')
                 A('')
-                A('| kutu | takson | konsensuste urun boyu |')
+                A(u'| bin | taxon | product length on the consensus |')
                 A('|---|---|---|')
                 for v in r['konsensus_veren']:
                     A('| %s | %s | %s bp |' % (v['kutu'], v['ad'], v['boy']))
@@ -538,16 +538,16 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
     for r in sonuclar:
         A('### %s%s' % (r['hedef'], '  *(TURETILDI)*' if r['turetildi_mi'] else ''))
         A('')
-        A('Panelde yazan: `%s` · urun %s bp%s'
+        A(u'What the panel says: `%s` · product %s bp%s'
           % (r['panel_ayrim'], r['urun_panel'],
-             ' · **tanim degisince ayrim %sx oynuyor**' % r['oynaklik']
+             u' · **the discrimination moves %sx when the definition changes**' % r['oynaklik']
              if r['oynaklik'] and r['oynaklik'] > 1.5 else ''))
         A('')
-        A('| tanim | uye kutu | kapsam | uye %% | ayrim havuz x | ayrim en kotu x |')
+        A(u'| definition | member bins | coverage | member %% | discrimination pool x | discrimination worst x |')
         A('|---|---|---|---|---|---|')
         for v in r['varyantlar']:
             A('| %s%s | %s | %s | %s-%s | %s | %s |' % (
-                v['tanim'], ' *(A ile ayni kume)*' if v['ayni_kume'] else '',
+                v['tanim'], u' *(the same set as A)*' if v['ayni_kume'] else '',
                 v['uye_kutu'], v['kapsam'], v['uye_min'], v['uye_max'],
                 v['kat_havuz'], v['kat_enkotu']))
         A('')

@@ -431,7 +431,79 @@ def kontrol_paket_ithal(bulgu):
                                       'this package' % (ad, ad)))
 
 
-# ------------------------------------------------------------ 9 ABSOLUTE PATHS
+# ------------------------------------------------------------- 9 FORMAT STRINGS
+# Translating a sentence reorders it. If the arguments are not reordered with it,
+# a %d lands on a string and the line dies with TypeError at run time; if the
+# sentence is shortened, specifiers disappear and the line dies with "not all
+# arguments converted". Both happened here, four times between them, and neither
+# is visible to a syntax check.
+#
+# Only the cases that are certainly wrong are reported: an explicit tuple whose
+# length does not match the specifier count, and a numeric specifier receiving a
+# string literal. A single non-tuple argument is skipped, because it may itself
+# be a tuple at run time.
+_BELIRTEC = re.compile(r'%(?:\((?P<ad>[^)]*)\))?[-+ #0]*[\d*]*(?:\.[\d*]+)?[hlL]?'
+                       r'(?P<tip>[diouxXeEfFgGcrsa%])')
+
+
+def _bicim_belirtecleri(metin):
+    out = []
+    for m in _BELIRTEC.finditer(metin):
+        if m.group('tip') == '%':
+            continue
+        if m.group('ad') is not None:
+            return None                   # eslemeli bicim, demet almaz
+        if '*' in m.group(0):
+            return None                   # %.*f gibi genislik argumani alir
+        out.append(m.group('tip'))
+    return out
+
+
+def _duz_metin(n):
+    if isinstance(n, ast.Constant) and isinstance(n.value, str):
+        return n.value
+    if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Add):
+        a, b = _duz_metin(n.left), _duz_metin(n.right)
+        if a is not None and b is not None:
+            return a + b
+    return None
+
+
+def kontrol_bicim(bulgu):
+    for y in metin_dosyalari():
+        if not y.endswith('.py'):
+            continue
+        try:
+            agac = ast.parse(oku(y))
+        except SyntaxError:
+            continue
+        for n in ast.walk(agac):
+            if not (isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mod)):
+                continue
+            metin = _duz_metin(n.left)
+            if metin is None:
+                continue
+            tipler = _bicim_belirtecleri(metin)
+            if not tipler:
+                continue
+            if not isinstance(n.right, ast.Tuple):
+                continue
+            ogeler = n.right.elts
+            if any(isinstance(e, ast.Starred) for e in ogeler):
+                continue
+            if len(ogeler) != len(tipler):
+                bulgu.append(('FORMAT', '%s:%s' % (rel(y), n.lineno),
+                              '%d specifiers, %d arguments: %r'
+                              % (len(tipler), len(ogeler), metin[:60])))
+                continue
+            for tip, e in zip(tipler, ogeler):
+                if tip in 'diouxXeEfFgG' and isinstance(e, ast.Constant) \
+                        and isinstance(e.value, str):
+                    bulgu.append(('FORMAT', '%s:%s' % (rel(y), n.lineno),
+                                  '%%%s is given a string: %r' % (tip, e.value[:30])))
+
+
+# ----------------------------------------------------------- 10 ABSOLUTE PATHS
 # A default path from the workspace this code grew in is a machine specific
 # path in a public repository. engine/inventory.py, engine/multi_locus.py and
 # engine/target_full.py all defaulted their project root to /tmp/fl/kok and
@@ -463,6 +535,7 @@ KONTROLLER = [
     ('IMPORT',    'bare imports resolve',                kontrol_ciplak_import),
     ('IMPORT',    'relative imports name real modules',  kontrol_paket_ithal),
     ('NAME',      'every name used is bound somewhere',  kontrol_ad_baglama),
+    ('FORMAT',    'format strings match their arguments', kontrol_bicim),
     ('PATH',      'no machine specific absolute paths',  kontrol_mutlak_yol),
     ('EOL',       'text files use LF, not CRLF',         kontrol_satir_sonu),
     ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),

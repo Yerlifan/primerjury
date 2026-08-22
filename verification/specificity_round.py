@@ -211,7 +211,7 @@ def siparistekiler(kok, hepsi=False):
                         # SIPARISTE_MI: KESIN/EVRENSEL satirlar siparise gider.
                         # --ncbi-yalniz-siparis bu bayragi kullanir (2026-08-07).
                         sipariste=(sn in ('KESIN', 'EVRENSEL')),
-                        tur=u'SIPARIS LISTESI (%s)' % sn,
+                        tur=u'THE ORDER LIST (%s)' % sn,
                         numune_deger=s.get('ayrim_mm1', ''),
                         numune_olcu=u'dCq %s' % (s.get('dCq_karsiligi') or '-'),
                         yol=s.get('siparis_sarti', '')))
@@ -1080,7 +1080,7 @@ def uc3_ceza_dongu(uyumsuz_konumlar, terminal_ciftler=None):
                 parcalar.append('terminal %s:%s = %.1f [K13]' % (cift[0], cift[1], c))
             else:
                 c = 6.6
-                parcalar.append('terminal (baz cifti bilinmiyor, en kotu) = 6,6 [K13]')
+                parcalar.append(u'terminal (the base pair is unknown, the worst case) = 6,6 [K13]')
             toplam += c
         elif k == 2:
             toplam += 10.0
@@ -1088,7 +1088,7 @@ def uc3_ceza_dongu(uyumsuz_konumlar, terminal_ciftler=None):
         elif k in (3, 4):
             toplam += 3.3
             tahmin = True
-            parcalar.append('konum %d = 3,3 (OLCULMEDI, 5-8 degerinden alt sinir) [K14]' % k)
+            parcalar.append(u'position %d = 3,3 (NOT MEASURED, the lower bound of the 5 to 8 range) [K14]' % k)
         elif k <= 8:
             toplam += 3.3
             parcalar.append('konum %d = 3,3 [K14]' % k)

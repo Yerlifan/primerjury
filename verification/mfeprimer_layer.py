@@ -352,7 +352,8 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
                           kural_ihlali=bool(dgs and min(dgs) <= DG_ESIGI),
                           hukum_verilebilir=bool(dgs),
                           tm_kurali_uygulanamadi_ust=ust, dosya=co)
-        yaz(u'    %s: %d records, lowest Delta G %s kcal/mol (this tool does NOT COMPUTE a Tm per record; Tm<%'
+        yaz(u'    %s: %d records, lowest Delta G %s kcal/mol (a Tm per record is NOT '
+            u'COMPUTED by this tool, so the Tm<%.0f rule could not be applied)'
             % (komut, n, ('%.2f' % min(dgs)) if dgs else '-', ust))
     return out
 
