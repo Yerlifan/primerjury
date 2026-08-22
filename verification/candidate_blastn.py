@@ -77,11 +77,11 @@ def var_mi():
         _VAR = True
         return True
     except OSError:
-        _SEBEP = (u'blastn PATH uzerinde yok. Kurulum: '
-                  u'micromamba install -n mikro -c bioconda blast')
+        _SEBEP = ('blastn is not on PATH. To install it: micromamba install '
+                  '-n mikro -c bioconda blast')
         return False
     except Exception as e:
-        _SEBEP = u'blastn calistirilamadi: %s: %s' % (type(e).__name__, e)
+        _SEBEP = 'blastn could not be run: %s: %s' % (type(e).__name__, e)
         return False
 
 
@@ -189,7 +189,7 @@ def _dizileri_cek(fasta_yolu, idler):
 
 
 def secili_mi():
-    """ADAY_BULUCU=blastn verilmis ve blastn calisiyor mu."""
+    'Was the blastn candidate finder asked for, and does blastn run.'
     return (os.environ.get('ADAY_BULUCU', '').strip().lower() == 'blastn'
             and var_mi())
 

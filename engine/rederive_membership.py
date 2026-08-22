@@ -139,7 +139,7 @@ def _hw_son(q, t):
 # the long sequence's excess does not distort the ratio. The bin pre-grouping
 # (KONS_ESIK = 99%) rests on this number.
 def hw_kimlik(a, b):
-    """kisa olani sorgu, uzun olanin icine; donus: yuzde kimlik"""
+    'the shorter one is the query and goes inside the longer one; returns the per cent identity'
     q, t = (a, b) if len(a) <= len(b) else (b, a)
     d = int(_hw_son(enc(q), enc(t)).min())
     return round(100.0 * (1 - d / max(len(q), 1)), 2)
@@ -704,7 +704,7 @@ def main():
             if b1[0] and b1[1] >= UYE_ESIK and b1[0].split('_')[1] != t:
                 yorum = 'KRAKEN ETIKETI YANLIS -> %s' % b1[0]
             elif not srt:
-                yorum = 'olcum sinyali yok - eski durum korundu'
+                yorum = 'there is no measurement signal, so the old state was kept'
             w.writerow([kb, s, t, b1[0], b1[1], b2[0], b2[1], yorum])
     p3 = os.path.join(CIK, 'engine_TURETME.md')
     with open(p3, 'w', encoding='utf-8') as fh:

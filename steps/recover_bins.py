@@ -64,7 +64,7 @@ def fastq_oku(yol, min_uz, azami):
 
 
 def kalipta_say(kalip, okumalar, yigin):
-    """Okumalari kalibin uzerine yigar. Doner: (sayim_matrisi, hizalanan)."""
+    'Stacks the reads onto the template. Returns (the count matrix, how many aligned).'
     A = alignment.Hizalayici(seq=kalip, preset="map-ont")
     if not A:
         return None, 0
@@ -137,7 +137,7 @@ def kur(okumalar, a, gunluk):
         _, hiz = kalipta_say(t, ornek, a.batch)
         if hiz > en_iyi_hiz:
             en_iyi, en_iyi_hiz = t, hiz
-    gunluk("   tohum secildi: %d bp, %d/%d ornek okuma hizalandi"
+    gunluk('   the seed was chosen: %d bp, %d of %d sampled reads aligned'
            % (len(en_iyi), en_iyi_hiz, len(ornek)))
     kalip = en_iyi
     for tur in range(a.rounds):
@@ -153,7 +153,8 @@ def kur(okumalar, a, gunluk):
         while s > b and dizi[s - 1] == "N":
             s -= 1
         dizi = dizi[b:s]
-        gunluk("   tur %d: hizalanan=%d uzunluk=%d kapsanan=%d dusuk=%d belirsiz=%d"
+        gunluk('   round %d: aligned=%d length=%d covered=%d low=%d '
+               'undecided=%d'
                % (tur + 1, hiz, len(dizi), len(dizi) - dizi.count("N"),
                   dusuk, belirsiz))
         if not dizi:

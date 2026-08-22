@@ -78,7 +78,7 @@ def get_args():
 
 # ------------------------------------------------------------------ veri
 def bracken_oku(kok, duzey):
-    """Doner: {barkod: {takson: yuzde}}"""
+    'Returns: {barcode: {taxon: per cent}}'
     out = {}
     desen = os.path.join(kok, duzey, "*", "*_bracken_%s.txt" % duzey)
     for p in sorted(glob.glob(desen)):
@@ -143,8 +143,8 @@ def cins_adi(tur_adi):
 
 
 def guvenilirlik_kur(a):
-    """Olculmus dosyalardan supheli TUR ve CINS kumelerini turetir.
-    Doner: (supheli_tur -> gerekce, supheli_cins -> gerekce)"""
+    """Derives the suspect species and genus sets from the measured files.
+        Returns: (suspect species -> reason, suspect genus -> reason)"""
     ad = {}
     if a.names and os.path.exists(a.names):
         for l in open(a.names, encoding="utf-8"):

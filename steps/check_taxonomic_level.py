@@ -242,8 +242,8 @@ def hedefleri_oku(hedefler_tsv, adlar_tsv, kimlik_tsv):
 
 
 def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
-    """Veritabanlarini tek gecisle tarar; cins basina tur etiketli kayitlar.
-    Doner: {cins: {tur: [(etiket, dizi), ...]}}"""
+    """Scans the databases in one pass, collecting species labelled records per genus.
+        Returns: {genus: {species: [(label, sequence), ...]}}"""
     panel = {c: collections.defaultdict(list) for c in cinsler}
     kirpilan = collections.Counter()
     dusen_tursuz = collections.Counter()
@@ -312,8 +312,8 @@ def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
 
 
 def urun_say(primerler, panel_fa, calisma, etiket, a):
-    """Panele karsi blastn; 14'un baglanma ve urun kuralini uygular.
-    Doner: {cift_no: {referans: urun_sayisi}}"""
+    """blastn against the panel, applying the outside database step's binding and
+        product rule. Returns: {pair_number: {reference: product_count}}"""
     db = os.path.join(calisma, "panel_%s.fa" % etiket)
     shutil.copyfile(panel_fa, db)
     r = subprocess.run(["makeblastdb", "-in", db, "-dbtype", "nucl"],

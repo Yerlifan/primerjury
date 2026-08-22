@@ -285,7 +285,7 @@ def iupac_varyantlar(win, a, uc="her"):
 
 
 def composition_ok(s, a):
-    """Toplanti kararindaki oligo kurallari. (uygun_mu, sebep) doner."""
+    'The oligo rules from the design decisions. Returns (is_it_suitable, reason).'
     if "N" in s:
         return False, "kalipta_N"
     degen = [c for c in s if c not in "ACGT"]

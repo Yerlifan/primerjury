@@ -37,12 +37,12 @@ IUPAC = {"A": "A", "C": "C", "G": "G", "T": "T",
 
 
 def uyar(oligo, kalip_parca):
-    """Oligo, kalip parcasiyla bagdasiyor mu.
+    """Is the oligo compatible with this piece of the template.
 
-    Kalipta IUPAC kodu bulunabilir; primer ise salt ACGT'dir ve kodun
-    temsil ettigi alellerden birine cozulmustur. Bu yuzden karakter
-    esitligi degil, KUME UYUMU aranir. Kalipta N varsa o konum bilinmiyor
-    demektir ve uyum sayilmaz."""
+        The template can hold an IUPAC code while the primer is pure ACGT and has
+        been resolved to one of the alleles that code stands for. So what is looked
+        for is not character equality but SET COMPATIBILITY. An N in the template
+        means that position is unknown, and it does not count as compatible."""
     if len(oligo) != len(kalip_parca):
         return False
     for o, k in zip(oligo, kalip_parca):
@@ -85,7 +85,7 @@ def main():
     if not aday:
         sys.exit(u'the anchor consensus was not found: %s' % capa_ad)
     kalip = oku(aday[0])
-    print("capa dosyasi : %s" % os.path.basename(aday[0]))
+    print('the anchor file : %s' % os.path.basename(aday[0]))
     print("kalip uzunluk: %d" % len(kalip))
     print(u'rows tested: %d\n' % min(len(rows), a.max))
 

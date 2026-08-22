@@ -64,7 +64,7 @@ def _kd_yukle(kok):
 
 
 def kutu_konsensuslari(kok, en_fazla):
-    """Gercek kutu konsensuslerini okur. Kanonik olanlar tercih edilir."""
+    'Reads the real bin consensuses, preferring the canonical ones.'
     adaylar = []
     kn = os.path.join(kok, 'konsensus_kanonik')
     if os.path.isdir(kn):
@@ -187,9 +187,9 @@ def main():
     # --- THE DECISION ---
     # minimap2 IS NOT made the default unless all three conditions are met.
     sartlar = [
-        (u'butun satirlarda ayni en iyi isabet', ayni == len(satirlar)),
-        (u'kimlik sapmasi her satirda 0,5 puanin altinda', en_buyuk_sapma < 0.5),
-        (u'ilk bes isabet her satirda birebir ortusuyor', tam_ortusen == len(satirlar)),
+        ('the same best hit on every row', ayni == len(satirlar)),
+        ('the identity deviation is below 0.5 points on every row', en_buyuk_sapma < 0.5),
+        ('the first five hits match exactly on every row', tam_ortusen == len(satirlar)),
     ]
     gecti = all(x[1] for x in sartlar)
 

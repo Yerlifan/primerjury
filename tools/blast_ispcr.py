@@ -346,7 +346,7 @@ def cift_tara(W, baslangic, okuma_boylari, F, R, en_kisa, en_uzun):
 
 # ------------------------------------------------------------------ statistics and the decision
 def wilson_alt(k, n, z=1.96):
-    """Oranin guvenilen en dusuk degeri. Kucuk orneklemde ham orana guvenilmez."""
+    'The lowest value the ratio can be trusted at. On a small sample the raw ratio is not to be trusted.'
     if n <= 0: return 0.0
     p = k / n
     payda = 1 + z*z/n

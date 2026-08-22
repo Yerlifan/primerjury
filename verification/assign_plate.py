@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
-"""PLAKA ATAMASI ONERISI  -  jel cakismasini kaldiracak dagilimi ARAR.
+"""A PLATE ASSIGNMENT SUGGESTION: it SEARCHES for a layout that removes the gel
+overlap.
 
-SORUN
------
-Ayni plakada kosan iki urun 10 bp'den yakinsa %2 agarozda ayirt edilemez
-(toplantida konulan olcut). Bugun degistirilen ciftler bu ayrimi yeniden
-bozdu: Bacteroidales urunu 241 bp'den 150 bp'ye dondu ve Mantar F2'nin
-145 bp'sinin yanina oturdu - eski bir duzeltme farkinda olmadan geri alindi.
+THE PROBLEM
+-----------
+Two products running on the same plate cannot be told apart on 2 per cent
+agarose if they are within 10 bp of one another, which is the criterion that was
+set. Pairs changed later broke that separation again: one product went from 241
+bp to 150 bp and landed beside another at 145 bp, undoing an earlier correction
+without anyone noticing.
 
-NE YAPAR
---------
-Dizilere DOKUNMAZ. Yalnizca hangi ciftin hangi plakada kosacagini degistirir.
-Kisit: her cift, plakasinin Ta'sinda calisabilmeli. Olcut "Ta <= min(Tm) - 3";
-yani bir cift, kendi min Tm'sinden 3 derece dusuk ya da daha dusuk bir Ta'ya
-konabilir, daha YUKSEGINE konamaz.
+WHAT IT DOES
+------------
+It DOES NOT TOUCH the sequences. It only changes which pair runs on which plate.
+The constraint: every pair has to work at its plate's annealing temperature. The
+criterion is Ta <= min(Tm) - 3, so a pair can be put on a Ta three degrees below
+its own minimum Tm or lower, and never HIGHER.
 
-Cikti bir ONERIDIR, uygulanmaz. Plaka degistirmek deneyin duzenini degistirir;
-karari insan verir.
+The output is A SUGGESTION and is not applied. Changing a plate changes the
+layout of the experiment, and a person decides that.
 
-Kosum:
+To run it:
     python verification/assign_plate.py --root .
 """
 from __future__ import print_function
@@ -64,8 +66,9 @@ def oku(kok, tm_kaynagi=None):
 
 
 def geo_tm(kok, ciftler):
-    """Varsa panelin KENDI motoruyla Tm. Yoksa tablodaki deger kullanilir ve
-    bu durum ACIKCA yazilir - sessizce bayat sayiya guvenilmez."""
+    """The Tm from the panel's OWN engine when it is available. Otherwise the value
+        in the table is used and that is written down OPENLY: a stale number is
+        never trusted silently."""
     for aday in ('engine', 'engine'):
         d = os.path.join(kok, aday)
         if os.path.exists(os.path.join(d, 'geometry_core.py')):
@@ -73,7 +76,7 @@ def geo_tm(kok, ciftler):
             try:
                 import geometry_core
             except Exception:
-                return None, u'geometry_core.py yuklenemedi (primer3 yok?)'
+                return None, 'geometry_core.py could not be loaded; is primer3 missing?'
             sat = [l.rstrip('\n').split('\t')
                    for l in io.open(os.path.join(kok, PANEL), encoding='utf-8')]
             bas = sat[0]
@@ -104,7 +107,7 @@ def cakismalar(grup):
 
 
 def uygun(c, ta):
-    """Cift bu Ta'da kosabilir mi: Ta <= min(Tm) - 3."""
+    'Can this pair run at that Ta: Ta <= min(Tm) - 3.'
     return ta <= c['tm_min'] - 3 + 0.6      # 0,6 C olcum toleransi
 
 

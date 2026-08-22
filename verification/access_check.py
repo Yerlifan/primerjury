@@ -153,7 +153,7 @@ def main():
         havuz.sort(key=lambda x: x[0])
         if not havuz:
             satirlar.append(dict(vtb=etiket, dosya=dosya, sonuc='OLCULEMEDI',
-                                 sebep=u'800 bp ustu kayit yok (taranan %d)' % n))
+                                 sebep='there is no record above 800 bp (%d were scanned)' % n))
             print(u'  NOT MEASURED: no suitable record'); continue
         # bas / orta / son bolgelerden birer tane garanti
         secilen = []
@@ -163,7 +163,7 @@ def main():
                 if havuz[idx] not in secilen:
                     secilen.append(havuz[idx])
         kapsam = ('TAMAMI' if not a.tavan or n <= a.tavan else
-                  'ILK %d KAYIT (tavan)' % a.tavan)
+                  'THE FIRST %d RECORDS (the cap)' % a.tavan)
         print(u'  %d records scanned (%.0f s) - coverage: %s | test record: %s'
               % (n, time.time() - t0, kapsam,
                  ', '.join('#%d' % x[0] for x in secilen)), flush=True)
@@ -195,12 +195,16 @@ def main():
             sonuc, sebep = 'GECTI', u'tam ve %%%d mutasyonlu sorguda %d/%d geri getirildi' % (
                 int(a.mutasyon * 100), k, k)
         elif tam_ok == k:
-            sonuc, sebep = 'KISMEN', (u'tam dizide %d/%d geri getirdi ama %%%d mutasyonlu '
-                                      u'sorguda yalniz %d/%d - hatali konsensusle KACIRIYOR'
+            sonuc, sebep = 'KISMEN', ('it returned %d of %d on the exact '
+                                      'sequence but only %d of %d on a query '
+                                      'with %d per cent mutations, so it '
+                                      'MISSES with an imperfect consensus'
                                       % (k, k, int(a.mutasyon * 100), mut_ok, k))
         else:
-            sonuc, sebep = 'DUSTU', (u'kendi kaydini bile geri getiremedi (%d/%d tam, %d/%d '
-                                     u'mutasyonlu) - arama bu veritabanini FIILEN KULLANMIYOR'
+            sonuc, sebep = 'DUSTU', ('it could not even return its own record '
+                                     '(%d of %d exact, %d of %d mutated), so '
+                                     'the search IS NOT ACTUALLY USING this '
+                                     'database'
                                      % (tam_ok, k, mut_ok, k))
         print('  -> %s: %s' % (sonuc, sebep), flush=True)
         satirlar.append(dict(vtb=etiket, dosya=dosya, mb=round(boyut / 1e6),

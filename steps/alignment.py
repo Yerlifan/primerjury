@@ -39,7 +39,7 @@ def revcomp(s):
 
 
 def _cigar_coz(c):
-    """SAM CIGAR dizesini [(uzunluk, kod)] listesine cevirir."""
+    'Turns a SAM CIGAR string into a list of (length, code).'
     return [(int(n), _CIGAR_KOD.get(op, 0))
             for n, op in re.findall(r"(\d+)([MIDNSHP=X])", c)]
 
@@ -195,12 +195,12 @@ class Hizalayici(object):
 
 def durum():
     if ARKA_UC == "mappy":
-        return "hizalama arka ucu: mappy (kutuphane)"
+        return 'the alignment back end: mappy, as a library'
     if ARKA_UC == "minimap2-cli":
-        return "hizalama arka ucu: minimap2 komut satiri (%s)" % MINIMAP2
-    return ("hizalama arka ucu YOK. Kurulum:\n"
-            "   pip install --break-system-packages mappy\n"
-            "   ya da: sudo apt-get install -y minimap2")
+        return 'the alignment back end: the minimap2 command line (%s)' % MINIMAP2
+    return ("""THERE IS NO alignment back end. To install one:
+               pip install --break-system-packages mappy
+               or: sudo apt-get install -y minimap2""")
 
 
 if __name__ == "__main__":

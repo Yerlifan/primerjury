@@ -74,7 +74,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     # at first glance. That is why the gate is at the start of the run and not at the
     # end.
     from .run_all import yon_kapisi
-    _ok, _m = yon_kapisi(yaz, 'panel yeniden olcum')
+    _ok, _m = yon_kapisi(yaz, 'the panel re-measurement')
     for _x in _m:
         yaz('  ' + _x)
     if not _ok:
@@ -248,7 +248,7 @@ def _satirlar(sonuclar):
                 elif oran <= 0.77:
                     deg = 'ASAGI (%.1fx -> %.1fx)' % (eski, yeni)
                 else:
-                    deg = 'ayni (%.1fx -> %.1fx)' % (eski, yeni)
+                    deg = 'the same (%.1fx against %.1fx)' % (eski, yeni)
                 if eski >= ESIK > yeni:
                     dus = 'EVET - %.0fx esiginin ALTINA dustu' % ESIK
             elif yeni is None:

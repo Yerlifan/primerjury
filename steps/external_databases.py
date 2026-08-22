@@ -130,7 +130,7 @@ KONS_ETIKET = re.compile(r"((?:A1|A2|B|F1|F2))-\d+_(\d+)")
 
 
 def sinif_konsensuslari(kons_klasoru, sinif):
-    """Verilen sinifin konsensus dosyalarindan dizileri doner."""
+    'Returns the sequences from the consensus files of the given class.'
     diziler = []
     if not kons_klasoru or not os.path.isdir(kons_klasoru):
         return diziler
@@ -377,8 +377,9 @@ def _baskin_soy(soylar):
 
 
 def basliklari_coz(fna, kimlikler, onbellek):
-    """Urun olusturan referanslarin tam basligini fasta'dan tek gecisle alir.
-    blastn ciktisi yalniz kisa kimligi verir; takson bilgisi baslikta durur."""
+    """Takes the full header of the references that give a product, in one pass over
+        the fasta. The blastn output gives the short identifier alone, while the
+        taxon information sits in the header."""
     d = onbellek.setdefault(fna, {})
     eksik = {k for k in kimlikler if k not in d}
     if not eksik or not os.path.exists(fna):
@@ -652,7 +653,7 @@ def main():
     if gecersiz:
         print(u'\nOUT-OF-COVERAGE PAIRS (a \'no product\' result on these rows is not evidence of specificity):')
         for sn, db, uz, kim in gecersiz:
-            print("   %-4s %-34s en uzun benzer bolge %5d bp  %%%.1f"
+            print('   %-4s %-34s the longest similar region is %5d bp  %.1f per cent'
                   % (sn, db, uz, kim))
     temiz = sum(1 for x in sonuc if x["hedef_disi_urun"] == 0)
     temiz_gecerli = sum(1 for x in sonuc if x["hedef_disi_urun"] == 0
