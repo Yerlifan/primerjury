@@ -1193,7 +1193,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                             u'Dusus, primerin kotulesmesi degil OLCUNUN duzelmesidir; '
                             u'eski deger hicbir zaman gecerli degildi. Uyelik karari '
                             u'primerin sonucuna BAKILMADAN verildi - bu satirin dusmesi '
-                            u'kuralın tek yonlu calismadiginin kanitidir.'
+                            u'the rule does not work in one direction only.'
                             % (vir(eski), vir(kat)))
                         yaz(u'         NOTE: the drop is NOT A LOSS, it is the measurement being corrected. The old %s x came from a wrong membership.' % vir(eski))
                     s['uyelik_gerekcesi'] = (

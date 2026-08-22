@@ -352,7 +352,7 @@ def uyelik_uyarisi(satir, taban):
     if any(0.34 * p <= o <= 3.0 * p for o in olculen):
         return []
     return [
-        '!! UYARI: panelin yayimladigi ayrim %.1fx, bu koşuda olculen %s.' % (
+        '!! WARNING: the panel published a separation of %.1fx and this run measured %s.' % (
             p, ' / '.join('%.1fx' % o for o in olculen)),
         '   The deviation is large. The most likely cause is the MEMBERSHIP DEFINITION (which bin is a member, which is a competitor).',
         '   Once su dosyaya bakin: screening/target_membership.tsv  ->  satir "%s"' % satir['hedef'],

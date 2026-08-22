@@ -89,10 +89,11 @@ def alan_dagilimi(hedef, sinif, kons_klasoru=None, hedefler_tsv=None,
 
 
 def aciklama(dagilim, sinif, baskin):
-    ad = {"A": "arke", "B": "bakteri", "F": "mantar"}
-    return ("hedefin üye kutuları %s; bu çift %s alanında, oysa baskın alan %s. "
-            "Bu tasarım hedefin ait olmadığı lokus kitaplığındaki okumalardan "
-            "yapılmıştır ve hedefi temsil etmez."
+    ad = {"A": "archaea", "B": "bacteria", "F": "fungi"}
+    return ("the target's member bins are %s, and this pair is in the %s field "
+            "while the dominant field is %s. The design was made from the reads "
+            "of a locus library the target does not belong to, so it does not "
+            "represent the target."
             % (", ".join("%s=%d" % (ad.get(k, k), v)
                          for k, v in sorted(dagilim.items())),
                ad.get((sinif or "")[:1], sinif), ad.get(baskin, baskin)))

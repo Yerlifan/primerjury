@@ -90,11 +90,12 @@ def kararlar(yol):
 
 
 KARAR_ADI = {
-    '1': u'Karar 1 — tür özgül istendi',
-    '2': u'Karar 2 — cins düzeyi istendi',
-    '3': u'Karar 3 — işlevsel grup istendi',
-    '4': u'Karar 4 — alan evrensel istendi',
-    '5': u'Karar 5 — toplantıda konuşulmadı, ölçümden türetildi ve onaya sunuldu',
+    '1': u'Decision 1, species specific was asked for',
+    '2': u'Decision 2, genus level was asked for',
+    '3': u'Decision 3, a functional group was asked for',
+    '4': u'Decision 4, a domain universal was asked for',
+    '5': u'Decision 5, never discussed; derived from a measurement and put '
+         u'forward for approval',
 }
 
 

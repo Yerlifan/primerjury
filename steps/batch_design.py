@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 """
 batch_design.py
-targets.tsv dosyasındaki bütün toplantı kararlarını design_group_primers.py ile
-sırayla tasarlar ve tek bir özet tablo üretir.
+Designs every decision in targets.tsv in turn with design_group_primers.py and
+produces one summary table.
 
-Tasarım her AMPLİKON SINIFI için ayrı yapılır (A1, A2, B, F1, F2), çünkü
-sınıflar rDNA'nın farklı pencerelerini kapsıyor. Bir hedef birden fazla
-sınıfta bulunuyorsa her biri ayrı satır olur ve en iyi sonuç raporlanır.
+The design is made separately for every AMPLICON CLASS (A1, A2, B, F1, F2),
+because the classes cover different windows of the rDNA. When a target is present
+in more than one class each becomes its own row and the best result is reported.
 
-Rakip kümesi: aynı amplikon sınıfındaki, hedefte olmayan ve 'haric'
-sütununda belirtilmeyen bütün taksonlar. Hedefin kendi üyeleri asla
-rakip listesine girmez.
+The competitor set: every taxon in the same amplicon class that is not in the
+target and is not named in the 'haric' column. A target's own members never enter
+the competitor list.
 
-Kullanım:
+Usage:
   python3 batch_design.py \
-      --consensus "/.../referans_konsensus/self/konsensus" \
+      --consensus "<reference consensus>/self/consensus" \
       --targets targets.tsv \
-      --out "/.../primer_adaylari" \
+      --out "<primer candidates>" \
       [--only Karar1] [--jobs 1] [--extra "--degeneracy-budget 2"]
 """
 import argparse, csv, glob, hashlib, json, os, re, subprocess, sys, collections, time, datetime

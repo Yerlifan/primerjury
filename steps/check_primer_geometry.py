@@ -2,27 +2,29 @@
 # -*- coding: utf-8 -*-
 """
 check_primer_geometry.py
-İleri ve geri primerin doğru tasarlanıp tasarlanmadığını, tasarım kodunun
-HİÇBİR fonksiyonunu kullanmadan, sıfırdan denetler.
+Audits from scratch whether the forward and reverse primers were designed
+correctly, using NOT ONE function of the design code.
 
-Neden ayrı bir betik: tasarım kodu kendi ürettiği koordinatlarla kendini
-doğrularsa, koordinat hatası ikisinde de aynı yönde olur ve görünmez. Bu
-betik yalnızca kalıp dizisini, primer dizilerini ve bildirilen konumları
-alır; ürünü kalıptan keser ve şu dört şartı bağımsız olarak sınar:
+Why a separate script: if the design code confirms itself with the coordinates it
+produced itself, a coordinate fault runs the same way in both and stays
+invisible. This script takes only the template sequence, the primer sequences and
+the reported positions; it cuts the product out of the template and tests these
+four conditions independently:
 
-  1. Ürünün BAŞI ileri primerin kendisidir.
-  2. Ürünün SONU geri primerin TERS TÜMLEYENİDİR.
-  3. Geri primer, kalıbın eksi zincirinde okunduğunda 3' ucu ürünün içine
-     bakar; yani artı zincirdeki karşılığının 5' ucuna denk gelir.
-  4. Bildirilen ürün uzunluğu, kesilen ürünün uzunluğuna eşittir.
+  1. The START of the product is the forward primer itself.
+  2. The END of the product is the REVERSE COMPLEMENT of the reverse primer.
+  3. Read on the minus strand of the template, the 3' end of the reverse primer
+     faces into the product, that is, it falls on the 5' end of its counterpart
+     on the plus strand.
+  4. The reported product length equals the length of the product cut out.
 
-Ayrıca her primerin 3' ucunun kalıpta belirsiz (IUPAC ya da N) bir
-pozisyona denk gelip gelmediği denetlenir; geri primerin 3' ucu pencerenin
-BAŞINA düştüğü için burası kolayca gözden kaçar.
+It also checks whether the 3' end of each primer falls on an ambiguous position
+in the template, an IUPAC code or an N. That is easy to miss for the reverse
+primer, because its 3' end falls at the START of the window.
 
-Kullanım:
-  python3 check_primer_geometry.py --tsv primer_adaylari/X__A1.tsv \
-      --consensus referans_konsensus/baskin/konsensus --anchor A1-1_2209
+Usage:
+  python3 check_primer_geometry.py --tsv primer_candidates/X__A1.tsv \
+      --consensus reference_consensus/dominant/consensus --anchor A1-1_2209
 """
 import argparse, csv, glob, os, re, sys
 
@@ -52,7 +54,7 @@ def uyar(oligo, kalip_parca):
 
 
 def rc(s):
-    """Ters tümleyen. Önce tümlenir, sonra ters çevrilir."""
+    """The reverse complement: complemented first, then reversed."""
     return s.translate(TAM)[::-1]
 
 

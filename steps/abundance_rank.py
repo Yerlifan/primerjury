@@ -49,12 +49,14 @@ from collections import defaultdict
 # folded into the main rank; the intermediate ranks change with the taxonomy version
 # and make the comparison fragile.
 RUTBE_SIRA = ["D", "K", "P", "C", "O", "F", "G", "S"]
-RUTBE_ADI = {"D": "alem üstü", "K": "alem", "P": "şube", "C": "sınıf",
-             "O": "takım", "F": "aile", "G": "cins", "S": "tür"}
+RUTBE_ADI = {"D": "domain", "K": "kingdom", "P": "phylum", "C": "class",
+             "O": "order", "F": "family", "G": "genus", "S": "species"}
 
-GRUP_ARALIK = [("A1", 1, "Arke, kısa amplikon"), ("A2", 5, "Arke, uzun amplikon"),
-               ("F2", 9, "Mantar, uzun amplikon"), ("F1", 13, "Mantar, kısa amplikon"),
-               ("B", 17, "Bakteri")]
+GRUP_ARALIK = [("A1", 1, "Archaea, short amplicon"),
+               ("A2", 5, "Archaea, long amplicon"),
+               ("F2", 9, "Fungi, long amplicon"),
+               ("F1", 13, "Fungi, short amplicon"),
+               ("B", 17, "Bacteria")]
 YILLAR = (2021, 2023, 2024, 2025)
 BARKOD_GRUP, BARKOD_YIL = {}, {}
 for _g, _b0, _ac in GRUP_ARALIK:
@@ -213,13 +215,13 @@ def main():
             bolluk_satir.append(dict(
                 barkod="barcode%02d" % bc, grup=BARKOD_GRUP[bc],
                 yil=BARKOD_YIL[bc], rutbe=secilen,
-                takson="[%s düzeyine inemeyen okuma]" % RUTBE_ADI[secilen],
+                takson="[reads that cannot reach %s level]" % RUTBE_ADI[secilen],
                 taxid="", okuma=ust_kalan,
                 yuzde=round(100.0 * ust_kalan / toplam, 4)))
         if sinifsiz > 0:
             bolluk_satir.append(dict(
                 barkod="barcode%02d" % bc, grup=BARKOD_GRUP[bc],
-                yil=BARKOD_YIL[bc], rutbe=secilen, takson="[sınıflandırılmamış]",
+                yil=BARKOD_YIL[bc], rutbe=secilen, takson="[unclassified]",
                 taxid="", okuma=sinifsiz,
                 yuzde=round(100.0 * sinifsiz / toplam, 4)))
 
