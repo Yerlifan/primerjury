@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
-"""SECENEK 4 - Paneli DUZELTILMIS motorla yeniden olc.
+"""OPTION 4: measure the panel again with the CORRECTED engine.
 
-NEDEN GEREKLI
--------------
-Panelin ham okuma motoru olan engine/reads.py icindeki `Sonda`
-sinifi, primerin 3' ucundaki 13 bazi TAM eslesen bir tohum olarak ariyor
-(`variants()` yalniz IUPAC kodlarini acar, UYUMSUZLUK varyanti uretmez).
-Bu yuzden tek uyumsuzlugu 3' uctaki 13 baz icine dusen butun baglanma
-yerlerini KACIRIR. Olculdu: bazi hedef/kutu ciftlerinde Sonda 0 site
-bulurken kaba kuvvet 146 buluyor (%100 kayip).
+WHY IT IS NEEDED
+----------------
+The panel's raw read engine, the `Sonda` class inside engine/reads.py, searches for
+the 13 bases at the primer's 3' end as an EXACTLY matching seed (`variants()` only
+expands the IUPAC codes, it produces no MISMATCH variant). So it MISSES every binding
+site whose single mismatch falls inside those 13 bases at the 3' end. Measured: on
+some target and bin pairs Sonda finds 0 sites while brute force finds 146 (a 100
+percent loss).
 
-Bu modul o motoru KULLANMAZ. Iki dogru yol kullanir ve ikisini de kaba
-kuvvetle dogrular:
-  * mm<=1 : tarayici.Havuz (tohumu tek uyumsuzluk icin TAM)
-  * mm>=2 : ispcr.find_sites, TOHUMSUZ (gevsek olcutte tohumlu arama kacirir)
+This module DOES NOT USE that engine. It uses two correct routes and confirms both
+against brute force:
+  * mm<=1 : tarayici.Havuz (the seed is EXACT for a single mismatch)
+  * mm>=2 : ispcr.find_sites, SEEDLESS (under a relaxed criterion a seeded search
+            misses)
 
-IKI OLCUT
----------
-Panelin bazi satirlari <=1, bazilari <=3 uyumsuzlukla olculmus. Bu modul
-HER SATIRI IKI OLCUTLE BIRDEN olcer ve iki ayri sutun verir; her cikti
-satirinda hangi olcutun kullanildigi ACIKCA yazar.
+THE TWO CRITERIA
+----------------
+Some of the panel's rows were measured with <=1 mismatch and some with <=3. This
+module measures EVERY ROW UNDER BOTH CRITERIA and gives two separate columns; every
+output row says PLAINLY which criterion was used.
+
 """
 # -------------------------------------------------------------------------
 # panel_measurement.py measures every pair in the panel again under one and the
@@ -64,7 +66,7 @@ def olcut_metni(mm):
 
 
 def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
-    """okuma_sayisi=0 -> kutudaki BUTUN okumalar (tam derinlik)."""
+    """okuma_sayisi=0 -> EVERY read in the bin (full depth)."""
     # THE ORIENTATION GATE runs first: if the consensuses are not canonical this stage
     # DOES NOT START. The reason is in the silence: on a reversed consensus, in-silico
     # PCR returns 0 products without any warning, so a full depth measurement that runs

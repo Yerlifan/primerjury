@@ -45,7 +45,7 @@ def _cigar_coz(c):
 
 
 class Hizalayici(object):
-    """mappy.Aligner ile ayni arayuz, iki arka ucu da destekler."""
+    """The same interface as mappy.Aligner, supporting both backends."""
 
     def __init__(self, seq=None, fn_idx_in=None, preset="map-ont",
                  ekstra=None, yalniz_birincil=True):
@@ -114,9 +114,11 @@ class Hizalayici(object):
 
     # ---- bulk: much faster on the CLI backend ----
     def map_toplu(self, diziler):
-        """diziler: {ad: dizi}. [(ad, [Hiz, ...])] doner.
-        CLI arka ucunda tek minimap2 cagrisiyla hepsi hizalanir; okuma basina
-        surec baslatmak kabul edilemez derecede yavas olurdu."""
+        """diziler: {name: sequence}. Returns [(name, [Hiz, ...])].
+        On the CLI backend everything is aligned with a single minimap2 call; starting a
+        process per read would be unacceptably slow.
+
+        """
         if MAPPY:
             for ad, s in diziler.items():
                 kayit = []

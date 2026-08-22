@@ -144,7 +144,7 @@ def hucre_gecti(m, gc_ar, tm_ar, uc_gc_sart, son5_sart):
 
 
 def ihlaller(p, gc_ar=(40, 60), tm_ar=(58, 62), uc_gc_sart=True, son5_sart=True):
-    """geometry_core.py'nin viol() fonksiyonuyla ayni cikti (varsayilan esiklerde birebir)."""
+    """The same output as geometry_core.py's viol() function (exactly, at the default thresholds)."""
     v = []
     if not (C.UZUNLUK[0] <= len(p) <= C.UZUNLUK[1]):
         v.append('uz %d' % len(p))
