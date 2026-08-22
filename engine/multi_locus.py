@@ -1,33 +1,39 @@
 # -*- coding: utf-8 -*-
-"""FARKLI_LOKUS - 2. adim: BUTUN LOKUSLARDA tasarim denemesi.
+"""FARKLI_LOKUS, step 2: a design attempt AT EVERY LOCUS.
 
-Yol 5'ten farki dort noktada:
+It differs from route 5 on four points:
 
-  1. TAM KAPSAMA GARANTISI. Yol 5 capa tabanli bolgelere ayirir; capa tutmazsa
-     kaba parcalara boler. Burada omurga 700 bp pencerelerle 300 bp adimla
-     tanir. Urun ust siniri 400 bp oldugundan, baslangici s olan her amplikon
-     k = s // 300 penceresinin ICINE tam duser (300k <= s < 300k+300 ve
-     s + 400 < 300k + 700). Yani hicbir olasi amplikon pencere sinirina
-     dusmuyor - "butun dizi tarandi" bir iddia degil, bir teorem.
+  1. A COMPLETE COVERAGE GUARANTEE. Route 5 splits into anchor based regions; if the
+     anchor does not hold it falls back on rough pieces. Here the backbone is scanned
+     with 700 bp windows at a 300 bp step. Since the product upper bound is 400 bp,
+     every amplicon starting at s falls entirely INSIDE the window k = s // 300
+     (300k <= s < 300k+300 and s + 400 < 300k + 700). So no possible amplicon falls
+     on a window boundary: "the whole sequence was scanned" is not a claim but a
+     theorem.
 
-  2. COK OMURGA. Yol 5 yalniz EN UZUN uye konsensusunu omurga alir. Burada uye
-     konsensusleri uzunluga gore kumelenir ve HER kumenin en uzunu ayri omurga
-     olur (or. Methanothrix icin hem A1 1348 bp hem A2 4329 bp).
+  2. SEVERAL BACKBONES. Route 5 takes only the LONGEST member consensus as the
+     backbone. Here the member consensuses are clustered by length and the longest of
+     EACH cluster becomes a separate backbone (for Methanothrix, for instance, both
+     A1 at 1348 bp and A2 at 4329 bp).
 
-  3. SUZGEC OLCUYE BAGLANDI. Yol 5 generator.ayirt_edici_mi kullanir: "3' son baz
-     rakipte uymuyor mu". Buradaki suzgec dogrudan OLCUM KURALIDIR (<=1
-     uyumsuzluk + 3' son 2 baz TAM, okuma_motoru.Sonda). Yani on suzgec ile
-     nihai olcu ayni kurali kullanir; on suzgecte elenen bir aday olcumde
-     gecemez. Iki arama ayni degildir, bu fark raporda yazilidir.
+  3. THE FILTER IS TIED TO THE MEASURE. Route 5 uses generator.ayirt_edici_mi: "does
+     the last base at the 3' end fail to match in the competitor". The filter here is
+     THE MEASUREMENT RULE itself (<=1 mismatch plus the last 2 bases at the 3' end
+     EXACT, okuma_motoru.Sonda). So the prefilter and the final measure use the same
+     rule; a candidate eliminated in the prefilter could not have passed the
+     measurement. The two searches are not the same, and that difference is written in
+     the report.
 
-  4. OLCUM TABANI ONCEDEN VE KOSULSUZ BELIRLENIR. Bir lokus fiziksel olarak
-     yalniz bazi kitapliklarda varsa (or. 23S yalniz A2'de) o lokusun adaylari
-     YALNIZ o kitapliklarda olculur. Kural adayin sonucuna DEGIL amplikonun
-     konumuna bakar ve rakip kumesine de ayni sekilde uygulanir.
+  4. THE MEASUREMENT BASE IS SETTLED IN ADVANCE AND UNCONDITIONALLY. If a locus
+     physically exists only in some libraries (23S only in A2, for instance), the
+     candidates of that locus are measured ONLY in those libraries. The rule looks at
+     the amplicon's position and NOT at the candidate's result, and it is applied to
+     the competitor set in the same way.
 
-Iki asamali olcum: on eleme sig havuzda (--sig), hayatta kalanlar panel
-derinliginde (--derin) yeniden olculur. Sig sayilar SIRALAMA icindir, rapora
-girmez.
+A two stage measurement: the prefilter runs on a shallow pool (--sig) and the
+survivors are measured again at panel depth (--derin). The shallow numbers are for
+RANKING and do not enter the report.
+
 """
 import os, sys, json, time, argparse
 
@@ -93,7 +99,7 @@ def ssu_sinir(dizi):
 
 
 def baglanir(primer, diziler, geri=False):
-    """Olcum kuralinin ta kendisi: <=1 uyumsuzluk + 3' son 2 baz TAM."""
+    """The measurement rule itself: <=1 mismatch plus the last 2 bases at the 3' end EXACT."""
     s = OM.Sonda(OM.rc(primer) if geri else primer, geri, 1, True)
     return [bool(s.bul(d)) for d in diziler]
 
@@ -175,7 +181,7 @@ def main():
         uye_uzun_ix = [j for j, k in enumerate(g['uye_k']) if k['sinif'] in UZUN_SINIF]
         rak_diz = [k['dizi'] for k in g['rak_k']]
 
-        # primer basina baglanma vektorleri (olcum kuraliyla)
+        # the binding vectors per primer (under the measurement rule)
         FB, RB = {}, {}
         for (_i, _k, s, _m) in Fl:
             if s not in FB:

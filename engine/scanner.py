@@ -1,5 +1,9 @@
-"""Hizli KATI tarayici: 3' son 10-mer tohumu (son 2 baz tam) + tam primer dogrulamasi.
-Olcut ispcr.find_sites ile ayni: uyumsuzluk<=1, 3' son 2 baz tam."""
+"""A fast STRICT scanner: a 3' terminal 10-mer seed (the last 2 bases exact) plus a
+full primer verification.
+The criterion is the same as ispcr.find_sites: mismatches <=1, the last 2 bases at
+the 3' end exact.
+
+"""
 import sys, numpy as np
 sys.path.insert(0,'/tmp/wk2/engine')
 import ispcr
@@ -69,7 +73,7 @@ class Havuz:
         return m, dict(zip(st.tolist(), ids.tolist()))
 
     def bul5(self,rcrev,max_mm=1):
-        """rc(R) icin: 5' son 2 baz (indeks 0,1) TAM, uyumsuzluk<=1."""
+        """For rc(R): the last 2 bases at the 5' end (index 0, 1) EXACT, mismatches <=1."""
         L=len(rcrev); head=rcrev[:SEED]
         vars=set([head])
         for i in range(2,SEED):

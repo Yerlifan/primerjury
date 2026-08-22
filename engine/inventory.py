@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
-"""FARKLI_LOKUS - 1. adim: hedef basina FIZIKSEL LOKUS ENVANTERI.
+"""FARKLI_LOKUS, step 1: A PHYSICAL LOCUS INVENTORY per target.
 
-Bu betik hicbir sey degistirmez, yalnizca olcer. Sorular:
-  1. Hedefin uye kutulari hangileri, her birinin konsensusu kac bp?
-  2. Konsensusta rRNA operonunun hangi parcalari var (16S/18S, ITS, 23S/28S)?
-     Olcu: kurtarma_turu.capa_bul + bolgeler_kur (ayni capa listesi).
-  3. Ham okumalarin boy dagilimi ne? Konsensus kisa ama okumalar uzunsa
-     "baska lokus yok" demek YANLIS olur; bu yuzden okuma boyu ayri olculur.
-  4. Uye konsensusleri birbirine ne kadar benziyor (kume heterojen mi)?
+This script changes nothing, it only measures. The questions:
+  1. Which are the target's member bins, and how many bp is each consensus?
+  2. Which parts of the rRNA operon are in the consensus (16S/18S, ITS, 23S/28S)?
+     The measure: kurtarma_turu.capa_bul plus bolgeler_kur (the same anchor list).
+  3. What is the length distribution of the raw reads? If the consensus is short
+     while the reads are long, saying "there is no other locus" would be WRONG; so
+     the read length is measured separately.
+  4. How alike are the member consensuses (is the cluster heterogeneous)?
 
-Cikti: JSON, /tmp altina. Bagli klasore yalniz betik yazilir.
+The output: JSON, under SONUCLAR. Only the script is written to the mounted
+directory.
+
 """
 import os, sys, json, gzip, random, itertools
 
@@ -39,8 +42,10 @@ HEDEFLER = [
 
 
 def okuma_boylari(yol, n=4000):
-    """Ham fastq okuma boyu dagilimi - SUZGECSIZ (200-6000 filtresi yok).
-    Filtre uygulanirsa 'uzun okuma var mi' sorusu kendi kendini yanitlar."""
+    """The raw fastq read length distribution, UNFILTERED (no 200-6000 filter).
+    With the filter applied, the question 'is there a long read' would answer itself.
+
+    """
     boy = []
     ac = gzip.open if yol.endswith('.gz') else open
     with ac(yol, 'rt', errors='ignore') as fh:
@@ -61,13 +66,16 @@ def okuma_boylari(yol, n=4000):
 
 
 def benzerlik(a, b, ornek=1200):
-    """Kaba yerel benzerlik: k-mer Jaccard + en iyi kayma ile ozdeslik.
-    Hizalayici yok; amac 'kume heterojen mi' sorusunu tek sayiyla yanitlamak."""
+    """A rough local similarity: k-mer Jaccard plus the identity at the best offset.
+    No aligner; the aim is to answer 'is the cluster heterogeneous' with a single
+    number.
+
+    """
     k = 12
     A = set(a[i:i + k] for i in range(len(a) - k))
     B = set(b[i:i + k] for i in range(len(b) - k))
     jac = len(A & B) / float(len(A | B)) if (A | B) else 0.0
-    # kayma taramasi ile en iyi ozdeslik
+    # the best identity from an offset scan
     kisa, uzun = (a, b) if len(a) <= len(b) else (b, a)
     if len(kisa) > ornek:
         kisa = kisa[:ornek]
