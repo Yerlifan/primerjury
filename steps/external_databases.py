@@ -401,14 +401,16 @@ def basliklari_coz(fna, kimlikler, onbellek):
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--final", required=True, help="09'un output directory")
-    p.add_argument("--db", required=True, help="REFERANS_DB directory")
+    p.add_argument("--db", required=True, help='the reference database '
+                                               'directory')
     p.add_argument("--targets", default=None, help="targets.tsv")
     p.add_argument("--names", default=None, help="taxid_adlari.tsv")
     p.add_argument("--identity", default=None,
-                   help="hedef_kimlik.tsv from the target-identity step (measured identity)")
+                   help='the measured identity from the target identity step')
     p.add_argument("--consensus", default=None,
-                   help="consensus directory; if given, every (class, database) "
-                        "ikilisi icin KAPSAM DENETIMI yapilir")
+                   help='the consensus directory; when it is given, a '
+                        'COVERAGE CHECK is run for every pair of a class and '
+                        'a database')
     p.add_argument("--out", default=None)
     p.add_argument("--prod-min", type=int, default=50)
     p.add_argument("--prod-max", type=int, default=400)
@@ -419,9 +421,9 @@ def get_args():
                    help="also the large databases that include environmental sequences "
                         "tarar (SILVA, UNITE, ROD, PR2). Uzun surer.")
     p.add_argument("--wide-only", action="store_true",
-                   help="only genis kumeyi tarar")
+                   help='scan the wide set only')
     p.add_argument("--timeout", type=int, default=14400,
-                   help="veritabani basina saniye siniri")
+                   help='the time limit in seconds per database')
     return p.parse_args()
 
 

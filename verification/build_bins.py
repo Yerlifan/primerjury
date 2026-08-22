@@ -203,13 +203,15 @@ def main():
     p.add_argument('--coverage', dest='kapsam', type=float, default=0.95,
                    help='species-read coverage to reach in each barcode (0-1)')
     p.add_argument('--min-reads', dest='asgari_okuma', type=int, default=50,
-                   help='taxa with fewer reads than this are not turned into a bin '
-                        '(konsensus guvenilmez olur)')
+                   help='taxa with fewer reads than this are not turned into '
+                        'a bin, because the consensus would not be '
+                        'trustworthy')
     p.add_argument('--raw-root', dest='ham_kok', default='',
                    help='ham barkod fastq directory; bos ise bilinen yerlere bakilir')
     p.add_argument('--calibration-only', dest='yalniz_kalibrasyon', action='store_true')
     p.add_argument('--plan-only', dest='yalniz_plan', action='store_true',
-                   help='ne uretilecegini yaz, uretme')
+                   help='write down what would be produced, and produce '
+                        'nothing')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

@@ -374,8 +374,10 @@ def get_args():
     p.add_argument("--names", required=True)
     p.add_argument("--final", required=True, help="primer_final directory")
     p.add_argument("--reference", default=None, help="primer_referans.tsv")
-    p.add_argument("--db", required=True, help="REFERANS_DB directory")
-    p.add_argument("--identity", default=None, help="hedef_kimlik.tsv")
+    p.add_argument("--db", required=True, help='the reference database '
+                                               'directory')
+    p.add_argument("--identity", default=None, help='the identity table produced by '
+                                                    'the target identity step')
     p.add_argument("--out", required=True)
     p.add_argument("--prod-min", type=int, default=50)
     p.add_argument("--prod-max", type=int, default=400)
@@ -386,8 +388,9 @@ def get_args():
     # as species specific". The value is not hard coded here but stands as an option; if
     # it is changed, which threshold the run used is written at the top of the output.
     p.add_argument("--cross-species-tolerance", type=int, default=2,
-                   help="number of cross-reacting SPECIES tolerated at species-level specificity "
-                        "(urun sayisi degil); varsayilan 2")
+                   help='the number of cross reacting SPECIES tolerated at '
+                        'species level specificity, not the number of '
+                        'products; the default is 2')
     return p.parse_args()
 
 

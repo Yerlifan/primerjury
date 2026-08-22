@@ -68,17 +68,17 @@ def get_args():
     p.add_argument("--decision", default=None, help="this decision group only")
     p.add_argument("--extra", default="", help="04'e flags passed through unchanged")
     p.add_argument("--group-extra", default="",
-                   help="passed in addition for decision-group 3 and 4 targets "
-                        "bayraklar. Dejenerelik bayraklari kaldirildi: "
-                        "toplanti karari butun hedeflerde salt ACGT oligo "
-                        "istiyor, kalip belirsizligi --iupac-max ile "
-                        "yonetiliyor.")
+                   help='flags passed in addition for the function group and '
+                        'universal targets. The degeneracy flags were '
+                        'removed: every target takes ACGT only oligos and '
+                        'template ambiguity is handled with --iupac-max.')
     p.add_argument("--min-members", type=int, default=1)
     p.add_argument("--drop-indistinguishable", type=int, default=1,
-                   help="1: too close to one of the target members to be distinguished "
-                        "ozdes olan taksonlar rakip listesinden cikarilir ve "
-                        "gerekcesi loglanir. 0: cikarilmaz (toplanti kuralinin "
-                        "mantiken saglanamadigi durumda hedef sifir aday verir)")
+                   help='1: taxa too close to a target member to be '
+                        'distinguished are taken out of the competitor list '
+                        'and the reason is logged. 0: they are not taken out, '
+                        'in which case a target whose rule cannot be met '
+                        'logically returns zero candidates')
     p.add_argument("--rerun", action="store_true",
                    help="ignore the checkpoint, redesign every target from scratch")
     return p.parse_args()

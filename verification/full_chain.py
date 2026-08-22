@@ -727,36 +727,41 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
 
 
 def main():
-    p = argparse.ArgumentParser(description=u'Tam zincir: 8 H W I G T X Y Z S')
+    p = argparse.ArgumentParser(description='The full chain: 8 H W I G T X Y '
+                                            'Z S')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--confirm', dest='onayla', action='store_true',
-                   help=u'onay sormadan basla (menuden gelirken kullanilir)')
+                   help='start without asking for a confirmation, which is '
+                        'what the menu does')
     p.add_argument('--rerun', dest='yeniden', action='store_true',
                    help=u'durum.json is reset and everything runs from scratch')
     p.add_argument('--from-scratch', dest='sifirdan', action='store_true',
-                   help=u'CLEAN RUN: not just this script, but every CALLED '
-                        u'asamanin kontrol noktalarini da gecersiz kilar. '
-                        u'Hicbir sey silinmez, zaman damgali klasorlere tasinir.')
+                   help='A CLEAN RUN: it invalidates the checkpoints not only '
+                        'of this script but of every stage it CALLS. Nothing '
+                        'is deleted; things are moved into time stamped '
+                        'directories.')
     p.add_argument('--only', dest='yalniz', default='',
                    help=u'these stages only, comma-separated, e.g. 8,S')
     p.add_argument('--skip', dest='atla', default='',
                    help=u'skip these stages, comma-separated')
     p.add_argument('--pluspfp', default=os.environ.get('PLUSPFP', ''),
-                   help=u'PlusPFP veritabani yolu (if omitted Y adimi atlanir)')
+                   help='the path of the PlusPFP database; when it is omitted '
+                        'the corresponding step is skipped')
     p.add_argument('--db-path', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 database path (default ~/k2db, then the tool scans the disk)')
     p.add_argument('--env', dest='ortam', default=os.environ.get('ORTAM', ''),
-                   help=u'micromamba/conda ortam adi (default: mikro). '
-                        u'kraken2 baska bir ortamdaysa burada verin; '
-                        u'ortam adlarini gormek icin: micromamba env list')
+                   help='the micromamba or conda environment name, mikro by '
+                        'default. Give it here when kraken2 lives in another '
+                        'environment; to see the names: micromamba env list')
     p.add_argument('--dry-run', dest='kuru', action='store_true',
-                   help=u'komutlari CALISTIRMADAN plani and denetimi gosterir')
+                   help='show the plan and the checks WITHOUT RUNNING the '
+                        'commands')
     p.add_argument('--plan', action='store_true',
-                   help=u'only plani basar and cikar; hicbir sey kosulmaz. '
-                        u'verification/full_chain.py once bunu cagirir, onayi kendi alir, '
-                        u'sonra --confirm ile asil kosuyu baslatir. Boylece onay '
-                        u'sorusu WSL yerine Windows tarafinda sorulur ve stdin '
-                        u'aktariminin bicimine bagli kalmaz.')
+                   help='print the plan only and exit; nothing is run. The '
+                        'driver calls this first, takes the confirmation '
+                        'itself, and then starts the real run with --confirm, '
+                        'so that the question is asked outside WSL and does '
+                        'not depend on how stdin is passed through.')
     a = p.parse_args()
 
     kok = os.path.abspath(a.kok)

@@ -914,7 +914,8 @@ def _ing_deger(a):
 
 def main():
     p = argparse.ArgumentParser(
-        description=u'Panel olcumlerine giren TUM kutularin kimligini bagimsiz dogrula')
+        description='Confirm independently the identity of EVERY bin that '
+                    'enters the panel measurements')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--shortlist', type=int, default=None, dest='kisa_liste',
                    help=u'number of candidates to align fully (default: same as the identity stage)')
@@ -922,9 +923,9 @@ def main():
                    help=u'how many bins to scan together in one database pass '
                         u'(bellek/hiz dengesi, varsayilan 24)')
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='yok',
-                   help=u'NCBI nt layer (default none: a separate BLAST per bin '
-                        u'kuyrugu gunlerce surer; I asamasindan kalan onbellek yine '
-                        u'kullanilir)')
+                   help='the NCBI nt layer (the default is none: a separate '
+                        'BLAST queue per bin takes days; the cache left from '
+                        'the identity stage is still used)')
     p.add_argument('--literature', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto')
     p.add_argument('--only', dest='yalniz', default=None,
                    help=u'comma-separated ayrilmis bin adi parcalari (for testing)')

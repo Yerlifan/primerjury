@@ -1535,7 +1535,8 @@ def _ing_deger(a):
     return a
 
 def main():
-    p = argparse.ArgumentParser(description='Kurtarilan ciftlerin uc katmanli dogrulanmasi')
+    p = argparse.ArgumentParser(description='The three layer confirmation of '
+                                            'the recovered pairs')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle',
                    help='auto: NCBI URL API; manual: write pasteable input; none: skip')
@@ -1547,18 +1548,21 @@ def main():
     # returns only that taxon). The correct form is 'all[filter] NOT txidN[Organism]'.
     # The code adds that prefix itself.
     p.add_argument('--ncbi-exclude-taxid', dest='ncbi_haric_taxid', default='',
-                   help="taxid to EXCLUDE at NCBI (example: 2157). Added to ENTREZ_QUERY "
-                        "'all[filter] NOT txid<N>[Organism]' olarak gonderilir.")
-    p.add_argument('--local-only', dest='yalniz_yerel', action='store_true', help='only katman 2 (yerel DB)')
+                   help='a taxid to EXCLUDE at NCBI, 2157 for example. It is '
+                        "added to the Entrez query as 'all[filter] NOT "
+                        "txid<N>[Organism]'.")
+    p.add_argument('--local-only', dest='yalniz_yerel', action='store_true', help='layer 2, the local database, '
+                                                                                  'only')
     p.add_argument('--no-mfe', dest='mfe_yok', action='store_true',
-                   help='MFEprimer katmanini skip')
+                   help='skip the MFEprimer layer')
     p.add_argument('--cluster-max', dest='kume_ust', type=int, default=0,
-                   help='only en kucuk N veritabani (hizli test)')
+                   help='the smallest N databases only, for a quick test')
     p.add_argument('--parc-set', dest='parc', action='store_true',
                    help='also scan the SILVA LSU Parc set (slow; not needed for specificity)')
     p.add_argument('--order', dest='siparis', action='store_true',
-                   help='kurtarilanlar yerine SIPARIS LISTESINDEKI ciftleri dogrula '
-                        '(siparis oncesi Primer-BLAST kontrolu icin)')
+                   help='confirm the pairs in the ORDER LIST instead of the '
+                        'recovered ones, for the primer BLAST check before '
+                        'ordering')
     p.add_argument('--order-all', dest='siparis_hepsi', action='store_true',
                    help='with --order: include CONDITIONAL and NOT-RECOMMENDED rows as well')
     # -----------------------------------------------------------------------
@@ -1570,13 +1574,14 @@ def main():
     # The --order mode IS UNCHANGED; --all is a separate flag built on top of it.
     # -----------------------------------------------------------------------
     p.add_argument('--all', dest='tumu', action='store_true',
-                   help='EVERY pair in the panel (CERTAIN + UNIVERSAL + CONDITIONAL +'
-                        'ONERILMEZ) butun indeksli veritabanlarina, SILVA dahil')
+                   help='EVERY pair in the panel against every indexed '
+                        'database, SILVA included')
     p.add_argument('--ncbi-order-only', dest='ncbi_yalniz_siparis', action='store_true',
-                   help='--all with: KATMAN 4 (NCBI) only siparis listesindeki '
-                        '(KESIN/EVRENSEL) ciftlere kosar. Listede olmayanlar '
-                        'yalniz yerel + MFEprimer katmanlarini gorur. NCBI cift '
-                        'basina ~75 sn + 10 sn bekleme oldugu icin sure kalemi.')
+                   help='with --all: layer 4, NCBI, runs only on the pairs in '
+                        'the order list. The ones not on the list see the '
+                        'local and MFEprimer layers alone. NCBI costs about '
+                        '75 seconds per pair plus a 10 second wait, so it is '
+                        'a time item.')
     p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)

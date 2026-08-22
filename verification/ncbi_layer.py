@@ -55,9 +55,10 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--organism', dest='organizma', default='',
-                   help='NCBI organizma kisiti (bos = tum nt). BOS BIRAKIN: '
-                        'genel kisit butun urunleri "target templates" hanesine '
-                        'itiyor (olculdu).')
+                   help='the NCBI organism restriction; empty means the whole '
+                        'of nt. LEAVE IT EMPTY: a general restriction pushes '
+                        'every product into the "target templates" column, '
+                        'which was measured.')
     p.add_argument('--wait', dest='bekleme', type=int, default=20)
     p.add_argument('--species-max', dest='tur_ust', type=int, default=60)
     a = p.parse_args()

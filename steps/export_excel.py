@@ -69,11 +69,12 @@ def get_args():
     p.add_argument("--names", default=None)
     p.add_argument("--targets", default="hedefler.tsv")
     p.add_argument("--identity", default=None,
-                   help="output of the target-identity step (hedef_kimlik.tsv); if given, every "
-                        "satira olculen kimlik sutunu eklenir")
+                   help='the output of the target identity step; when it is '
+                        'given, a measured identity column is added to every '
+                        'row')
     p.add_argument("--consensus", default=None,
-                   help="baskin alel consensus directory; alan tutarliligi "
-                        "denetimi icin gerekir")
+                   help='the dominant allele consensus directory, which the '
+                        'field consistency check needs')
     p.add_argument("--out", required=True)
     p.add_argument("--note", default="")
     return p.parse_args()

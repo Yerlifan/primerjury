@@ -262,7 +262,8 @@ def kutu_yukle(path, nmax=3000, seed=3, minl=MINL, maxl=MAXL):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description='Duzeltilmis ham-okuma in-silico PCR (kayipsiz tohumlama).')
+        description='The corrected raw read in-silico PCR, with lossless '
+                    'seeding.')
     ap.add_argument('F'); ap.add_argument('R')
     ap.add_argument('fastq', nargs='+', help='fastq files or a glob pattern')
     ap.add_argument('--mm', type=int, default=1, help='total mismatches allowed (default 1)')

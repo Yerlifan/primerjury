@@ -1113,11 +1113,13 @@ def _ing_deger(a):
 
 def main():
     global CANLILIK_SN
-    p = argparse.ArgumentParser(description=u'TEK TUS - butun zinciri sirayla kosar')
+    p = argparse.ArgumentParser(description='ONE KEY: runs the whole chain in '
+                                            'order')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--plan', action='store_true', help=u'only plani yaz, kosma')
     p.add_argument('--confirm', dest='onayla', action='store_true',
-                   help=u'plani gosterip onay BEKLEMEDEN kos (bat bunu verir)')
+                   help='run WITHOUT showing the plan and waiting for a '
+                        'confirmation')
     p.add_argument('--rerun', dest='yeniden', action='store_true',
                    help=u're-run finished stages as well')
     p.add_argument('--only', dest='yalniz', default='', help=u'these stages only, e.g. 8HS')
@@ -1126,9 +1128,10 @@ def main():
     p.add_argument('--organism', dest='organizma',
                    default='Bacteria (taxid:2) OR Archaea (taxid:2157) OR Fungi (taxid:4751)')
     p.add_argument('--order-16', dest='siparis_16', action='store_true',
-                   help=u'D asamasi 22 cift yerine only 16 siparis ciftini sinar')
+                   help='the ordering stage tests the 16 ordered pairs only, '
+                        'instead of all 22')
     p.add_argument('--db-path', dest='vt', default=os.environ.get('VT_A', ''),
-                   help=u'Kraken2 veritabani yolu')
+                   help='the path of the Kraken2 database')
     p.add_argument('--skip-precheck', dest='on_kontrol_atla', action='store_true',
                    help=u'skip the pre-check - not recommended; it is reported on screen')
     p.add_argument('--liveness', dest='canlilik', type=int, default=CANLILIK_SN,

@@ -62,13 +62,15 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--bracken", required=True, help="'bracken results' directory")
     p.add_argument("--distinguishable", default=None, help="ayirt_edilemez.tsv")
-    p.add_argument("--identity", nargs="*", default=[], help="kimlik_*.tsv")
+    p.add_argument("--identity", nargs="*", default=[], help='the identity tables produced '
+                                                             'by the identity verification')
     p.add_argument("--names", default=None, help="taxid_adlari.tsv")
     p.add_argument("--out", required=True)
     p.add_argument("--top", type=int, default=10, help="taxon shown on the page")
     p.add_argument("--rank", default=None,
-                   help="abundance_rank.py'nin output directory; if given "
-                        "'Rutbe Kapsamasi' ve 'Guvenilir Bolluk' sayfalari eklenir")
+                   help='the output directory of abundance_rank.py; when it '
+                        'is given, the rank coverage and reliable abundance '
+                        'sheets are added')
     p.add_argument("--identity-threshold", type=float, default=50.0,
                    help="bin identity is suspect when the dominant fraction is below this value")
     return p.parse_args()
