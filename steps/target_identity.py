@@ -2,33 +2,32 @@
 # -*- coding: utf-8 -*-
 """
 target_identity.py
-HEDEF ADI ILE VERININ GOSTERDIGI ORGANIZMAYI KARSILASTIRIR.
+COMPARES THE TARGET NAME WITH THE ORGANISM THE DATA SHOWS.
 
-Toplanti kararindaki hedef adlari Kraken2'nin takson atamalarina dayaniyor.
-Kraken2 varsayilan ayarinda cekimser kalmaz: gercek organizma veritabaninda
-yoksa okuma en yuksek puanli yaprakla etiketlenir. Bu yuzden bir kutunun
-etiketi ile o kutudaki DIZININ gercekte ne oldugu ayrilabilir.
+The target names in the meeting decisions rest on Kraken2's taxon assignments.
+Kraken2 does not abstain under its default setting: if the real organism is not in
+the database, a read is labelled with the highest scoring leaf. So a bin's label and
+what the SEQUENCE in that bin really is can come apart.
 
-Bu betik kutu konsensuslerini referans veritabanina blastn ile sorgular ve
-her hedef icin ucunu yan yana koyar:
-  toplanti_adi     kararda yazan hedef adi
-  kraken_etiketi   o hedefin taxid'lerinin adlari
-  olculen_kimlik   konsensusun referans veritabanindaki en iyi eslesmesi
+This script queries the bin consensuses against a reference database with blastn and
+puts three things side by side for each target:
+  toplanti_adi     the target name written in the decision
+  kraken_etiketi   the names of that target's taxids
+  olculen_kimlik   the consensus's best match in the reference database
 
-Ayirt edici bolge tercih edilir: mantarda ITS, bakteri ve arkede 16S.
-Korunmus bolgeler (18S, 28S) cins duzeyinde ayirmaz; betik hangi bolgeden
-olculdugunu her satirda yazar, boylece guven duzeyi gizlenmez.
+The discriminating region is preferred: ITS in fungi, 16S in bacteria and archaea.
+Conserved regions (18S, 28S) do not separate at genus level; the script writes on
+every row which region it measured from, so the level of confidence is not hidden.
 
-Kullanim:
-  python3 target_identity.py --kons referans_konsensus/baskin/konsensus \
-      --db REFERANS_DB --hedefler hedefler.tsv --adlar taxid_adlari.tsv \
-      --out primer_final/hedef_kimlik.tsv
+Usage:
+  python3 target_identity.py --kons referans_konsensus/baskin/konsensus       --db REFERANS_DB --hedefler hedefler.tsv --adlar taxid_adlari.tsv       --out primer_final/hedef_kimlik.tsv
+
 """
 import argparse, csv, collections, glob, os, re, subprocess, sys, tempfile, shutil
 
-# Hangi sinif hangi veritabanina sorulur. Ilk sirada AYIRT EDICI bolge
-# bulunur; sonrakiler korunmus bolgelerdir ve yalnizca ilki bos donerse
-# kullanilir.
+# Which class is asked of which database. The DISCRIMINATING region comes first;
+# the ones after it are conserved regions and are used only if the first comes back
+# empty.
 SINIF_DB = {
     "A1": [("archaea.16S.fna", "16S")],
     "A2": [("archaea.16S.fna", "16S")],
@@ -93,7 +92,7 @@ def main():
             continue
         hedef_taxid[q[1]] = [t.strip() for t in q[3].split(",") if t.strip()]
 
-    # kutu envanteri
+    # the bin inventory
     kutular = {}
     for p in sorted(glob.glob(os.path.join(a.kons, "*.fasta"))):
         et = re.sub(r"_(baskin|ref|self)?_?konsensus\.fasta$", "",
@@ -145,18 +144,18 @@ def main():
                                           float(q[3]), q[4])
                 zayif = aln < a.min_hizalama or pid < a.min_ozdeslik
                 if zayif:
-                    # Esigi gecemeyen en iyi vurus da tutulur. "eslesme yok"
-                    # ile "en yakin akraba %88'de" ayni sey degildir; ilki
-                    # veri yoklugu, ikincisi veritabaninda yakin akrabasi
-                    # bulunmayan bir organizma demektir.
+                    # The best hit that fails the threshold is kept too. "No match"
+                    # and "the nearest relative is at 88 percent" are not the same
+                    # thing; the first is an absence of data, the second an organism
+                    # with no close relative in the database.
                     if et not in zayif_en or bit > zayif_en[et][0]:
                         zayif_en[et] = (bit, pid, aln, tit, bolge)
                     continue
-                # BITSCORE ile siralanir. Once uzunluga bakmak yanilticiydi:
-                # 524 bp'de %94,47 eslesme, 504 bp'de %98,21 eslesmenin
-                # onune geciyordu ve kimlik yanlis cikiyordu. Bitscore
-                # uzunlukla ozdesligi birlikte tartar, blastn'in kendi
-                # olcutudur.
+                # Sorted by BITSCORE. Looking at length first was misleading: a
+                # 94.47 percent match over 524 bp was coming ahead of a 98.21
+                # percent match over 504 bp and the identity came out wrong.
+                # Bitscore weighs length and identity together and is blastn's
+                # own criterion.
                 if et not in en or bit > en[et][0]:
                     en[et] = (bit, pid, aln, tit, bolge)
             for et, (_, pid, aln, tit, bl) in en.items():
@@ -168,7 +167,7 @@ def main():
 
     shutil.rmtree(calisma, ignore_errors=True)
 
-    # hedef basina topla
+    # collect per target
     sonuc = []
     for hedef, tl in sorted(hedef_taxid.items()):
         ilgili = [e for e, v in kutular.items() if v[1] in tl]
@@ -200,8 +199,8 @@ def main():
         if not say:
             continue
         baskin, n = say.most_common(1)[0]
-        # Uyum ikili degil, DUZEYLI raporlanir: cins uyusup turun farkli
-        # olmasi ile hic uyusmamak ayni sey degildir.
+        # The agreement is reported IN LEVELS rather than as a yes or no: the genus agreeing
+        # while the species differs is not the same as no agreement at all.
         if "vurus yok" in baskin:
             uyum = "vurus_yok"
         elif baskin.endswith("(esik alti)"):

@@ -1,35 +1,37 @@
 # -*- coding: utf-8 -*-
-"""Toplanti geometri kurallarinin PARAMETRELESTIRILMIS hali.
+"""The PARAMETERISED form of the meeting's geometry rules.
 
-Kural metni ve primer3 tuz kosullari engine/geometry_core.py ile birebir
-ayni tutulmustur; self_test.py o dosyayi calistirip 42 panel primerinin
-her degerini bu modulle karsilastirir (birebir tutmazsa arama baslamaz).
+The rule text and the primer3 salt conditions are kept exactly the same as in
+engine/geometry_core.py; self_test.py runs that file and compares every value of the
+42 panel primers against this module (if they do not match exactly, the search does
+not start).
 
-Fark: geometry_core.py kurallari SABIT tutar, bu modul parametre izgarasi icin
-gevsetilebilir esikler alir.
+The difference: geometry_core.py holds the rules FIXED, while this module takes
+relaxable thresholds for the parameter grid.
+
 """
-# ---------------------------------------------------------------------------
-# geometry.py — bir primerin ve bir ciftin fiziksel buyukluklerini (Tm, GC,
-#               hairpin, homodimer, heterodimer, delta-G, Ta) olcer ve toplanti
-#               kurallarina gore gecip gecmedigini soyler.
+# -------------------------------------------------------------------------
+# geometry.py measures a primer's and a pair's physical quantities (Tm, GC,
+#               hairpin, homodimer, heterodimer, delta-G, Ta) and says whether they
+#               pass the rules from the meeting.
 #
-# GIRDI  : primer dizisi (ve cift icin iki dizi + urun boyu); esikler ve
-#          primer3 tuz/derisim kosullari config.py'den; hesaplama
-#          primer3-py kutuphanesiyle yapilir.
-# CIKTI  : dosyaya yazmaz. olc() olcum sozlugu, sabit_gecti() ve hucre_gecti()
-#          True/False, ihlaller() ihlal metinleri listesi, cift_olc() cift
-#          duzeyi sozluk dondurur.
-# CAGRAN : uretec.aday_primerler ve uretec.primer_maskesi uzerinden asama A ve
-#          B'de, __main__.hedefi_isle icinde asama D'de; self_test.py
-#          degerleri geometry_core.py ile karsilastirir. Yani tuslar 1, 2, 3, 7, 8, 9;
-#          disaridan verification/recovery_round.py (tus K).
+# INPUT  : the primer sequence (and, for a pair, two sequences plus the product
+#          length); the thresholds and the primer3 salt and concentration conditions
+#          come from config.py; the calculation is done with the primer3-py library.
+# OUTPUT : it writes no file. olc() returns a measurement dictionary,
+#          sabit_gecti() and hucre_gecti() True or False, ihlaller() a list of
+#          violation texts, and cift_olc() a pair level dictionary.
+# CALLED BY: at stages A and B through uretec.aday_primerler and
+#          uretec.primer_maskesi, and at stage D inside __main__.hedefi_isle;
+#          self_test.py compares its values against geometry_core.py. That is keys
+#          1, 2, 3, 7, 8, 9; from outside, verification/recovery_round.py (key K).
 #
-# sabit_gecti() ile hucre_gecti() bilerek AYRILMISTIR: hairpin ve homodimer
-# SYBR Green kimyasinda eleyicidir ve hicbir izgara hucresinde gevsetilmez,
-# bu yuzden sabit tarafta durur. GC, Tm ve 3' uc kurallari ise gevsetilebilir
-# olduklari icin izgara tarafindadir - raporun "hangi kurali gevsetince cozum
-# cikti" sorusuna cevap verebilmesi bu ayrima dayanir.
-# ---------------------------------------------------------------------------
+# sabit_gecti() and hucre_gecti() ARE DELIBERATELY SEPARATE: hairpin and homodimer
+# are eliminating in SYBR Green chemistry and are relaxed in no grid cell, so they
+# sit on the fixed side. The GC, Tm and 3' end rules can be relaxed and are
+# therefore on the grid side; the report's ability to answer "which rule had to be
+# relaxed for a solution to appear" rests on that separation.
+# -------------------------------------------------------------------------
 from . import config as C
 
 try:
@@ -102,7 +104,7 @@ def dejenere(p):
 
 # ---------------------------------------------------------------- olcumler
 def olc(p):
-    """Bir primerin butun geometri buyukluklerini bir kez hesapla (pahali kisim)."""
+    """Compute all of a primer's geometry quantities once (the expensive part)."""
     return dict(
         dizi=p, uz=len(p), gc=gc(p), tm=tm(p),
         hp_tm=hp_tm(p), hd_tm=hd_tm(p),
@@ -114,10 +116,7 @@ def olc(p):
 
 # ------------------------------------------------- degismez (izgaradan bagimsiz) suzgec
 def sabit_gecti(m):
-    """Hangi izgara hucresinde olursak olalim gecerli olan kurallar.
-
-    SYBR Green oldugu icin hairpin/homodimer ELEYICIDIR (uyari degil).
-    """
+    """The rules that hold whichever grid cell we are in."""
     if not (C.UZUNLUK[0] <= m['uz'] <= C.UZUNLUK[1]):
         return False
     if m['dejenere'] or m['tekrar']:
