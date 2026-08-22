@@ -71,24 +71,23 @@ def fasta_oku(p):
 
 
 def _ad_kalibi(ad):
-    """Ad SOZCUK SINIRIYLA aranir, alt dize olarak DEGIL.
+    """The name is searched WITH A WORD BOUNDARY, NOT as a substring.
 
-    Alt dize aramasi sessiz bir kirlenme uretiyordu: ic='Bacteroides'
-    yazildiginda 'Parabacteroides' ve 'Acetobacteroides' kayitlari da
-    hedef UYESI sayiliyordu. bacteria.16S.fna'da sozcuk sinirli
-    'Bacteroides' 86 kayit verirken, alt dize aramasi bunlara 17
-    Parabacteroides ile 1 Acetobacteroides kaydini da katiyordu; primer
-    o zaman baska cinslerde de urun vermek zorunda kalir ve cins
-    ozgullugu daha tasarim aninda kaybedilirdi.
-    """
+        A substring search produced a silent contamination: written as
+        'Bacteroides', it counted 'Parabacteroides' and 'Acetobacteroides' records as
+        MEMBERS of the target too. In bacteria.16S.fna a word bounded 'Bacteroides'
+        gives 86 records, while the substring search added 17 Parabacteroides and 1
+        Acetobacteroides to them; the primer would then be forced to give a product
+        in other genera as well, and genus specificity would be lost at design time.
+"""
     return re.compile(r"(?<![A-Za-z])%s(?![A-Za-z])" % re.escape(ad),
                       re.IGNORECASE)
 
 
 def sec(veritabani, adlar, azami_kayit=6):
-    """Basliginda verilen adlardan biri SOZCUK OLARAK gecen kayitlari
-    toplar. {ad: [(baslik, dizi), ...]} doner.
-    veritabani tek yol ya da yol listesi olabilir."""
+    """Gathers the records whose header holds one of the given names AS A WORD.
+        Returns {name: [(header, sequence), ...]}.
+        The database may be a single path or a list of paths."""
     yollar = veritabani if isinstance(veritabani, (list, tuple)) \
         else [veritabani]
     bulunan = {a: [] for a in adlar}
@@ -141,10 +140,10 @@ finally:
 
 def kardes_turleri_bul(yollar, cinsler, hedef_turler, azami_tur,
                        azami_kayit_tur):
-    """Hedefin cinsindeki OTEKI turleri veriden bulur.
+    """Finds the OTHER species in the target's genus from the data.
 
-    Doner: ({tur: [(baslik, dizi), ...]}, kirpilan_tur_sayisi)
-    """
+        Returns: ({species: [(header, sequence), ...]}, how many species were cut)
+"""
     bulunan = {}
     kirpilan = 0
     for yol in yollar:

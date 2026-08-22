@@ -53,9 +53,9 @@ def _ok(yaz, ad, iyi, ek=''):
 
 
 def yon_sinamasi(yaz):
-    """YON NORMALIZASYONU sinamasi - BAGIMSIZ calistirilabilir.
-    primer3 gibi opsiyonel bagimliliklara TAKILMAZ; konsensus adimi bunu
-    her kosuda cagirir. Donus: True/False."""
+    """The ORIENTATION NORMALISATION test, which CAN BE RUN ON ITS OWN.
+        It DOES NOT depend on an optional dependency such as primer3, and the
+        consensus step calls it on every run. Returns True or False."""
     from . import read_engine as OM
     from . import targets as H
     tum = True
@@ -66,7 +66,7 @@ def yon_sinamasi(yaz):
     try:
         from . import orientation as _Y
         h = _Y.kendini_sina()
-        tum &= _ok(yaz, 'orientation.py kendi sinavi (5 madde)', not h, '; '.join(h)[:70])
+        tum &= _ok(yaz, "orientation.py's own test, five items", not h, '; '.join(h)[:70])
 
         kons = H.konsensusler()
         ters = [k['kutu'] for k in kons

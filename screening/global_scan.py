@@ -66,8 +66,8 @@ AYIRAC = 'N' * 60
 
 
 def _parcalar(db, parca_baz=C.KURESEL_PARCA):
-    """FASTA'yi ~parca_baz buyuklugunde bloklara bol; her blok:
-    (baslik listesi, uzunluk listesi, birlestirilmis dizi)."""
+    """Split the FASTA into blocks of about the given size; each block is
+        (a header list, a length list, the concatenated sequence)."""
     ad_l, uz_l, buf, tot = [], [], [], 0
     for ad, seq in engine_gateway.read_fasta(db):
         s = engine_gateway.clean(seq.upper())
@@ -90,7 +90,7 @@ def _parcalar(db, parca_baz=C.KURESEL_PARCA):
 
 
 def _kayit_indeksi(uz_l):
-    """Birlestirilmis dizide her kaydin baslangici (ayirac dahil)."""
+    'The start of every record inside the concatenated sequence, separator included.'
     off = np.zeros(len(uz_l), dtype=np.int64)
     c = 0
     for i, u in enumerate(uz_l):
@@ -137,7 +137,7 @@ def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM
     """
     db = db or C.SILVA_SSU
     if not os.path.exists(db):
-        return {a['ad']: dict(hata='veritabani yok: %s' % db) for a in adaylar}
+        return {a['ad']: dict(hata='there is no such database: %s' % db) for a in adaylar}
     db_ad = os.path.basename(db)
 
     durum = dict(surum=DURUM_SURUMU, parca=0, toplam_kayit=0,

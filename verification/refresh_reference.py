@@ -54,9 +54,12 @@ def main():
     n = 0
     atlanan = []
     with io.open(cikti, 'w', encoding='utf-8', newline='') as fh:
-        fh.write(u'# HIZLI TEST REFERANS DEGERLERI\n')
-        fh.write(u'# Uretim: %s\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'# Kaynak : %s\n' % os.path.relpath(kaynak, kok))
+        fh.write("""# THE QUICK TEST REFERENCE VALUES
+""")
+        fh.write("""# Produced: %s
+""" % time.strftime('%Y-%m-%d %H:%M'))
+        fh.write("""# Source  : %s
+""" % os.path.relpath(kaynak, kok))
         fh.write(u'# Every row carries the F/R SEQUENCE the measurement was made with. The quick\n# test compares the sequence first; if the pair changed it does NOT\n# compare against the old number, it says "reference stale" and does\n# not stop the chain. That is why hard coded numbers were abandoned.\n')
         fh.write(u'hedef\tF\tR\treferans_x\tkarar\tkapsam\n')
         for r in satirlar:

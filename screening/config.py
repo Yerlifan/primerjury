@@ -199,14 +199,16 @@ KURESEL_PARCA = 40_000_000
 ESIK_DCQ = 3.0                      # <-- DEGISTIRILECEK TEK YER
 AYRIM_ESIK = 2.0 ** ESIK_DCQ        # kat karsiligi: 8,00
 
-ESIK_KOKENI = (u'LITERATUR OLCUTU dCq >= %.1f (ozgulluk/NTC gecme tabani; '
-               u'NEB qPCR veri analizi, MIQE raporlama dili)' % ESIK_DCQ)
+ESIK_KOKENI = ('A CRITERION FROM THE LITERATURE: dCq >= %.1f, the floor for '
+               "passing specificity and a no template control, from NEB's "
+               'qPCR data analysis and the MIQE reporting language' % ESIK_DCQ)
 
 ESIK_VERIM_NOTU = (
-    u'VERIM %%100 VARSAYILDI. dCq %.1f = %.2f kat donusumu her dongunun urunu '
-    u'ikiye katladigini kabul eder. Gercek verim daha dusukse ayni dCq daha '
-    u'kucuk kat farkina denk gelir: %%90 verimde %.2f kat, %%80 verimde %.2f '
-    u'kat. Kalibrasyon egrisi cikinca gercek verimle yeniden degerlendirin.'
+    'EFFICIENCY WAS ASSUMED TO BE 100 PER CENT. Turning dCq %.1f into %.2f '
+    'fold assumes every cycle doubles the product. At a real efficiency below '
+    'that, the same dCq comes to a smaller fold difference: %.2f fold at 90 '
+    'per cent and %.2f fold at 80 per cent. Once a calibration curve exists, '
+    'judge it again with the real efficiency.'
     % (ESIK_DCQ, 2.0 ** ESIK_DCQ, 1.9 ** ESIK_DCQ, 1.8 ** ESIK_DCQ))
 
 

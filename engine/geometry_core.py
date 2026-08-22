@@ -111,7 +111,7 @@ def viol(p):
     # the primer from its 3' end, and a G/C with its three hydrogen bonds at that end
     # keeps the primer seated firmly where extension starts. A primer with A/T at the 3'
     # end "breathes" at the tip and the yield becomes variable.
-    if p[-1] not in 'GC': v.append("3' uc %s (G/C degil)"%p[-1])
+    if p[-1] not in 'GC': v.append("the 3' end is %s, which is not G or C"%p[-1])
     n5=sum(1 for c in p[-5:] if c in 'GC')
     # AT MOST 3 G/C IN THE LAST 5 BASES AT THE 3' END. The counterweight to the previous
     # rule. Filling the 3' end with too much G/C (overdoing the "GC clamp") makes the
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         if r['primer']=='CIFT':
             pr = [x['ihlal'] for x in rows if x['hedef']==r['hedef'] and x['primer']!='CIFT']
             allv = r['ihlal'] + [i for s in pr for i in s]
-            print("%-34s CIFT  %-24s -> %s" % (r['hedef'], r['dizi'], "IHLAL: "+"; ".join(allv) if allv else "GECTI"))
+            print('%-34s PAIR  %-24s -> %s' % (r['hedef'], r['dizi'], "IHLAL: "+"; ".join(allv) if allv else "GECTI"))
         else:
             print("%-34s %-5s %-26s uz%3s GC%5s Tm%6s hp%5s hd%6s 3'%s g5=%s  %s" % (
                 r['hedef'],r['primer'],r['dizi'],r['uz'],r['gc'],r['tm'],r['hp'],r['hd'],r['uc'],r['gc5'],

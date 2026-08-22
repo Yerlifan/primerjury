@@ -156,7 +156,7 @@ def _hedef_karari(s):
     if s.get('durum') != 'TAMAMLANDI':
         return s.get('durum', 'bilinmiyor'), ''
     if not ad:
-        return 'COZUM YOK', 'Hicbir aday numune olcumunu gecmedi.'
+        return 'COZUM YOK', 'No candidate passed the in-sample measurement.'
     izg = s.get('izgara', [])
     dolu = [x for x in izg if x['hayatta'] > 0]
     en_siki = dolu[0] if dolu else None
@@ -164,7 +164,7 @@ def _hedef_karari(s):
     olculu = [a for a in ad if a.get('numune_kat_enkotu') not in ('', None)]
     olculu.sort(key=lambda a: -(a['numune_kat_enkotu'] or 0))
     if not olculu:
-        return 'COZUM YOK', 'Adaylarin hicbirinde olculebilir ayrim yok.'
+        return 'COZUM YOK', 'Not one of the candidates has a measurable separation.'
     iyi = olculu[0]
     arms_li = [a for a in olculu if a.get('arms')]
     duz_li = [a for a in olculu if not a.get('arms')]
@@ -207,7 +207,7 @@ def _hedef_karari(s):
         p.append('BEDELI: ' + '; '.join(bedeller) + '.')
     en = iyi.get('numune_kat_enkotu') or 0
     if tb_kotu and en <= tb_kotu:
-        karar = 'COZUM YOK (mevcut cift daha iyi)'
+        karar = 'NO SOLUTION (the existing pair is better)'
         p.append(u'RESULT: not one candidate scanned BEAT the current pair, so the current pair should be kept.')
     elif en >= 10:
         karar = 'COZUM VAR'

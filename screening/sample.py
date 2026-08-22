@@ -150,7 +150,7 @@ class KutuEski:
 
 
 class KutuHavuzu:
-    """Bir kutunun okumalari + ters tumleyenleri, tarayici.Havuz indeksiyle."""
+    "One bin's reads plus their reverse complements, indexed by the scanner pool."
 
     def __init__(self, kutu, yol, n=C.NUMUNE_OKUMA_SAYISI):
         self.kutu = kutu

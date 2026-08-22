@@ -106,7 +106,7 @@ def main():
         if _d and not os.path.isdir(_d):
             os.makedirs(_d)
         if not os.access(_d, os.W_OK):
-            raise IOError('klasore yazma izni yok')
+            raise IOError('there is no permission to write into the directory')
     except Exception as _e:
         _yedek = os.path.join(KOK, 'ONE_KEY_RESULT', os.path.basename(dur))
         print(u'  NOTE: the state file %s could not be written (%s).\n       The state will be written to this file instead: %s' % (dur, _e, _yedek))
@@ -195,7 +195,7 @@ def main():
             if not zorla:
                 sys.exit(u'ERROR: there is no bin called --backbone %s.' % a.omurga)
             om_liste = zorla
-            print('OMURGA ELLE: %s (%d bp)' % (a.omurga, len(zorla[0]['dizi'])),
+            print('THE BACKBONE, GIVEN BY HAND: %s (%d bp)' % (a.omurga, len(zorla[0]['dizi'])),
                   flush=True)
         for om in om_liste:
             L = len(om['dizi']); n = max(1, (L - PENCERE) // ADIM + 2)

@@ -1,29 +1,31 @@
 # -*- coding: utf-8 -*-
-"""BIR HEDEFIN UYELIGINI OLCULEN KIMLIKTEN TANIMLA.
+"""DEFINE A TARGET'S MEMBERSHIP FROM THE MEASURED IDENTITY.
 
-NEDEN (2026-08-11)
-------------------
-Petriella_cinsi cifti siparis listesinde SINIF=KESIN, sart=KOSULSUZ yazili ve
-dCq'su 3,46. Ama uc sey eksikti:
-  * uyelik tablosunda satiri YOK -> "G asamasinda uyelik tanimi YOK"
-  * panel kaynaginda satiri YOK  -> plakasi ve Ta'si belirsiz
-  * dolayisiyla dislama kapsamasi da denetlenemiyor
-"Kosulsuz" sozcugu raporda "tartisilacak bir sey yok" diye okunur; oysa vardi.
+WHY (2026-08-11)
+----------------
+One pair stood in the order list as certain and unconditional with a dCq of 3.46.
+But three things were missing:
+  * it has NO row in the membership table, so there is no membership definition
+  * it has NO row in the panel source, so its plate and Ta are unknown
+  * and therefore the exclusion coverage cannot be audited either
+The word "unconditional" reads in a report as "there is nothing to discuss"; there
+was.
 
-NE YAPAR
---------
-Uyeligi ELLE YAZMAZ: hedefin sinifindaki (F1/F2/A1/A2/B) butun kutulari gezer,
-OLCULEN kimliginde verilen kalibi tasiyanlari UYE, kalanlari RAKIP yapar ve
-gerekcesini satir satir yazar. Sonra:
-  1) uyelik_yeniden_turetme_uyelik_*.tsv dosyasina satir ekler (P ve K bunu okur)
-  2) screening/target_membership.tsv dosyasina acik tanimi ekler
-  3) istenirse panel kaynagina plaka/Ta satiri ekler
-Her dosyanin once yedegini alir ve ne yaptigini basar.
+WHAT IT DOES
+------------
+It DOES NOT WRITE the membership by hand: it walks every bin in the target's
+class, makes the ones whose MEASURED identity carries the given pattern MEMBERS
+and the rest COMPETITORS, and writes the reason row by row. Then it:
+  1) adds a row to the rederived membership table, which the measurement stages
+     read
+  2) adds the explicit definition to screening/target_membership.tsv
+  3) adds a plate and Ta row to the panel source when asked
+It backs every file up first and prints what it did.
 
-Kosum (once PLAN):
-  python verification/define_membership.py --root . --target Petriella_cinsi --template Petriella
-  ... --write            uyelik dosyalarina yaz
-  ... --panel-row P1:55   panel kaynagina plaka/Ta satirini da ekle
+To run it, with the PLAN first:
+  python verification/define_membership.py --root . --target <target> --template <pattern>
+  ... --write        write into the membership files
+  ... --panel-row P1:55   add the plate and Ta row to the panel source as well
 """
 from __future__ import print_function
 
@@ -142,8 +144,9 @@ def main():
     koy('eski_uye_kutular', '')
     koy('yeni_uye_kutular', ';'.join(r['kutu'] for r in uye))
     koy('rakip_kutular', ';'.join(r['kutu'] for r in rakip))
-    koy('kanit', u'olculen kimlikte "%s" gecen %d kutu UYE, kalan %d kutu RAKIP '
-                 u'(%s). Kraken etiketine BAKILMADI.'
+    koy('kanit', '%d bins whose measured identity holds "%s" are MEMBERS and '
+                 'the remaining %d are COMPETITORS (%s). The Kraken label WAS '
+                 'NOT USED.'
                  % (a.kalip, len(uye), len(rakip), time.strftime('%Y-%m-%d')))
     if varsa:
         sat[varsa[0]] = yeni
@@ -164,9 +167,8 @@ def main():
             tx = sorted({r['kutu'].split('_')[-1] for r in uye})
             if not metin.endswith('\n'):
                 metin += '\n'
-            metin += (u'%s\t%s\t\tOLCULEN KIMLIK\tolculen kimlikte "%s" gecen '
-                      u'%s sinifi kutular (%s). Taxidler Kraken etiketidir, '
-                      u'uyelik OLCULEN kimlige gore secildi.\n'
+            metin += ("""%s	%s		OLCULEN KIMLIK	the class %s bins whose measured identity holds "%s" (%s). The taxids are Kraken labels; the membership was chosen by the MEASURED identity.
+"""
                       % (a.hedef, ','.join(tx), a.kalip, sinif,
                          time.strftime('%Y-%m-%d')))
             io.open(hy, 'w', encoding='utf-8', newline='').write(metin)

@@ -42,8 +42,8 @@ CAPALAR = [
     ('515F',    'GTGYCAGCMGCCGCGGTAA',  'SSU V4 (evrensel)'),
     ('806R_rc', 'ATTAGAWACCCBNGTAGTCC', 'SSU V4 sonu (evrensel)'),
     ('1492R',   'GGTTACCTTGTTACGACTT',  'SSU 3\' ucu (bakteri/arke)'),
-    ('23S_129F','CCGAATGGGGRAACCC',     'LSU/23S 5\' bolgesi (bakteri)'),
-    ('23S_2241R','ACCGCCCCAGTHAAACT',   'LSU/23S 3\' bolgesi (bakteri)'),
+    ('23S_129F','CCGAATGGGGRAACCC',     "the 5' region of the LSU or 23S, bacteria"),
+    ('23S_2241R','ACCGCCCCAGTHAAACT',   "the 3' region of the LSU or 23S, bacteria"),
     ('NS1',     'GTAGTCATATGCTTGTCTC',  'okaryot SSU 5\' ucu'),
     ('ITS1',    'TCCGTAGGTGAACCTGCGG',  'SSU sonu / ITS1 basi (mantar)'),
     ('ITS3',    'GCATCGATGAAGAACGCAGC', '5.8S (mantar)'),
@@ -137,7 +137,7 @@ def main():
             hedef[:46], len(b['uye']), mx, min(md or [0]), max(md or [0])))
         print('    capalar: %s' % (', '.join(bulunan) or 'YOK'))
         json.dump(durum, open(KP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-    print('--- kayit: %d / %d' % (len(durum), len(HEDEFLER)))
+    print('--- record: %d of %d' % (len(durum), len(HEDEFLER)))
     return 0
 
 

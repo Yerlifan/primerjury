@@ -312,7 +312,7 @@ def main():
             print(u'      ... %d more records' % (len(liste) - sinir))
 
     dok("KRITIK bulgu", kritik)
-    dok("UYARI (tercih araligi disi, kural ihlali degil)", uyari)
+    dok('A WARNING: outside the preferred range, but no rule is broken', uyari)
     if bilgi:
         dok("BILGI", bilgi, sinir=5)
 

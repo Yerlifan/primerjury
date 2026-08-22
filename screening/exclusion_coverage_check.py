@@ -265,7 +265,7 @@ def main():
                 for kutu in KUT[kk]:
                     kim = OLC.get(kutu, '')
                     if not kim:
-                        notlar.append((kutu, 'olculen kimlik yok', None))
+                        notlar.append((kutu, 'there is no measured identity', None))
                         continue
                     tx = ESD.get(kutu) or ESD.get(kim.strip())
                     if tx:
@@ -317,7 +317,7 @@ def main():
         for m in uyeler:
             ad, zincir = Z.get(m, ('', set()))
             if not zincir:
-                disarida.append((m, 'NCBI zinciri cekilemedi'))
+                disarida.append((m, 'the NCBI lineage could not be pulled'))
                 continue
             if not any(e in zincir or e == m for e in exc):
                 if m in IST.get(hedef, {}):

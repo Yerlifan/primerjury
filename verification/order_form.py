@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
-"""SIPARIS FORMU  -  oligo tedarikcisine gidecek TEK dogru liste.
+"""THE ORDER FORM: the ONE correct list to send the oligo supplier.
 
-NEDEN VAR (2026-08-10 gece, denetimde yakalandi)
-------------------------------------------------
-Sabah ozeti "diziler buradan kopyalanacak" diye
-PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx dosyasinin "2 Panel" sayfasini
-gosteriyordu. O sayfadaki ALTI ciftin dizisi ESKI:
+WHY IT EXISTS, caught in an audit
+---------------------------------
+The morning summary said "copy the sequences from here" and pointed at the panel
+sheet of an older workbook. The sequences of SIX pairs on that sheet were OUT OF
+DATE, so ordering from that file would have brought six of the twenty pairs as
+THE WRONG oligo. On top of that the geometry audit file carried a different six.
+Three separate files, three separate versions of "the right one", and nothing
+that said which was right.
 
-    Bacteroidales_kumesi, Bakteri_universal, Mantar_universal (F1),
-    Microascaceae_askomikot, Petriella_musispora, Petrimonas_cinsi
+This script closes that gap: the order list is PRODUCED FROM THE PANEL'S OWN
+SOURCE rather than written by hand, and the source file's md5 is written on every
+run. If the source changes the form changes; if it does not, the form comes out
+the same.
 
-Yani o dosyadan siparis verilseydi yirmi ciftin altisi YANLIS oligo olarak
-gelirdi. Ustelik geometri denetimi dosyasi da baska bir altili tasiyordu.
-Uc ayri dosya, uc ayri "dogru" - hangisinin dogru oldugunu soyleyen bir sey
-yoktu.
-
-Bu betik o boslugu kapatir: siparis listesi PANELIN KENDI KAYNAGINDAN
-uretilir, elle yazilmaz, ve her uretimde kaynak dosyanin ozeti (md5) yazilir.
-Kaynak degisirse form da degisir; degismezse ayni cikar.
-
-Kosum:
+To run it:
     python verification/order_form.py --root .
-Cikti:
-    SIPARIS_FORMU.tsv   (tedarikciye yapistirilacak)
-    SIPARIS_FORMU.md    (insanin okuyacagi hali)
+The output:
+    the order form as a TSV, to paste for the supplier
+    the order form as markdown, for a person to read
 """
 from __future__ import print_function
 
@@ -114,7 +110,8 @@ def main():
     ty = os.path.join(kok, 'SIPARIS_FORMU.tsv')
     with io.open(ty, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# THE ORDER FORM - %s\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'# Kaynak: %s (md5 %s)\n' % (PANEL.replace('\\', '/'), ozet))
+        fh.write("""# The source: %s (md5 %s)
+""" % (PANEL.replace('\\', '/'), ozet))
         fh.write(u'# This file is NEVER WRITTEN BY HAND; it is generated from the panel source.\n')
         fh.write(u'# DO NOT COPY FROM THE xlsx FILE: as of 2026-08-10 the sequence of six\n# pairs there IS OUT OF DATE (Bacteroidales, Bakteri_universal,\n# Mantar F1, Microascaceae, Petriella_musispora, Petrimonas).\n')
         for u_ in uyari:
@@ -155,7 +152,7 @@ def main():
     print(u'written: %s' % my)
     print(u'  going into the order: %d pairs = %d oligos' % (len(girer), 2 * len(girer)))
     print(u'  not ordered        : %d pairs' % len(girmez))
-    print('  kaynak md5    : %s' % ozet)
+    print('  the source md5 : %s' % ozet)
     return 0
 
 

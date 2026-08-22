@@ -66,10 +66,12 @@ HEDEFLER = [
     'Proteiniphilum_cinsi',
 ]
 
-TABAN_KURALI = (u'Amplikonun tamami omurgadaki SSU bolgesinin disindaysa olcum '
-                u'tabani tam operon kitapliklarina (A2/F2) daraltilir; uye ve '
-                u'rakip tarafinda ayni daraltma uygulanir. SSU icindeki adaylar '
-                u'panelin kendi tabaninda olculur. Kural adaydan ONCE yazildi.')
+TABAN_KURALI = ('When the whole amplicon falls outside the SSU region of the '
+                'backbone, the measurement base is narrowed to the full '
+                'operon libraries, and the same narrowing is applied on both '
+                'the member and the competitor side. Candidates inside the '
+                "SSU are measured on the panel's own base. The rule was "
+                'written BEFORE the candidate.')
 
 
 def _bg(x):

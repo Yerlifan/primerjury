@@ -44,7 +44,7 @@ class Havuz:
         return self.pos[a:b]
 
     def bul(self,primer,max_mm=1):
-        """primerin ileri yonde bagladigi (global baslangic) dizisi."""
+        'the sequence the primer binds in the forward direction, at the global start.'
         L=len(primer); tail=primer[-SEED:]
         vars=set([tail])
         for i in range(SEED-2):           # son 2 baz TAM kalmali

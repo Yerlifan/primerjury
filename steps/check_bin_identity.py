@@ -64,7 +64,7 @@ def main():
                 ref[ad] = s.upper().replace("U", "T")
     if not ref:
         sys.exit(u'no reference matching the pattern was found: %s' % ", ".join(a.pattern))
-    print("referans kaydi: %d" % len(ref))
+    print('reference records: %d' % len(ref))
     for ad in list(ref)[:10]:
         print("   %-70s %d bp" % (ad[:70], len(ref[ad])))
     alig = {ad: mappy.Aligner(seq=s, preset="map-ont") for ad, s in ref.items()}

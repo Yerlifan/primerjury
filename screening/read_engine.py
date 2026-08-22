@@ -203,7 +203,7 @@ class Sonda:
 
 
 def urun_var(seq, fs, rs, lenF, lenR, lo, hi):
-    """tek yonde: F ve R karsilikli baglanip verilen boy penceresinde urun veriyor mu"""
+    'in one orientation: do F and R bind facing each other and give a product inside the given length window'
     a = fs.bul(seq)
     if not a:
         return None
@@ -250,8 +250,8 @@ def okumalar(path, minl=MINL, maxl=MAXL):
 
 
 def kutu_yukle(path, nmax=3000, seed=3, minl=MINL, maxl=MAXL):
-    """Bir fastq'tan okumalari al, nmax'i asiyorsa sabit tohumla ornekle.
-    Donus: (ornek_okumalar, suzgecten_gecen_toplam)"""
+    """Take the reads from a fastq, sampling with a fixed seed when they exceed nmax.
+        Returns: (the sampled reads, the total that passed the filter)"""
     rs = list(okumalar(path, minl, maxl))
     n0 = len(rs)
     if nmax and len(rs) > nmax:
@@ -299,7 +299,8 @@ def main(argv=None):
             fh.write('dosya\turun_veren\tkullanilan_okuma\tsuzgecten_gecen\tyuzde\tolcut_mm\tbaskin_boylar\n')
             for r in satirlar:
                 fh.write('\t'.join(str(x) for x in r) + '\n')
-        sys.stderr.write('TSV yazildi: %s\n' % a.tsv)
+        sys.stderr.write("""the TSV was written: %s
+""" % a.tsv)
     return 0
 
 

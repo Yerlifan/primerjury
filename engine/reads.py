@@ -64,7 +64,7 @@ def mm_ok(primer, win, max_mm):
 
 
 class Sonda:
-    """Bir primerin belirli yonelimde okunmus dizide baglanma yerlerini bulur."""
+    'Finds the binding sites of one primer on a sequence read in a given orientation.'
 
     # -----------------------------------------------------------------------
     # THE SEEDING - THIS CAN BE LOSSY (there is NO pigeonhole guarantee)

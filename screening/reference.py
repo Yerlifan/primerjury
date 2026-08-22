@@ -45,7 +45,7 @@ def _uygun_db(sinif):
 
 
 def havuz_cikar(anahtarlar, sinif, onbellek_adi, ilerle=None):
-    """Taksonomi satirinda anahtarlardan biri gecen dizileri topla."""
+    'Gather the sequences whose taxonomy line holds one of the keys.'
     os.makedirs(C.ONBELLEK, exist_ok=True)
     cache = _cache_yolu(onbellek_adi)
     if os.path.exists(cache):
@@ -117,7 +117,7 @@ def toplu_cikar(istekler, ilerle=None):
 
 
 def kapsam(havuz, F, R, lo, hi, max_mm=C.REFERANS_MAX_MM):
-    """Havuzdaki kac kayit urun veriyor + boy dagilimi + vurus basliklari."""
+    'How many records in the pool give a product, the length distribution, and the hit headers.'
     veren = 0
     boy = {}
     basliklar = []

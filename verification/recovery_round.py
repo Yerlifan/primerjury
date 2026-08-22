@@ -180,7 +180,7 @@ def wilson(k, n, z=1.96):
 # the run does not start: finishing silently with "there is no row to recover"
 # would give the impression that the job was done when in fact nothing was tried.
 def tek_protokol_oku(kok):
-    'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]'
+    'Reads the single protocol panel table into [{hedef, kaynak, karar, ...}].'
     yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     if not os.path.exists(yol):
         sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (P) has to be run first.' % yol)
@@ -879,7 +879,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
     satirlar, tp_yolu = tek_protokol_oku(kok)
     uy_yol = uyelik_dosyasi(kok)
     if not uy_yol:
-        sys.exit(u'ERROR: uyelik_yeniden_turetme_uyelik_*.tsv is missing. Run option (U) first.')
+        sys.exit('ERROR: the rederived membership table is missing. Run the membership stage first.')
     uyelik = uyelik_oku(uy_yol)
     kons = {d['kutu']: d['dizi'] for d in H.konsensusler()}
     kut = {k['kutu']: k for k in H.kutular()}

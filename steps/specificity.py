@@ -66,10 +66,10 @@ MAPPY = alignment.ARKA_UC is not None
 
 
 def _girdi_parmak_izi(a):
-    """Kosunun bagli oldugu her girdinin ozeti. Degisirse checkpoint duser.
-    Aday dosyalari degistiginde eski dogrulama sonuclarinin sessizce
-    kullanilmasi, kosunun bitmis gorunmesine ama sonucun eski girdiye ait
-    olmasina yol aciyordu."""
+    """A summary of every input the run depends on. When it changes the checkpoint
+        drops. Reusing the old verification results silently when the candidate
+        files had changed made the run look finished while the result belonged to
+        the old input."""
     h = hashlib.sha256()
     h.update(("adaylar=%s\n" % os.path.abspath(a.candidates)).encode())
     for f in sorted(glob.glob(os.path.join(a.candidates, "*__*.tsv"))):

@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""GUNCEL_DURUM.md  -  panelin BUGUNKU sayilari, TEK yerden ve URETILEREK.
+"""The current state document: the panel's numbers AS THEY ARE TODAY, from ONE
+place and PRODUCED rather than written.
 
-NEDEN VAR
----------
-Ayni soruya uc belge uc farkli cevap veriyordu: OKU_ONCE "KESIN 16 cift",
-NASIL_DEVAM_EDILIR "KESIN 16 cift", CALISTIRMA_KILAVUZU "siparis edilebilir
-11 cift". Panelin bugunku hali 20 cift (15 hedef ozgul + 5 evrensel). Ucu de
-yazildiklari gunde dogruydu; sorun sayinin belgeye ELLE yazilmis olmasi.
+WHY IT EXISTS
+-------------
+Three documents gave three different answers to the same question: two said 16
+certain pairs and a third said 11 orderable pairs, while the panel actually held
+20 (15 target specific plus 5 universal). All three were right on the day they
+were written; the problem was that the number had been typed into the document BY
+HAND.
 
-Bu dosya elle yazilmaz. Her kosuda panelin kendi ciktisindan uretilir. Belgeler
-sayiyi tekrar etmek yerine buraya isaret eder.
+This file is not written by hand. It is produced from the panel's own output on
+every run, and the documents point here instead of repeating the number.
 
-Kosum:
+To run it:
     python verification/current_status.py --root .
 """
 from __future__ import print_function

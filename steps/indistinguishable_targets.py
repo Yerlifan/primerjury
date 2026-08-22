@@ -149,7 +149,7 @@ def sinif_of(tag):
 
 
 def envanter(kons, min_kapsanan=200):
-    """Sinif ve takson basina TEK temsilci: en cok baz kapsayan konsensus."""
+    'ONE representative per class and taxon: the consensus covering the most bases.'
     temsil = {}
     for f in sorted(glob.glob(os.path.join(kons, "*_konsensus.fasta"))):
         b = os.path.basename(f)
@@ -168,7 +168,7 @@ def envanter(kons, min_kapsanan=200):
 
 def ayirt_edilemezler(temsil, ozdeslik_esik=OZDESLIK_ESIK,
                       uzunluk_esik=UZUNLUK_ESIK, kapsama_esik=KAPSAMA_ESIK):
-    """[(sinif, taxid1, taxid2, uzunluk, ozdeslik, kapsama, gerekce)] doner."""
+    'Returns [(class, taxid1, taxid2, length, identity, coverage, reason)].'
     sonuc = []
     siniflar = sorted(set(s for s, _ in temsil))
     for sn in siniflar:

@@ -74,7 +74,7 @@ def yerler(seq, primer, max_mm, son2=True, uc5=False):
 
 
 def urun_boyu(seq, F, R, max_mm, lo=40, hi=600, son2=True):
-    """Bu dizide urun varsa boyunu dondur, yoksa None."""
+    'Returns the product length when this sequence gives one, otherwise None.'
     F = F.upper(); R = R.upper()
     a = yerler(seq, F, max_mm, son2, uc5=False)
     if not a:

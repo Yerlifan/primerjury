@@ -25,7 +25,7 @@ KP = '/tmp/mrb/kontrol/kalib.json'
 
 
 def beklenenler():
-    """Panelin kontrol noktalarindan beklenen degerleri cikarir."""
+    "Pulls the expected values out of the panel's checkpoints."
     out = []
     for y in sorted(glob.glob(os.path.join(KOK, 'ONE_PROTOCOL_RESULT', 'kontrol', '*.json'))):
         v = json.load(open(y, encoding='utf-8'))
@@ -74,7 +74,7 @@ def main():
                 kn_fark.append('uye:%s bek%s got%s' % (k, v, got_uye_kn.get(k)))
         for k, v in d['bek_rakip_kn'].items():
             if tuple(got_rak_kn.get(k, ())) != tuple(v):
-                kn_fark.append('rakip:%s bek%s got%s' % (k, v, got_rak_kn.get(k)))
+                kn_fark.append('competitor:%s expected%s got%s' % (k, v, got_rak_kn.get(k)))
         r = dict(
             hedef=h, kaynak=d['kaynak'],
             uye_kume_ayni=(sorted(got_uye) == sorted(d['bek_uye'])),

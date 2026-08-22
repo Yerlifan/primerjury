@@ -104,7 +104,7 @@ def main():
     ciktilar = [c for c in ciktilar if not c.endswith(".report")]
     if not ciktilar:
         sys.exit(u'no output file was found (pattern: %s)' % a.output_pattern)
-    print("output dosyasi: %d" % len(ciktilar))
+    print('output files: %d' % len(ciktilar))
     os.makedirs(a.out, exist_ok=True)
 
     if a.scan:
@@ -248,7 +248,7 @@ def main():
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(satirlar)
     print("\nyazildi: %s" % a.out)
-    print("guven esigi: %g" % a.confidence)
+    print('the confidence threshold: %g' % a.confidence)
     tt = sum(x["okuma"] for x in ozet)
     ts = sum(x["tasinan"] for x in ozet)
     print(u'total reads: %d, rank changed: %d (%.2f%%)'
@@ -257,21 +257,21 @@ def main():
 
 
 def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
-    """Esik secimini kural ezberinden degil VERIDEN yapmak icin.
+    """So that the threshold is chosen FROM THE DATA and not from a remembered rule.
 
-    Olculdu (bu veri, 20 dosya): ONT okumalarinin k-mer'lerinin buyuk
-    cogunlugu veritabaninda karsilik bulmuyor ve bu k-mer'ler guven
-    puaninin PAYDASINA giriyor. Bu yuzden kisa okuma verisi icin sik
-    onerilen 0,1 esigi burada okumalarin yarisindan cogunu
-    siniflandirilmamis birakiyor. Dogru esik veriden secilmeli.
+        Measured on this data, across 20 files: the great majority of the k-mers of
+        an ONT read find no counterpart in the database, and those k-mers go into the
+        DENOMINATOR of the confidence score. That is why the threshold of 0.1 often
+        recommended for short read data leaves more than half of these reads
+        unclassified. The right threshold has to be chosen from the data.
 
-    Her esik icin uc sayi verilir:
-      tur_okuma   tur (S) rutbesinde kalan okuma
-      cins_okuma  cins (G) rutbesine tasinan ya da orada kalan okuma
-      sinifsiz    hicbir atayi gecemeyen okuma
-    Amac tur duzeyindeki sahte ayrimi cins duzeyinde toplamak, okuma
-    kaybetmek degil; dolayisiyla cins_okuma artarken sinifsiz'in dusuk
-    kaldigi en yuksek esik secilmelidir."""
+        Three numbers are given for every threshold:
+          tur_okuma   the reads that stay at species rank
+          cins_okuma  the reads that move to, or stay at, genus rank
+          sinifsiz    the reads that pass no ancestor at all
+        The aim is to gather a false species level separation at genus level, not to
+        lose reads, so the highest threshold at which cins_okuma rises while
+        sinifsiz stays low is the one to choose."""
     print(u'\nTHRESHOLD SCAN (at most %d reads per file)' % a.scan_reads)
     print("%8s %10s %10s %10s %10s %10s"
           % ("esik", "okuma", "tur(S)", "cins(G)", "ust_rutbe", "sinifsiz"))

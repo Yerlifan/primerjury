@@ -77,7 +77,8 @@ _yol_hazirla()
 
 _p = _bul('ispcr.py')
 if _p is None:
-    raise SystemExit('HATA: ispcr.py bulunamadi. engine klasoru yerinde mi?')
+    raise SystemExit('ERROR: ispcr.py was not found. Is the engine directory '
+                     'in place?')
 ispcr = _yukle('ispcr', _p)
 
 _p = _bul('reads.py')
@@ -127,7 +128,7 @@ def wilson(k, n, z=1.96):
 
 
 def urun_var(seq, F, R, lo, hi, max_mm=1):
-    """Tek bir dizide urun olusuyor mu (ispcr.amplify olcutu, iki yon)."""
+    'Does a product form on a single sequence, by the ispcr criterion and in both orientations.'
     for s in (seq, rc(seq)):
         if ispcr.amplify(s, F, R, max_mm=max_mm, lo=lo, hi=hi):
             return True
