@@ -1,43 +1,48 @@
 # -*- coding: utf-8 -*-
-"""Arama baslamadan once calisan kendini sinama.
+"""The self test that runs before the search starts.
 
-Amac: kullanicinin makinesinde ilk adimda patlamamak ve daha onemlisi
-SESSIZCE YANLIS OLCMEMEK. Sinamalardan biri bile duserse arama baslatilmaz.
+The aim: not to blow up on the user's machine at the first step and, more
+importantly, NOT TO MEASURE SILENTLY WRONG. If even one item fails, the search is
+not started.
 
-1. Gerekli paketler ve dosyalar yerinde mi.
-2. Geometri modulu, projede zaten calisan engine/geometry_core.py ile
-   BIREBIR ayni sayilari uretiyor mu (42 panel primerinin hepsi).
-3. ispcr motoru paneldeki ciftleri kendi konsensuslerinde dogru urun
-   boyuyla buluyor mu.
-4. UC MOTOR KARSILASTIRMASI (en onemlisi):
-      brute_force.py  (tohumsuz referans)
-   == read_engine.py (duzeltilmis, guvercin yuvasi tohumu)
-   == numpy havuz     (bu aracin hizli yolu)
-   Ayrica panelin ESKI motorunun (reads.py/Sonda) ne kadar site kacirdigi
-   olculup rapor edilir.
-5. Pencere ureteci gercekten HER pozisyon x HER uzunlugu uretiyor mu.
+1. Are the required packages and files in place.
+2. Does the geometry module produce EXACTLY the same numbers as
+   engine/geometry_core.py, which already runs in this project (all 42 panel
+   primers).
+3. Does the ispcr engine find the panel's pairs in their own consensuses at the
+   right product length.
+4. THE THREE ENGINE COMPARISON (the most important one):
+      brute_force.py  (the seedless reference)
+   == read_engine.py (corrected, pigeonhole seeding)
+   == the numpy pool  (this tool's fast route)
+   It also measures and reports how many sites the panel's OLD engine
+   (reads.py/Sonda) misses.
+5. Does the window generator really produce EVERY position x EVERY length.
+
 """
-# ---------------------------------------------------------------------------
-# self_test.py — olcum baslamadan once motorlarin dogrulugunu sinayan kapi;
-#                   bir sinama bile duserse hicbir asama baslatilmaz.
+# -------------------------------------------------------------------------
+# self_test.py, the gate that tests the engines for correctness before any
+#                   measurement starts; if even one item fails, no stage is started.
 #
-# GIRDI  : config.py'deki yollar (panel TSV, hedefler.tsv, konsensus ve
-#          fastq klasorleri, hedef_uyelik.tsv, SILVA); engine/geometry_core.py
-#          (ayri surecte calistirilip geo.json ciktisi okunur); panel ciftleri
-#          ve kanonik konsensusler targets.py uzerinden; motorlar engine_gateway.py
-#          uzerinden (ispcr, tarayici, okuma_motoru, kaba_kuvvet, eski reads.py).
-# CIKTI  : dosyaya yazmaz. Ekrana satir satir GECTI / *** DUSTU *** basar ve
-#          calistir() tek bir True/False dondurur. yon_sinamasi() ayrica tek
-#          basina cagrilabilir ve primer3 gibi opsiyonel bagimliliklara takilmaz.
-# CAGRAN : __main__.main() her modun basinda (--sinama-atla verilmedikce) ve
-#          hepsi.calistir'in 1. asamasi. Yani full_chain.py asamalari 1, 2,
-#          3, 4, 5, 6, 7, 9 ve dogrudan tus 8 (--sina, yalniz sinama).
+# INPUT  : the paths in config.py (the panel TSV, hedefler.tsv, the consensus and
+#          fastq directories, hedef_uyelik.tsv, SILVA); engine/geometry_core.py (run
+#          in a separate process, its geo.json output is read); the panel pairs and
+#          the canonical consensuses through targets.py; the engines through
+#          engine_gateway.py (ispcr, tarayici, okuma_motoru, kaba_kuvvet and the old
+#          reads.py).
+# OUTPUT : it writes no file. It prints PASSED / *** FAILED *** line by line and
+#          calistir() returns a single True or False. yon_sinamasi() can also be
+#          called on its own and does not trip over optional dependencies like
+#          primer3.
+# CALLED BY: __main__.main() at the head of every mode (unless --sinama-atla is
+#          given) and as the 1st stage of hepsi.calistir. That is full_chain.py
+#          stages 1, 2, 3, 4, 5, 6, 7, 9 and key 8 directly (--sina, the test only).
 #
-# Sinamanin 4. maddesi uc motoru karsilastirir: brute_force.py (tohumsuz
-# referans), read_engine.py (guvercin yuvasi tohumu) ve numpy havuz yolu.
-# Ucu birebir ayni sayiyi vermek zorundadir; vermezse tohumlamanin kayipsizligi
-# artik dogrulanmamis demektir ve kosu baslamaz.
-# ---------------------------------------------------------------------------
+# Item 4 of the test compares three engines: brute_force.py (the seedless
+# reference), read_engine.py (the pigeonhole seed) and the numpy pool route. All
+# three have to give exactly the same number; if they do not, the losslessness of
+# the seeding is no longer confirmed and the run does not start.
+# -------------------------------------------------------------------------
 import os, sys, json, subprocess, tempfile
 from . import config as C
 
@@ -54,9 +59,10 @@ def yon_sinamasi(yaz):
     from . import read_engine as OM
     from . import targets as H
     tum = True
-    # Yon hatasi gece boyunca uc ayri yerde ayri ayri yamandi. Bu sinama, kanonik
-    # yonun bir daha sessizce kaymamasi icin konur: kanonik kaynak yoksa ya da
-    # icinde ters yonlu dosya varsa ANA IS BASLAMAZ.
+    # The orientation fault was patched in three separate places on the same night.
+    # This test is put here so the canonical orientation cannot drift silently again:
+    # if there is no canonical source, or it holds a file in the reverse direction, THE
+    # MAIN WORK DOES NOT START.
     try:
         from . import orientation as _Y
         h = _Y.kendini_sina()
@@ -159,19 +165,19 @@ def calistir(yaz):
     else:
         _ok(yaz, 'geometry_core.py was not found (the comparison was skipped)', True)
 
-    # ---- 3 ispcr panel urun boylarini dogruluyor mu
+    # ---- 3 does ispcr confirm the panel's product lengths
     #
-    # NEDEN ARALIK KABUL EDIYOR (2026-08-02 duzeltmesi):
-    # Bu sinama once "ilk bulunan konsensusteki boy == panelin tek sayisi" diye
-    # bakiyordu ve Bakteri_universal'de dustu (olculen 135, panel 130). Teshis:
-    # o cift GERCEKTEN tek boy vermiyor - uye konsensuslerinde 130/133/135/140
-    # cikiyor. Panel bunu zaten biliyor ve "URUN BOYU ARALIGI (numunede olculen)"
-    # sutununda "129-135 bp (iki tepeli: 130 ve 135)" diye kaydetmis; sinama o
-    # sutunu HIC OKUMUYORDU. Ayrica hangi konsensusun ilk gelecegi kaynak
-    # degisince kayiyordu.
-    # Dogru olcut: panelin bildirdigi boy, uye konsensuslerinde olculen boylar
-    # kumesinde BULUNMALI (+-2 bp tolerans, konsensus indelleri icin). Sinama
-    # artik ilk uyusmazlikta durmuyor, HEPSINI listeliyor.
+    # WHY IT ACCEPTS A RANGE (the 2026-08-02 fix):
+    # This test used to ask "the length in the first consensus found == the panel's
+    # single number" and it failed on Bakteri_universal (measured 135, panel 130). The
+    # diagnosis: that pair REALLY does not give a single length; across the member
+    # consensuses it comes out 130/133/135/140. The panel knows that already and had
+    # recorded it in the "URUN BOYU ARALIGI (numunede olculen)" column as "129-135 bp
+    # (two peaks: 130 and 135)"; the test WAS NOT READING that column at all. On top of
+    # that, which consensus came first shifted when the source changed.
+    # The right criterion: the length the panel reports HAS TO BE in the set of lengths
+    # measured across the member consensuses (+-2 bp tolerance, for consensus indels).
+    # The test no longer stops at the first mismatch, it lists ALL of them.
     try:
         panel, _ = H.panel_oku()
         kons = H.konsensusler()
@@ -228,8 +234,8 @@ def calistir(yaz):
         kut = H.kutular()
         farkli_om = farkli_hv = denenen = 0
         en_kotu = (2.0, '', '', 0, 0)
-        # panelin BASINDAN degil, YAYILMIS bir ornek: kotu durumlar panelin
-        # her yerinde olabilir (Asetoklastik / Arke_universal gibi)
+        # a SPREAD sample rather than one from the HEAD of the panel: the bad cases can be
+        # anywhere in it (Asetoklastik or Arke_universal, for instance)
         ornekler = panel[::max(1, len(panel) // 8)][:8]
         for d in ornekler:
             sf = [x.strip() for x in (d['sinif'] or '').split('/') if x.strip()]
@@ -280,7 +286,7 @@ def calistir(yaz):
     except Exception as e:
         tum &= _ok(yaz, 'the three engine comparison', False, str(e)[:70])
 
-    # ---- 4b gevsek olcut (<=3) yolu
+    # ---- 4b the relaxed criterion (<=3) route
     try:
         k = H.kutular()[0]
         d0 = H.panel_oku()[0][0]
