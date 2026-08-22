@@ -1,28 +1,31 @@
 # -*- coding: utf-8 -*-
-"""SIPARIS SINIFLARI + ESKI/YENI KIMLIK SUTUNLARI - tek kaynak.
+"""THE ORDER CLASSES plus THE OLD AND NEW IDENTITY COLUMNS, from one source.
 
-NEDEN AYRI MODUL: iki bilgi de birden fazla ciktida gorunmek zorunda (siparis
-listesi, panel tablosu, karar tablosu, birlesik ozet). Her ciktida yeniden
-hesaplansaydi biri otekinden kayardi - bu projede daha once tam olarak bu oldu.
+WHY A SEPARATE MODULE: both pieces of information have to appear in more than one
+output (the order list, the panel table, the decision table, the combined summary).
+Recomputed in each output, one would drift from the other, and in this project that
+is exactly what happened once.
 
-1) SINIFLANDIRMA (2026-08-06, kullanici karari)
-   Esigi gecemeyen satirlar listeden CIKARILMAZ. Sessizce silmek yerine
-   damgalanir ve laboratuvarda ne yapilmasi gerektigi yazilir; karar
-   kullanicinindir.
+1) THE CLASSIFICATION (2026-08-06, the user's decision)
+   Rows that cannot pass the threshold ARE NOT REMOVED from the list. Instead of
+   deleting them silently they are stamped and what has to be done in the laboratory
+   is written down; the decision belongs to the user.
 
-     KESIN       dCq >= 3,0  (>= 8,00x)   -> siparis edilebilir
-     KOSULLU     dCq 2,0-3,0 (4,00-8,00x) -> siparis edilebilir AMA dogrulama sart
-     ONERILMEZ   dCq <  2,0  (<  4,00x)   -> listede gorunur, gerekcesi yazili
-     EVRENSEL    oran tanimsiz            -> kapsama gore degerlendirilir
+     KESIN       dCq >= 3,0  (>= 8,00x)   -> it can be ordered
+     KOSULLU     dCq 2,0-3,0 (4,00-8,00x) -> it can be ordered BUT confirmation is
+                                             required
+     ONERILMEZ   dCq <  2,0  (<  4,00x)   -> it appears in the list with its reason
+     EVRENSEL    the ratio is undefined   -> it is judged by coverage
 
-2) ESKI/YENI KIMLIK
-   Her hedefin uye kutulari icin uc sutun yan yana konur:
-     kraken_etiketi   toplantida konusulan ad (MEVCUT_KAYITLI_KIMLIK)
-     olculen_kimlik   bizim dogruladigimiz ad (DOGRULANAN_KIMLIK)
-     savunulabilir_duzey  tur / cins / aile / adlandirilamiyor
-   Fark varsa satir ">>" ile isaretlenir; "Trichoderma sanilan sey aslinda
-   Petriella" gibi eslesmeler tek bakista gorunsun diye.
-   HEDEF ADLARI DEGISTIRILMEZ - kod olarak kullaniliyorlar; sutun EKLENIR.
+2) THE OLD AND NEW IDENTITY
+   For each target's member bins three columns are put side by side:
+     kraken_etiketi   the name discussed at the meeting (MEVCUT_KAYITLI_KIMLIK)
+     olculen_kimlik   the name we confirmed (DOGRULANAN_KIMLIK)
+     savunulabilir_duzey  species / genus / family / unnameable
+   Where there is a difference the row is marked with ">>", so that a match like
+   "what was taken for Trichoderma is really Petriella" shows at a glance.
+   THE TARGET NAMES ARE NOT CHANGED, they are used as codes; a column IS ADDED.
+
 """
 import os, csv, re, collections
 from . import config as C
@@ -49,8 +52,8 @@ def sinifla(kat, olculemedi=False):
                 u'yeterli; tek urun tepesi bekleniyor.')
     d = C.kat_dcq(kat)
     if d is None:
-        # kat = 0 -> log tanimsiz. Sentinel sayi URETILMEZ (once -99 yaziliyordu
-        # ve ciktida "-99,00 dCq" diye gorunuyordu); dCq bos birakilir.
+        # fold = 0 -> the log is undefined. NO sentinel number IS PRODUCED (it used to
+        # write -99 and that appeared in the output as "-99,00 dCq"); dCq is left empty.
         return (u'ONERILMEZ', None, None,
                 u'Ayrim orani SIFIR: rakip kutular hedef kadar - ya da daha iyi - '
                 u'cogaliyor, dCq hesaplanamiyor. Bu ciftle olculen sinyal hedefe '
@@ -77,11 +80,12 @@ def sinifla(kat, olculemedi=False):
 
 
 def kimlik_tablosu(kok):
-    """hedef -> dict(kraken, olculen, duzey, farkli_mi, uye_sayisi, ayrinti)
+    """target -> dict(kraken, olculen, duzey, farkli_mi, uye_sayisi, ayrinti)
 
-    Kaynak: TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (G asamasi).
-    Dosya yoksa BOS doner ve cagiran taraf sutunlari '-' yazar; sessizce
-    yanlis ad UYDURULMAZ.
+    The source: TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (stage G).
+    If the file is missing it returns EMPTY and the caller writes '-' in the columns; a
+    wrong name IS NOT INVENTED silently.
+
     """
     yol = os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')
     if not os.path.exists(yol):
@@ -101,9 +105,11 @@ def kimlik_tablosu(kok):
                 hed[t].append(d)
 
     def _kisalt(v):
-        """Uzun 'adlandirilamayan soy - EN YAKIN KAYIT: <upuzun taksonomi> (%X)'
-        dizesini okunur hale getirir. Sayi ve anlam korunur, taksonomi atilir -
-        tam hali zaten TUM_KUTU_KIMLIK_RAPORU.md icinde duruyor."""
+        """Makes the long 'an unnameable lineage - THE NEAREST RECORD: <a very long
+        taxonomy> (%X)' string readable. The number and the meaning are kept and the
+        taxonomy is dropped; the full form is already in TUM_KUTU_KIMLIK_RAPORU.md.
+
+        """
         v = (v or '').strip()
         if v.lower().startswith('adlandirilamayan'):
             m = re.search(r'\(%\s*([\d,\.]+)\)\s*$', v)
@@ -112,7 +118,7 @@ def kimlik_tablosu(kok):
         return v
 
     def _teklestir(vals):
-        """Ayni degerleri teke indirir, sirayi korur; bos olanlari atar."""
+        """Reduces repeated values to one, keeps the order and drops the empty ones."""
         out = []
         for v in vals:
             v = _kisalt(v)
@@ -146,9 +152,9 @@ def kimlik_sutun_basliklari():
 def kimlik_sutunlari(tablo, hedef):
     k = tablo.get(hedef)
     if not k:
-        # Sessiz '-' yerine SEBEBI yazilir: hedefin G asamasinda uyelik tanimi
-        # yok demektir (ornek: panel disi 'ek' ciftler). Eksik veriyle
-        # dolu veri birbirine karismasin.
+        # THE REASON is written instead of a silent '-': it means the target has no
+        # membership definition at stage G (an example: the 'ek' pairs outside the panel).
+        # Missing data and filled data must not be mixed up.
         y = u'G asamasinda uyelik tanimi YOK'
         return [y, y, y, u'karsilastirilamadi']
     return [k['kraken'], k['olculen'], k['duzey'],
@@ -156,33 +162,27 @@ def kimlik_sutunlari(tablo, hedef):
             if k['farkli_mi'] else u'ayni']
 
 
-# ---------------------------------------------------------------------------
-# KIMLIGIN KAYNAGI - "bunu nereden biliyorsunuz?" sorusunun cevabi
+# -------------------------------------------------------------------------
+# THE SOURCE OF THE IDENTITY, the answer to "how do you know that?"
 #
-# HER_VTB_NE_DEDI sutunu bu bilgiyi zaten tasiyordu ama tek bir devasa hucrede
-# gomuluydu; kimse okumuyordu. Ayrilip ayri sutunlara konur:
+# The HER_VTB_NE_DEDI column already carried this information, but it was buried in
+# one enormous cell and nobody read it. It is split into separate columns:
 #
-#   karar_veren_vtb    kimligi veren veritabani/veritabanlari
-#   kimlik_yuzdesi     o veritabanindaki hizalama kimligi
-#   hizalanan_uzunluk  kac baz uzerinden olculdu (referans kaydin uzunlugu)
-#   uyusan_vtb_sayisi  kac veritabani AYNI cinsi soyledi / kac tanesi cevap verdi
-#   uyusmayan_vtb      uyusmayanlar NE DEDI - gizlenmez, yan yana yazilir
+#   karar_veren_vtb    the database or databases that gave the identity
+#   kimlik_yuzdesi     the alignment identity in that database
+#   hizalanan_uzunluk  over how many bases it was measured (the reference record's
+#                      length)
+#   uyusan_vtb_sayisi  how many databases said THE SAME genus / how many answered
+#   uyusmayan_vtb      WHAT the ones that disagreed said; it is not hidden, it is
+#                      written beside them
 #
-# Amac: degerlendirici "bunu nereden biliyorsunuz" dediginde satir gosterilebilsin.
-# ---------------------------------------------------------------------------
+# The aim: when a reviewer says "how do you know that", the row can be shown.
+# -------------------------------------------------------------------------
 _VTB_PAT = re.compile(r'([A-Za-z0-9_ .]+?) \[([^\]]*)\]: (.*?)(?=(?: \| [A-Za-z0-9_ .]+? \[)|$)')
 
 
 def _cins(ad):
-    """Isabet basligindan CINS adini cikarir.
-
-    Basliklar uc bicimde geliyor ve ilk buyuk harfli kelimeyi almak YANLISTI -
-    SILVA basliklarinda o kelime alan adidir ("Archaea", "Bacteria", "Eukaryota")
-    ve butun kayitlar ayni cikardi:
-      SILVA/PR2 : '<erisim> Alan;Sube;...;Cins;Tur'        -> son anlamli parca
-      UNITE     : '<erisim>|k__Fungi;...;g__Cins;s__Tur|SH' -> g__ etiketi
-      RefSeq    : 'NR_xxxxx.1 Cins tur strain ...'          -> erisimden sonraki
-    """
+    """Extracts the GENUS name from a hit header."""
     ad = (ad or '').strip()
     if not ad or ad.startswith('-'):
         return ''
@@ -232,8 +232,8 @@ def kaynak_sutunlari_kutu(d):
     # hizalanan uzunluk: SILVA basliklarinda kayit adi '.<bas>.<son>' tasir
     m = re.match(r'\S*?\.(\d+)\.(\d+)\s', basl)
     uzun = str(abs(int(m.group(2)) - int(m.group(1))) + 1) if m else '-'
-    # Kutunun dogrulanan adi 'adlandirilamayan soy' ise cins karsilastirmasi
-    # ondan YAPILAMAZ; kazanan isabetin kendi cinsi kullanilir.
+    # If the bin's confirmed name is 'an unnameable lineage' the genus comparison CANNOT
+    # BE MADE from it; the winning hit's own genus is used.
     _da = (d.get('DOGRULANAN_KIMLIK') or '').strip()
     hedef_cins = _cins(basl if (not _da or _da.lower().startswith('adlandirilamayan'))
                        else _da)
@@ -244,11 +244,11 @@ def kaynak_sutunlari_kutu(d):
         c = _cins(sonuc)
         if not c:
             continue
-        # ONEK KARSILASTIRMASI: kaynak TSV basliklari 110 karakterde KESIYOR,
-        # yani taksonomi satirinin son parcasi yarim kalabiliyor
-        # ('Methanosarcina' -> 'Methanosarcin'). Tam esitlik aransaydi ayni
-        # veritabani kendi verdigi kimlikle 'uyusmuyor' gorunurdu - nitekim
-        # goruldu. Ilk 8 karakter uzerinden karsilastirilir.
+        # THE PREFIX COMPARISON: the source TSV headers CUT at 110 characters, so the last
+        # piece of the taxonomy line can be left half written ('Methanosarcina' ->
+        # 'Methanosarcin'). Had exact equality been required, the same database would have
+        # looked as though it 'disagreed' with the identity it gave itself, and that is
+        # exactly what was seen. The comparison is made over the first 8 characters.
         _e = lambda x: (x or '')[:8].lower()
         (uy if (hedef_cins and _e(c) == _e(hedef_cins)) else uym).append(
             u'%s: %s' % (vtb, sonuc[:52]))
@@ -286,7 +286,7 @@ def kaynak_tablosu(kok):
 
     out = {}
     for t, ds in hed.items():
-        # hedefi temsil eden kutu: kimligi EN YUKSEK olan (karari o veriyor)
+        # the bin representing the target: the one with the HIGHEST identity (it decides)
         out[t] = kaynak_sutunlari_kutu(sorted(ds, key=_yuz, reverse=True)[0])
     return out
 
