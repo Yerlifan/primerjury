@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
-"""TOPLANTIDA NE ISTENDI, HANGISI OLDU, HANGISI OLMADI.
+"""WHAT WAS ASKED FOR AT THE MEETING, WHAT CAME OF IT, AND WHAT DID NOT.
 
-Toplanti kararlari steps/hedefler.tsv icinde numarali duruyor
-(Karar 1 tur ozgul, Karar 2 cins, Karar 3 grup, Karar 4 alan evrensel,
-Karar 5 olcumden turetilen ve onaya sunulan ekler). Bu betik o listeyi
-panelin BUGUNKU ciktisiyla yan yana koyar.
+The meeting decisions sit numbered inside steps/hedefler.tsv (Decision 1 species
+specific, Decision 2 genus, Decision 3 group, Decision 4 domain and universal,
+Decision 5 the additions derived from the measurement and put up for approval). This
+script puts that list side by side with the panel's output AS IT IS TODAY.
 
-Elle yazilmis hicbir durum yoktur. Her satirin durumu su dosyalardan okunur:
-    TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv     (hukum, dCq, kapsam)
-    DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv     (kanit katmanlari)
-    engine_SONUC/kutu_olculen_kimlik.tsv (numunede var mi)
+Not one state is written by hand. Every row's state is read from these files:
+    TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv     (the verdict, dCq, the coverage)
 
-Kosum:
-    python verification/decision_status.py --kok .
-Cikti:
-    TOPLANTI_DURUMU.md   ve   toplanti_durumu.tsv
 """
 from __future__ import print_function
 
@@ -25,8 +19,8 @@ import os
 import sys
 import time
 
-# Toplanti adi -> paneldeki hedef adi. Ad esitligi kurulamayan satir
-# "PANELDE KARSILIGI YOK" olarak raporlanir; sessizce eslenmez.
+# The meeting name -> the target name in the panel. A row whose names cannot be
+# matched is reported as "PANELDE KARSILIGI YOK"; it is not matched silently.
 ESLEME = {
     'Methanosarcina_mazei_turu': 'Methanosarcina mazei / M. soligelidi grubu',
     'Methanothrix_soehngenii_turu': 'Methanothrix_soehngenii_turu',
@@ -54,7 +48,8 @@ ESLEME = {
     'Sakarolitik_Sphaerochaeta': 'Sakarolitik_Sphaerochaeta',
 }
 
-# Eslemesi olmayanlarin SEBEBI - hepsi olcume dayanir, hicbiri kanaat degil.
+# THE REASON for the ones with no mapping; every one of them rests on a measurement,
+# none is an opinion.
 YOK_SEBEBI = {
     'Methanosarcina_barkeri_turu':
         u'Tur ozgul cift uretilemedi. M. barkeri ile M. mazei numunedeki '
@@ -143,9 +138,9 @@ def main():
         sinif = (r.get('SINIF') or '').strip()
         dcq = (r.get('dCq_karsiligi') or '').strip()
         durum = (r.get('durum') or '').strip()
-        # Durum SINIF'tan degil SINIF + SIPARIS SARTI'ndan gelir. Ikisini
-        # ayirmazsak "kosulsuz siparis edilebilir" ile "kosullu" ayni kovaya
-        # duser ve degerlendirici hangisinin sartsiz oldugunu goremez.
+        # The state comes not from SINIF but from SINIF plus SIPARIS SARTI. Without
+        # separating the two, "orderable unconditionally" and "conditional" fall into the
+        # same bucket and a reviewer cannot see which one carries no condition.
         if sinif in ('KESIN', 'EVRENSEL'):
             if sart.upper().startswith('KOSULSUZ'):
                 d = u'YAPILDI (kosulsuz)'
