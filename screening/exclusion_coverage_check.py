@@ -1,28 +1,16 @@
 # -*- coding: utf-8 -*-
-"""DISLAMA HARITASI KAPSAMA DENETIMI  -  hedef_taxid.tsv dogru mu?
+"""THE COVERAGE AUDIT OF THE EXCLUSION MAP: is hedef_taxid.tsv right?
 
-SORU
-----
-hedef_taxid.tsv her hedef icin "NCBI'da dislanacak takson"u soyluyor. Bu
-takson, hedefin BUTUN uyelerini icermek ZORUNDADIR. Icermezse disarida kalan
-uye hedefin KENDISI oldugu halde "hedef disi urun" diye sayilir ve cift haksiz
-yere kirli gorunur.
+THE QUESTION
+------------
+hedef_taxid.tsv names, for each target, the taxon to be excluded at NCBI. That taxon
+MUST hold ALL of the target's members. If it does not, a member left outside counts
+as an "off target product" although it IS the target itself, and the pair looks
+dirty for no reason.
 
-Bu denetim tahmine yer birakmaz: her uye taksid'in NCBI soy zincirini ceker ve
-dislanan taksid o zincirde GERCEKTEN var mi diye bakar.
+This audit leaves no room for guessing: it pulls the NCBI lineage of every member
+taxid and asks whether the excluded taxid is REALLY in that lineage.
 
-NEDEN YAZILDI (2026-08-10, canli olcumde yakalandi)
----------------------------------------------------
-Asetoklastik_metanojenler icin dislama 94695 (Methanosarcinales) yazilmisti;
-gerekce "Methanothrix de bu takimin altinda" idi. NCBI Methanothrix'i
-Methanosarcinales'ten CIKARIP kendi takimina (Methanotrichales, 2905377)
-tasimis. Yani gerekce artik dogru degildi ve Methanothrix uyeleri hedef disi
-sayilacakti. Ezberden yazilan taksonomi eskiyor; bu yuzden zincir NCBI'dan
-CEKILIR, hatirlanmaz.
-
-Kosum:
-    python screening/exclusion_coverage_check.py --kok .
-Cikis kodu: 0 = butun hedefler kapsandi, 1 = kapsanmayan uye var.
 """
 from __future__ import print_function
 
@@ -64,7 +52,7 @@ def oku_uyelik(yol):
 
 
 def oku_uye_kutular(yol):
-    """hedef -> uye KUTU adlari (A1-1_2209 gibi). Kraken taxid'i degil KUTU."""
+    """target -> the member BIN names (A1-1_2209 and the like). The BIN, not the Kraken taxid."""
     u = {}
     if not os.path.exists(yol):
         return u
@@ -85,7 +73,7 @@ def oku_uye_kutular(yol):
 
 
 def oku_olculen_kimlik(yol):
-    """kutu -> OLCULEN kimlik metni. Kraken etiketi DEGIL, bizim olcumumuz."""
+    """bin -> the MEASURED identity text. NOT the Kraken label, our own measurement."""
     o = {}
     if not os.path.exists(yol):
         return o
@@ -105,12 +93,14 @@ _ATLA_AD = ('sp.', 'cf.', 'strain', 'isolate', 'group', 'incertae', 'sedis',
 
 
 def ad_adaylari(kimlik):
-    """Olculen kimlik metninden NCBI'da aranabilecek ad adaylari - genisten dara.
+    """Name candidates that can be looked up at NCBI, taken from the measured identity
+    text, from broad to narrow.
 
-    Iki bicim var:
-      "Petriella setifera"                       -> dogrudan ad
+    There are two forms:
+      "Petriella setifera"                       -> a direct name
       "adlandirilamayan soy - EN YAKIN KAYIT: ...Fungi;Dikarya;Ascomycota;..."
-                                                 -> soy zincirinden en DAR ad
+                                                 -> the NARROWEST name in the lineage
+
     """
     k = (kimlik or '').strip()
     if not k:
@@ -153,12 +143,14 @@ def ad_taxid(ad):
 
 
 def soy_zincirleri(taxidler, yaz):
-    """taxid -> (ad, zincirdeki taxid kumesi). NCBI'dan cekilir, ezberlenmez.
+    """taxid -> (name, the set of taxids in the lineage). It is pulled from NCBI and not
+    memorised.
 
-    XML duzgun ayristirilir. Duz metin regex'i BU ISE YARAMAZ: <LineageEx>
-    icinde ic ice <Taxon> ogeleri var ve regex ile bolunce her soy halkasi
-    ayri bir kayit sanilir; kapsama sinavi o zaman dogru cifleri bile
-    "kapsamiyor" der (2026-08-10'da tam olarak bu oldu).
+    The XML is parsed properly. A plain text regex DOES NOT WORK HERE: <LineageEx> holds
+    nested <Taxon> elements and splitting with a regex makes each lineage ring look like
+    a separate record; the coverage test then says even the correct pairs "do not cover"
+    (which is exactly what happened on 2026-08-10).
+
     """
     import xml.etree.ElementTree as ET
     out = {}
@@ -178,7 +170,7 @@ def soy_zincirleri(taxidler, yaz):
                 for h in le.findall('Taxon'):
                     if h.findtext('TaxId'):
                         zincir.add(h.findtext('TaxId'))
-            # AKA/merged taxid: sorulan numara ile donen numara farkli olabilir
+            # an AKA or merged taxid: the number asked for and the number returned can differ
             for aka in tx.findall('AkaTaxIds/TaxId'):
                 if aka.text:
                     out[aka.text] = (ad, zincir)
@@ -225,8 +217,8 @@ def main():
     yaz(u'  exclusion map    : %d targets' % len(H))
     yaz(u'  membership table : %d targets' % len(U))
 
-    # ad eslesmesi: uyelik tablosunun anahtari kisa olabilir (ornek:
-    # "Proteolitik_Synergistaceae" <-> "Proteolitik_Synergistaceae (eski ad: ...)").
+    # a name match: the membership table's key can be short (an example:
+    # "Proteolitik_Synergistaceae" against "Proteolitik_Synergistaceae (eski ad: ...)").
     def esle(ad):
         if ad in U:
             return ad
@@ -235,12 +227,12 @@ def main():
                 return k
         return None
 
-    # OLCULEN KIMLIK YOLU: uye KUTULARIN olculen kimligi Kraken etiketinden
-    # ayrisiyor (100 kutunun 78'inde). Kapsama sinavi Kraken taxid'i uzerinden
-    # yapilirsa dogru dislamalar "kapsamiyor" gorunur - 2026-08-10'da
-    # Petriella, Microascaceae ve Cloacimonas'ta tam olarak bu oldu:
-    # kutular Kraken'de "Trichoderma"/"Cloacimonas", olculende "Petriella"/
-    # "Planctomycetales". Sinav OLCULEN kimlige gore yapilir.
+    # THE MEASURED IDENTITY ROUTE: the measured identity of the member BINS departs from
+    # the Kraken label (in 78 of 100 bins). If the coverage test is made over the Kraken
+    # taxid, correct exclusions look as though they "do not cover"; on 2026-08-10 that is
+    # exactly what happened with Petriella, Microascaceae and Cloacimonas: the bins are
+    # "Trichoderma" and "Cloacimonas" in Kraken and "Petriella" and "Planctomycetales"
+    # under measurement. The test is made against the MEASURED identity.
     ESD = {}
     ey = os.path.join(kok, 'screening', 'kimlik_taxid_esdegeri.tsv')
     if os.path.exists(ey):
