@@ -180,33 +180,34 @@ UYUM_TOLERANS = 1.0     # the acceptable gap between the claimed percentage and 
 # identity question, Parc is REQUIRED.
 VTB = [
     ('SILVA SSU NR99',     'SILVA_138.2_SSURef_NR99.fasta', 'SSU',    True,
-     u'510 495 kayit; SSU tekrarsizlastirilmis'),
+     '510,495 records; SSU, deduplicated'),
     ('SILVA LSU NR99',     'SILVA_138.2_LSURef_NR99.fasta', 'LSU',    True,
-     u'95 279 kayit; LSU tekrarsizlastirilmis - NADIR CINSLERI SILER'),
+     '95,279 records; LSU, deduplicated, which DELETES RARE GENERA'),
     ('SILVA LSU Parc',     'SILVA_138.2_LSUParc.fasta',     'LSU',    True,
-     u'1 312 521 kayit; TEKRARSIZLASTIRILMAMIS. Petriella: NR99=0, Parc=82 '
-     u'(olculdu). Kimlik asamasinda SART.'),
+     '1,312,521 records; NOT deduplicated. Petriella: 0 in NR99 and 82 in '
+     'Parc, measured. REQUIRED at the identity stage.'),
     ('UNITE ITS',          'UNITE_ITS.fasta',               'ITS',    True,
-     u'2 069 189 kayit; mantar ITS. Petriella: 113 kayit (olculdu).'),
+     '2,069,189 records; fungal ITS. Petriella: 113 records, measured.'),
     ('PR2 SSU',            'PR2_SSU_taxo_long.fasta',       'SSU',    True,
-     u'240 201 kayit; okaryot 18S'),
+     '240,201 records; eukaryotic 18S'),
     ('ROD operon',         'ROD_v1.2_operon_variants.fasta','OPERON', True,
-     u'60 320 kayit; rRNA operon varyantlari'),
+     '60,320 records; rRNA operon variants'),
     ('RefSeq bakteri 16S', 'bacteria.16S.fna',              'SSU',    True,
-     u'26 877 kayit; adlandirilmis tip materyali agirlikli'),
+     '26,877 records; weighted towards named type material'),
     ('RefSeq arke 16S',    'archaea.16S.fna',               'SSU',    True,
-     u'1 160 kayit'),
+     '1,160 records'),
     ('RefSeq mantar ITS',  'fungi.ITS.fna',                 'ITS',    True,
-     u'20 394 kayit'),
+     '20,394 records'),
     ('RefSeq mantar 28S',  'fungi.28SrRNA.fna',             'LSU',    True,
-     u'12 890 kayit; Petriella: 2 kayit (olculdu)'),
+     '12,890 records; Petriella: 2 records, measured'),
     ('RefSeq mantar 18S',  'fungi.18SrRNA.fna',             'SSU',    True,
-     u'4 037 kayit'),
+     '4,037 records'),
     ('RefSeq ref_all2',    'ref_all2.fna',                  'KARISIK', True,
-     u'65 358 kayit; RefSeq birlesik kume (ref_all\'in ustkumesi)'),
+     '65,358 records; the merged RefSeq set, a superset of ref_all'),
     ('RefSeq ref_all',     'ref_all.fna',                   'KARISIK', False,
-     u'48 431 kayit; ref_all2 bunun USTKUMESI - ayni kayitlar iki kez '
-     u'sayilmasin diye kimlik oylamasindan cikarildi (bagimsiz kaynak degil)'),
+     '48,431 records; ref_all2 is a SUPERSET of this one, so it was taken out '
+     'of the identity vote to stop the same records being counted twice. It '
+     'is not an independent source.'),
 ]
 
 # NCBI nt is a SEPARATE layer (not a local file, it goes over the network).
@@ -222,11 +223,11 @@ NT_ETIKET = 'NCBI nt'
 IDDIALAR = [
  dict(no=1, oncelik=2, tip='kimlik', kutu=['F2-1_101201'], sinif='F2',
       beklenen_cins='Petriella', beklenen_yuzde=None,
-      metin=u'taxid 101201 kutusu Petriella cinsinden'),
+      metin='the taxid 101201 bin is from the genus Petriella'),
  dict(no=2, oncelik=1, tip='kutu2', kutu=['F1-4_2093780'], karsi=['F2-1_101201'],
       beklenen_yuzde=99.58, beklenen_cins='Petriella',
-      metin=u'Podospora pseudopauciseta kutusu (F1-4_2093780) Petriella ile %99,58 ayni',
-      not_=u'EN YENI VE EN AZ SINANMIS IDDIA - oncelik yuksek'),
+      metin='the Podospora pseudopauciseta bin (F1-4_2093780) is 99.58 per cent identical to Petriella',
+      not_='THE NEWEST AND LEAST TESTED CLAIM, so a high priority'),
  dict(no=3, oncelik=1, tip='dagilim', beklenen_cins='Petriella',
       kutu=['F2-1_101201','F2-2_101201','F2-3_101201','F2-4_101201',
             'F2-1_2034170','F2-4_2034170','F2-1_500148','F2-2_500148','F2-4_500148'],
@@ -243,49 +244,52 @@ IDDIALAR = [
       #     F1-4_101201, F1-4_2093779, F1-4_2093780) also came out Petriella.
       # Twelve bins in total. The text now carries the measured number, so that no
       # contradiction between "nine" and the evidence reaches the report.
-      metin=u'Petriella numunede 12 kutuya dagilmis (bu iddianin dokuz '
-            u'kutusundan sekizi + dort F1 kutusu; F2-4_500148 Petriella '
-            u'DEGIL); Kraken\'in T. breve ve M. brunneum dedigi kutularin '
-            u'okumalarinin %76-86\'si Petriella',
-      not_=u'tek tura dayaniyor - oncelikli'),
+      metin='Petriella is spread over 12 bins in the sample: eight of this '
+            "claim's nine bins plus four F1 bins, while F2-4_500148 is NOT "
+            'Petriella. Of the reads in the bins Kraken called T. breve and '
+            'M. brunneum, 76 to 86 per cent are Petriella.',
+      not_='it rests on one round, so it takes priority'),
  dict(no=4, oncelik=3, tip='kimlik', kutu=['A1-4_2208'], sinif='A1',
       beklenen_tur='Methanosarcina vacuolata', beklenen_yuzde=97.6,
-      metin=u'M. barkeri kutusu M. vacuolata\'ya %97,6'),
+      metin='the M. barkeri bin is 97.6 per cent to M. vacuolata'),
  dict(no=5, oncelik=3, tip='kimlik', kutu=['B-2_818','B-3_818','B-2_214856'], sinif='B',
       beklenen_tur='Alistipes putredinis', beklenen_yuzde=85.0, tolerans=2.0,
       adsiz_bekleniyor=True,
-      metin=u'Bacteroides kutulari adlandirilamayan Bacteroidales, en yakin '
-            u'Alistipes putredinis %85 civari'),
+      metin='the Bacteroides bins are an unnameable Bacteroidales whose '
+            'nearest record, Alistipes putredinis, is around 85 per cent'),
  dict(no=6, oncelik=3, tip='kimlik', kutu=['B-2_1197717'], sinif='B',
       beklenen_yuzde=99.4, beklenen_aile='Synergistaceae',
       rakip_cins='Cloacibacillus', rakip_yuzde=90.0, adsiz_bekleniyor=True,
-      metin=u'Cloacibacillus hedefi adlandirilamayan Synergistaceae %99,4, '
-            u'en yakin Cloacibacillus %90'),
+      metin='the Cloacibacillus target is an unnameable Synergistaceae at '
+            '99.4 per cent, with the nearest Cloacibacillus at 90 per cent'),
  dict(no=7, oncelik=2, tip='adsiz', kutu=['F1-1_44689','F1-2_44689','F1-3_44689','F1-4_44689'],
       metin=u'taxid 44689 etiketi curutuldu ve yerine isim konulamiyor'),
  dict(no=8, oncelik=2, tip='ayrilmaz', kutu=['A1-2_2209'], sinif='A1',
       turler=[('Methanosarcina soligelidi', 99.93), ('Methanosarcina mazei', 99.85)],
-      metin=u'taxid 2209 kutusu M. soligelidi %99,93 / M. mazei %99,85, ikisi ayrilmiyor'),
+      metin='the taxid 2209 bin is 99.93 per cent to M. soligelidi and 99.85 per cent to M. mazei; the two do not separate'),
  dict(no=9, oncelik=2, tip='cins_duzeyi', kutu=['F2-1_101201'], beklenen_cins='Petriella',
       metin=u'Petriella cins duzeyinde kalmali, tur adi verilemez, cf. setifera'),
  # --- The targets stage K calls "HETEROJEN": to decide anything, the bin
  # identities have to be tested AGAINST AN EXTERNAL REFERENCE. K cannot do that; I can.
  dict(no=11, oncelik=1, tip='kimlik', kutu=['B-4_285070'], sinif='B',
       beklenen_cins='Petrimonas',
-      metin=u'Petrimonas hedefinin uye kutulari ayni organizma mi? '
-            u'(K asamasi HETEROJEN dedi: 3 kutunun hicbiri birbiriyle >=%99 kimlikte)',
-      not_=u'K asamasi bu hedef icin daraltma UYGULAYAMADI ve "once kutu kimlikleri '
-            u'referansla dogrulanmali" dedi. Bu iddia tam olarak o denetimdir; '
-            u'sonucu olmadan Petrimonas hakkinda karar verilemez.'),
+      metin='Are the member bins of the Petrimonas target the same organism? '
+            'The recovery stage called them HETEROGENEOUS: not one of the 3 '
+            'bins is 99 per cent or more identical to another.',
+      not_='The recovery stage COULD NOT narrow this target and said the bin '
+           'identities have to be confirmed against a reference first. This '
+           'claim is exactly that check, and without its result nothing can '
+           'be decided about Petrimonas.'),
  dict(no=12, oncelik=1, tip='kimlik', kutu=['B-2_818'], sinif='B',
       beklenen_tur='Alistipes putredinis', beklenen_yuzde=85.0, tolerans=3.0,
       adsiz_bekleniyor=True,
-      metin=u'Bacteroidales_kumesi hedefinin uye kutulari ayni organizma mi? '
-            u'(K asamasi HETEROJEN dedi: 12 kutunun hicbiri birbiriyle >=%99 kimlikte)',
-      not_=u'Ayni gerekce: K daraltma uygulayamadi, dis referans teyidi sart.'),
+      metin='Are the member bins of the Bacteroidales set target the same '
+            'organism? The recovery stage called them HETEROGENEOUS: not one '
+            'of the 12 bins is 99 per cent or more identical to another.',
+      not_='The same reasoning: the recovery stage could not narrow it, so confirmation against an outside reference is required.'),
  dict(no=10, oncelik=2, tip='gecici', sinif='B',
-      metin=u'B sinifi kutu kimlikleri gecici, konsensus kimligi o sinifta '
-            u'ayrim yapamiyor'),
+      metin='the class B bin identities are provisional, because consensus '
+            'identity cannot separate anything in that class'),
 ]
 
 
@@ -712,14 +716,16 @@ def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
     kazanan_kaynak = isabet[0]['kaynak'] if isabet else None
     uyari = None
     if kazanan_sira is not None and kazanan_sira > SIRA_UYARI_ESIGI:
-        uyari = (u'KAZANAN %d. SIRADAN GELDI (esik %d, liste %d). Kesme noktasi '
-                 u'BAGLAYICI olmaya baslamis olabilir - --shortlist degerini '
-                 u'buyutup tekrarlayin.' % (kazanan_sira, SIRA_UYARI_ESIGI, kl_ust))
+        uyari = ('THE WINNER CAME FROM RANK %d (the threshold is %d and the '
+                 'list holds %d). The cut-off may have started to BIND; raise '
+                 '--shortlist and run it again.' % (kazanan_sira, SIRA_UYARI_ESIGI, kl_ust))
     if kazanan_kaynak == 'garanti':
         uyari = ((uyari + u'  ||  ') if uyari else u'') + (
-            u'KAZANAN kisa listeye TOHUMLA DEGIL, "beklenen takson garantisi" '
-            u'yamasiyla girdi (tohum siralamasinda %s. olurdu). Bu iddiada karar '
-            u'yamaya BAGIMLI - bilmedigimiz bir taksonda ayni isabet kacardi.'
+            'THE WINNER entered the short list NOT THROUGH SEEDING but '
+            'through the expected taxon patch; on the seed ranking it would '
+            'have been number %s. The verdict for this claim DEPENDS ON that '
+            'patch, so on a taxon we did not expect the same hit would have '
+            'been missed.'
             % kazanan_sira)
 
     ap = ayirt_edici_pencere(isabet[:AYIRT_EDICI_UST], kutu_diz)
@@ -789,7 +795,7 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
 # deliberately NOT USED: Kraken2 already does k-mer plus LCA on the tree, and this
 # route exists precisely so as not to repeat it.
 def cins_cek(baslik):
-    """Referans basligindan cins adini cikar (taksonomi agaci KULLANILMAZ)."""
+    'Pull the genus name out of a reference header. NO taxonomy tree is used.'
     b = baslik
     m = re.search(r'[;|]\s*([A-Z][a-z]+)[ _]([a-z]+)', b)
     if m:
@@ -825,9 +831,10 @@ def envanter_yaz(kok, CIKTI, yaz):
         e, kullan, n = bilinen.get(d, (None, None, None))
         satir.append(dict(dosya=d, mb=round(boyut / 1048576.0), etiket=e or '(tanimsiz)',
                           kimlik=('EVET' if kullan else 'hayir') if e else u'NO, it is not in the list',
-                          sebep=n or (u'Bu dosya VTB listesinde TANIMLI DEGIL. Kullanilmasi '
-                                      u'isteniyorsa identity_verification.py icindeki VTB '
-                                      u'listesine eklenmelidir.')))
+                          sebep=n or ('This file IS NOT DEFINED in the '
+                                      'database list. To use it, add it to '
+                                      'the database list inside '
+                                      'identity_verification.py.')))
     with open(yol, 'w', encoding='utf-8') as fh:
         fh.write(u'# REFERANS_DB inventory: which set is used where\n\n')
         fh.write(u'Generated: %s (rebuilt on every run; do not edit by hand)\n\n'
@@ -899,7 +906,7 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
         if not isabet:
             yaz(u'     NCBI nt: could not parse the response, falling back to the manual route')
             g = elle_nt_girdi(kutu, q, CIKTI, yaz)
-            g['not_'] = u'otomatik yanit ayristirilamadi; ham yanit nt_ham/ altinda'
+            g['not_'] = 'the automatic reply could not be parsed; the raw reply is under nt_ham/'
             return g
         yaz(u'     NCBI nt: %d hits' % len(isabet))
         return dict(durum='TAMAM', isabet=isabet[:10], kaynak='NCBI nt (URL API)')
@@ -932,7 +939,7 @@ def elle_nt_girdi(kutu, q, CIKTI, yaz):
             w = csv.writer(fh, delimiter='\t')
             w.writerow(['kutu', 'en_iyi_isabet_basligi', 'kimlik_yuzde', 'notunuz'])
     yaz(u'     NCBI nt: manual query file written -> %s' % os.path.basename(fa))
-    return dict(durum='ELLE GEREKIR', isabet=[], kaynak='NCBI nt (elle)',
+    return dict(durum='ELLE GEREKIR', isabet=[], kaynak='NCBI nt, by hand',
                 girdi=fa, sablon=sab)
 
 
@@ -951,7 +958,7 @@ def nt_yukle(yol):
                 k = float((r.get('kimlik_yuzde') or '').replace(',', '.'))
             except ValueError:
                 k = None
-            out[r['kutu'].strip()] = dict(durum='TAMAM (elle)', kaynak='NCBI nt (elle)',
+            out[r['kutu'].strip()] = dict(durum='TAMAM (elle)', kaynak='NCBI nt, by hand',
                                           isabet=[dict(baslik=b, kimlik=k)])
     return out
 
@@ -1085,7 +1092,7 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
         ilk = (isabetler or [{}])[0]
         _c, _t, tam = ad_coz(ilk.get('baslik', ''))
         return dict(duzey='BELIRLENEMEDI', onerilen_ad='-',
-                    gerekce=u'hicbir isabette sayisal kimlik yok',
+                    gerekce='no hit carries a numeric identity',
                     en_iyi=tam or '-', ikinci='-', ucuncu='-')
     say.sort(key=lambda x: -x['kimlik'])
     ilk = say[0]
@@ -1107,13 +1114,16 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
     # name", when the problem is not the reference's CLOSENESS but its NAMELESSNESS.
     if not t1 and not c1:
         return dict(duzey='ADLANDIRILAMIYOR (referans adsiz)',
-                    onerilen_ad=u'adlandirilamayan soy - EN YAKIN KAYIT: %s (%%%s)'
+                    onerilen_ad='an unnameable lineage; THE NEAREST RECORD: %s (%s per cent)'
                                 % (tam1, vir(k1)),
-                    gerekce=u'en iyi isabetin kimligi %%%s (tur esigi %%%s) AMA eslesilen '
-                            u'kayit adlandirilmamis bir cevre dizisidir ("uncultured", '
-                            u'"enrichment", "clone" vb.). Yuksek kimlik burada bir AD '
-                            u'DEGIL, yalnizca "bu dizi cevre klonlariyla ortusuyor" '
-                            u'bilgisidir. Tur ya da cins iddiasi KURULAMAZ.'
+                    gerekce="the best hit's identity is %s per cent (the "
+                            'species threshold is %s per cent) BUT the record '
+                            'matched is an unnamed environmental sequence: '
+                            '"uncultured", "enrichment", "clone" and the '
+                            'like. A high identity here IS NOT A NAME, only '
+                            'the information that this sequence overlaps '
+                            'environmental clones. NO species or genus claim '
+                            'can be built on it.'
                             % (vir(k1), vir(te)),
                     en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
     if k1 >= te and t1:
@@ -1121,29 +1131,37 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
         yakin = (k2 is not None and (k1 - k2) < AYRIM_PAYI)
         if farkli_tur and yakin:
             return dict(duzey='CINS (tur belirsiz)', onerilen_ad='%s cf. %s' % (c1, t1.split()[-1]),
-                        gerekce=u'kimlik %%%s tur esiginin (%%%s) USTUNDE ama ikinci isabet '
-                                u'baska bir tur (%s, %%%s) ve arada yalnizca %%%s fark var - '
-                                u'tur atamasi savunulamaz, "cf." kullanildi'
+                        gerekce='the identity of %s per cent is ABOVE the '
+                                'species threshold of %s per cent, but the '
+                                'second hit is another species (%s at %s per '
+                                'cent) and only %s per cent separates them, '
+                                'so a species assignment is indefensible and '
+                                '"cf." was used'
                                 % (vir(k1), vir(te), t2, vir(k2), vir(k1 - k2)),
                         en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
         return dict(duzey='TUR', onerilen_ad=t1,
-                    gerekce=u'kimlik %%%s tur esiginin (%%%s) ustunde ve ikinci isabetle '
-                            u'arada acik fark var (%s)'
+                    gerekce='the identity of %s per cent is above the species '
+                            'threshold of %s per cent and there is a clear '
+                            'gap to the second hit (%s)'
                             % (vir(k1), vir(te),
-                               ('%%%s' % vir(k1 - k2)) if k2 is not None else u'ikinci isabet yok'),
+                               ('%%%s' % vir(k1 - k2)) if k2 is not None else 'there is no second hit'),
                     en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
     if k1 >= ce and c1:
         return dict(duzey='CINS', onerilen_ad='%s sp.' % c1,
-                    gerekce=u'kimlik %%%s tur esiginin (%%%s) ALTINDA, cins esiginin '
-                            u'(%%%s) ustunde - tur adi verilemez'
+                    gerekce='the identity of %s per cent is BELOW the species '
+                            'threshold of %s per cent and above the genus '
+                            'threshold of %s per cent, so no species name can '
+                            'be given'
                             % (vir(k1), vir(te), vir(ce)),
                     en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
     return dict(duzey='AILE ve USTU (ad VERILEMEZ)',
-                onerilen_ad=u'adlandirilamayan soy - EN YAKIN KAYIT: %s (%%%s)'
+                onerilen_ad='an unnameable lineage; THE NEAREST RECORD: %s (%s per cent)'
                             % ((t1 or c1 or tam1), vir(k1)),
-                gerekce=u'kimlik %%%s cins esiginin (%%%s) bile ALTINDA. Bu bir KIMLIK '
-                        u'DEGILDIR, yalnizca en yakin referans kayittir; rapora '
-                        u'"kimliklendiremedik, en yakini su" diye aktarilmalidir.'
+                gerekce='the identity of %s per cent is BELOW even the genus '
+                        'threshold of %s per cent. This IS NOT AN IDENTITY, '
+                        'only the nearest reference record, and it has to go '
+                        'into the report as "we could not identify it; this '
+                        'is the nearest".'
                         % (vir(k1), vir(ce)),
                 en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
 
@@ -1158,7 +1176,7 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
 # twice (cross_check D9 / orientation_code_scan, and _kayit_coz / taxonomy).
 # -------------------------------------------------------------------------
 def adlandirmayi_turet(bulgular):
-    """Ham isabetlerden adlandirmayi uretir. Doner: (adlandirma_dict, lokus)"""
+    'Derives the naming from the raw hits. Returns: (naming_dict, locus)'
     lokus_tab = {e: t for e, _d, t, _k, _n in VTB}
     havuz = []
     for et, v in (bulgular or {}).items():
@@ -1264,13 +1282,13 @@ def _yeniden_turet(kayit, idd):
         adl, _lokus = adlandirmayi_turet(ham)
         yeni = dict(kayit)
         yeni['adlandirma'] = adl
-        yeni['_turetme'] = 'yeniden (ham olcum onbellekten)'
+        yeni['_turetme'] = 'again, with the raw measurement from the cache'
         return yeni
     except Exception as e:
         # If the re-derivation fails, the OLD record is not returned unchanged; it is
         # flagged, so the report can say "this row was produced by the old logic".
         yeni = dict(kayit)
-        yeni['_turetme'] = 'BASARISIZ (%s) - eski adlandirma kullanildi' % type(e).__name__
+        yeni['_turetme'] = 'FAILED (%s), so the old naming was used' % type(e).__name__
         return yeni
 
 
@@ -1314,8 +1332,8 @@ def hukum_ver(idd, bulgular, kons):
                if str(v.get('durum', '')).startswith('TAMAM') and v.get('isabet')}
     if len(calisan) < 2:
         return ('DOGRULANAMADI',
-                u'Yalnizca %d veritabani sonuc verdi; bu tur en az IKI bagimsiz '
-                u'veritabaninin uyusmasini sart kosar.' % len(calisan), '')
+                'Only %d database returned a result; this round requires at '
+                'least TWO independent databases to agree.' % len(calisan), '')
 
     # her veritabaninin "oyu": en iyi isabetin cinsi/turu ve kimligi
     oylar = {}
@@ -1346,11 +1364,13 @@ def hukum_ver(idd, bulgular, kons):
                 if olculen and min(abs(x - bek_y) for x in olculen) > tol:
                     return ('DUZELTILMELI',
                             kanit,
-                            u'Takson dogru ama YUZDE farkli: olculen %s (iddia %%%s). '
-                            u'Dogru ifade: "%s, olculen kimlik %%%s".'
+                            'The taxon is right but the PERCENTAGE differs: '
+                            'measured %s against a claim of %s per cent. The '
+                            'right wording: "%s, with a measured identity of '
+                            '%s per cent".'
                             % (', '.join('%%%s' % vir(x) for x in olculen), vir(bek_y),
                                (bek_t or bek_c), vir(sorted(olculen)[len(olculen) // 2])))
-            return ('DOGRULANDI', kanit + u'  [%d veritabani uyusuyor]' % len(uyan), '')
+            return ('DOGRULANDI', kanit + '  [%d databases agree]' % len(uyan), '')
         # baska bir cevapta birlesiyorlar mi
         say = {}
         for e, o in oylar.items():
@@ -1360,24 +1380,24 @@ def hukum_ver(idd, bulgular, kons):
         if len(en_cok[1]) >= 2:
             med = sorted(_say([oylar[e]['kimlik'] for e in en_cok[1]])) or [None]
             return ('DUZELTILMELI', kanit,
-                    u'Iddia edilen takson desteklenmiyor. %d veritabani "%s" uzerinde '
-                    u'birlesiyor (kimlik ~%%%s). Dogru ifade: "kutunun en yakin '
-                    u'referansi %s, kimlik %%%s".'
+                    'The claimed taxon is not supported. %d databases agree '
+                    'on "%s" at about %s per cent. The right wording: "the '
+                    'bin\'s nearest reference is %s, at %s per cent".'
                     % (len(en_cok[1]), en_cok[0], vir(med[len(med) // 2]),
                        en_cok[0], vir(med[len(med) // 2])))
         return ('DOGRULANAMADI', kanit,
-                u'Veritabanlari FARKLI cevaplar veriyor; hicbir iki tanesi ayni '
-                u'taksonda birlesmiyor.')
+                'The databases give DIFFERENT answers; no two of them agree '
+                'on the same taxon.')
 
     if tip == 'kutu2':
         a, b = idd['kutu'][0], idd['karsi'][0]
         if a not in kons or b not in kons:
-            return ('DOGRULANAMADI', u'kutu konsensusu bulunamadi (%s / %s)' % (a, b), '')
+            return ('DOGRULANAMADI', 'the bin consensus was not found (%s / %s)' % (a, b), '')
         k, _ = hizala(kons[a] if len(kons[a]) <= len(kons[b]) else kons[b],
                       kons[b] if len(kons[a]) <= len(kons[b]) else kons[a])
         ortak = [e for e, o in oylar.items() if o['cins'] and idd.get('beklenen_cins') and
                  o['cins'].lower().startswith(idd['beklenen_cins'].lower()[:6])]
-        kanit = (u'Dogrudan hizalama %s <-> %s: %%%s. Veritabani oylari: %s'
+        kanit = ('A direct alignment of %s against %s: %s per cent. The database votes: %s'
                  % (a, b, vir(k),
                     '; '.join('%s=%s' % (e, oylar[e]['tur'] or oylar[e]['cins']) for e in oylar)))
         bek = idd.get('beklenen_yuzde')
@@ -1385,10 +1405,10 @@ def hukum_ver(idd, bulgular, kons):
             return ('DOGRULANDI', kanit, '')
         if abs(k - bek) > tol:
             return ('DUZELTILMELI', kanit,
-                    u'Dogru ifade: "%s kutusu %s ile %%%s ayni" (iddia %%%s).'
+                    'The right wording: "the %s bin is %s per cent identical to %s" (the claim said %s per cent).'
                     % (a, b, vir(k), vir(bek)))
         return ('DOGRULANAMADI', kanit,
-                u'Kimlik tutuyor ama iki veritabani ayni cinste birlesmedi.')
+                'The identity holds, but two databases did not agree on the same genus.')
 
     if tip == 'dagilim':
         # supheli kutularin konsensusleri capa kutuya ne kadar benziyor
@@ -1400,17 +1420,18 @@ def hukum_ver(idd, bulgular, kons):
                               kons[capa] if len(kons[k2]) <= len(kons[capa]) else kons[k2])
                 satir.append((k2, v))
         if not satir:
-            return ('DOGRULANAMADI', u'supheli kutularin konsensusu okunamadi', '')
+            return ('DOGRULANAMADI', 'the consensus of the suspect bins could not be read', '')
         kanit = '; '.join('%s=%%%s' % (a, vir(v)) for a, v in satir)
         yuksek = [v for _, v in satir if v >= 99.0]
         if len(yuksek) >= max(2, len(satir) - 1):
             return ('DOGRULANDI',
-                    kanit + u'  [konsensus duzeyinde %d/%d kutu >=%%99 ayni]'
+                    kanit + '  [at consensus level %d of %d bins are 99 per cent or more identical]'
                     % (len(yuksek), len(satir)), '')
         return ('DOGRULANAMADI', kanit,
-                u'Konsensus duzeyinde %d/%d kutu >=%%99 kimlikte. Okuma orani '
-                u'iddiasi (%%76-86) BU TURDE OLCULMEDI - okuma duzeyi olcumu bu '
-                u'betigin yontemine girmiyor; ayri bir tur gerekir.'
+                'At consensus level %d of %d bins are 99 per cent or more '
+                'identical. The read fraction claim of 76 to 86 per cent WAS '
+                'NOT MEASURED IN THIS ROUND: a read level measurement is not '
+                "part of this script's method and needs a round of its own."
                 % (len(yuksek), len(satir)))
 
     if tip == 'ayrilmaz':
@@ -1423,23 +1444,25 @@ def hukum_ver(idd, bulgular, kons):
                     if t and ad.split()[-1].lower() in t.lower():
                         bulunan.append((et, ad, i['kimlik']))
         if not bulunan:
-            return ('DOGRULANAMADI', u'iddia edilen turlerin hicbiri isabetlerde yok', '')
+            return ('DOGRULANAMADI', 'not one of the claimed species is among the hits', '')
         kanit = '; '.join('%s: %s %%%s' % (e, a, vir(k)) for e, a, k in bulunan[:8])
         adlar = {a for _, a, _ in bulunan}
         if len(adlar) >= 2:
             kk = _say([k for _, _, k in bulunan])
             if not kk:
                 return ('DOGRULANAMADI', kanit,
-                        u'Iki tur de isabet ediyor ama HICBIR veritabani sayisal '
-                        u'kimlik dondurmedi (yalniz baslik esdi); "ayrilmiyor" '
-                        u'iddiasi bu turde sayiyla sinanamadi.')
+                        'Both species are hit but NO database returned a '
+                        'numeric identity, only a header match, so the claim '
+                        'that they do not separate could not be tested with a '
+                        'number in this round.')
             if max(kk) - min(kk) <= 0.5:
-                return ('DOGRULANDI', kanit + u'  [iki tur arasindaki kimlik farki <=%0,5]', '')
+                return ('DOGRULANDI', kanit + '  [the identity difference between the two species is 0.5 per cent or less]', '')
             return ('DUZELTILMELI', kanit,
-                    u'Iki tur de isabet ediyor ama kimlikler %s araliginda '
-                    u'ayrisiyor; "ayrilmiyor" ifadesi bu olcumle desteklenmiyor.'
+                    'Both species are hit but the identities diverge over a '
+                    'range of %s, so this measurement does not support the '
+                    'wording that they do not separate.'
                     % ('%%%s-%%%s' % (vir(min(kk)), vir(max(kk)))))
-        return ('DOGRULANAMADI', kanit, u'yalnizca bir tur isabet etti')
+        return ('DOGRULANAMADI', kanit, 'only one species was hit')
 
     if tip == 'adsiz':
         en_iyiler = [(e, o['kimlik'], o['tur'] or o['cins']) for e, o in oylar.items()]
@@ -1447,29 +1470,33 @@ def hukum_ver(idd, bulgular, kons):
         sayisal = [(e, k, t) for e, k, t in en_iyiler if isinstance(k, (int, float))]
         if not sayisal:
             return ('DOGRULANAMADI', kanit,
-                    u'Hicbir veritabani sayisal kimlik dondurmedi; "ad verilemez" '
-                    u'iddiasi bu turde sayiyla sinanamadi.')
+                    'No database returned a numeric identity, so the claim '
+                    'that no name can be given could not be tested with a '
+                    'number in this round.')
         if all(k < 90.0 for _, k, _ in sayisal):
             return ('DOGRULANDI',
-                    kanit + u'  [hicbir veritabaninda %90 ustu isabet yok - '
-                    u'ad verilemez iddiasi destekleniyor]', '')
+                    kanit + '  [no database gives a hit above 90 per cent, so '
+                            'the claim that no name can be given is '
+                            'supported]', '')
         yuksek = [(e, k, t) for e, k, t in sayisal if k >= 97.0]
         if len(yuksek) >= 2:
             return ('DUZELTILMELI', kanit,
-                    u'Ad VERILEBILIR gorunuyor: %d veritabani %%97 ustu isabet '
-                    u'veriyor (%s). Dogru ifade gozden gecirilmeli.'
+                    'A name looks like it CAN be given: %d databases return a '
+                    'hit above 97 per cent (%s). The wording has to be looked '
+                    'at again.'
                     % (len(yuksek), ', '.join('%s %s' % (t, vir(k)) for _, k, t in yuksek)))
         return ('DOGRULANAMADI', kanit,
                 u'Isabetler %90-97 bandinda; ne "ad verilemez" ne de bir ad kesin.')
 
     if tip == 'gecici':
         return ('DOGRULANAMADI',
-                u'Bu bir yontem beyanidir, tek bir kutunun kimligi degildir; '
-                u'referans veritabani taramasiyla dogrulanamaz.',
-                u'Bu satir bir OLCUM iddiasi degil, bir BELIRSIZLIK beyanidir - '
-                u'oldugu gibi birakilabilir. Sinama yolu: B sinifi kutularinin '
-                u'her birinin bu turdeki en iyi isabetleri karsilastirilir; ayni '
-                u'taxid\'li kutular farkli taksonlara gidiyorsa beyan dogrudur.')
+                'This is a statement about method and not the identity of a '
+                'single bin, so a reference database sweep cannot confirm it.',
+                'This row is not a MEASUREMENT claim but a statement of '
+                'UNCERTAINTY, and it can be left as it stands. How to test '
+                'it: compare the best hits of every class B bin in this '
+                'round; when bins carrying the same taxid go to different '
+                'taxa, the statement is right.')
 
     return ('DOGRULANAMADI', u'bilinmeyen iddia tipi', '')
 
@@ -1674,11 +1701,13 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                     and (nt is None or not str(nt.get('durum', '')).startswith('TAMAM')))
         if nt_eksik:
             h = 'DOGRULANAMADI'
-            kanit = (kanit + u'  ||  NCBI nt KATMANI TAMAMLANMADI (%s) - iddia bu '
-                     u'yuzden dogrulanamadi sayildi, sessizce atlanmadi. Elle '
-                     u'tamamlamak icin: IDENTITY_RESULT/nt_elle/ altindaki sorgu '
-                     u'dosyasini BLAST edip NT_SONUC_SABLONU.tsv icine yazin, '
-                     u'sonra --nt-load ile geri verin.'
+            kanit = (kanit + '  ||  THE NCBI nt LAYER DID NOT FINISH (%s), '
+                             'which is why the claim counts as unconfirmed '
+                             'rather than being skipped quietly. To finish it '
+                             'by hand: BLAST the query file under '
+                             'IDENTITY_RESULT/nt_elle/, write the result into '
+                             'NT_SONUC_SABLONU.tsv, and give it back with '
+                             '--nt-load.'
                      % ((nt or {}).get('durum', 'kosulmadi')))
         # --- NAMING: merge the hits from every database, take the best five
         # and the defensible taxonomic level (the short lists are already in
@@ -1822,7 +1851,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                     'kanit', 'DOGRU_IFADE (duzeltilmeliyse)'])
         for s in sonuc:
             d = s.get('vtb_detay') or {}
-            hepsi = ' | '.join('%s [%s kayit tarandi]: %s%s%s'
+            hepsi = ' | '.join('%s [%s records scanned]: %s%s%s'
                                % (e, v.get('taranan_kayit', '?'),
                                   v['en_iyi'] or v['durum'],
                                              ('' if v.get('kimlik') is None
@@ -1842,7 +1871,7 @@ def raporla(CIKTI, sonuc, var, yaz):
             elif kal.get('guvenli_bolge_disi'):
                 _bag = u'HAYIR (ama ilk %d disindan geldi)' % SIRA_GUVENLI_BOLGE
             else:
-                _bag = u'HAYIR (hepsi ilk %d icinde)' % SIRA_GUVENLI_BOLGE
+                _bag = 'NO (all of them are inside the first %d)' % SIRA_GUVENLI_BOLGE
             a = s.get('adlandirma') or {}
             def _i(n, alan, vars_=''):
                 return ((a.get('isabet%d' % n) or {}).get(alan) or vars_)
@@ -1959,7 +1988,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                      % '; '.join(u'claim %d / %s: %d' % t for t in enb))
 
         fh.write(u'\n> **Difference in method.** Kraken2 does k-mer plus LCA on a taxonomy tree; our earlier rounds compared consensus sequences')
-        for etiket, baslik in (('DUZELTILMELI', u'## Duzeltilmesi gerekenler (rapora girecek)'),
+        for etiket, baslik in (('DUZELTILMELI', '## What has to be corrected, for the report'),
                                ('DOGRULANDI', u'## Dogrulananlar'),
                                ('DOGRULANAMADI', u'## Dogrulanamayanlar')):
             uy = [s for s in sonuc if s['hukum'] == etiket]
@@ -1973,7 +2002,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                 if a:
                     fh.write(u'- **Savunulabilir duzey:** `%s` → **%s**\n'
                              % (a.get('duzey', '-'), a.get('onerilen_ad', '-')))
-                    fh.write(u'  - *Gerekce:* %s\n' % a.get('gerekce', '-'))
+                    fh.write('  - *The reason:* %s\n' % a.get('gerekce', '-'))
                     fh.write(u'\n  **The five nearest ORGANISMS** (deduplicated by organism, not by record, because the same species appears in several databases')
                     fh.write(u'\n  | # | nearest record | genus | species | identity | database |\n  |---|---|---|---|---|---|\n')
                     for n_ in (1, 2, 3, 4, 5):
@@ -2105,10 +2134,11 @@ def main():
     p.add_argument('--only', dest='yalniz', default=None, help='iddia numarasi or metninden parca')
     p.add_argument('--db-max', dest='vtb_ust', type=int, default=len(VTB), help='how many databases to use')
     p.add_argument('--shortlist', type=int, default=KISA_LISTE, dest='kisa_liste',
-                   help=(u'her veritabanindan TAM HIZALANACAK aday sayisi (varsayilan %d). '
-                         u'Buyuk deger kesme noktasini baglayici olmaktan cikarir; '
-                         u'raporda "kazanan sira" sutunu yeterli olup olmadigini soyler. '
-                         u'Degistirmek eski kontrol noktalarini gecersiz kilar.'
+                   help=('how many candidates from each database to align IN '
+                         'FULL (the default is %d). A larger value keeps the '
+                         'cut-off from binding; the winner rank column in the '
+                         'report says whether it was enough. Changing it '
+                         'invalidates the old checkpoints.'
                          % KISA_LISTE))
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto',
                    help='NCBI nt layer: auto (URL API), manual (write a query file), none')
