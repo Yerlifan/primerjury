@@ -880,7 +880,7 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
 # membership and the consensuses -> select the below-threshold rows -> add the
 # requests with no panel row -> build the read pools -> _tur().
 #
-# The read cap (--okuma) must be THE SAME as in the single protocol run: fold values
+# The read cap (--reads) must be THE SAME as in the single protocol run: fold values
 # measured at different depths cannot be compared, and a "recovered" decision could
 # come out of the depth difference alone.
 #
@@ -1472,28 +1472,28 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# The command line: --aday-ust and --tarama-ust set the size of the route 3 scan,
-# --arms-ust how many candidates get an ARMS variant, --okuma the depth cap (it must
-# match P), and --panelsiz-atla skips the requests with no panel row in a quick test.
+# The command line: --candidate-max and --scan-max set the size of the route 3 scan,
+# --arms-max how many candidates get an ARMS variant, --reads the depth cap (it must
+# match P), and --skip-if-no-panel skips the requests with no panel row in a quick test.
 def main():
     p = argparse.ArgumentParser(description='Esik alti satirlar icin kurtarma turu')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=400,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--candidate-max', dest='aday_ust', type=int, default=400,
                    help='yol 3 taramasinda olculecek en fazla aday cift')
-    p.add_argument('--scan-max', '--tarama-ust', dest='tarama_ust', type=int, default=3000,
+    p.add_argument('--scan-max', dest='tarama_ust', type=int, default=3000,
                    help='yol 3 taramasinda omurgadan examplele nen en fazla primer adayi')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='only targets whose name contains this (test)')
-    p.add_argument('--arms-max', '--arms-ust', dest='arms_ust', type=int, default=5,
+    p.add_argument('--only', dest='yalniz', default=None, help='only targets whose name contains this (test)')
+    p.add_argument('--arms-max', dest='arms_ust', type=int, default=5,
                    help='kac adayin ARMS varyantlari uretilsin')
-    p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=OKUMA_TAVANI,
+    p.add_argument('--reads', dest='okuma', type=int, default=OKUMA_TAVANI,
                    help='cap on reads per bin (must match the single-protocol measurement)')
-    p.add_argument('--skip-if-no-panel', '--panelsiz-atla', dest='panelsiz_atla', action='store_true',
+    p.add_argument('--skip-if-no-panel', dest='panelsiz_atla', action='store_true',
                    help='skip requests with no row in the panel (quick testing only)')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
+    p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --kok.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --root.' % kok)
     return calistir(kok, a.aday_ust, a.yalniz, a.sifirla, a.tarama_ust, a.okuma,
                     a.arms_ust, a.panelsiz_atla)
 

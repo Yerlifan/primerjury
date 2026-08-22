@@ -15,13 +15,13 @@ Usage: python cross_coverage.py --fastq "../fastq files" --out capraz.json
 #                    without regard to the amplicon class boundary.
 #
 # INPUT  : the "fastq files" directory given with --fastq (optionally a subset with
-#          --dizin and a per bin read ceiling with --nmax). The five broad pairs are
+#          --dir-path and a per bin read ceiling with --nmax). The five broad pairs are
 #          a fixed list inside the file. read_engine.py does the measuring.
 # OUTPUT : the json file given with --out; each row carries the product count per
 #          bin under the key "<panel_row>|<bin>". If the file exists it is appended
 #          to, so an interrupted run continues where it stopped.
 # CALLED BY: IT IS NOT IN THE MENU, it is run by hand. Its output becomes the
-#          --capraz input of target_taxon_mapping.py.
+#          --cross input of target_taxon_mapping.py.
 #
 # WHY THE CLASS BOUNDARY IS LIFTED: the panel's measurements were class based (the A
 # pairs only in the A bins). That produced artificial gaps in the question "which
@@ -44,7 +44,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--fastq', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--dir-path', '--dizin', dest='dizin', default='')
+    ap.add_argument('--dir-path', dest='dizin', default='')
     ap.add_argument('--nmax', type=int, default=3000)
     a = ap.parse_args()
     out = json.load(open(a.out)) if os.path.exists(a.out) else {}

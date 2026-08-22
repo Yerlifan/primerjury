@@ -13,7 +13,7 @@ panel
 #                          covers each taxon in the sample.
 #
 # INPUT  : the measurement result pattern given with --r2, the json cross_coverage.py
-#          produces given with --capraz, the pair table with --ciftler,
+#          produces given with --cross, the pair table with --pairs,
 #          taxid_adlari.tsv with --taxid and the delivery panel with --xlsx. The
 #          target to decision mapping (the KARAR dictionary) is fixed inside the
 #          file; the rows that do not come from a meeting decision are marked there
@@ -306,8 +306,8 @@ def xlsx_yaz(xlsx, satirlar):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--r2', required=True)
-    ap.add_argument('--cross', '--capraz', dest='capraz', required=True)
-    ap.add_argument('--pairs', '--ciftler', dest='ciftler', required=True)
+    ap.add_argument('--cross', dest='capraz', required=True)
+    ap.add_argument('--pairs', dest='ciftler', required=True)
     ap.add_argument('--taxid', required=True)
     ap.add_argument('--md', required=True)
     ap.add_argument('--xlsx', required=True)

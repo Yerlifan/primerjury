@@ -32,7 +32,7 @@ Yeni kural: hukum BASLIGA bakar.
                   Kimligine dizi karsilastirmasi (katman 2-3) karar verir.
 
 Kosum:
-    python verification/ncbi_layer.py --kok .
+    python verification/ncbi_layer.py --root .
 Cikti:
     DOGRULAMA_SONUC/ncbi_katman4.tsv
     DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md
@@ -53,13 +53,13 @@ SURUM = '1.0 (2026-08-10)'
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--organism', '--organizma', dest='organizma', default='',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--organism', dest='organizma', default='',
                    help='NCBI organizma kisiti (bos = tum nt). BOS BIRAKIN: '
                         'genel kisit butun urunleri "target templates" hanesine '
                         'itiyor (olculdu).')
-    p.add_argument('--wait', '--bekleme', dest='bekleme', type=int, default=20)
-    p.add_argument('--species-max', '--tur-ust', dest='tur_ust', type=int, default=60)
+    p.add_argument('--wait', dest='bekleme', type=int, default=20)
+    p.add_argument('--species-max', dest='tur_ust', type=int, default=60)
     a = p.parse_args()
 
     kok = os.path.abspath(a.kok)

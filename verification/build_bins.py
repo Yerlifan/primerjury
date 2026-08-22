@@ -29,8 +29,8 @@ duser. 2026-08-10'da 14/14 birebir tutmustur; yeni bir barkod ya da yeni bir
 Kraken kosusu bu varsayimi bozarsa kapi onu yakalar.
 
 Kosum:
-    python verification/build_bins.py --kok . --yalniz-kalibrasyon
-    python verification/build_bins.py --kok . --kapsam 0.95
+    python verification/build_bins.py --root . --calibration-only
+    python verification/build_bins.py --root . --coverage 0.95
 """
 from __future__ import print_function
 
@@ -199,16 +199,16 @@ def ham_fastq_bul(kok, bc, ek_kokler):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--coverage', '--kapsam', dest='kapsam', type=float, default=0.95,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--coverage', dest='kapsam', type=float, default=0.95,
                    help='species-read coverage to reach in each barcode (0-1)')
-    p.add_argument('--min-reads', '--asgari-okuma', dest='asgari_okuma', type=int, default=50,
+    p.add_argument('--min-reads', dest='asgari_okuma', type=int, default=50,
                    help='taxa with fewer reads than this are not turned into a bin '
                         '(konsensus guvenilmez olur)')
-    p.add_argument('--raw-root', '--ham-kok', dest='ham_kok', default='',
+    p.add_argument('--raw-root', dest='ham_kok', default='',
                    help='ham barkod fastq directory; bos ise bilinen yerlere bakilir')
-    p.add_argument('--calibration-only', '--yalniz-kalibrasyon', dest='yalniz_kalibrasyon', action='store_true')
-    p.add_argument('--plan-only', '--yalniz-plan', dest='yalniz_plan', action='store_true',
+    p.add_argument('--calibration-only', dest='yalniz_kalibrasyon', action='store_true')
+    p.add_argument('--plan-only', dest='yalniz_plan', action='store_true',
                    help='ne uretilecegini yaz, uretme')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

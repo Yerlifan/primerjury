@@ -20,7 +20,7 @@ uretilir, elle yazilmaz, ve her uretimde kaynak dosyanin ozeti (md5) yazilir.
 Kaynak degisirse form da degisir; degismezse ayni cikar.
 
 Kosum:
-    python verification/order_form.py --kok .
+    python verification/order_form.py --root .
 Cikti:
     SIPARIS_FORMU.tsv   (tedarikciye yapistirilacak)
     SIPARIS_FORMU.md    (insanin okuyacagi hali)
@@ -69,7 +69,7 @@ def panel_oku(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

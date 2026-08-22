@@ -22,7 +22,7 @@ BAŞINA düştüğü için burası kolayca gözden kaçar.
 
 Kullanım:
   python3 check_primer_geometry.py --tsv primer_adaylari/X__A1.tsv \
-      --kons referans_konsensus/baskin/konsensus --capa A1-1_2209
+      --consensus referans_konsensus/baskin/konsensus --anchor A1-1_2209
 """
 import argparse, csv, glob, os, re, sys
 
@@ -65,10 +65,10 @@ def oku(f):
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--tsv", required=True)
-    p.add_argument("--kons", required=True)
-    p.add_argument("--capa", default=None,
+    p.add_argument("--consensus", required=True)
+    p.add_argument("--anchor", default=None,
                    help="anchor label; if omitted TSV'deki capa column is used")
-    p.add_argument("--en-fazla", type=int, default=200)
+    p.add_argument("--max", type=int, default=200)
     return p.parse_args()
 
 
@@ -77,20 +77,20 @@ def main():
     rows = list(csv.DictReader(open(a.tsv, encoding="utf-8"), delimiter="\t"))
     if not rows:
         sys.exit("bos TSV")
-    capa_ad = a.capa or rows[0].get("capa", "")
-    aday = sorted(glob.glob(os.path.join(a.kons, "*%s*" % capa_ad))) or \
-        sorted(glob.glob(os.path.join(a.kons, "*")))
+    capa_ad = a.anchor or rows[0].get("capa", "")
+    aday = sorted(glob.glob(os.path.join(a.consensus, "*%s*" % capa_ad))) or \
+        sorted(glob.glob(os.path.join(a.consensus, "*")))
     if not aday:
         sys.exit(u'the anchor consensus was not found: %s' % capa_ad)
     kalip = oku(aday[0])
     print("capa dosyasi : %s" % os.path.basename(aday[0]))
     print("kalip uzunluk: %d" % len(kalip))
-    print(u'rows tested: %d\n' % min(len(rows), a.en_fazla))
+    print(u'rows tested: %d\n' % min(len(rows), a.max))
 
     say = dict(tamam=0, urun_basi=0, urun_sonu=0, yon=0, uzunluk=0,
                f_3p_belirsiz=0, r_3p_belirsiz=0, kalip_disi=0)
     ornek = []
-    for r in rows[:a.en_fazla]:
+    for r in rows[:a.max]:
         F, R = r["ileri_dizi"], r["geri_dizi"]
         try:
             fb = int(r["ileri_baslangic"]) - 1
@@ -145,7 +145,7 @@ def main():
         elif len(ornek) < 5:
             ornek.append((r, urun, hata))
 
-    n = min(len(rows), a.en_fazla)
+    n = min(len(rows), a.max)
     print(u'RESULT')
     print(u'   rows passing all four geometry conditions : %d / %d' % (say["tamam"], n))
     print(u'   the product does not start with the forward primer : %d' % say["urun_basi"])

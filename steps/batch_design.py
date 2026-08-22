@@ -15,8 +15,8 @@ rakip listesine girmez.
 
 Kullanım:
   python3 batch_design.py \
-      --kons "/.../referans_konsensus/self/konsensus" \
-      --hedefler hedefler.tsv \
+      --consensus "/.../referans_konsensus/self/konsensus" \
+      --targets hedefler.tsv \
       --out "/.../primer_adaylari" \
       [--only Karar1] [--jobs 1] [--extra "--degeneracy-budget 2"]
 """
@@ -53,33 +53,33 @@ AYIRT = _ayirt_modulu()
 #   yetim3_genis: the same relaxation, plus a broader oligo scan
 MERDIVEN = [
     ("kati",         []),
-    ("yetim3",       ["--yetim-min-uyumsuzluk", "3"]),
-    ("yetim3_genis", ["--yetim-min-uyumsuzluk", "3", "--max-oligo", "1200"]),
+    ("yetim3",       ["--orphan-min-mismatch", "3"]),
+    ("yetim3_genis", ["--orphan-min-mismatch", "3", "--max-oligo", "1200"]),
 ]
 
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--kons", required=True,
+    p.add_argument("--consensus", required=True,
                    help="consensus directory (output of the freeze-reference or anchored-consensus step)")
-    p.add_argument("--hedefler", default=os.path.join(HERE, "hedefler.tsv"))
+    p.add_argument("--targets", default=os.path.join(HERE, "hedefler.tsv"))
     p.add_argument("--out", required=True)
     p.add_argument("--only", default=None, help="this target name only")
-    p.add_argument("--karar", default=None, help="this decision group only")
+    p.add_argument("--decision", default=None, help="this decision group only")
     p.add_argument("--extra", default="", help="04'e flags passed through unchanged")
-    p.add_argument("--grup-extra", default="",
+    p.add_argument("--group-extra", default="",
                    help="passed in addition for decision-group 3 and 4 targets "
                         "bayraklar. Dejenerelik bayraklari kaldirildi: "
                         "toplanti karari butun hedeflerde salt ACGT oligo "
                         "istiyor, kalip belirsizligi --iupac-max ile "
                         "yonetiliyor.")
-    p.add_argument("--min-uye", type=int, default=1)
-    p.add_argument("--ayirt-edilemez-cikar", type=int, default=1,
+    p.add_argument("--min-members", type=int, default=1)
+    p.add_argument("--drop-indistinguishable", type=int, default=1,
                    help="1: too close to one of the target members to be distinguished "
                         "ozdes olan taksonlar rakip listesinden cikarilir ve "
                         "gerekcesi loglanir. 0: cikarilmaz (toplanti kuralinin "
                         "mantiken saglanamadigi durumda hedef sifir aday verir)")
-    p.add_argument("--yeniden", action="store_true",
+    p.add_argument("--rerun", action="store_true",
                    help="ignore the checkpoint, redesign every target from scratch")
     return p.parse_args()
 
@@ -87,15 +87,15 @@ def get_args():
 def _girdi_parmak_izi(a):
     """Kosunun bagli oldugu her girdinin ozeti. Degisirse checkpoint duser."""
     h = hashlib.sha256()
-    h.update(("kons=%s\n" % os.path.abspath(a.kons)).encode())
-    for f in sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta"))):
+    h.update(("kons=%s\n" % os.path.abspath(a.consensus)).encode())
+    for f in sorted(glob.glob(os.path.join(a.consensus, "*_konsensus.fasta"))):
         try:
             st = os.stat(f)
             h.update(("%s|%d|%d\n" % (os.path.basename(f), st.st_size,
                                       int(st.st_mtime))).encode())
         except OSError:
             pass
-    for yol in (a.hedefler, MOTOR, os.path.join(HERE, "generate_primer_candidates.py"),
+    for yol in (a.targets, MOTOR, os.path.join(HERE, "generate_primer_candidates.py"),
                 os.path.join(HERE, "indistinguishable_targets.py")):
         try:
             st = os.stat(yol)
@@ -104,8 +104,8 @@ def _girdi_parmak_izi(a):
         except OSError:
             h.update(("%s|yok\n" % yol).encode())
     h.update(("extra=%s|grup_extra=%s|min_uye=%d|ayirt=%d\n"
-              % (a.extra, a.grup_extra, a.min_uye,
-                 a.ayirt_edilemez_cikar)).encode())
+              % (a.extra, a.group_extra, a.min_members,
+                 a.drop_indistinguishable)).encode())
     return h.hexdigest()[:16]
 
 
@@ -146,7 +146,7 @@ def main():
     # checkpoint and compared every time it is opened.
     parmak = _girdi_parmak_izi(a)
     ckpt = {}
-    if os.path.exists(CKPT) and not a.yeniden:
+    if os.path.exists(CKPT) and not a.rerun:
         try:
             ham = json.load(open(CKPT, encoding="utf-8"))
             eski = ham.get("_girdi_parmak_izi") if isinstance(ham, dict) else None
@@ -166,10 +166,10 @@ def main():
             log(u'the checkpoint could not be read (%s), starting from scratch' % e)
             ckpt = {}
     t0 = time.time()
-    log(u'start. consensus=%s  output=%s' % (a.kons, a.out))
-    files = sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta")))
+    log(u'start. consensus=%s  output=%s' % (a.consensus, a.out))
+    files = sorted(glob.glob(os.path.join(a.consensus, "*_konsensus.fasta")))
     if not files:
-        sys.exit(u'no consensus found: %s' % a.kons)
+        sys.exit(u'no consensus found: %s' % a.consensus)
     envanter = {}
     bozuk = []
     for f in files:
@@ -227,7 +227,7 @@ def main():
     # and the target silently gives zero candidates. So it is measured first, then
     # taken out of the competitor list, and every removal is logged.
     ayirt = {}
-    if a.ayirt_edilemez_cikar and AYIRT is not None:
+    if a.drop_indistinguishable and AYIRT is not None:
         temsil = {}
         for tag, d in envanter.items():
             key = (d["sinif"], d["taxid"])
@@ -252,11 +252,11 @@ def main():
                         "kesisimli_ozdeslik", "kmer_kapsamasi", "gerekce",
                         "hizalama_kapsami", "kati_ozdeslik"])
             w.writerows(ciftler)
-    elif a.ayirt_edilemez_cikar:
+    elif a.drop_indistinguishable:
         log(u'WARNING: indistinguishable_targets.py was not found, the indistinguishable bin cleanup WILL NOT BE DONE')
 
     hedefler = []
-    with open(a.hedefler, encoding="utf-8") as fh:
+    with open(a.targets, encoding="utf-8") as fh:
         for line in fh:
             if line.startswith("#") or not line.strip():
                 continue
@@ -268,8 +268,8 @@ def main():
                                  note=p[5] if len(p) > 5 else ""))
     if a.only:
         hedefler = [h for h in hedefler if h["hedef"] == a.only]
-    if a.karar:
-        hedefler = [h for h in hedefler if h["karar"] == a.karar]
+    if a.decision:
+        hedefler = [h for h in hedefler if h["karar"] == a.decision]
     log(u'targets to process: %d' % len(hedefler))
 
     ozet = []
@@ -340,9 +340,9 @@ def main():
                 gor = sorted(set(t[0] for t in atilan))
                 log(u'   %-34s %-3s taken out of the competitors (indistinguishable from the target): %s'
                     % (h["hedef"], sinif, ", ".join(gor)))
-            if len(ing) < a.min_uye:
-                log(u'SKIPPED %-34s %-3s members=%d (below --min-uye %d)'
-                    % (h["hedef"], sinif, len(ing), a.min_uye))
+            if len(ing) < a.min_members:
+                log(u'SKIPPED %-34s %-3s members=%d (below --min-members %d)'
+                    % (h["hedef"], sinif, len(ing), a.min_members))
                 ozet.append(dict(h, sinif=sinif, uye=len(ing), rakip=len(outg),
                                  cift=0, durum="uye yetersiz", kademe="",
                                  en_iyi="", tsv="", engelleyen="",
@@ -350,7 +350,7 @@ def main():
                 continue
             etiket = "%s__%s" % (h["hedef"], sinif)
             tsv = os.path.join(a.out, "%s.tsv" % etiket)
-            if etiket in ckpt and not a.yeniden:
+            if etiket in ckpt and not a.rerun:
                 c = ckpt[etiket]
                 log(u'SKIPPED (checkpoint) %-40s %-3s pairs=%s' % (h["hedef"], sinif, c.get("cift")))
                 ozet.append(dict(h, sinif=sinif, uye=c.get("uye", 0),
@@ -368,8 +368,8 @@ def main():
             cmd += ["--label", etiket, "--out", tsv]
             if a.extra:
                 cmd += a.extra.split()
-            if h["karar"] in ("3", "4") and a.grup_extra:
-                cmd += a.grup_extra.split()
+            if h["karar"] in ("3", "4") and a.group_extra:
+                cmd += a.group_extra.split()
             # The stepped search. The STRICT rule from the meeting decision is tried first:
             # one of the primers must not bind anywhere in the competitors. If that cannot be
             # met the rule is relaxed by one step and the relaxation is marked PLAINLY in the
@@ -433,9 +433,9 @@ def main():
             with open(CKPT, "w", encoding="utf-8") as cf:
                 json.dump(dict(ckpt, _girdi_parmak_izi=parmak), cf,
                           ensure_ascii=False, indent=1)
-            yaz_ozet(a.out, ozet, kismi=bool(a.only or a.karar))
+            yaz_ozet(a.out, ozet, kismi=bool(a.only or a.decision))
 
-    yaz_ozet(a.out, ozet, kismi=bool(a.only or a.karar))
+    yaz_ozet(a.out, ozet, kismi=bool(a.only or a.decision))
     tamam = sum(1 for o in ozet if o["durum"].startswith("TAMAM"))
     log(u'summary written: %s' % os.path.join(a.out, "ozet.tsv"))
     log(u'target and class combinations: %d, with a pair found: %d' % (len(ozet), tamam))
@@ -451,7 +451,7 @@ def yaz_ozet(out, ozet, kismi=False):
     """Ozet her hedeften sonra yeniden yazilir; kosu yarida kesilse de
     o ana kadarki sonuclar diskte kalir.
 
-    kismi=True (--only ya da --karar ile calisildiginda) mevcut ozet.tsv
+    kismi=True (--only ya da --decision ile calisildiginda) mevcut ozet.tsv
     okunup bu kosuda islenmeyen satirlar korunur; aksi halde kismi bir kosu
     butun raporu tek hedefe indiriyordu."""
     cols = ["karar", "hedef", "duzey", "sinif", "uye", "rakip", "cift",

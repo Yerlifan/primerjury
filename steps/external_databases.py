@@ -35,7 +35,7 @@ SINIF_DB = {
     "F2": ["fungi.ITS.fna", "fungi.28SrRNA.fna"],
 }
 
-# THE WIDE SET (with --genis): the large databases that also hold environmental
+# THE WIDE SET (with --wide): the large databases that also hold environmental
 # sequences. SILVA SSU/LSU NR99 and UNITE carry uncultured lineages that are not in
 # RefSeq; ROD covers full rRNA operon variants and PR2 the eukaryotic SSU. The
 # running time grows considerably, which is why it is not the default.
@@ -402,25 +402,25 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--final", required=True, help="09'un output directory")
     p.add_argument("--db", required=True, help="REFERANS_DB directory")
-    p.add_argument("--hedefler", default=None, help="targets.tsv")
-    p.add_argument("--adlar", default=None, help="taxid_adlari.tsv")
-    p.add_argument("--kimlik", default=None,
+    p.add_argument("--targets", default=None, help="targets.tsv")
+    p.add_argument("--names", default=None, help="taxid_adlari.tsv")
+    p.add_argument("--identity", default=None,
                    help="hedef_kimlik.tsv from the target-identity step (measured identity)")
-    p.add_argument("--kons", default=None,
+    p.add_argument("--consensus", default=None,
                    help="consensus directory; if given, every (class, database) "
                         "ikilisi icin KAPSAM DENETIMI yapilir")
     p.add_argument("--out", default=None)
     p.add_argument("--prod-min", type=int, default=50)
     p.add_argument("--prod-max", type=int, default=400)
     p.add_argument("--evalue", type=float, default=1000.0)
-    p.add_argument("--max-hedef", type=int, default=5000)
-    p.add_argument("--is-parcacigi", type=int, default=4)
-    p.add_argument("--genis", action="store_true",
+    p.add_argument("--max-targets", type=int, default=5000)
+    p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--wide", action="store_true",
                    help="also the large databases that include environmental sequences "
                         "tarar (SILVA, UNITE, ROD, PR2). Uzun surer.")
-    p.add_argument("--yalniz-genis", action="store_true",
+    p.add_argument("--wide-only", action="store_true",
                    help="only genis kumeyi tarar")
-    p.add_argument("--zaman-asimi", type=int, default=14400,
+    p.add_argument("--timeout", type=int, default=14400,
                    help="veritabani basina saniye siniri")
     return p.parse_args()
 
@@ -448,7 +448,7 @@ def main():
     gecersiz = []          # (sinif, db, en_uzun_hizalama, kimlik)
     kons_onbellek = {}
     baslik_onbellek = {}
-    taksonlar = hedef_taksonlari(a.hedefler, a.adlar, a.kimlik)
+    taksonlar = hedef_taksonlari(a.targets, a.names, a.identity)
     if taksonlar:
         ev = sum(1 for v in taksonlar.values() if v["evrensel"])
         ad = sum(1 for v in taksonlar.values()
@@ -460,8 +460,8 @@ def main():
     else:
         print(u'WARNING: --targets/--names/--identity were not given, so own taxon and foreign taxon will NOT be separated and raw product counts are reported')
     for sinif, primerler in sorted(sinif_primer.items()):
-        dblist = [] if a.yalniz_genis else list(SINIF_DB.get(sinif, []))
-        if a.genis or a.yalniz_genis:
+        dblist = [] if a.wide_only else list(SINIF_DB.get(sinif, []))
+        if a.wide or a.wide_only:
             dblist += SINIF_DB_GENIS.get(sinif, [])
         for dbad in dblist:
             fna = os.path.join(a.db, dbad)
@@ -476,8 +476,8 @@ def main():
             # THE COVERAGE AUDIT, before the scan. See kapsam_olc().
             kap_durum, kap_uz, kap_kim = kapsam_olc(
                 db, kons_onbellek.setdefault(
-                    sinif, sinif_konsensuslari(a.kons, sinif)),
-                calisma, "%s_%s" % (sinif, dbad), a.is_parcacigi, a.zaman_asimi)
+                    sinif, sinif_konsensuslari(a.consensus, sinif)),
+                calisma, "%s_%s" % (sinif, dbad), a.threads, a.timeout)
             if not kap_durum:
                 if kap_uz < a.prod_max:
                     kap_durum = "KAPSAM_YOK"
@@ -493,18 +493,18 @@ def main():
             cmd = ["blastn", "-task", "blastn-short", "-query", sorgu, "-db", db,
                    "-outfmt", "6 qseqid sseqid sstart send sstrand length "
                               "qstart qend qlen sseq qseq mismatch",
-                   "-evalue", str(a.evalue), "-max_target_seqs", str(a.max_hedef),
-                   "-num_threads", str(a.is_parcacigi), "-dust", "no",
+                   "-evalue", str(a.evalue), "-max_target_seqs", str(a.max_targets),
+                   "-num_threads", str(a.threads), "-dust", "no",
                    "-out", cikti]
             print("   blastn %-14s x %-22s (%d primer)"
                   % (sinif, dbad, len(primerler)))
             try:
                 r = subprocess.run(cmd, capture_output=True, text=True,
-                                   timeout=a.zaman_asimi)
+                                   timeout=a.timeout)
             except subprocess.TimeoutExpired:
                 # Skipping silently would show that database as "clean".
                 print("      ZAMAN ASIMI (%d sn): %s OLCULEMEDI"
-                      % (a.zaman_asimi, dbad))
+                      % (a.timeout, dbad))
                 atlanan.append((sinif, dbad, "zaman asimi"))
                 continue
             if r.returncode != 0:

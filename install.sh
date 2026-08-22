@@ -370,7 +370,7 @@ komut_veritabani() {
   local yalniz="" ozel_url=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --only|--yalniz) yalniz="$2"; shift 2 ;;
+      --only)          yalniz="$2"; shift 2 ;;
       --url)           ozel_url="$2"; shift 2 ;;
       *) shift ;;
     esac
@@ -448,7 +448,7 @@ komut_kraken_kur() {
       --spaces|--bosluk)    BOSLUK="$2"; shift 2 ;;
       --library|--kutuphane) KUTUP="$2"; shift 2 ;;
       --db)                 DB="$2"; shift 2 ;;
-      --threads|--is)       IS="$2"; shift 2 ;;
+      --threads)            IS="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -460,7 +460,7 @@ komut_kraken_kur() {
    minimizer uzunlugu (--minimizer): $MINI
    minimizer boslugu (--bosluk) : $BOSLUK
    veritabani yolu (--db)       : $DB
-   is parcacigi (--is)          : $IS
+   threads (--threads)          : $IS
 
    K-MER SECIMI NE YAPAR
    ---------------------
@@ -480,7 +480,7 @@ komut_kraken_kur() {
    (tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md). The cause is not the k-mer but
    the LCA itself and the database's coverage. So whatever k you build with, the
    identity claims have to be tested INDEPENDENTLY:
-       python3 verification/identity_verification.py --kok .
+       python3 verification/identity_verification.py --root .
    That script uses the taxonomy tree NOT AT ALL; it does a seed plus full
    alignment against 12 separate reference databases and requires AT LEAST TWO
    sources to agree.

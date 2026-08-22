@@ -14,7 +14,7 @@ The classes:
                      direction  <-- RISKY
   YON_ILGISIZ        it reads a consensus but does no orientation dependent work
                      (counting, reporting, naming)
-Usage: python orientation_code_scan.py --kok .. --out ../yon_kod_taramasi.tsv
+Usage: python orientation_code_scan.py --root .. --out ../yon_kod_taramasi.tsv
 
 """
 # -------------------------------------------------------------------------
@@ -22,7 +22,7 @@ Usage: python orientation_code_scan.py --kok .. --out ../yon_kod_taramasi.tsv
 #                       routes that read a consensus and classifies them by how
 #                       they handle orientation.
 #
-# INPUT  : every Python source file under --kok; the classification patterns are
+# INPUT  : every Python source file under --root; the classification patterns are
 #          fixed inside the file. The source text is parsed with ast and the comment
 #          and docstring lines are DROPPED.
 # OUTPUT : the TSV given with --out: the file, the class (NORMALIZE_KAYNAK /
@@ -96,7 +96,7 @@ def sinifla(metin):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--root', dest='kok', required=True)
     ap.add_argument('--out', required=True)
     a = ap.parse_args()
     satirlar = []

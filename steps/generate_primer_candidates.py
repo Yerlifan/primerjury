@@ -92,7 +92,7 @@ def get_args():
                         "bunlar somut baza cozulur, oligoya dejenere baz "
                         "girmez. 0 verilirse IUPAC iceren pencere hic "
                         "kullanilmaz.")
-    p.add_argument("--iupac-son-yasak", type=int, default=5,
+    p.add_argument("--iupac-clamp-forbidden", type=int, default=5,
                    help="IUPAC is not accepted in the last this many bases of the oligo")
     # termodinamik
     p.add_argument("--tm-min", type=float, default=58.0)
@@ -240,7 +240,7 @@ def _iupac_denetle(win, a, uc="her"):
         return None, "tanimsiz_kod"
     if len(k) > a.iupac_max:
         return None, "iupac_fazla"
-    n = a.iupac_son_yasak
+    n = a.iupac_clamp_forbidden
     if uc in ("F", "her") and any(i >= len(win) - n for i in k):
         return None, "iupac_3p"
     if uc in ("R", "her") and any(i < n for i in k):

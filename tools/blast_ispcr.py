@@ -704,11 +704,11 @@ def selftest():
 def main():
     global LOGF
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", "--kok", dest="kok"); ap.add_argument("--primerler", nargs="*", default=[])
-    ap.add_argument("--out", default=""); ap.add_argument("--okuma", type=int, default=300)
+    ap.add_argument("--root", dest="kok"); ap.add_argument("--primerler", nargs="*", default=[])
+    ap.add_argument("--out", default=""); ap.add_argument("--reads", type=int, default=300)
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 1)
-    ap.add_argument("--en-kisa", type=int, default=60)
-    ap.add_argument("--en-uzun", type=int, default=400)
+    ap.add_argument("--min-length", type=int, default=60)
+    ap.add_argument("--max-length", type=int, default=400)
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--blast", action="store_true", help="second opinion via blastn (does not decide)")
     a = ap.parse_args()
@@ -736,7 +736,7 @@ def main():
     if not ciftler: sys.exit(u'no primer was found')
 
     log(u'loading the reads')
-    veri = okumalari_yukle(a.kok, a.okuma)
+    veri = okumalari_yukle(a.kok, a.reads)
     toplam_okuma = sum(len(v) for v in veri.values())
     toplam_baz = sum(len(s) for v in veri.values() for s in v)
     log(f"{len(veri)} taxa, {toplam_okuma} reads, {toplam_baz/1e6:.1f} million bases")
@@ -767,7 +767,7 @@ def main():
         F, R = ciftler[taban]["F"], ciftler[taban]["R"]
         s = {}; b = {}
         for tx, (W, bas, boylar) in kalipler.items():
-            n, urunler = cift_tara(W, bas, boylar, F, R, a.en_kisa, a.en_uzun)
+            n, urunler = cift_tara(W, bas, boylar, F, R, a.min_length, a.max_length)
             if n: s[tx] = n; b[tx] = int(statistics.median(urunler))
         # The number of reads covering the locus, for the denominator of the cross reaction
         # ratio. It is computed only for the taxa and targets that give a product;
@@ -792,7 +792,7 @@ def main():
     blast = {}
     if a.blast:
         log(u'taking a second opinion with blastn')
-        blast = blast_ikinci_gorus(veri, ciftler, cikti, a.threads, a.en_kisa, a.en_uzun)
+        blast = blast_ikinci_gorus(veri, ciftler, cikti, a.threads, a.min_length, a.max_length)
 
     satirlar = []; ozet = []
     log("")

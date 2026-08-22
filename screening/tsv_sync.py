@@ -8,12 +8,12 @@ Why: because the TSVs are derived from the panel by hand they can drift. The
 from 19 percent to 97). If the order is copied from the TSV, THE WRONG PRIMER IS
 ORDERED.
 
-It reports the DIFFERENCES first and only produces with --yaz. Every difference in a
+It reports the DIFFERENCES first and only produces with --write. Every difference in a
 primer sequence column is also marked CRITICAL.
 
 Usage:
-  python tsv_sync.py --xlsx ../PrimerJury_..._TESLIM.xlsx --kok ..   (report only)
-  python tsv_sync.py --xlsx ... --kok .. --yaz                       (produce)
+  python tsv_sync.py --xlsx ../PrimerJury_..._TESLIM.xlsx --root ..   (report only)
+  python tsv_sync.py --xlsx ... --root .. --write                       (produce)
 
 """
 # -------------------------------------------------------------------------
@@ -22,9 +22,9 @@ Usage:
 #                  differences in particular, as CRITICAL.
 #
 # INPUT  : the delivery panel given with --xlsx (openpyxl) and the existing TSV
-#          files under --kok. The sheet to TSV path mapping (ESLEME) is fixed inside
+#          files under --root. The sheet to TSV path mapping (ESLEME) is fixed inside
 #          the file.
-# OUTPUT : with --yaz it rewrites the TSV files in the mapping from the panel;
+# OUTPUT : with --write it rewrites the TSV files in the mapping from the panel;
 #          without it, it changes nothing and only prints the differences.
 # CALLED BY: IT IS NOT IN THE MENU, it is run by hand.
 #
@@ -85,8 +85,8 @@ def dizi_sutunlari(basliklar):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
-    ap.add_argument('--write', '--yaz', dest='yaz', action='store_true')
+    ap.add_argument('--root', dest='kok', required=True)
+    ap.add_argument('--write', dest='yaz', action='store_true')
     a = ap.parse_args()
     wb = openpyxl.load_workbook(a.xlsx, data_only=True)
 
@@ -133,7 +133,7 @@ def main():
         print('     TSV (eski) : %s  (%d nt)' % (ve, len(ve)))
         print('     PANEL(dogru): %s  (%d nt)' % (vy, len(vy)))
     print('\n%s' % (u'WRITTEN - the TSVs were regenerated from the panel.' if a.yaz
-                    else u'REPORT ONLY. Add --yaz to generate them.'))
+                    else u'REPORT ONLY. Add --write to generate them.'))
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ konsensus referans veritabanina blastn ile sorulur. Boylece "bu primer
 numunede ne cogaltiyor" sorusu dizi kanitiyla yanitlanir.
 
 Kullanim:
-  python3 reference_identity.py --referans primer_referans/primer_referans.tsv \
+  python3 reference_identity.py --reference primer_referans/primer_referans.tsv \
       --pt . --db REFERANS_DB --out primer_referans/referans_kimlik.tsv
 """
 import argparse, csv, collections, glob, importlib.util, os, re, shutil
@@ -57,15 +57,15 @@ class Esik:
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--referans", required=True)
+    p.add_argument("--reference", required=True)
     p.add_argument("--pt", required=True, help="'fastq files' klasorunu iceren kok")
     p.add_argument("--db", required=True)
-    p.add_argument("--hedefler-ref", default=os.path.join(HERE, "hedefler_referans.tsv"))
+    p.add_argument("--reference-targets", default=os.path.join(HERE, "hedefler_referans.tsv"))
     p.add_argument("--out", required=True)
-    p.add_argument("--max-okuma", type=int, default=20000)
-    p.add_argument("--min-urun", type=int, default=30,
+    p.add_argument("--max-reads", type=int, default=20000)
+    p.add_argument("--min-product", type=int, default=30,
                    help="minimum number of products needed to build a consensus")
-    p.add_argument("--is-parcacigi", type=int, default=4)
+    p.add_argument("--threads", type=int, default=4)
     return p.parse_args()
 
 
@@ -119,21 +119,21 @@ def main():
     a = get_args()
     if not shutil.which("blastn"):
         sys.exit(u'blastn was not found')
-    rows = list(csv.DictReader(open(a.referans, encoding="utf-8"), delimiter="\t"))
+    rows = list(csv.DictReader(open(a.reference, encoding="utf-8"), delimiter="\t"))
     if not rows:
         sys.exit(u'there is no reference pair')
     # hedefin amaclanan organizmasi
     amac = {}
-    if os.path.exists(a.hedefler_ref):
+    if os.path.exists(a.reference_targets):
         # Dosya # ile baslayan aciklama satirlariyla basliyor; DictReader
         # bunlari baslik sanip anahtarlari yanlis kurar.
-        with open(a.hedefler_ref, encoding="utf-8") as fh:
+        with open(a.reference_targets, encoding="utf-8") as fh:
             satirlar = [l for l in fh if not l.startswith("#") and l.strip()]
         for r in csv.DictReader(satirlar, delimiter="\t"):
             if r.get("ad"):
                 amac[r["ad"]] = (r.get("ic", ""), r.get("taxid", ""))
     if not amac:
-        print(u'WARNING: hedefler_referans.tsv could not be read, the intended organism will stay empty: %s' % a.hedefler_ref)
+        print(u'WARNING: hedefler_referans.tsv could not be read, the intended organism will stay empty: %s' % a.reference_targets)
 
     fq = collections.defaultdict(list)
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
@@ -180,7 +180,7 @@ def main():
                     if j % 4 != 1:
                         continue
                     n += 1
-                    if n > a.max_okuma:
+                    if n > a.max_reads:
                         break
                     d = line.strip().upper()
                     if len(d) < 100:
@@ -190,7 +190,7 @@ def main():
                         urunler.append(u)
             tarandi += n
         kons, kac, uzcesit = baskin_konsensus(urunler)
-        if not kons or kac < a.min_urun:
+        if not kons or kac < a.min_product:
             sonuc.append(dict(hedef=hedef, sinif=sinif, ileri_dizi=F, geri_dizi=R,
                               urun_okuma=len(urunler), konsensus_uzunluk=0,
                               amaclanan=ic,
@@ -217,7 +217,7 @@ def main():
             pr = subprocess.run(
                 ["blastn", "-query", sorgu, "-db", db, "-outfmt",
                  "6 pident length bitscore stitle", "-max_target_seqs", "5",
-                 "-evalue", "1e-5", "-num_threads", str(a.is_parcacigi)],
+                 "-evalue", "1e-5", "-num_threads", str(a.threads)],
                 capture_output=True, text=True)
             en = None
             for line in pr.stdout.splitlines():

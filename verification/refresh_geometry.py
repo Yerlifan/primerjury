@@ -26,8 +26,8 @@ panel's own engine, lists the rule violations and compares them against the valu
 written in the table.
 
 To run:
-    python verification/refresh_geometry.py --kok .
-    python verification/refresh_geometry.py --kok . --yaz  (update the panel table too)
+    python verification/refresh_geometry.py --root .
+    python verification/refresh_geometry.py --root . --write  (update the panel table too)
 
 """
 from __future__ import print_function
@@ -205,8 +205,8 @@ def yalniz_urun_boyu(kok, yaz_mi):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--write', '--yaz', dest='yaz', action='store_true',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--write', dest='yaz', action='store_true',
                    help='also update the Tm and dTm columns of the panel table '
                         '(once yedek alinir)')
     a = p.parse_args()

@@ -28,22 +28,22 @@ BAZLAR = "ACGT"
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--fastq", required=True)
-    p.add_argument("--etiket", required=True, help="example: B-1_2233851")
+    p.add_argument("--label", required=True, help="example: B-1_2233851")
     p.add_argument("--out", required=True, help="consensus directory")
-    p.add_argument("--tohum-sayisi", type=int, default=25)
-    p.add_argument("--max-okuma", type=int, default=3000)
-    p.add_argument("--min-uzunluk", type=int, default=400)
-    p.add_argument("--min-derinlik", type=int, default=20)
-    p.add_argument("--min-oran", type=float, default=0.50)
-    p.add_argument("--tur", type=int, default=2, help="kac kez iyilestirilsin")
-    p.add_argument("--yigin", type=int, default=2000)
-    p.add_argument("--ayrisma-esigi", type=float, default=0.005,
+    p.add_argument("--seed-count", type=int, default=25)
+    p.add_argument("--max-reads", type=int, default=3000)
+    p.add_argument("--min-length", type=int, default=400)
+    p.add_argument("--min-depth", type=int, default=20)
+    p.add_argument("--min-fraction", type=float, default=0.50)
+    p.add_argument("--rounds", type=int, default=2, help="kac kez iyilestirilsin")
+    p.add_argument("--batch", type=int, default=2000)
+    p.add_argument("--divergence-threshold", type=float, default=0.005,
                    help="iki yari arasindaki izin verilen fark orani")
-    p.add_argument("--min-kapsam", type=float, default=0.95,
+    p.add_argument("--min-coverage", type=float, default=0.95,
                    help="iki yarinin hizalamasinda beklenen en az kapsama")
-    p.add_argument("--indel-uyari", type=float, default=0.005,
+    p.add_argument("--indel-warning", type=float, default=0.005,
                    help="print a note for indel differences above this fraction")
-    p.add_argument("--tohum", type=int, default=20260801,
+    p.add_argument("--seed", type=int, default=20260801,
                    help="random seed, so the same input gives the same result")
     return p.parse_args()
 
@@ -129,21 +129,21 @@ def kur(okumalar, a, gunluk):
     uzunluklar = sorted(len(r) for r in okumalar)
     orta = statistics.median(uzunluklar)
     # medyan uzunluga en yakin okumalar aday tohum
-    adaylar = sorted(okumalar, key=lambda r: abs(len(r) - orta))[:a.tohum_sayisi]
+    adaylar = sorted(okumalar, key=lambda r: abs(len(r) - orta))[:a.seed_count]
     ornek = okumalar if len(okumalar) <= 400 else random.sample(okumalar, 400)
     en_iyi, en_iyi_hiz = None, -1
     for t in adaylar:
-        _, hiz = kalipta_say(t, ornek, a.yigin)
+        _, hiz = kalipta_say(t, ornek, a.batch)
         if hiz > en_iyi_hiz:
             en_iyi, en_iyi_hiz = t, hiz
     gunluk("   tohum secildi: %d bp, %d/%d ornek okuma hizalandi"
            % (len(en_iyi), en_iyi_hiz, len(ornek)))
     kalip = en_iyi
-    for tur in range(a.tur):
-        say, hiz = kalipta_say(kalip, okumalar, a.yigin)
+    for tur in range(a.rounds):
+        say, hiz = kalipta_say(kalip, okumalar, a.batch)
         if say is None:
             return None, 0
-        dizi, dusuk, belirsiz = konsensus_cagir(say, a.min_derinlik, a.min_oran)
+        dizi, dusuk, belirsiz = konsensus_cagir(say, a.min_depth, a.min_fraction)
         # the N's at the start and the end are trimmed, the inner N's are left in place
         b = 0
         while b < len(dizi) and dizi[b] == "N":
@@ -233,14 +233,14 @@ def fark_olc(x, y):
 
 def main():
     a = get_args()
-    random.seed(a.tohum)
+    random.seed(a.seed)
     if not os.path.exists(a.fastq):
         sys.exit(u'no fastq found: %s' % a.fastq)
     os.makedirs(a.out, exist_ok=True)
     print(alignment.durum())
-    okumalar = fastq_oku(a.fastq, a.min_uzunluk, a.max_okuma)
-    print(u'reads: %d (>= %d bp)' % (len(okumalar), a.min_uzunluk))
-    if len(okumalar) < a.min_derinlik * 2:
+    okumalar = fastq_oku(a.fastq, a.min_length, a.max_reads)
+    print(u'reads: %d (>= %d bp)' % (len(okumalar), a.min_length))
+    if len(okumalar) < a.min_depth * 2:
         sys.exit(u'the read count is not enough: %d' % len(okumalar))
 
     def gun(s):
@@ -263,18 +263,18 @@ def main():
     if y1 and y2:
         f, fi, kaps, ortak = fark_olc(y1, y2)
         nedenler = []
-        if f > a.ayrisma_esigi:
+        if f > a.divergence_threshold:
             nedenler.append("ikame")
-        if kaps < a.min_kapsam:
+        if kaps < a.min_coverage:
             nedenler.append("kapsama")
         uyum = "iki_olcum_uyustu" if not nedenler else (
             "ayrisan_olcum(%s)" % "+".join(nedenler))
         print("\niki yarinin karsilastirmasi (%d baz ortusuyor)" % ortak)
-        print(u'   substitution difference : %.4f   (threshold %.4f)' % (f, a.ayrisma_esigi))
+        print(u'   substitution difference : %.4f   (threshold %.4f)' % (f, a.divergence_threshold))
         print(u'   the indel difference : %.4f   (for information, it does not enter the decision)' % fi)
-        print(u'   containment             : %.4f   (threshold %.4f)' % (kaps, a.min_kapsam))
+        print(u'   containment             : %.4f   (threshold %.4f)' % (kaps, a.min_coverage))
         print(u'   result                  : %s' % uyum)
-        if fi > a.indel_uyari:
+        if fi > a.indel_warning:
             print(u'   NOTE: the indel difference comes from homopolymer length. A template based method does not correct template length. The design rules already reject a run of more than four identical bases, so no primer sits on those regions, but the consensus length is not exact.')
     else:
         uyum = "yari_kurulamadi"
@@ -282,10 +282,10 @@ def main():
         print(u'\nWARNING: one of the halves produced no consensus, so the split could not be measured')
 
     kapsanan = len(tam) - tam.count("N")
-    yol = os.path.join(a.out, "%s_baskin_konsensus.fasta" % a.etiket)
+    yol = os.path.join(a.out, "%s_baskin_konsensus.fasta" % a.label)
     with open(yol, "w", encoding="utf-8") as fh:
         fh.write(u'>%s dominant_allele_no_reference reads=%d aligned=%d min_depth=%d min_fraction=%.2f length=%d covered=%d half_substitution_diff=%.4f half_indel_diff=%.4f half_coverage=%.4f %s\n'
-                 % (a.etiket, len(okumalar), hiz, a.min_derinlik, a.min_oran,
+                 % (a.label, len(okumalar), hiz, a.min_depth, a.min_fraction,
                     len(tam), kapsanan, f, fi, kaps, uyum))
         for k in range(0, len(tam), 70):
             fh.write(tam[k:k + 70] + "\n")

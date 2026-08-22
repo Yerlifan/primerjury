@@ -19,7 +19,7 @@ Cikti bir ONERIDIR, uygulanmaz. Plaka degistirmek deneyin duzenini degistirir;
 karari insan verir.
 
 Kosum:
-    python verification/assign_plate.py --kok .
+    python verification/assign_plate.py --root .
 """
 from __future__ import print_function
 
@@ -110,8 +110,8 @@ def uygun(c, ta):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--trial', '--deneme', dest='deneme', type=int, default=20000)
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--trial', dest='deneme', type=int, default=20000)
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

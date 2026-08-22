@@ -270,13 +270,13 @@ def d_kraken_ortam(kok, ayar):
 ASAMALAR = [
     ('8', u'SELF-TEST - the code verifies itself; no measurement', u'Group 4',
      (1, 2), False,
-     lambda kok, a: [_py(kok, '-m', 'screening', '--sina')],
+     lambda kok, a: [_py(kok, '-m', 'screening', '--selftest')],
      d_sina),
 
     ('H', u'QUICK CONSISTENCY TEST - is the chain intact on a small subset?', u'Group 4',
      (25, 40), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'quick_consistency_test.py'),
-                         '--kok', '.')],
+                         '--root', '.')],
      d_hizli_test),
 
     # W's kraken flag is deliberately False: this step is a DIAGNOSTIC step. If kraken2
@@ -297,20 +297,20 @@ ASAMALAR = [
     ('I', u'IDENTITY VERIFICATION - every reported claim is tested', u'Group 2',
      (180, 260), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'identity_verification.py'),
-                         '--kok', '.')],
+                         '--root', '.')],
      d_dosya_dolu([os.path.join('KIMLIK_SONUC', 'kimlik_iddialari.tsv')])),
 
     # MEASURED on the clean run of 2026-08-05: 4 h 43 min. The estimate was pulled to the measured value.
     ('G', u'ALL BIN IDENTITIES - every bin entering the panel is verified', u'Group 2',
      (260, 350), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'all_bin_identities.py'),
-                         '--kok', '.')],
+                         '--root', '.')],
      d_dosya_dolu([os.path.join('TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')])),
 
     # Measured: P 36 s, K 5 min, D 6 min. The previous estimate (6-16 hours) was far too wide.
     ('T', u'FULL MEASUREMENT - P, K, D and I in dependency order', u'Group 1',
      (30, 90), False,
-     lambda kok, a: [_py(kok, os.path.join('verification', 'run_all_stages.py'), '--kok', '.')],
+     lambda kok, a: [_py(kok, os.path.join('verification', 'run_all_stages.py'), '--root', '.')],
      d_dosya_dolu([os.path.join('TUM_KOSU_SONUC', '00_BIRLESIK_OZET.md')])),
 
     # MEASURED on the clean run of 2026-08-05: 1 h 55 min (6 thresholds x ~19 min). The
@@ -338,7 +338,7 @@ ASAMALAR = [
 
     ('S', u'REFRESH THE COMBINED SUMMARY - no measurement', u'Group 4',
      (1, 1), False,
-     lambda kok, a: [_py(kok, '-m', 'screening', '--mod', 'ozet')],
+     lambda kok, a: [_py(kok, '-m', 'screening', '--mode', 'ozet')],
      d_ozet),
 ]
 
@@ -695,9 +695,9 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
         if not ayar['kraken_var']:
             A(u'### Finishing the Kraken part later\n')
             A(u'You **do not need** to run the chain from the start. Because the skipped stages never got the `bitti` stamp they are retried by themselves on the next run. To run the Kraken part only, press **W**, then **X**, then **Z** in the menu; or in a single command:')
-            A(u'```\npython3 verification/full_chain.py --kok . --yalniz W,X,Z,S --onayla\n```\n')
+            A(u'```\npython3 verification/full_chain.py --root . --only W,X,Z,S --confirm\n```\n')
             A(u'Stage Z builds the table **from the data in hand, not from scratch**: it leaves the missing columns empty and writes down which ones are missing, and when the data arrives the same key completes the table. That is why the table can be reproduced even if the Kraken measurement is made weeks later.')
-            A(u'if kraken2 is not installed: `micromamba create -n mikro -c bioconda -c conda-forge kraken2 bracken`. If it is installed already the environment name may differ; look with `micromamba env list` and pass `--ortam <name>`, or give the binary\'s full path with `KRAKEN2_BIN=/full/path/kraken2`.')
+            A(u'if kraken2 is not installed: `micromamba create -n mikro -c bioconda -c conda-forge kraken2 bracken`. If it is installed already the environment name may differ; look with `micromamba env list` and pass `--env <name>`, or give the binary\'s full path with `KRAKEN2_BIN=/full/path/kraken2`.')
 
     A(u'## Where to look\n')
     A(u'| Question | File |')
@@ -728,33 +728,33 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
 
 def main():
     p = argparse.ArgumentParser(description=u'Tam zincir: 8 H W I G T X Y Z S')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--confirm', dest='onayla', action='store_true',
                    help=u'onay sormadan basla (menuden gelirken kullanilir)')
-    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
+    p.add_argument('--rerun', dest='yeniden', action='store_true',
                    help=u'durum.json is reset and everything runs from scratch')
-    p.add_argument('--from-scratch', '--sifirdan', dest='sifirdan', action='store_true',
+    p.add_argument('--from-scratch', dest='sifirdan', action='store_true',
                    help=u'CLEAN RUN: not just this script, but every CALLED '
                         u'asamanin kontrol noktalarini da gecersiz kilar. '
                         u'Hicbir sey silinmez, zaman damgali klasorlere tasinir.')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default='',
+    p.add_argument('--only', dest='yalniz', default='',
                    help=u'these stages only, comma-separated, e.g. 8,S')
-    p.add_argument('--skip', '--atla', dest='atla', default='',
+    p.add_argument('--skip', dest='atla', default='',
                    help=u'skip these stages, comma-separated')
     p.add_argument('--pluspfp', default=os.environ.get('PLUSPFP', ''),
                    help=u'PlusPFP veritabani yolu (if omitted Y adimi atlanir)')
-    p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
+    p.add_argument('--db-path', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 database path (default ~/k2db, then the tool scans the disk)')
-    p.add_argument('--env', '--ortam', dest='ortam', default=os.environ.get('ORTAM', ''),
+    p.add_argument('--env', dest='ortam', default=os.environ.get('ORTAM', ''),
                    help=u'micromamba/conda ortam adi (default: mikro). '
                         u'kraken2 baska bir ortamdaysa burada verin; '
                         u'ortam adlarini gormek icin: micromamba env list')
-    p.add_argument('--dry-run', '--kuru', dest='kuru', action='store_true',
+    p.add_argument('--dry-run', dest='kuru', action='store_true',
                    help=u'komutlari CALISTIRMADAN plani and denetimi gosterir')
     p.add_argument('--plan', action='store_true',
                    help=u'only plani basar and cikar; hicbir sey kosulmaz. '
                         u'verification/full_chain.py once bunu cagirir, onayi kendi alir, '
-                        u'sonra --onayla ile asil kosuyu baslatir. Boylece onay '
+                        u'sonra --confirm ile asil kosuyu baslatir. Boylece onay '
                         u'sorusu WSL yerine Windows tarafinda sorulur ve stdin '
                         u'aktariminin bicimine bagli kalmaz.')
     a = p.parse_args()
@@ -778,14 +778,14 @@ def main():
         # CAUTION: the file IS NOT DELETED, it IS OVERWRITTEN.
         # The reason was measured: on mounted directories, and on some Windows
         # installations, there may be no permission to delete (Operation not permitted).
-        # Trying to delete made the --yeniden option completely unusable. Writing an empty
+        # Trying to delete made the --rerun option completely unusable. Writing an empty
         # dictionary does the same job and works on every file system.
         durum = {}
         json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
 
     if a.sifirdan:
-        # A CLEAN RUN. --yeniden resets only THIS script's durum.json; but the stages it
+        # A CLEAN RUN. --rerun resets only THIS script's durum.json; but the stages it
         # calls have THEIR OWN checkpoints, and while those stand, a stage skips itself
         # internally as "already finished". To really run from scratch, those have to be
         # invalidated too.

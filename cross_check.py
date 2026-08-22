@@ -1128,7 +1128,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
 
     if kip == u'yok':
         rap.atla(M, u'M1-KAPALI', u'a species level identity measurement for every bin',
-                 u'--m1-kip yok was given, so the module was turned off on purpose', u'-')
+                 u'--m1-mode yok was given, so the module was turned off on purpose', u'-')
         return
 
     # --- import the decision logic from verification (it IS NOT REWRITTEN here)
@@ -1365,7 +1365,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                                               ilerle=lambda n: can2.vur(n))
         except MemoryError:
             rap.atla(M, u'M1-VTB-BELLEK', u'%s taranabilmeli' % etiket,
-                     u'out of memory (MemoryError), so lower the bin count with --m1-tavan or run the database on its own', yol)
+                     u'out of memory (MemoryError), so lower the bin count with --m1-cap or run the database on its own', yol)
             continue
         except Exception as e:
             # ERRORS ARE NOT SWALLOWED: which database could not be scanned, and why, is reported.
@@ -1739,7 +1739,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
         rap.ekle(M, u'M1-KISMI-KAPSAM', BILGI,
                  u'the identity verdict must be given with every offline database',
                  u'in "fast" mode only %d small RefSeq sets were scanned; SILVA SSU and LSU, UNITE, PR2 and ROD were not' % len(HIZLI_VTB), kay.refdb,
-                 u'For a final verdict run it with --m1-kip tam.')
+                 u'For a final verdict run it with --m1-mode tam.')
     yaz(u'M1 done: %d rows, %d bins not measurable, %s'
         % (len(satirlar), len(olculemeyen), sure_metni(time.time() - t_basla)))
 
@@ -3425,22 +3425,22 @@ def _ing_deger(a):
 def main():
     p = argparse.ArgumentParser(
         description=u'The PrimerJury panel: an independent, read only cross-check')
-    p.add_argument('--root', '--kok', dest='kok', default='.', help=u'project root directory')
-    p.add_argument('--output', '--cikti', dest='cikti', default=None, help=u'report directory (default KONTROL_SONUC)')
-    p.add_argument('--modules', '--moduller', dest='moduller', default='hepsi',
+    p.add_argument('--root', dest='kok', default='.', help=u'project root directory')
+    p.add_argument('--output', dest='cikti', default=None, help=u'report directory (default KONTROL_SONUC)')
+    p.add_argument('--modules', dest='moduller', default='hepsi',
                    help=u'modules to run, comma-separated: 1,2,3 ... or "all"')
-    p.add_argument('--m1-mode', '--m1-kip', dest='m1_kip', default='hizli',
+    p.add_argument('--m1-mode', dest='m1_kip', default='hizli',
                    choices=['none', 'quick', 'full', 'yok', 'hizli', 'tam'],
                    help=u'M1 scope of the identity scan (default: quick)')
-    p.add_argument('--m1-only', '--m1-yalniz', dest='m1_yalniz', default=None,
+    p.add_argument('--m1-only', dest='m1_yalniz', default=None,
                    help=u'these bins only (comma-separated), example: F2-1_500148,F2-4_500148')
-    p.add_argument('--m1-cap', '--m1-tavan', dest='m1_tavan', type=int, default=0,
+    p.add_argument('--m1-cap', dest='m1_tavan', type=int, default=0,
                    help=u'M1 for maximum number of bins (0 = all)')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true',
+    p.add_argument('--reset', dest='sifirla', action='store_true',
                    help=u'ignore checkpoints and recompute everything')
-    p.add_argument('--no-checkpoint', '--kontrol-noktasi-yok', dest='kn_yok', action='store_true',
+    p.add_argument('--no-checkpoint', dest='kn_yok', action='store_true',
                    help=u'never use a checkpoint')
-    p.add_argument('--self-test', '--kendini-sina', dest='kendini_sina', action='store_true',
+    p.add_argument('--self-test', dest='kendini_sina', action='store_true',
                    help=u'feed each module deliberately broken input and show that it catches the error')
     a = p.parse_args()
     a = _ing_deger(a)
@@ -3533,7 +3533,7 @@ def main():
         if MODUL_ADLARI[no] not in kosulan:
             rap.atla(MODUL_ADLARI[no], u'MODUL-KOSULMADI',
                      u'every module must run',
-                     u'it was left out by the --moduller selection', u'-')
+                     u'it was left out by the --modules selection', u'-')
 
     md, tsv, kimlik = raporla(kay, rap, cikti, kosulan, sureler)
     kod = rap.cikis_kodu()

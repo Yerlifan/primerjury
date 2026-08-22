@@ -83,7 +83,7 @@ guide:
 ```
 
 The entry point is the contract. It translates the Turkish flags some stage
-scripts still take (`--kok`, `--onayla`), so nothing you type is Turkish.
+scripts still take (`--root`, `--confirm`), so nothing you type is Turkish.
 
 ### Downloads are verified, not trusted
 
@@ -97,7 +97,7 @@ UNITE's URL is not hard-coded at all; the installer points you to the current
 release page and verifies whatever you give it:
 
 ```bash
-bash install.sh veritabani --yalniz unite --url <URL-you-copied>
+bash install.sh veritabani --only unite --url <URL-you-copied>
 ```
 
 ### Building indexes
@@ -218,7 +218,7 @@ of off-target products.
 ### The full chain
 
 ```bash
-python3 verification/full_chain.py --kok . --onayla
+python3 verification/full_chain.py --root . --confirm
 ```
 
 Ten stages run in dependency order. Order is not arbitrary:
@@ -242,10 +242,10 @@ recorded and the chain continues.
 ### Individual stages
 
 ```bash
-python3 verification/identity_verification.py --kok .      # identity verification
-python3 verification/specificity_round.py --kok .        # four-layer specificity
-python3 protocol/single_protocol_measure.py --kok .          # single-protocol panel measurement
-python3 cross_check.py --kok .                        # read-only independent audit
+python3 verification/identity_verification.py --root .      # identity verification
+python3 verification/specificity_round.py --root .        # four-layer specificity
+python3 protocol/single_protocol_measure.py --root .          # single-protocol panel measurement
+python3 cross_check.py --root .                        # read-only independent audit
 ```
 
 ### Two rules the runner enforces

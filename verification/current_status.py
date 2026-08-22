@@ -12,7 +12,7 @@ Bu dosya elle yazilmaz. Her kosuda panelin kendi ciktisindan uretilir. Belgeler
 sayiyi tekrar etmek yerine buraya isaret eder.
 
 Kosum:
-    python verification/current_status.py --kok .
+    python verification/current_status.py --root .
 """
 from __future__ import print_function
 
@@ -43,7 +43,7 @@ def sayilar(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     sl, kesin, evr, disi = sayilar(kok)

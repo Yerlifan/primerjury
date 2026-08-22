@@ -15,7 +15,7 @@ Kullanim:
     python verification/panel.py hepsi          # sirasiyla hepsi (olcum, yazmaz)
     python verification/panel.py denetle        # 9 maddelik denetim kapisi
     python verification/panel.py geometri       # primer3 ile Tm ve kural denetimi
-    python verification/panel.py geometri --yaz # Tm/dTm sutunlarini duzelt
+    python verification/panel.py geometri --write # Tm/dTm sutunlarini duzelt
     python verification/panel.py plaka          # jel cakismasi icin plaka onerisi
     python verification/panel.py esik           # iki esik kurali yan yana
     python verification/panel.py guncel         # GUNCEL_DURUM.md uret
@@ -24,7 +24,7 @@ Kullanim:
     python verification/panel.py kutu --plan    # olculmeyen taksonlar icin plan
     python verification/panel.py referans       # hizli test referanslarini yenile
 
-"hepsi" olcum yapar, HICBIR dosyayi degistirmez: geometri --yaz ve ncbi4 gibi
+"hepsi" olcum yapar, HICBIR dosyayi degistirmez: geometri --write ve ncbi4 gibi
 yan etkili adimlar hepsi'ye DAHIL DEGILDIR. Yan etkiyi insan ister.
 """
 from __future__ import print_function
@@ -82,12 +82,12 @@ def kos(ad, ek):
     if not os.path.exists(yol):
         print(u'  SKIPPED: %s is missing (%s)' % (ad, yol))
         return 127
-    # target_full.py --kok almaz; kokU _FL_KOK ortam degiskeninden okur.
+    # target_full.py --root almaz; kokU _FL_KOK ortam degiskeninden okur.
     if ad == 'lokus':
         os.environ['_FL_KOK'] = KOK
         komut = [sys.executable, yol] + list(ek)
     else:
-        komut = [sys.executable, yol, '--kok', KOK] + list(ek)
+        komut = [sys.executable, yol, '--root', KOK] + list(ek)
     print()
     print('=' * 78)
     print('  >> %s   (%s)' % (ad, KOMUT[ad][1]))

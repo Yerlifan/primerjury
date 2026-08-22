@@ -19,7 +19,7 @@ TAXID'LER SENTETIKTIR. NCBI taxid'leriyle karsilastirilamaz. Karsilastirma bu
 yuzden isim duzeyinde yapilir (comparison_table.py boyle davranir).
 
 Calistirma:
-  python3 custom_taxonomy.py --cikti <db klasoru> --kume silva_ssu=/yol/a.fasta ...
+  python3 custom_taxonomy.py --output <db klasoru> --set silva_ssu=/yol/a.fasta ...
   python3 custom_taxonomy.py --selftest
 """
 import argparse, os, re, sys
@@ -187,24 +187,24 @@ def selftest():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cikti", default="")
-    ap.add_argument("--kume", action="append", default=[],
+    ap.add_argument("--output", default="")
+    ap.add_argument("--set", action="append", default=[],
                     help="ad=/yol/file.fasta biciminde, birden cok kez verilebilir")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         sys.exit(selftest())
-    if not a.cikti:
-        ap.error("--cikti gerekli")
+    if not a.output:
+        ap.error("--output gerekli")
     import io, contextlib
     with contextlib.redirect_stdout(io.StringIO()):
         if selftest() != 0:
             print("THE TEST FAILED, stopped (project rule 2)")
             sys.exit(2)
     if not a.kume:
-        ap.error("en az bir --kume gerekli")
+        ap.error("at least one --set is required")
 
-    lib = os.path.join(a.cikti, "library", "ozel")
+    lib = os.path.join(a.output, "library", "ozel")
     os.makedirs(lib, exist_ok=True)
     tak = Taksonomi()
     hedef = os.path.join(lib, "library.fna")
@@ -212,7 +212,7 @@ def main():
     with open(hedef, "w") as fh:
         for k in a.kume:
             if "=" not in k:
-                print(f"ERROR: --kume must have the form name=/path, received: {k}")
+                print(f"ERROR: --set must have the form name=/path, received: {k}")
                 sys.exit(1)
             ad, yol = k.split("=", 1)
             if not os.path.exists(yol):
@@ -225,7 +225,7 @@ def main():
                 print(f"     WARNING: more than half the headers have no lineage. The header format")
                 print(f"     may differ from what is expected, so the result is not trustworthy.")
             toplam_ok += ok; toplam_yz += yz; toplam_sz += sz
-    n = tak.yaz(os.path.join(a.cikti, "taxonomy"))
+    n = tak.yaz(os.path.join(a.output, "taxonomy"))
     print(f"\n  total {toplam_ok} headers, {toplam_yz} sequences written, {toplam_sz} without a lineage")
     print(f"  taxonomy: {n} nodes")
     if toplam_yz == 0:

@@ -71,8 +71,8 @@ def ham_boylar(yol, tavan=4000):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--start', '--bas', dest='bas', type=int, default=0)
-    p.add_argument('--count', '--adet', dest='adet', type=int, default=1)
+    p.add_argument('--start', dest='bas', type=int, default=0)
+    p.add_argument('--count', dest='adet', type=int, default=1)
     a = p.parse_args()
 
     P = Puanlayici(KOK)

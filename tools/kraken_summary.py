@@ -291,7 +291,7 @@ def selftest():
 # ------------------------------------------------------------------ main
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--job", "--is", dest="is_klasor", default="",
+    ap.add_argument("--job", dest="is_klasor", default="",
                     help="the kraken_yeniden directory holding tum.out and tum.report")
     ap.add_argument("--toolkit", default="",
                     help="directory holding blast_ispcr.py (default: beside this script)")

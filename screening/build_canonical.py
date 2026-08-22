@@ -19,8 +19,8 @@ The output:
     konsensus_kanonik/BELIRSIZ.tsv           files whose orientation could not be settled
 
 Usage:
-    python build_canonical.py --kok ..
-    python build_canonical.py --kok .. --yeniden        (overwrite if present)
+    python build_canonical.py --root ..
+    python build_canonical.py --root .. --rerun        (overwrite if present)
 
 """
 # -------------------------------------------------------------------------
@@ -29,8 +29,8 @@ Usage:
 #                   it into a single canonical directory; that way the orientation
 #                   question is settled in one place.
 #
-# INPUT  : the three source directories under --kok, in the order chosen with
-#          --oncelik: consensus sequences (the original set the panel was built
+# INPUT  : the three source directories under --root, in the order chosen with
+#          --priority: consensus sequences (the original set the panel was built
 #          on), KAPSAMLI_ARAMA_SONUC/konsensus_yeni (the new production) and
 #          referans_konsensus/konsensus. The orientation decision is made with
 #          orientation.dosya_kanonik().
@@ -40,7 +40,7 @@ Usage:
 #          OKUBENI.txt. Exit code 0 = no file needing a flip is left in the
 #          canonical directory.
 # CALLED BY: hepsi.kanonik_kos() runs it as a separate process, as the 2nd stage of
-#          key 9 (--oncelik ozgun) and the 4th stage (--oncelik yeni). It is also
+#          key 9 (--priority ozgun) and the 4th stage (--priority yeni). It is also
 #          the command suggested for running by hand in the error message of every
 #          stage whose orientation gate fails.
 #
@@ -111,10 +111,10 @@ def kutu_adi(yol):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
-    ap.add_argument('--output', '--cikti', dest='cikti', default='konsensus_kanonik')
-    ap.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true')
-    ap.add_argument('--priority', '--oncelik', dest='oncelik', default='ozgun', choices=sorted(ONCELIK))
+    ap.add_argument('--root', dest='kok', required=True)
+    ap.add_argument('--output', dest='cikti', default='konsensus_kanonik')
+    ap.add_argument('--rerun', dest='yeniden', action='store_true')
+    ap.add_argument('--priority', dest='oncelik', default='ozgun', choices=sorted(ONCELIK))
     a = ap.parse_args()
 
     h = orientation.kendini_sina()

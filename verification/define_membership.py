@@ -21,9 +21,9 @@ gerekcesini satir satir yazar. Sonra:
 Her dosyanin once yedegini alir ve ne yaptigini basar.
 
 Kosum (once PLAN):
-  python verification/define_membership.py --kok . --hedef Petriella_cinsi --kalip Petriella
-  ... --yaz            uyelik dosyalarina yaz
-  ... --panel-satiri P1:55   panel kaynagina plaka/Ta satirini da ekle
+  python verification/define_membership.py --root . --target Petriella_cinsi --template Petriella
+  ... --write            uyelik dosyalarina yaz
+  ... --panel-row P1:55   panel kaynagina plaka/Ta satirini da ekle
 """
 from __future__ import print_function
 
@@ -63,14 +63,14 @@ def uyelik_dosyasi(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--target', '--hedef', dest='hedef', required=True)
-    p.add_argument('--template', '--kalip', dest='kalip', required=True,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--target', dest='hedef', required=True)
+    p.add_argument('--template', dest='kalip', required=True,
                    help='text to look for in the measured identity, e.g. Petriella')
-    p.add_argument('--class', '--sinif', dest='sinif', default='',
+    p.add_argument('--class', dest='sinif', default='',
                    help='bin class (such as F2); read from the order list when empty')
-    p.add_argument('--write', '--yaz', dest='yaz', action='store_true')
-    p.add_argument('--panel-row', '--panel-satiri', dest='panel_satiri', default='',
+    p.add_argument('--write', dest='yaz', action='store_true')
+    p.add_argument('--panel-row', dest='panel_satiri', default='',
                    help='add a row to the panel source: PLATE:Ta  (e.g. P1:55)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
@@ -88,7 +88,7 @@ def main():
                         sinif = (r.get('sinif') or '').strip().upper()
                         break
     if not sinif:
-        sys.exit(u'ERROR: no class was found, give one with --sinif.')
+        sys.exit(u'ERROR: no class was found, give one with --class.')
 
     K = kimlikler(kok)
     ayni_sinif = [r for r in K if r['kutu'].split('-')[0].upper() == sinif]
@@ -122,7 +122,7 @@ def main():
 
     if not a.yaz:
         print()
-        print(u'  This is a PLAN. Add --yaz to write it.')
+        print(u'  This is a PLAN. Add --write to write it.')
         return 0
 
     # ---- 1) uyelik_yeniden_turetme dosyasi ----
@@ -179,7 +179,7 @@ def main():
         try:
             plaka, ta = a.panel_satiri.split(':')
         except ValueError:
-            sys.exit(u'ERROR: --panel-satiri must have the form PLATE:Row (for example P1:55)')
+            sys.exit(u'ERROR: --panel-row must have the form PLATE:Row (for example P1:55)')
         py = os.path.join(kok, 'primer_final',
                           'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
         psat = [l.rstrip('\n').split('\t') for l in io.open(py, encoding='utf-8')]

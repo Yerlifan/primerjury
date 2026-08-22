@@ -11,7 +11,7 @@ yuzden her senaryo /tmp altinda kurulan bir GOLGE KOK'te kosar:
   * butun yazmalar /tmp icinde kalir
 Bagli klasore tek bayt yazilmaz. Sinama sonunda golge kok /tmp'de kalir.
 
-KOSUM:  python3 verification/one_key_test.py --kok .
+KOSUM:  python3 verification/one_key_test.py --root .
 """
 
 import os, sys, io, json, time, shutil, argparse, subprocess, tempfile
@@ -33,10 +33,10 @@ while KOK and not os.path.exists(os.path.join(KOK, '_SINAMA_AYAR.json')):
 import json
 ayar = json.load(open(os.path.join(KOK, '_SINAMA_AYAR.json'), encoding='utf-8'))
 ad = %(ad)r
-# screening/__main__.py IKI asama tarafindan cagriliyor: 8 (--sina) ve
-# S (--mod ozet). Hangisi oldugunu argv soyler; sahte betik de ayni ayrimi
+# screening/__main__.py IKI asama tarafindan cagriliyor: 8 (--selftest) ve
+# S (--mode ozet). Hangisi oldugunu argv soyler; sahte betik de ayni ayrimi
 # yapmali, yoksa S asamasi hicbir zaman ciktisini uretmez.
-if ad == 'sina' and '--mod' in sys.argv:
+if ad == 'sina' and '--mode' in sys.argv:
     ad = 'S'
 d = ayar.get(ad, {})
 print('[sahte %%s] basladi' %% ad)
@@ -186,8 +186,8 @@ def basarili_ayar():
 
 
 def kos(taban, ek=(), zaman_asimi=180, sinyal_sn=None):
-    argv = [sys.executable, TEK_TUS, '--kok', taban, '--onayla',
-            '--ncbi', 'yok', '--canlilik', '3'] + list(ek)
+    argv = [sys.executable, TEK_TUS, '--root', taban, '--confirm',
+            '--ncbi', 'yok', '--liveness', '3'] + list(ek)
     p = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if sinyal_sn:
         # KESINTI SENARYOSU: belirlenen saniyede SIGINT gonderilir; bu,
@@ -436,25 +436,25 @@ def s9_yalniz_atla(ana):
     print(u'\n--- S9: the --only and --skip filters ---')
     t = golge_kur(os.path.join(ana, 's9'))
     ayar_yaz(t, basarili_ayar())
-    rc, out = kos(t, ek=['--yalniz', '8S'])
+    rc, out = kos(t, ek=['--only', '8S'])
     d = durum_oku(t)
-    sina(u'S9 --yalniz 8S: only 8 and S were recorded',
+    sina(u'S9 --only 8S: only 8 and S were recorded',
          set(d.keys()) <= {'8', 'S'} and '8' in d, u'anahtarlar: %s' % sorted(d.keys()))
     t2 = golge_kur(os.path.join(ana, 's9b'))
     ayar_yaz(t2, basarili_ayar())
-    rc2, out2 = kos(t2, ek=['--atla', 'IGD'])
+    rc2, out2 = kos(t2, ek=['--skip', 'IGD'])
     d2 = durum_oku(t2)
-    sina(u'S9 --atla IGD: I, G, D hic kaydedilmedi',
+    sina(u'S9 --skip IGD: I, G, D hic kaydedilmedi',
          not ({'I', 'G', 'D'} & set(d2.keys())), u'anahtarlar: %s' % sorted(d2.keys()))
-    sina(u'S9 the exit code after --atla is 0', rc2 == 0, u'rc=%d' % rc2)
+    sina(u'S9 the exit code after --skip is 0', rc2 == 0, u'rc=%d' % rc2)
     return t
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--base', '--taban', dest='taban', default=os.path.join(tempfile.gettempdir(),
+    p.add_argument('--base', dest='taban', default=os.path.join(tempfile.gettempdir(),
                                                    'tek_tus_sinama'))
-    p.add_argument('--only', '--yalniz', dest='yalniz', default='')
+    p.add_argument('--only', dest='yalniz', default='')
     A = p.parse_args()
     ana = A.taban
     if not os.path.exists(TEK_TUS):

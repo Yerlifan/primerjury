@@ -36,7 +36,7 @@ output row says PLAINLY which criterion was used.
 # OUTPUT : KAPSAMLI_ARAMA_SONUC/PANEL_YENIDEN_OLCUM.md,
 #          panel_yeniden_olcum.tsv and panel_kutu_duzeyi.tsv (calistir returns those
 #          three paths); a kontrol/panel_olcum_*.json per target.
-# CALLED BY: verification/full_chain.py key 4 (--mod panel-olc --tam-derinlik),
+# CALLED BY: verification/full_chain.py key 4 (--mode panel-olc --full-depth),
 #          key 7 -> choice "2" (a single target at full depth) and the 5th stage
 #          inside key 9 (hepsi.calistir -> panel_olcum.calistir, okuma_sayisi=0).
 #

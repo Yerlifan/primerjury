@@ -96,7 +96,7 @@ if [ "$MEVCUT" -gt 0 ] && [ "${YENIDEN_KONS:-0}" != "1" ]; then
   say "  it is there already ($MEVCUT files), skipped. To reproduce it: YENIDEN_KONS=1"
 else
   python3 "$HERE/dominant_allele_consensus.py" \
-      --kons "$KONS_IUPAC" \
+      --consensus "$KONS_IUPAC" \
       --fastq "$PT/fastq files" \
       --out "$BASKIN" 2>&1 | tee -a "$ANA_LOG"
 fi
@@ -110,8 +110,8 @@ say "----------------------------------------------------------------"
 say "STEP 2/7  the bulk design (batch_design.py)"
 T0=$(date +%s)
 python3 "$HERE/batch_design.py" \
-    --kons "$KONS" \
-    --hedefler "$HERE/hedefler.tsv" \
+    --consensus "$KONS" \
+    --targets "$HERE/hedefler.tsv" \
     --out "$ADAY" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
 say "STEP 2 finished, exit=$RC, time=$(( ($(date +%s)-T0)/60 )) minutes"
@@ -125,12 +125,12 @@ say "----------------------------------------------------------------"
 say "STEP 3/7  specificity and the raw read verification (specificity.py)"
 T0=$(date +%s)
 python3 "$HERE/specificity.py" \
-    --adaylar "$ADAY" \
+    --candidates "$ADAY" \
     --pt "$PT" \
-    --kons "$KONS" \
-    --hedefler "$HERE/hedefler.tsv" \
+    --consensus "$KONS" \
+    --targets "$HERE/hedefler.tsv" \
     --out "$FINAL" \
-    --top "$TOP" --max-okuma "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
+    --top "$TOP" --max-reads "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
 say "STEP 3 finished, exit=$RC, time=$(( ($(date +%s)-T0)/60 )) minutes"
 
@@ -160,8 +160,8 @@ REFC="$PT/primer_referans"
 if [ -f "$HERE/hedefler_referans.tsv" ]; then
   python3 "$HERE/design_from_reference.py" \
       --db "$PT/REFERANS_DB" --pt "$PT" \
-      --hedefler-ref "$HERE/hedefler_referans.tsv" \
-      --out "$REFC" --max-okuma "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
+      --reference-targets "$HERE/hedefler_referans.tsv" \
+      --out "$REFC" --max-reads "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 else
   say "  there is no hedefler_referans.tsv, the step was skipped"
 fi
@@ -171,12 +171,12 @@ say "STEP 5 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 say "----------------------------------------------------------------"
 say "STEP 6/7  the Excel delivery (export_excel.py)"
 REFARG=""
-[ -s "$REFC/primer_referans.tsv" ] && REFARG="--referans $REFC/primer_referans.tsv"
+[ -s "$REFC/primer_referans.tsv" ] && REFARG="--reference $REFC/primer_referans.tsv"
 python3 "$HERE/export_excel.py" \
-    --aday "$ADAY" --final "$FINAL" \
-    --bol "$ADAY/kume_setleri" \
-    --adlar "$HERE/taxid_adlari.tsv" \
-    --hedefler "$HERE/hedefler.tsv" --kons "$KONS" $REFARG \
+    --candidates "$ADAY" --final "$FINAL" \
+    --splits "$ADAY/kume_setleri" \
+    --names "$HERE/taxid_adlari.tsv" \
+    --targets "$HERE/hedefler.tsv" --consensus "$KONS" $REFARG \
     --out "$PT/PrimerJury_Primer_Tasarimi.xlsx" 2>&1 | tee -a "$ANA_LOG"
 
 # --- 7. the self audit ------------------------------------------------
@@ -189,11 +189,11 @@ say "----------------------------------------------------------------"
 say "STEP 7/7  the self audit (regression_test.py plus check_deliverables.py)"
 T0=$(date +%s)
 python3 "$HERE/regression_test.py" \
-    --gercek-veri --aday "$ADAY" --kons "$KONS" 2>&1 | tee -a "$ANA_LOG"
+    --real-data --candidates "$ADAY" --consensus "$KONS" 2>&1 | tee -a "$ANA_LOG"
 RC17=${PIPESTATUS[0]}
 if [ -s "$FINAL/primer_final.tsv" ]; then
   python3 "$HERE/check_deliverables.py" \
-      --final "$FINAL" --kons "$KONS" --hedefler "$HERE/hedefler.tsv" \
+      --final "$FINAL" --consensus "$KONS" --targets "$HERE/hedefler.tsv" \
       --out "$FINAL/teslim_denetimi.tsv" 2>&1 | tee -a "$ANA_LOG"
   RC18=${PIPESTATUS[0]}
 else

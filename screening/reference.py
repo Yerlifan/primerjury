@@ -21,7 +21,7 @@ extracted again. After an interruption it continues from the cache.
 #          of giving/total/length/headers.
 # CALLED BY: __main__.aramayi_kos (the bulk pool extraction) and stage D of
 #          __main__.hedefi_isle, that is keys 1, 2, 3, 7 and the 7th stage of 9.
-#          The step is skipped if --hafif is given.
+#          The step is skipped if --light is given.
 #
 # WHY toplu_cikar() EXISTS: had a separate pass been made for each target, the same
 # huge fasta file would have been read from the start once per target. Here the

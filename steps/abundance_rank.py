@@ -76,12 +76,12 @@ def get_args():
     p.add_argument("--kraken", required=True,
                    help="report directory with the confidence correction applied")
     p.add_argument("--out", required=True)
-    p.add_argument("--desen", default="*_kraken2.report")
-    p.add_argument("--kapsama", type=float, default=0.50,
+    p.add_argument("--pattern", default="*_kraken2.report")
+    p.add_argument("--coverage", type=float, default=0.50,
                    help="classified fraction required before a rank can be chosen "
                         "okumalarin en az bu orani o rutbede ya da altinda "
                         "yerlesmeli")
-    p.add_argument("--ust", type=int, default=15, help="taxon shown in the table")
+    p.add_argument("--top", type=int, default=15, help="taxon shown in the table")
     return p.parse_args()
 
 
@@ -117,8 +117,8 @@ def rapor_oku(yol):
 
 def main():
     a = get_args()
-    dosyalar = sorted(glob.glob(os.path.join(a.kraken, a.desen))
-                      + glob.glob(os.path.join(a.kraken, "*", a.desen)))
+    dosyalar = sorted(glob.glob(os.path.join(a.kraken, a.pattern))
+                      + glob.glob(os.path.join(a.kraken, "*", a.pattern)))
     if not dosyalar:
         sys.exit(u'the report was not found: %s' % a.kraken)
     os.makedirs(a.out, exist_ok=True)
@@ -156,7 +156,7 @@ def main():
         # secilen rutbe: kapsama esigini gecen EN DAR rutbe
         secilen = None
         for r in reversed(RUTBE_SIRA):          # once en dar
-            if siniflanan and kumulatif[r] / siniflanan >= a.kapsama:
+            if siniflanan and kumulatif[r] / siniflanan >= a.coverage:
                 secilen = r
                 break
         if secilen is None:
@@ -204,7 +204,7 @@ def main():
                   % (bc, secilen, _t, kumulatif[secilen]))
         # o rutbenin ustunde kalanlar
         ust_kalan = siniflanan - kumulatif[secilen]
-        for ad, n, tx in sec[:a.ust]:
+        for ad, n, tx in sec[:a.top]:
             bolluk_satir.append(dict(
                 barkod="barcode%02d" % bc, grup=BARKOD_GRUP[bc],
                 yil=BARKOD_YIL[bc], rutbe=secilen, takson=ad, taxid=tx,

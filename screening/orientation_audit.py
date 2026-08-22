@@ -27,8 +27,8 @@ or in its REVERSE COMPLEMENT. The mismatch tolerance is <=2 (a nanopore consensu
 carries the occasional error) and the engine is lossless.
 
 Usage:
-    python orientation_audit.py --kok ..  --out ../yon_denetimi_20260802.tsv
-    python orientation_audit.py --kok .. --klasor "consensus sequences"
+    python orientation_audit.py --root ..  --out ../yon_denetimi_20260802.tsv
+    python orientation_audit.py --root .. --dir "consensus sequences"
 
 """
 # -------------------------------------------------------------------------
@@ -36,7 +36,7 @@ Usage:
 #                   consensus directory under two independent criteria and writes
 #                   them into a table.
 #
-# INPUT  : one or more consensus directories given with --klasor under --kok (the
+# INPUT  : one or more consensus directories given with --dir under --root (the
 #          defaults are defined inside the file). The binding site search is done
 #          with okuma_motoru.Sonda at a tolerance of <=2 mismatches.
 # OUTPUT : the TSV given with --out: per file, the class, the result of each of the
@@ -170,9 +170,9 @@ def tara(kok, klasorler):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--root', dest='kok', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--dir', '--klasor', dest='klasor', action='append', default=[])
+    ap.add_argument('--dir', dest='klasor', action='append', default=[])
     a = ap.parse_args()
     kl = a.klasor or ['consensus sequences',
                       'referans_konsensus/konsensus',

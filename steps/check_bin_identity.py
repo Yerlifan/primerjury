@@ -12,14 +12,14 @@ populasyon birden cok "tur" kutusuna bolunur. Bu durumda kutularin
 konsensusleri birbirinin ayni cikar ve o hedefte ozgullugu saglamak
 mantiken imkansiz hale gelir.
 
-Olcum: her kutudan en cok --ornek okuma alinir, minimap2 (mappy) ile
+Olcum: her kutudan en cok --sample okuma alinir, minimap2 (mappy) ile
 verilen referans FASTA'daki adaylara hizalanir, okuma basina EN IYI eslesen
 referans oylanir. Kutunun kimligi bu oylamanin cogunlugudur.
 
 Kullanim:
   python3 check_bin_identity.py \
-      --fastq "/.../fastq files" --ref REFERANS_DB/archaea.16S.fna \
-      --desen "Methanosarcina" --out kutu_kimlik.tsv
+      --fastq "/.../fastq files" --reference REFERANS_DB/archaea.16S.fna \
+      --pattern "Methanosarcina" --out kutu_kimlik.tsv
 """
 import argparse, csv, glob, os, sys
 
@@ -45,12 +45,12 @@ def fasta(p):
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--fastq", required=True, help="'fastq files' directory")
-    p.add_argument("--ref", required=True, help="reference FASTA (16S/ITS/28S)")
-    p.add_argument("--desen", nargs="+", required=True,
+    p.add_argument("--reference", required=True, help="reference FASTA (16S/ITS/28S)")
+    p.add_argument("--pattern", nargs="+", required=True,
                    help="name fragments to look for in the reference header")
-    p.add_argument("--grup", default=None, help="this group only (e.g. A2-4)")
-    p.add_argument("--ornek", type=int, default=1000, help="reads per bin")
-    p.add_argument("--min-uzunluk", type=int, default=600)
+    p.add_argument("--group", default=None, help="this group only (e.g. A2-4)")
+    p.add_argument("--sample", type=int, default=1000, help="reads per bin")
+    p.add_argument("--min-length", type=int, default=600)
     p.add_argument("--out", default=None)
     return p.parse_args()
 
@@ -58,19 +58,19 @@ def get_args():
 def main():
     a = get_args()
     ref = {}
-    for ad, s in fasta(a.ref):
-        for d in a.desen:
+    for ad, s in fasta(a.reference):
+        for d in a.pattern:
             if d in ad and ad not in ref:
                 ref[ad] = s.upper().replace("U", "T")
     if not ref:
-        sys.exit(u'no reference matching the pattern was found: %s' % ", ".join(a.desen))
+        sys.exit(u'no reference matching the pattern was found: %s' % ", ".join(a.pattern))
     print("referans kaydi: %d" % len(ref))
     for ad in list(ref)[:10]:
         print("   %-70s %d bp" % (ad[:70], len(ref[ad])))
     alig = {ad: mappy.Aligner(seq=s, preset="map-ont") for ad, s in ref.items()}
 
     satir = []
-    desen = os.path.join(a.fastq, a.grup if a.grup else "*", "*.fastq")
+    desen = os.path.join(a.fastq, a.group if a.group else "*", "*.fastq")
     for fq in sorted(glob.glob(desen)):
         base = os.path.basename(fq)
         grp = os.path.basename(os.path.dirname(fq))
@@ -80,10 +80,10 @@ def main():
                 if i % 4 != 1:
                     continue
                 r = line.strip()
-                if len(r) < a.min_uzunluk:
+                if len(r) < a.min_length:
                     continue
                 n += 1
-                if n > a.ornek:
+                if n > a.sample:
                     break
                 en, kaz = 0, None
                 esit = False

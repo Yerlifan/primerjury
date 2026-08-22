@@ -21,7 +21,7 @@ question that `ast.parse` cannot:
 RUN
 ---
     python3 tests/test_repo_health.py
-    python3 tests/test_repo_health.py --ayrinti      # list every finding
+    python3 tests/test_repo_health.py --detail      # list every finding
 
 Exit code 0 only if every check passes.
 """
@@ -546,7 +546,7 @@ KONTROLLER = [
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--detail', '--ayrinti', dest='ayrinti', action='store_true', help='list every finding')
+    p.add_argument('--detail', dest='ayrinti', action='store_true', help='list every finding')
     a = p.parse_args()
 
     bulgu = []
@@ -570,7 +570,7 @@ def main():
             for nerede, ne in (liste if a.ayrinti else liste[:12]):
                 print('   %-46s %s' % (nerede[:46], ne[:80]))
             if not a.ayrinti and len(liste) > 12:
-                print('   ... %d more (use --ayrinti)' % (len(liste) - 12))
+                print('   ... %d more (use --detail)' % (len(liste) - 12))
             print()
 
     print('-' * 78)

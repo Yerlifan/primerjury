@@ -64,12 +64,12 @@ import os, sys, csv, time, random, argparse
 # -------------------------------------------------------------------------
 def main():
     p = argparse.ArgumentParser(description='Veritabani erisim dogrulamasi')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--db', '--vtb', dest='vtb', default=None, help='this database only (a fragment of the file name)')
-    p.add_argument('--records', '--kayit', dest='kayit', type=int, default=3, help='veritabani basina test kaydi')
-    p.add_argument('--cap', '--tavan', dest='tavan', type=int, default=0,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--db', dest='vtb', default=None, help='this database only (a fragment of the file name)')
+    p.add_argument('--records', dest='kayit', type=int, default=3, help='veritabani basina test kaydi')
+    p.add_argument('--cap', dest='tavan', type=int, default=0,
                    help='taranacak en fazla kayit (0 = all of them, default)')
-    p.add_argument('--mutation', '--mutasyon', dest='mutasyon', type=float, default=0.08)
+    p.add_argument('--mutation', dest='mutasyon', type=float, default=0.08)
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 
@@ -90,7 +90,7 @@ def main():
         _eksik.append('REFERANS_DB klasoru')
     if _eksik:
         sys.stderr.write(
-            u'ERROR: %s does not contain %s.\n  This script runs from the project root. The root is the same directory as\n  verification/full_chain.py, and it holds verification/ and REFERANS_DB/.\n  Correct use:  python3 verification/access_check.py --kok <project directory>\n  If you come from the menu the root is supplied correctly on its own (key E).\n'
+            u'ERROR: %s does not contain %s.\n  This script runs from the project root. The root is the same directory as\n  verification/full_chain.py, and it holds verification/ and REFERANS_DB/.\n  Correct use:  python3 verification/access_check.py --root <project directory>\n  If you come from the menu the root is supplied correctly on its own (key E).\n'
             % (kok, u' and '.join(_eksik)))
         return 1
     if not [f for f in os.listdir(os.path.join(kok, 'REFERANS_DB'))

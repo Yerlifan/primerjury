@@ -169,7 +169,7 @@ _ATLANAN = []
 # silently; it goes into the _ATLANAN list and is shown in the run header.
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-# THE ORDER LIST MODE (--siparis) - 2026-08-06
+# THE ORDER LIST MODE (--order) - 2026-08-06
 #
 # WHY IT WAS ADDED: by default this script only verified the RECOVERED pairs
 # (kurtarma_satirlari.tsv). In the last run that list was a single row, which means
@@ -209,7 +209,7 @@ def siparistekiler(kok, hepsi=False):
                         urun=s.get('urun_bp', ''),
                         sinif=sn,
                         # SIPARISTE_MI: KESIN/EVRENSEL satirlar siparise gider.
-                        # --ncbi-yalniz-siparis bu bayragi kullanir (2026-08-07).
+                        # --ncbi-order-only bu bayragi kullanir (2026-08-07).
                         sipariste=(sn in ('KESIN', 'EVRENSEL')),
                         tur=u'THE ORDER LIST (%s)' % sn,
                         numune_deger=s.get('ayrim_mm1', ''),
@@ -549,7 +549,7 @@ def pb_ac(url, veri=None, deneme=4, timeout=90, yaz=None):
 
 
 def organizma_listesi(s):
-    """Splits the '--organizma' string into SEPARATE organisms.
+    """Splits the '--organism' string into SEPARATE organisms.
 
         Primer-BLAST's ORGANISM field takes ONE organism (see the D-8 note above).
         The 'A OR B OR C' form the user writes is accepted, but it is NOT SENT to the
@@ -834,7 +834,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                                ncbi_toplam_urun=n, ncbi_adsiz_klon=len(_adsiz),
                                not_=u'Primer-BLAST %d urun listeledi (sayfa tavani). '
                                     u'Gercek sayi >= %d. Bu bir SAYIM DEGIL; hukum '
-                                    u'icin kullanilamaz. Organizma kisiti (--organizma) '
+                                    u'icin kullanilamaz. Organizma kisiti (--organism) '
                                     u'ile daraltip yeniden kosun.'
                                     % (n, NCBI_SONUC_TAVANI))
                 yaz(u'  [%s] NCBI: RESULT CAP (%d) - not a count, not tested' % (ad, n))
@@ -846,7 +846,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                                     u'VERI YOK. Sinanmadi sayilir.')
                 yaz(u'  [%s] NCBI: EMPTY result page - not tested' % ad)
                 continue
-            # IF THERE IS NO ORGANISM RESTRICTION (--organizma empty), Primer-BLAST also
+            # IF THERE IS NO ORGANISM RESTRICTION (--organism empty), Primer-BLAST also
             # lists the target's OWN members under "unintended template"; max(0,n-1) is
             # only correct under the assumption that "there is exactly one intended
             # product", and for group and universal primers that assumption IS INVALID.
@@ -1536,53 +1536,53 @@ def _ing_deger(a):
 
 def main():
     p = argparse.ArgumentParser(description='Kurtarilan ciftlerin uc katmanli dogrulanmasi')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle',
                    help='auto: NCBI URL API; manual: write pasteable input; none: skip')
-    p.add_argument('--ncbi-load', '--ncbi-yukle', dest='ncbi_yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
-    p.add_argument('--organism', '--organizma', dest='organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
+    p.add_argument('--ncbi-load', dest='ncbi_yukle', default=None, help='doldurulmus NCBI_SONUC_SABLONU.tsv')
+    p.add_argument('--organism', dest='organizma', default='', help='NCBI organizma kisiti (bos = tum nt)')
     # D-13c (2026-08-07, MEASURED): the target's OWN taxon can be excluded with
     # ENTREZ_QUERY, and then every product left on the page is off-target by definition.
     # CAUTION, a measured trap: a bare 'NOT txidN[Organism]' INVERTS the filter (it
     # returns only that taxon). The correct form is 'all[filter] NOT txidN[Organism]'.
     # The code adds that prefix itself.
-    p.add_argument('--ncbi-exclude-taxid', '--ncbi-haric-taxid', dest='ncbi_haric_taxid', default='',
+    p.add_argument('--ncbi-exclude-taxid', dest='ncbi_haric_taxid', default='',
                    help="taxid to EXCLUDE at NCBI (example: 2157). Added to ENTREZ_QUERY "
                         "'all[filter] NOT txid<N>[Organism]' olarak gonderilir.")
-    p.add_argument('--local-only', '--yalniz-yerel', dest='yalniz_yerel', action='store_true', help='only katman 2 (yerel DB)')
-    p.add_argument('--no-mfe', '--mfe-yok', dest='mfe_yok', action='store_true',
+    p.add_argument('--local-only', dest='yalniz_yerel', action='store_true', help='only katman 2 (yerel DB)')
+    p.add_argument('--no-mfe', dest='mfe_yok', action='store_true',
                    help='MFEprimer katmanini skip')
-    p.add_argument('--cluster-max', '--kume-ust', dest='kume_ust', type=int, default=0,
+    p.add_argument('--cluster-max', dest='kume_ust', type=int, default=0,
                    help='only en kucuk N veritabani (hizli test)')
-    p.add_argument('--parc-set', '--parc', dest='parc', action='store_true',
+    p.add_argument('--parc-set', dest='parc', action='store_true',
                    help='also scan the SILVA LSU Parc set (slow; not needed for specificity)')
-    p.add_argument('--order', '--siparis', dest='siparis', action='store_true',
+    p.add_argument('--order', dest='siparis', action='store_true',
                    help='kurtarilanlar yerine SIPARIS LISTESINDEKI ciftleri dogrula '
                         '(siparis oncesi Primer-BLAST kontrolu icin)')
-    p.add_argument('--order-all', '--siparis-hepsi', dest='siparis_hepsi', action='store_true',
+    p.add_argument('--order-all', dest='siparis_hepsi', action='store_true',
                    help='with --order: include CONDITIONAL and NOT-RECOMMENDED rows as well')
     # -----------------------------------------------------------------------
-    # --tumu  (2026-08-07)
-    # A user request: "search all of them in that database as well". --siparis tests
+    # --all  (2026-08-07)
+    # A user request: "search all of them in that database as well". --order tests
     # only KESIN and EVRENSEL (16 pairs); the KOSULLU and ONERILMEZ rows (6 pairs) were
-    # NEVER put through SILVA. --tumu adds those too -> 22 pairs, against every indexed
+    # NEVER put through SILVA. --all adds those too -> 22 pairs, against every indexed
     # database, SILVA included.
-    # The --siparis mode IS UNCHANGED; --tumu is a separate flag built on top of it.
+    # The --order mode IS UNCHANGED; --all is a separate flag built on top of it.
     # -----------------------------------------------------------------------
-    p.add_argument('--all', '--tumu', dest='tumu', action='store_true',
+    p.add_argument('--all', dest='tumu', action='store_true',
                    help='EVERY pair in the panel (CERTAIN + UNIVERSAL + CONDITIONAL +'
                         'ONERILMEZ) butun indeksli veritabanlarina, SILVA dahil')
-    p.add_argument('--ncbi-order-only', '--ncbi-yalniz-siparis', dest='ncbi_yalniz_siparis', action='store_true',
-                   help='--tumu with: KATMAN 4 (NCBI) only siparis listesindeki '
+    p.add_argument('--ncbi-order-only', dest='ncbi_yalniz_siparis', action='store_true',
+                   help='--all with: KATMAN 4 (NCBI) only siparis listesindeki '
                         '(KESIN/EVRENSEL) ciftlere kosar. Listede olmayanlar '
                         'yalniz yerel + MFEprimer katmanlarini gorur. NCBI cift '
                         'basina ~75 sn + 10 sn bekleme oldugu icin sure kalemi.')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
+    p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)
 
-    # --tumu = --siparis plus --siparis-hepsi. NOT a separate route, the existing route
-    # with a wider input set. That way the behaviour of --siparis mode does not change.
+    # --all = --order plus --order-all. NOT a separate route, the existing route
+    # with a wider input set. That way the behaviour of --order mode does not change.
     if getattr(a, 'tumu', False):
         a.siparis = True
         a.siparis_hepsi = True
@@ -1660,7 +1660,7 @@ def main():
     yaz(u'  LAYER 2 (local): %d sets, %d from checkpoints, %d to be scanned from scratch.' % (n_kume, _hazir, max(0, n_kume - _hazir)))
     yaz(u'     (measured with everything cached: ~30 s; a fresh scan takes minutes per set)')
     yaz(u'  LAYER 3 (MFEprimer): 6 indexes including SILVA. Measured for SILVA: 16 pairs took ~85 s of spec time plus ~40 s copying evidence.')
-    # KATMAN 4 kapsami: --ncbi-yalniz-siparis verilmisse NCBI yalniz siparis
+    # KATMAN 4 kapsami: --ncbi-order-only verilmisse NCBI yalniz siparis
     # listesindeki ciftlere kosar. Sure beyani da o sayidan hesaplanir.
     _ncbi_ciftler = ([c for c in ciftler if c.get('sipariste')]
                      if getattr(a, 'ncbi_yalniz_siparis', False) else list(ciftler))

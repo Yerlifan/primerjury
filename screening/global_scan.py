@@ -47,7 +47,7 @@ OPTIONAL TAXONOMIC CLASSIFICATION
 #          of every chunk. tara() returns a
 #          {candidate_name: {'urun': n, 'boy': {...}, 'vurus': [...]}} dictionary.
 # CALLED BY: stage E inside __main__.hedefi_isle, that is verification/full_chain.py
-#          keys 1, 2, 3, 7 and the 7th stage of 9 (skipped if --hafif is given).
+#          keys 1, 2, 3, 7 and the 7th stage of 9 (skipped if --light is given).
 #          From outside, verification/specificity_round.py (key D) uses this module
 #          AS IT IS; it is the local database layer of the verification round.
 #

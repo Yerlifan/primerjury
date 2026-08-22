@@ -16,7 +16,7 @@ against the panel.
 #
 # INPUT  : the LIVE panel file on the mounted directory given with --xlsx (read
 #          with openpyxl, its md5 taken and printed to the screen) plus the
-#          project directory given with --kok. The panel row to meeting decision
+#          project directory given with --root. The panel row to meeting decision
 #          mapping (KARAR_ESLEME) is fixed inside the file.
 # OUTPUT : SIPARIS_LISTESI_<date>.tsv and TOPLANTI_KARARLARI_DURUM_<date>.md.
 #          After writing, both files are read back and the primer sequences are
@@ -162,7 +162,7 @@ def daha_yeni_liste_var_mi(kok, bizim_dosya, kaynak_panel):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
+    ap.add_argument('--root', dest='kok', required=True)
     a = ap.parse_args()
 
     # ---- CANLI dosyadan oku ------------------------------------------------

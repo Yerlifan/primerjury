@@ -1145,13 +1145,13 @@ tus_esik() {
   if [ "$ikili" -eq 1 ]; then
     esik_tara "$VT_B" "$IS_B" "VT_B"
     echo
-    python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" \
-      --is "$IS_A" --ad "$(basename "$VT_A")" \
+    python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" \
+      --job "$IS_A" --name "$(basename "$VT_A")" \
       --is2 "$IS_B" --ad2 "$(basename "$VT_B")"
   else
     echo
-    python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" \
-      --is "$IS_A" --ad "$(basename "$VT_A")"
+    python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" \
+      --job "$IS_A" --name "$(basename "$VT_A")"
   fi
   echo
   echo "done. Files: $IS_A"
@@ -1194,10 +1194,10 @@ tus_tablo() {
     cp -p "$hedef" "$yed" 2>/dev/null && \
       echo "  the existing table was backed up: $(basename "$yed")"
   fi
-  python3 "$_BETIK_DIZIN/comparison_table.py" --kok "$PROJE" \
-          --is-a "$IS_A" --ad-a "$(basename "$VT_A")" \
-          --is-b "$IS_B" --ad-b "$([ -n "$VT_B" ] && basename "$VT_B" || echo '')" \
-          --esik "$TABLO_ESIK"
+  python3 "$_BETIK_DIZIN/comparison_table.py" --root "$PROJE" \
+          --job-a "$IS_A" --name-a "$(basename "$VT_A")" \
+          --job-b "$IS_B" --name-b "$([ -n "$VT_B" ] && basename "$VT_B" || echo '')" \
+          --threshold "$TABLO_ESIK"
 }
 
 # =========================================================================
@@ -1259,7 +1259,7 @@ tus_ozelvt_kur() {
     local f; f=$(kume_dosya "$k") || continue
     [ -s "$f" ] && args+=(--kume "$k=$f")
   done
-  python3 "$_BETIK_DIZIN/custom_taxonomy.py" --cikti "$OZELVT" "${args[@]}"
+  python3 "$_BETIK_DIZIN/custom_taxonomy.py" --output "$OZELVT" "${args[@]}"
   echo; echo "2/2  kraken2-build --build  ($(date '+%H:%M:%S'))"
   kraken2-build --build --db "$OZELVT" --threads "$IPLIK"
   echo; echo "build finished: $OZELVT"
@@ -1466,11 +1466,11 @@ case "$TUS" in
   sure)        tus_sure "${2:-$VT_A}" ;;
   esik-a)      tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
                log_ac esik_a; kraken_sart; esik_tara "$VT_A" "$IS_A" "VT_A"
-               python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" --is "$IS_A" --ad "$(basename "$VT_A")" ;;
+               python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" --job "$IS_A" --name "$(basename "$VT_A")" ;;
   esik-b)      [ -n "$VT_B" ] || { echo "ERROR: VT_B was not given.  VT_B=/path bash $0 esik-b"; exit 1; }
                tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
                log_ac esik_b; kraken_sart; esik_tara "$VT_B" "$IS_B" "VT_B"
-               python3 "$_BETIK_DIZIN/threshold_summary.py" --kok "$PROJE" --is "$IS_B" --ad "$(basename "$VT_B")" ;;
+               python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" --job "$IS_B" --name "$(basename "$VT_B")" ;;
   esik)        tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
                tus_esik ;;
   tablo)       tus_tablo ;;
