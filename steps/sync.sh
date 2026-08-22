@@ -58,7 +58,7 @@ uret() {
        'kraken_guven/esik_taramasi.tsv' \
        'PrimerJury_Primer_Tasarimi.xlsx' \
        'PrimerJury_Primer_Raporu.docx' \
-       'Microbooster_Topluluk_Trend_Analizi.xlsx' | sort -k2
+       'PrimerJury_Community_Trends.xlsx' | sort -k2
 }
 
 if [ "$DOGRULA" = 1 ]; then
