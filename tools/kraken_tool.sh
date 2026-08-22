@@ -1,65 +1,78 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-# KRAKEN2 YENIDEN KOSU ARACI, TUS TAKIMI
+# THE KRAKEN2 RERUN TOOL, A SET OF KEYS
 #
-# NEDEN BU ARAC VAR
-# Hoca "sonuclar Kraken'den cok farkli olmamali" dedi. Cevabi Kraken'in kendi
-# diliyle vermek istiyoruz. Ama ayni veritabaniyla yeniden kosmak ayni cevabi
-# verir. Bu yuzden iki yon acildi:
-#   1. YUKSELTILMIS GUVEN ESIGI. Kraken2 bir okumayi ancak k-mer'lerinin belli
-#      bir bolumu ayni klada gidiyorsa atar. Esik 0 iken tek k-mer bile yeter.
-#      Esigi yukseltip neyin ayakta kaldigina bakmak, o atamalarin bastan ne
-#      kadar zayif oldugunun Kraken'in kendi agziyla olcusudur.
-#   2. DAHA GENIS KAPSAMLI VERITABANI (PlusPFP). Teshisimiz "sorun kapsamdi"
-#      idi. Dogruysa, dar veritabaninda esikle cokan atamalar genis
-#      veritabaninda ayakta kalmalidir. Kalmazsa teshis yanlistir ve oyle yazilir.
+# WHY THIS TOOL EXISTS
+# The request was that "the results should not differ much from Kraken's". We want
+# to answer that in Kraken's own language. But rerunning with the same database
+# gives the same answer, so two directions were opened:
+#   1. A RAISED CONFIDENCE THRESHOLD. Kraken2 assigns a read only if a certain
+#      fraction of its k-mers go to the same clade. At threshold 0 a single k-mer is
+#      enough. Raising the threshold and looking at what stays standing is Kraken's
+#      own measure of how weak those assignments were to begin with.
+#   2. A DATABASE OF BROADER COVERAGE (PlusPFP). Our diagnosis was "the problem was
+#      coverage". If that is right, the assignments that collapse under a threshold
+#      on the narrow database have to stay standing on the broad one. If they do not,
+#      the diagnosis is wrong and it is written down as wrong.
 #
-# KAYNAK CALISMANIN BETIKLERINDEN NE ALINDI
-#   troubleshooting tools/kraken2_driver.sh  cagri bicimi, --memory-mapping fikri
-#   troubleshooting tools/bracken_species.sh kmer_distrib ve -l S kullanimi
-#   the source study's Kraken/Bracken script  VT butunluk denetimi (hash/opts/taxo),
-#                                            bellek denetimi, log bicimi
-#   WSL/rerun_kraken.sh                 VT otomatik bulma, micromamba ortami,
-#                                            tek kosu birlestirme, kayipsizlik denetimi
-#   tools/kraken_summary.py                  rapor ayristirma, tur duzeyi toplama
-# Bu arac onlari yeniden yazmaz, cagirir ve uzerine ekler.
+# WHAT WAS TAKEN FROM THE SOURCE STUDY'S SCRIPTS
+#   troubleshooting tools/kraken2_driver.sh  the call form, the --memory-mapping idea
+#   troubleshooting tools/bracken_species.sh the kmer_distrib and -l S usage
+#   the source study's Kraken/Bracken script  the database integrity check
+#                                            (hash/opts/taxo), the memory check, the
+#                                            log format
+#   tools/rerun_kraken.sh                    finding the database automatically, the
+#                                            micromamba environment, merging into one
+#                                            run, the losslessness check
+#   tools/kraken_summary.py                  parsing the report, summing at species
+#                                            level
+# This tool does not rewrite them, it calls them and builds on top.
 #
-# TUSLAR
-#   bash kraken_tool.sh bellek-ayari  .wslconfig onerir (KILITLENME COZUMU, ONCE BUNU)
-#   bash kraken_tool.sh dogrula-ornek ornek tam veriyi temsil ediyor mu
-#   bash kraken_tool.sh kraken-yol   kraken2'nin cozulmus tam yolunu basar (makine okunur)
-#   bash kraken_tool.sh durum        ortam ve veritabani denetimi, hicbir sey kosmaz
-#   bash kraken_tool.sh vt-ara       diskte kraken2 veritabani arar ve listeler
-#   bash kraken_tool.sh vt-kimlik    veritabani hangi surum, derin tespit
-#   bash kraken_tool.sh ozgun-vt       ozgun kosu hangi veritabanini kullandi, kanittan cikarim
-#   bash kraken_tool.sh sinav        butun selftestler
-#   bash kraken_tool.sh sure         kucuk denemeyle GERCEK hiz olcumu ve sure tahmini
-#   bash kraken_tool.sh esik-a       guven esigi taramasi, VT_A uzerinde
-#   bash kraken_tool.sh esik-b       guven esigi taramasi, VT_B uzerinde
-#   bash kraken_tool.sh esik         ikisi de, sonra yan yana egri
-#   bash kraken_tool.sh tablo        dort sutunlu karsilastirma tablosu
-#   bash kraken_tool.sh hepsi        sinav + esik + tablo
-#   bash kraken_tool.sh ozelvt-kur   ozel veritabani kurulumu (EN SON CARE)
-#   bash kraken_tool.sh ozelvt-kos   ozel veritabaniyla kosu
+# THE KEYS
+#   bash kraken_tool.sh bellek-ayari  suggests a .wslconfig (THE FREEZE FIX, DO THIS
+#                                     FIRST)
+#   bash kraken_tool.sh dogrula-ornek does the sample represent the full data
+#   bash kraken_tool.sh kraken-yol    prints kraken2's resolved full path (machine
+#                                     readable)
+#   bash kraken_tool.sh durum         the environment and database check; it runs
+#                                     nothing
+#   bash kraken_tool.sh vt-ara        searches the disk for a kraken2 database and
+#                                     lists what it finds
+#   bash kraken_tool.sh vt-kimlik     which version the database is, a deep detection
+#   bash kraken_tool.sh ozgun-vt      which database the original run used, inferred
+#                                     from evidence
+#   bash kraken_tool.sh sinav         every self test
+#   bash kraken_tool.sh sure          a REAL speed measurement from a small trial,
+#                                     plus a time estimate
+#   bash kraken_tool.sh esik-a        the confidence threshold scan, on VT_A
+#   bash kraken_tool.sh esik-b        the confidence threshold scan, on VT_B
+#   bash kraken_tool.sh esik          both, then the curves side by side
+#   bash kraken_tool.sh tablo         the four column comparison table
+#   bash kraken_tool.sh hepsi         the tests plus the threshold plus the table
+#   bash kraken_tool.sh ozelvt-kur    building a custom database (THE LAST RESORT)
+#   bash kraken_tool.sh ozelvt-kos    a run with the custom database
 #
-# DEGISKENLER
-#   VT_A=~/k2db       birinci veritabani (varsayilan, PlusPFP burada bekleniyor)
-#   VT_B=/yol         ikinci veritabani (varsa iki egri yan yana cizilir)
-#   IPLIK=12          is parcacigi sayisi
-#   KAP=3000          takson basina en fazla okuma (0 = hepsi)
+# THE VARIABLES
+#   VT_A=~/k2db       the first database (the default; PlusPFP is expected here)
+#   VT_B=/path        the second database (with one, two curves are drawn side by
+#                     side)
+#   IPLIK=12          the thread count
+#   KAP=3000          at most this many reads per taxon (0 = all of them)
 #   ESIKLER="0 0.02 0.05 0.1 0.2 0.5"
-#   TABLO_ESIK=0.1    tabloda kullanilacak yuksek esik
+#   TABLO_ESIK=0.1    the high threshold used in the table
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
 TUS="${1:-yardim}"
 
-# --- proje klasoru olculur, tahmin edilmez (rerun_kraken.sh ile ayni yol) ---
+# --- the project directory is measured, not guessed (the same route as
+#     rerun_kraken.sh) ---
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
-# OLCULDU: burasi bir zamanlar kaynak projede duran TESLIM klasorunu ariyordu.
-# O klasor bu depoda YOK, dolayisiyla betik hangi tusla cagrilirsa cagrilsin ilk
-# denetimde duruyordu. Isaret artik depoda GERCEKTEN duran iki klasor.
+# MEASURED: this used to look for a delivery directory that existed in the source
+# project. That directory IS NOT in this repository, so whichever key the script was
+# called with it stopped at its first check. The marker is now two directories that
+# REALLY ARE in the repository.
 if [ ! -d "$PROJE/tools" ] || [ ! -d "$PROJE/verification" ]; then
   echo "ERROR: the project root could not be verified ('$PROJE' holds no tools/ and verification/)."
   echo "  Script location: $_BETIK_DIZIN"
@@ -69,12 +82,13 @@ fi
 
 VT_A="${VT_A:-$HOME/k2db}"
 VT_B="${VT_B:-}"
-# IPLIK: eskiden nproc idi, yani butun cekirdekler. Kraken2'nin TEPE bellek
-# tuketimi is parcacigi sayisiyla artar (her parcacik kendi tamponunu tutar) ve
-# WSL2'de bu tepe dogrudan Windows'u bogar. Varsayilan 3'e cekildi; olcum sonucu
-# DEGISMEZ, yalnizca sure biraz uzar. Guclu makinede IPLIK=8 ile artirilabilir.
+# IPLIK: it used to be nproc, that is, every core. Kraken2's PEAK memory use grows
+# with the thread count (each thread keeps its own buffer) and under WSL2 that peak
+# chokes Windows directly. The default was pulled down to 3; the measurement result
+# DOES NOT CHANGE, it only takes a little longer. On a strong machine it can be
+# raised with IPLIK=8.
 IPLIK="${IPLIK:-3}"
-# ORNEK: esik taramasinda kullanilacak TOPLAM okuma sayisi. 0 = hepsi.
+# ORNEK: the TOTAL read count to be used in the threshold scan. 0 = all of them.
 # Gerekce asagida esik_tara icinde yazili.
 ORNEK="${ORNEK:-100000}"
 KAP="${KAP:-3000}"
@@ -99,29 +113,34 @@ log_ac() {
   trap 'echo; echo "finished $(date "+%Y-%m-%d %H:%M:%S %Z")"; echo "log: $LOG"' EXIT
 }
 
-# --- ortam. rerun_kraken.sh ile ayni: kraken2 micromamba "mikro" icinde --
+# --- the environment. The same as rerun_kraken.sh: kraken2 lives inside the
+#     micromamba "mikro" environment --
 # ---------------------------------------------------------------------------
 # ortam_ac - kraken2'yi BULUNABILIR hale getirir.
 #
 # NEDEN GENISLETILDI (2026-08-04)
 # Bu fonksiyon kaynak calismanin Kraken betiklerinden
-# devralinmisti: kraken2 PATH'te degildir, micromamba'nin "mikro" ortamindadir.
-# Ancak yalnizca "ortami etkinlestir" yolu deneniyordu. Kullanicinin kosusunda
-# micromamba kabuk kancasi calismadi ve kraken2 bulunamadi diye butun Kraken
-# adimlari atlandi. Oysa ikili diskte duruyordu.
+# was inherited: kraken2 is not on PATH, it is in micromamba's "mikro"
+# environment. But only the "activate the environment" route was being tried. On the
+# user's run the micromamba shell hook did not work and, because kraken2 could not be
+# found, every Kraken step was skipped. The binary was sitting on the disk all
+# along.
 #
-# Artik dort yol SIRAYLA denenir ve ilki tutunca durulur:
-#   0) KRAKEN2_BIN disaridan verilmisse dogrudan o kullanilir (en ust yetki).
+# Four routes are now tried IN ORDER and it stops at the first that holds:
+#   0) if KRAKEN2_BIN was given from outside it is used directly (the highest
+#      authority).
 #   1) Zaten PATH'te mi.
-#   2) KAYNAK CALISMANIN YOLU - degistirilmedi, aynen korundu: $HOME/bin PATH'e eklenir,
-#      MAMBA_ROOT_PREFIX kurulur, micromamba ya da conda ile "$ORTAM" acilir.
-#   3) Ortam KLASORLERINE dogrudan bakilir. Kabuk kancasi calismasa bile ikili
-#      yerindedir; etkinlestirmeye gerek yok, bin klasorunu PATH'e eklemek yeter.
+#   2) THE SOURCE STUDY'S ROUTE, unchanged and kept exactly: $HOME/bin is added to
+#      PATH, MAMBA_ROOT_PREFIX is set, and "$ORTAM" is opened with micromamba or
+#      conda.
+#   3) The environment DIRECTORIES are looked at directly. Even when the shell hook
+#      does not work the binary is in place; there is no need to activate anything,
+#      adding the bin directory to PATH is enough.
 #   4) Son care: $HOME altinda sinirli derinlikte kraken2 adli calistirilabilir
-#      dosya aranir.
+#      file is searched for.
 #
-# Bulunan yol KRAKEN2_BIN degiskenine yazilir ve disari verilir; boylece sonraki
-# adimlar PATH'e bagimli kalmaz.
+# The path found is written into the KRAKEN2_BIN variable and exported, so the
+# later steps do not depend on PATH.
 # ---------------------------------------------------------------------------
 ortam_ac() {
   ORTAM="${ORTAM:-mikro}"
@@ -132,9 +151,10 @@ ortam_ac() {
   _kayit() { BAKILAN_YERLER="${BAKILAN_YERLER}
     $1"; }
 
-  # kraken2 gercekten CALISIYOR mu. Dosyanin var olmasi yetmez: conda ikilileri
-  # ortamin lib klasorune bagimli olabilir ve ortam disindan cagrilinca
-  # kutuphane bulamayip patlayabilir. O yuzden --version fiilen denenir.
+  # Is kraken2 really RUNNING. The file existing is not enough: conda binaries can
+  # depend on the environment's lib directory and, called from outside the
+  # environment, they can fail to find a library and blow up. So --version is
+  # actually tried.
   _calisiyor_mu() { "$1" --version >/dev/null 2>&1; }
 
   _benimse() {
@@ -155,11 +175,11 @@ ortam_ac() {
     _benimse "$(command -v kraken2)" "PATH uzerinde bulundu"; return 0
   fi
 
-  # --- 2) ORTAM KLASORLERI, dogrudan -------------------------------------
-  # Kabuk kancasini calistirmadan once buraya bakilir. Sebep: kullanicinin
-  # kurulumunda tek bir ortam var (mikro) ve ikili orada duruyor; kancayi
-  # calistirmak hem yavas hem de bazi kabuklarda sessizce basarisiz oluyor.
-  # Dosyaya dogrudan bakmak daha hizli ve daha kesin.
+  # --- 2) THE ENVIRONMENT DIRECTORIES, directly ---------------------------
+  # This is looked at before running the shell hook. The reason: in this
+  # installation there is a single environment (mikro) and the binary is there;
+  # running the hook is both slow and, in some shells, silently unsuccessful.
+  # Looking at the file directly is faster and more certain.
   local k
   for k in \
       "$HOME/micromamba/envs/$ORTAM/bin/kraken2" \
@@ -178,11 +198,12 @@ ortam_ac() {
     _kayit "$k"
     [ -x "$k" ] || continue
     if _calisiyor_mu "$k"; then
-      _benimse "$k" "ortam klasorunde bulundu, dogrudan calistirilabiliyor"
+      _benimse "$k" "found in the environment directory, it runs directly"
       return 0
     fi
-    # Ikili var ama dogrudan calismiyor: ortam kutuphanelerine ihtiyaci var.
-    # Bu durumda micromamba run ile cagirmak ORTAMI BOZMADAN sorunu cozer
+    # The binary is there but does not run directly: it needs the environment's
+    # libraries. Calling it through micromamba run solves that WITHOUT DISTURBING
+    # THE ENVIRONMENT
     # (kaynak calismanin kraken2_driver.sh betigi kraken2'yi cipl ak cagiriyordu; biz
     # ortami etkinlestirmek yerine tek komutluk kabuk aciyoruz).
     local envad; envad="$(basename "$(dirname "$(dirname "$k")")")"
@@ -201,9 +222,9 @@ ortam_ac() {
     fi
   done
 
-  # --- 3) KAYNAK CALISMANIN YOLU: ortami etkinlestir -------------------------------
+  # --- 3) THE SOURCE STUDY'S ROUTE: activate the environment ---------------
   # Kaynak calismanin Kraken betiklerinden aynen devralindi.
-  _kayit "micromamba/conda kabuk kancasi + '$ORTAM' ortaminin etkinlestirilmesi"
+  _kayit "the micromamba or conda shell hook plus activating the '$ORTAM' environment"
   export PATH="$HOME/bin:$PATH"
   if command -v micromamba >/dev/null 2>&1; then
     eval "$(micromamba shell hook -s bash)" || true
@@ -213,11 +234,11 @@ ortam_ac() {
     conda activate "$ORTAM" || true
   fi
   if command -v kraken2 >/dev/null 2>&1; then
-    _benimse "$(command -v kraken2)" "ortam etkinlestirilerek bulundu ($ORTAM)"
+    _benimse "$(command -v kraken2)" "found by activating the environment ($ORTAM)"
     return 0
   fi
 
-  # --- 4) micromamba run, ortam etkinlestirmeden --------------------------
+  # --- 4) micromamba run, without activating the environment --------------
   _kayit "micromamba run -n $ORTAM kraken2"
   if command -v micromamba >/dev/null 2>&1 && \
      micromamba run -n "$ORTAM" kraken2 --version >/dev/null 2>&1; then
@@ -234,25 +255,25 @@ ortam_ac() {
   fi
 
   # --- 5) son care: ev dizininde arama -----------------------------------
-  _kayit "\$HOME altinda 6 derinlige kadar 'kraken2' adli calistirilabilir dosya"
+  _kayit "an executable named 'kraken2' under \$HOME, down to a depth of 6"
   k="$(find "$HOME" -maxdepth 6 -type f -name kraken2 -perm -u+x 2>/dev/null | head -1)"
   if [ -n "$k" ] && _calisiyor_mu "$k"; then
-    _benimse "$k" "ev dizininde arama ile bulundu"; return 0
+    _benimse "$k" "found by searching the home directory"; return 0
   fi
   export BAKILAN_YERLER
   return 1
 }
 
 # ---------------------------------------------------------------------------
-# tus_kraken_yol - kraken2'nin COZULMUS tam yolunu makine okunur basar.
+# tus_kraken_yol prints kraken2's RESOLVED full path, machine readable.
 #
-# Neden ayri bir tus: full_chain.py (A tusu) eskiden kraken2'yi kendi basina
-# PATH'te ariyordu ve bulamayinca butun Kraken adimlarini atliyordu. Artik
+# Why it is a key of its own: full_chain.py (key A) used to look for kraken2 on
+# PATH by itself and, failing to find it, skipped every Kraken step. Now
 # aramayi yapmiyor, bu tusu cagirip cevabi buradan aliyor. Arama mantigi TEK
-# YERDE durur; iki ayri yerde iki farkli arama olmaz.
+# ONE PLACE; there are no longer two different searches in two places.
 #
-# Cikti: bulursa tek satir  KRAKEN2_BIN=<tam yol>  ve cikis 0.
-#        bulamazsa cikis 1 ve stderr'e kurulum yonergesi.
+# The output: on success one line, KRAKEN2_BIN=<full path>, and exit 0.
+#             on failure exit 1 and the install instructions on stderr.
 # ---------------------------------------------------------------------------
 tus_kraken_yol() {
   if ortam_ac; then
