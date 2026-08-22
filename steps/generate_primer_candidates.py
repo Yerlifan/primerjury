@@ -2,38 +2,39 @@
 # -*- coding: utf-8 -*-
 """
 generate_primer_candidates.py
-Toplantı kararlarındaki oligo, termodinamik, ürün ve bölge kurallarını
-uygulayarak bir hedef konsensüsünden primer çifti adayları üretir.
+It produces primer pair candidates from a target consensus by applying the oligo,
+thermodynamics, product and region rules of the meeting decisions.
 
-Tasarım ilkeleri:
-  * Her Tm iki bağımsız kütüphaneyle ölçülür (primer3 ve Biopython). İki
-    kütüphane arasındaki SİSTEMATİK KAYMA veriden ölçülür (tüm adayların
-    farkının medyanı), sonra bu kaymadan tolerans kadar sapan oligo elenir.
-    Kayma elle yazılmaz.
-  * Hiçbir eşik veriye bakılmadan sabitlenmez; hepsi komut satırından
-    değiştirilebilir ve kullanılan değer log'a yazılır.
-  * Ürün doğrulaması makine tarafından yapılır: kalıptan kesilen parçanın
-    başı ileri primere, sonu geri primerin ters tümleyenine birebir eşit
-    olmalı. Eşit değilse aday sessizce elenmez, sayacı artar.
-  * Maske dosyasındaki hiçbir pozisyon primer ayak izine giremez. Ürünün
-    iç kısmındaki maskeli pozisyonlar serbesttir, çünkü kural yalnızca
-    primer yerleşimini kısıtlar.
+The design principles:
+  * Every Tm is measured with two independent libraries (primer3 and Biopython).
+    The SYSTEMATIC OFFSET between the two libraries is measured from the data (the
+    median of the difference across all candidates), and then the oligos departing
+    from that offset by more than the tolerance are eliminated. The offset is not
+    written by hand.
+  * No threshold is fixed without looking at the data; every one of them can be
+    changed from the command line and the value used is written to the log.
+  * The product is verified by machine: the head of the fragment cut from the
+    template must equal the forward primer exactly and its tail the reverse
+    complement of the reverse primer. If they are not equal the candidate is not
+    eliminated silently, a counter goes up.
+  * No position in the mask file may enter a primer footprint. Masked positions
+    inside the product are free, because the rule constrains the primer placement
+    only.
 
-KONSENSÜS HANGİ KLASÖRDEN OKUNMALI (2026-08-21 düzeltmesi)
-  Yalnız `konsensus_kanonik/` kullanın. Eski örnekler `consensus sequences/`
-  klasörünü gösteriyordu; o klasör KARIŞIK YÖNLÜDÜR (ölçülen: 71 antisense /
-  27 sense). Ters yönlü bir konsensüste in-silico PCR SESSİZCE 0 ürün verir —
-  ölçülen kayıp %100, kanıt `screening/orientation_impact_test.py`. Yasak
-  `screening/config.py` içinde de yazılıdır (KONSENSUS_KANONIK).
-  Kanonik klasör `screening/build_canonical.py` ile üretilir. Hangi kutunun
-  hangi dosyaya karşılık geldiği `konsensus_kanonik/INDEKS.tsv` içindedir;
-  dosya adını tahmin etmeyin, indeksten okuyun.
+WHICH DIRECTORY THE CONSENSUS MUST BE READ FROM (the 2026-08-21 fix)
+  Use `konsensus_kanonik/` only. The old examples pointed at the
+  `consensus sequences/` directory; that directory is MIXED ORIENTATION (measured:
+  71 antisense / 27 sense). On a reversed consensus, in-silico PCR SILENTLY gives 0
+  products; the measured loss is 100 percent and the evidence is
+  `screening/orientation_impact_test.py`. The prohibition is written in
+  `screening/config.py` as well (KONSENSUS_KANONIK).
+  The canonical directory is produced with `screening/build_canonical.py`. Which bin
+  corresponds to which file is in `konsensus_kanonik/INDEKS.tsv`; do not guess the
+  file name, read it from the index.
 
-Kullanım:
-  python3 generate_primer_candidates.py \
-      --consensus "konsensus_kanonik/A1-1_2209.kanonik.fa" \
-      --mask      "N_analizi/maske/A1-1_2209_maske.bed" \
-      --out       "primer_adaylari/A1-1_2209.tsv"
+Usage:
+  python3 generate_primer_candidates.py       --consensus "konsensus_kanonik/A1-1_2209.kanonik.fa"       --mask      "N_analizi/maske/A1-1_2209_maske.bed"       --out       "primer_adaylari/A1-1_2209.tsv"
+
 """
 import argparse, csv, itertools, os, statistics, sys
 
@@ -54,7 +55,7 @@ def rc(s):
     return s.translate(COMP)[::-1]
 
 
-# ----------------------------------------------------------------- argümanlar
+# ----------------------------------------------------------------- arguments
 def get_args():
     p = argparse.ArgumentParser(description="Primer cifti aday uretimi")
     p.add_argument("--consensus", required=True)
@@ -106,7 +107,7 @@ def get_args():
     p.add_argument("--hairpin-dg-min", type=float, default=-3000.0)
     p.add_argument("--homodimer-dg-min", type=float, default=-6000.0)
     p.add_argument("--heterodimer-dg-min", type=float, default=-6000.0)
-    # tampon kosullari, iki kutuphaneye de ayni verilir
+    # the buffer conditions, given identically to both libraries
     p.add_argument("--mv", type=float, default=50.0, help="tek degerlikli katyon mM")
     p.add_argument("--dv", type=float, default=1.5, help="iki degerlikli katyon mM")
     p.add_argument("--dntp", type=float, default=0.6, help="dNTP mM")
@@ -131,8 +132,11 @@ def get_args():
 
 # ------------------------------------------------------------------ yardimcilar
 def read_fasta(path):
-    """Tek kayitli FASTA okur. Cok kayitli dosyada durur, cunku kayitlarin
-    sessizce birlestirilmesi kavsak uzerinde yapay kimerik primer uretir."""
+    """Reads a single record FASTA. It stops on a file with several records, because
+    merging the records silently produces an artificial chimeric primer across the
+    junction.
+
+    """
     seq, names = [], []
     for line in open(path, encoding="utf-8", errors="replace"):
         if line.startswith(">"):
@@ -145,9 +149,12 @@ def read_fasta(path):
 
 
 def read_mask(path, seqlen, contig=None, strict_missing=True):
-    """BED -> yasak pozisyon kumesi (0 tabanli), sinif sayaci ve kontig raporu.
-    contig verilirse yalnizca o kontige ait satirlar alinir; eslesen satir yoksa
-    bu sessiz bir maskesizlige donusmesin diye uyari dondurulur."""
+    """BED -> the forbidden position set (0 based), a class counter and a contig report.
+    If contig is given, only the rows belonging to that contig are taken; if no row
+    matches, a warning is returned so that this does not turn into a silent absence of
+    masking.
+
+    """
     bad, classes, seen = set(), {}, {}
     if not path:
         return bad, classes, seen
@@ -186,41 +193,44 @@ def max_run(s):
     return best if s else 0
 
 
-# N bilerek listede yok: konsensusteki N bir kapsama boslugudur, kasitli
-# dejenerelik degildir. N iceren hicbir oligo uretilmez; primer3 de N'de
-# ValueError firlatir, yani sessiz yanlis Tm riski de ortadan kalkar.
+# N is deliberately absent from the list: an N in the consensus is a coverage gap,
+# not a deliberate degeneracy. No oligo holding an N is produced; primer3 raises
+# ValueError on an N too, so the risk of a silently wrong Tm disappears as well.
 DEGEN_FOLD = {"R": 2, "Y": 2, "S": 2, "W": 2, "K": 2, "M": 2,
               "B": 3, "D": 3, "H": 3, "V": 3}
 
-# IUPAC kodunun cozulecegi somut baz. Konsensus -A ile uretildigi icin
-# degisken pozisyonlar R, Y, S, W, K, M olarak yaziliyor. Toplanti karari
-# oligoda dejenere baz istemiyor; bu yuzden kod somut bir baza cozulur ve
-# secimin dogru olup olmadigi 09'da ham okumalarda deneysel olarak sinanir.
-# Cozum kurali sabit ve belirlenimci: kumenin alfabetik ilk bazi.
+# The concrete base an IUPAC code is resolved to. Because the consensus is produced
+# with -A, the variable positions are written as R, Y, S, W, K or M. The meeting
+# decision wants no degenerate base in an oligo; so the code is resolved to a
+# concrete base and whether the choice was right is tested experimentally on the raw
+# reads in specificity.py. The resolution rule is fixed and deterministic: the
+# alphabetically first base of the set.
 IUPAC_COZ = {"R": "A", "Y": "C", "S": "C", "W": "A", "K": "G", "M": "A",
              "B": "C", "D": "A", "H": "A", "V": "A"}
 
-# Kodun temsil ettigi bazlarin tamami. Belirsiz pozisyonu tek bir baza
-# indirgemek bilgi atmak olur; bunun yerine butun alternatifler uretilir,
-# hepsi ayni suzgeclerden gecer ve hangisinin gercekten baglandigina
-# 09'daki ham okuma taramasi karar verir.
+# All the bases the code stands for. Reducing an ambiguous position to a single
+# base would be throwing information away; instead every alternative is produced,
+# all of them pass the same filters, and the raw read scan in specificity.py decides
+# which one really binds.
 IUPAC_KUME = {"R": "AG", "Y": "CT", "S": "CG", "W": "AT", "K": "GT",
               "M": "AC", "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG"}
 
 
 def _iupac_denetle(win, a, uc="her"):
-    """Pencere IUPAC kurallarina uyuyor mu. (belirsiz_pozisyonlar, sebep).
+    """Does the window obey the IUPAC rules. (ambiguous_positions, reason).
 
-    uc: hangi zincirin oligosu uretilecek.
-        "F"   -> oligo = win        , 3' uc pencerenin SONU
-        "R"   -> oligo = rc(win)    , 3' uc pencerenin BASI
-        "her" -> iki ucu da yasakla (geriye donuk, daha sıkı)
+    uc: which strand's oligo will be produced.
+        "F"   -> oligo = win        , the 3' end is the END of the window
+        "R"   -> oligo = rc(win)    , the 3' end is the START of the window
+        "her" -> forbid both ends (backward compatible, stricter)
 
-    Zincir ayrimi sart: ayni pencereden hem F hem R uretiliyor ve R'nin 3'
-    ucu pencerenin BASINA denk geliyor. Tek yonlu denetim, R primerinin en
-    uctaki bazinin belirsiz bir pozisyondan tek alele sessizce sabitlenmesine
-    izin veriyordu. Olculdu: gercek veride 2000 satirin 435'inde R'nin 3'
-    terminal bazi cozulmus bir IUPAC pozisyonundan geliyordu."""
+    The strand distinction is required: both F and R are produced from the same window
+    and R's 3' end falls on the START of the window. A one sided check let the outermost
+    base of the R primer be fixed silently to a single allele from an ambiguous
+    position. Measured: on real data, in 435 of 2000 rows R's 3' terminal base came from
+    a resolved IUPAC position.
+
+    """
     if "N" in win:
         return None, "kalipta_N"
     k = [i for i, c in enumerate(win) if c not in "ACGT"]
@@ -249,9 +259,11 @@ def iupac_coz(win, a, uc="her"):
 
 
 def iupac_varyantlar(win, a, uc="her"):
-    """Pencerenin butun somut ACGT karsiliklarini uretir.
-    ([(oligo, cozulen_pozisyon_sayisi), ...], None) veya (None, sebep).
-    uc: uretilecek oligonun zinciri; _iupac_denetle'ye aynen gecer."""
+    """Produces every concrete ACGT counterpart of the window.
+    ([(oligo, resolved_position_count), ...], None) or (None, reason).
+    uc: the strand of the oligo to be produced; it is passed straight to _iupac_denetle.
+
+    """
     k, why = _iupac_denetle(win, a, uc)
     if k is None:
         return None, why
@@ -304,9 +316,9 @@ def tm_primer3(s, a):
 
 
 def tm_biopython(s, a):
-    # SantaLucia 1998 komsu-cift tablosu, Owczarzy 2008 tuz duzeltmesi.
-    # Iki kutuphanenin parametre eslemesi birebir ayni olmak zorunda degil;
-    # kural sistematik kaymayi olcup ondan sapani elemek uzerine kurulu.
+    # The SantaLucia 1998 nearest neighbour table, the Owczarzy 2008 salt correction.
+    # The parameter mapping of the two libraries does not have to be identical; the rule
+    # rests on measuring the systematic offset and eliminating what departs from it.
     return float(mt.Tm_NN(Seq(s), nn_table=mt.DNA_NN3, Na=a.mv, Mg=a.dv,
                           dNTPs=a.dntp, dnac1=a.dna_conc, dnac2=0,
                           saltcorr=7))
@@ -442,9 +454,9 @@ def main():
                 if abs(f["tm3"] - r["tm3"]) >= a.pair_tm_diff_max:
                     n_tmdiff += 1
                     continue
-                # F ve R ayak izleri cakisamaz; cakisirsa cogaltilabilir bir
-                # urun degildir. Varsayilan esiklerde gizli kalir, ancak
-                # --prod-min dusurulunce ortaya cikar.
+                # The F and R footprints cannot overlap; if they do it is not an
+                # amplifiable product. It stays hidden at the default thresholds
+                # and comes out once --prod-min is lowered.
                 if f["start"] + f["ln"] > r["start"]:
                     n_overlap += 1
                     continue
@@ -461,12 +473,12 @@ def main():
                     n_het += 1
                     continue
                 pgc = gc_pct(product)
-                # puanlama: kucuk ceza toplami daha iyi
+                # the scoring: a smaller penalty sum is better
                 pen = 0.0
                 pen += 0.0 if a.prod_best_min <= plen <= a.prod_best_max else \
                     min(abs(plen - a.prod_best_min), abs(plen - a.prod_best_max)) * 0.05
-                # --prod-max yumusak ust sinir: 250 ile 300 arasi kabul edilir
-                # ama cezalandirilir, boylece parametre olu kalmaz
+                # --prod-max is a soft upper bound: between 250 and 300 is accepted
+                # but penalised, so the parameter does not stay dead
                 if plen > a.prod_max:
                     pen += (plen - a.prod_max) * 0.10
                 for t in (f["tm3"], r["tm3"]):
