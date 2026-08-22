@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-"""TEK EXCEL - panelin bugunku butun dogru verisi, URETILEREK.
+"""ONE EXCEL, all of the panel's correct data as it stands today, PRODUCED.
 
-NEDEN
------
-Klasorde alti ayri xlsx vardi ve hicbiri guncel degildi; besinde eski primer
-dizisi duruyordu. Hangisinin dogru oldugunu soyleyen bir sey yoktu ve teslim
-dosyasindan siparis verilseydi yirmi ciftin altisi yanlis oligo gelecekti.
+WHY
+---
+There were six separate xlsx files in the directory and not one of them was current;
+five held an old primer sequence. Nothing said which was right, and had the order
+been placed from the delivery file, six of twenty pairs would have arrived as the
+wrong oligo.
 
-Bu betik TEK bir Excel uretir ve icindeki her sayi projenin kendi cikti
-dosyalarindan okunur. Elle yazilan tek sey aciklama metinleridir. Kaynak
-dosyalarin md5 ozeti kapak sayfasina yazilir; kaynak degisirse Excel de
-degisir.
+This script produces ONE Excel and every number in it is read from the project's own
+output files. The only thing written by hand is the explanatory text. The md5 digest
+of the source files is written on the cover sheet; if a source changes, the Excel
+changes.
 
-Kosum:
+To run:
     python verification/build_excel.py --kok .
-Cikti:
-    PrimerJury_PANEL_<tarih>.xlsx
+Output:
+    PrimerJury_PANEL_<date>.xlsx
+
 """
 from __future__ import print_function
 
@@ -64,17 +66,18 @@ def _md5(yol):
     return hashlib.md5(io.open(yol, 'rb').read()).hexdigest()[:12]
 
 def _terminal_ad(baslik):
-    """Soy dizgesinin en dar GERCEK takson halkasi.
+    """The narrowest REAL taxon ring of a lineage string.
 
-    Iki tuzak var, ikisi de olculdu (2026-08-11):
-      1) Kaynak alan 120 karakterde KESILIYOR (82 satirda tam 120). Son halka
-         yarim kalmis oluyor: "...;Sphaerochaeta;bacterium enrichment cu".
-         Yarim parcayi ad diye yazmak "Candidatus Nitrosoc" gibi uydurma
-         adlar uretir.
-      2) Kesilmemis olsa bile son halka cogu kayitta takson degil, kaydin
-         tanimi oluyor: "uncultured bacterium", "bacterium enrichment culture".
-    Bu yuzden sondan basa yurunur; yarim ya da takson olmayan halkalar
-    atlanir ve ilk GERCEK takson adi dondurulur.
+    There are two traps and both were measured (2026-08-11):
+      1) The source field IS CUT at 120 characters (exactly 120 on 82 rows). The last
+         ring is left half written: "...;Sphaerochaeta;bacterium enrichment cu".
+         Writing a half piece down as a name produces invented names like
+         "Candidatus Nitrosoc".
+      2) Even when it is not cut, on most records the last ring is not a taxon but the
+         record's description: "uncultured bacterium", "bacterium enrichment culture".
+    So it walks from the end towards the front, skipping the rings that are half written
+    or not taxa, and returns the first REAL taxon name.
+
     """
     b = (baslik or '').strip()
     if not b:
@@ -84,7 +87,7 @@ def _terminal_ad(baslik):
     parca = [x.strip() for x in re.split(r'[;|]', b2) if x.strip()]
     if not parca:
         return ''
-    # ilk halka erisim numarasi + alan olabilir: "AB854355.1.910 Archaea"
+    # the first ring can be an accession plus a domain: "AB854355.1.910 Archaea"
     parca[0] = re.sub(r'^[A-Z]{1,2}[_A-Z]*\d{5,}(\.\d+)*\s*', '', parca[0]).strip()
     if kesik and len(parca) > 1:
         parca = parca[:-1]         # son halka yarim, at
@@ -159,7 +162,7 @@ def main():
         'panel (diziler, plaka, Ta)': panel_yolu,
         'siparis listesi (hukum)': T('TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'),
         'panel olcumu (dCq, kapsam)': T('TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'),
-        'geometri (primer3)': None,     # asagida en yenisi secilir
+        'geometri (primer3)': None,     # the newest one is chosen below
         'kutu kimlikleri': T('TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv'),
         'dogrulama (4 katman)': T('DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'),
         'NCBI 4. katman (siki)': T('DOGRULAMA_SONUC', 'ncbi_katman4_siki.tsv'),
@@ -199,10 +202,10 @@ def main():
         ciftler.append(dict(hedef=r[iH].strip(), plaka=r[iP].strip(), ta=r[iT].strip(),
                             F=F, R=R, urun=r[iU].strip()))
 
-    # PANEL KAYNAGINDA SATIRI OLMAYAN ama SIPARISE GIREN cift sessizce
-    # dusmesin: 2, 5 ve 6. sayfalar bu birlesik liste uzerinden kurulur.
-    # (Ilk surumde Petriella_cinsi 5 ve 6. sayfalarda YOKTU - panel kaynagini
-    # dolasip siparis listesini gormuyordum.)
+    # So that a pair with NO ROW IN THE PANEL SOURCE but THAT GOES INTO THE ORDER does
+    # not drop silently: sheets 2, 5 and 6 are built over this combined list.
+    # (In the first version Petriella_cinsi WAS MISSING from sheets 5 and 6, because I
+    # walked the panel source and never saw the order list.)
     panelde = {c['hedef'] for c in ciftler}
     for ad, sl in SL.items():
         if ad in panelde:
@@ -334,9 +337,10 @@ def main():
         for r in ksat[kb + 1:]:
             if not r or not r[0].strip():
                 continue
-            # SUTUN SAYISI SARTI: dosyanin sonunda 1-2 sutunluk NOT satirlari
-            # var; yalniz "ilk hucre dolu mu" diye bakmak onlari da kutu sanar
-            # (ilk surumde 96 yerine 102 satir uretti). Tam satir sarti konuldu.
+            # THE COLUMN COUNT CONDITION: there are 1 or 2 column NOTE rows at
+            # the end of the file; looking only at "is the first cell filled"
+            # takes those for bins as well (the first version produced 102 rows
+            # instead of 96). A full row condition was put in.
             if len(r) < len(H) - 1:
                 continue
             K.append(dict(zip(H, r)))
@@ -379,15 +383,15 @@ def main():
         for r in K:
             duzey = (r.get('SAVUNULABILIR_DUZEY') or '').strip().upper()
             if duzey.startswith('TUR'):
-                continue                    # zaten tur adi var
+                continue                    # there is a species name already
             e1, e2 = _f(r.get('en_iyi_kimlik_%')), _f(r.get('ikinci_kimlik_%'))
             lokus = (r.get('lokus') or 'SSU').strip().upper()
             te = TE.get(lokus, 98.7)
             ce = CE.get(lokus, 94.5)
             c1, t1, _tam = ad_coz(r.get('en_iyi_isabet', ''))
             c2, t2, _tam2 = ad_coz(r.get('ikinci_isabet', ''))
-            # ad_coz ikili ad bulamazsa soyun en dar halkasina dus; hangi
-            # yoldan gelindigi "ad kaynagi" sutununda yazar.
+            # if ad_coz finds no binomial, fall back on the narrowest ring of the
+            # lineage; which route was taken is written in the "ad kaynagi" column.
             aday1 = t1 or (c1 + ' sp.' if c1 else '') or _terminal_ad(r.get('en_iyi_isabet', ''))
             aday2 = t2 or (c2 + ' sp.' if c2 else '') or _terminal_ad(r.get('ikinci_isabet', ''))
             kaynak1 = ('ikili ad' if t1 else ('cins' if c1 else 'soyun en dar halkasi'))
@@ -425,7 +429,7 @@ def main():
           ['For bins that CANNOT be given a species name, this is the species candidate with the highest percentage. This column is NOT AN IDENTITY CLAIM; it says "the nearest record is this one, at this percentage". The thresholds are the panel\'s own rules: SSU/LSU species 98.7%, ITS 98.5%; genus 94.5% / 90.0%; and if the gap between the best and the second is smaller than 0.5% a species assignment is not defensible. The names were extracted with the panel\'s own ad_coz() function, and no new rule was introduced.'],
           renk=lambda s: IYI if (_f(s['kimlik %']) or 0) >= 98.7 and (_f(s['marj']) or 0) >= 0.5 else None)
 
-    # ================= 5 ESIK =================
+    # ================= 5 THE THRESHOLD =================
     es = []
     for c in ciftler:
         r = ES.get(c['hedef'])

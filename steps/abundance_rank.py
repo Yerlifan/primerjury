@@ -2,50 +2,52 @@
 # -*- coding: utf-8 -*-
 """
 abundance_rank.py
-BOLLUK TABLOSUNU, VERININ DESTEKLEDIGI RUTBEDE VERIR.
+GIVES THE ABUNDANCE TABLE AT THE RANK THE DATA SUPPORTS.
 
-Neden Bracken calistirilmadi
-----------------------------
-Ilk plan, guven duzeltmesi uygulanmis Kraken2 raporlarini Bracken'a verip
-cins duzeyinde bolluk uretmekti. Once olculdu ve plan birakildi.
+Why Bracken was not run
+-----------------------
+The first plan was to feed the confidence corrected Kraken2 reports to Bracken and
+produce abundance at genus level. It was measured first and the plan was dropped.
 
-Bracken, ust rutbelerde duran okumalari veritabanindaki k-mer dagilimini
-kullanarak asagi dagitir. Bu, gercek organizmanin veritabaninda BULUNDUGU
-varsayimina dayanir. Bu numunede o varsayim kurulamiyor:
+Bracken distributes the reads sitting at upper ranks downward, using the k-mer
+distribution of the database. That rests on the assumption that the real organism IS
+IN the database. In this sample that assumption cannot be made:
 
-  Guven esigi 0,02'den sonra 2 314 887 okumanin
-     cins duzeyine inebilen  :  400 190  (%17,3)
-     cins duzeyine inemeyen  : 1 723 684  (%77,7)
-     siniflandirilmamis      :  115 343  (%5,0)
+  After a confidence threshold of 0,02, of 2 314 887 reads
+     able to reach genus level    :  400 190  (17.3 percent)
+     unable to reach genus level  : 1 723 684  (77.7 percent)
+     unclassified                 :  115 343  (5.0 percent)
 
-  Grup grup bakildiginda tablo daha da keskin:
-     Arke  (barcode01-08) : okumalarin %72-96'si cins duzeyine iniyor
-     Bakteri (barcode17-20): yalnizca %8-9
-     Mantar F1 (13-16)    : %0,6-2,4
-     Mantar F2 (09-12)    : %0,02-0,3
+Group by group the table is sharper still:
+     Archaea  (barcode01-08) : 72 to 96 percent of the reads reach genus level
+     Bacteria (barcode17-20) : only 8 to 9 percent
+     Fungi F1 (13-16)        : 0.6 to 2.4 percent
+     Fungi F2 (09-12)        : 0.02 to 0.3 percent
 
-Yani arke tarafinda cins duzeyi bolluk saglam, bakteri ve mantar tarafinda
-degil. Mantarda okumalarin %99,7'sini veritabani onceliklerine gore cinse
-dagitmak, sayi uretmek olur. Ustelik bu numunede baskin mantarin
-(Microascaceae, Petriella'ya yakin) ve bakteri soylarinin cogunun
-veritabaninda bulunmadigi ayrica olculdu.
+So genus level abundance is sound on the archaeal side and not on the bacterial and
+fungal sides. Distributing 99.7 percent of the fungal reads to genera by the
+database's priors would be manufacturing numbers. On top of that it was separately
+measured that the dominant fungus in this sample (Microascaceae, close to
+Petriella) and most of the bacterial lineages are not in the database.
 
-Bu betigin yaptigi
-------------------
-Her orneğin bollugunu, o ornekte VERININ DESTEKLEDIGI en dar rutbede verir.
-Rutbe elle secilmez: okumalarin belirli bir orani (varsayilan %50) hangi
-rutbede ya da altinda yerlesebiliyorsa o rutbe secilir. Yerlesemeyen
-okumalar gizlenmez, ayri satirda "daha ust rutbede kaldi" olarak durur.
+What this script does
+---------------------
+It gives each sample's abundance at the narrowest rank THE DATA SUPPORTS in that
+sample. The rank is not chosen by hand: whichever rank a given proportion of the
+reads (50 percent by default) can settle at or below is the rank chosen. The reads
+that cannot settle are not hidden; they stay on a separate row as "left at a higher
+rank".
 
-Kullanim:
+Usage:
   python3 abundance_rank.py --kraken kraken_c0.02 --out bolluk_c0.02
+
 """
 import argparse, csv, glob, os, re, sys
 from collections import defaultdict
 
-# Kraken2 rutbe kodlari, genisten dara. Alt rutbeler (P1, C2 gibi) ana
-# rutbeye katlanir; ara rutbeler taksonomi surumune gore degisir ve
-# karsilastirmayi kirilgan yapar.
+# The Kraken2 rank codes, from broad to narrow. Sub-ranks (P1, C2 and the like) are
+# folded into the main rank; the intermediate ranks change with the taxonomy version
+# and make the comparison fragile.
 RUTBE_SIRA = ["D", "K", "P", "C", "O", "F", "G", "S"]
 RUTBE_ADI = {"D": "alem üstü", "K": "alem", "P": "şube", "C": "sınıf",
              "O": "takım", "F": "aile", "G": "cins", "S": "tür"}
@@ -84,10 +86,12 @@ def get_args():
 
 
 def rapor_oku(yol):
-    """Kraken2 raporunu okur. Girinti derinliginden ebeveyn zinciri de kurulur;
-    ayni rutbedeki ic ice dugumleri ayirt etmek icin gerekli.
-    Doner: (dogrudan{taxid:(rutbe, ad, sayi)}, klan{taxid:sayi},
-            ebeveyn{taxid:taxid}, toplam)"""
+    """Reads a Kraken2 report. The parent chain is built from the indentation depth as
+    well; that is needed to tell nested nodes at the same rank apart.
+    Returns: (direct{taxid:(rank, name, count)}, clade{taxid:count},
+              parent{taxid:taxid}, total)
+
+    """
     dogrudan, klan, ebeveyn = {}, {}, {}
     toplam = 0
     yol_yigin = []
@@ -137,7 +141,7 @@ def main():
         sinifsiz = sum(d for r, _, d in dogrudan.values() if r == "U")
         siniflanan = toplam - sinifsiz
 
-        # her ana rutbe icin: o rutbede YA DA ALTINDA dogrudan atanan okuma
+        # for each main rank: the reads assigned directly AT or BELOW that rank
         rut_dogrudan = defaultdict(int)
         for tx, (rut, ad, dg) in dogrudan.items():
             r = ana_rutbe(rut)
@@ -166,17 +170,17 @@ def main():
                 oran=round(100.0 * kumulatif[r] / siniflanan, 3) if siniflanan else 0.0,
                 secilen=("EVET" if r == secilen else "")))
 
-        # Secilen rutbede bolluk: o rutbedeki taksonlarin KLAN sayilari.
+        # The abundance at the chosen rank: the CLADE counts of the taxa at that rank.
         #
-        # DIKKAT: ayni ana rutbede IC ICE dugumler bulunabilir. Kraken2
-        # raporunda gercek sube "P", alt sube "P1", onun alti "P2" diye
-        # kodlanir ve hepsi ayni ana rutbeye katlanir. Ust dugumun klani
-        # alt dugumun klanini zaten icerdigi icin ikisini birden saymak
-        # cift sayimdir. Olculdu: duzeltmeden once barcode10'un yuzdeleri
-        # toplami %368,54 cikiyordu.
+        # CAREFUL: NESTED nodes can appear at the same main rank. In a Kraken2
+        # report the real phylum is coded "P", the subphylum "P1", the one under
+        # it "P2", and all of them fold into the same main rank. Because the
+        # upper node's clade already holds the lower node's clade, counting both
+        # is double counting. Measured: before the fix the percentages of
+        # barcode10 summed to 368.54 percent.
         #
-        # Cozum: yalnizca ayni ana rutbeden ATASI OLMAYAN dugumler alinir.
-        # Bu kume tanim geregi ayriktir, klanlari ortusmez.
+        # The fix: only the nodes with NO ANCESTOR at the same main rank are taken.
+        # That set is disjoint by definition and its clades do not overlap.
         def ust_ayni_rutbede(tx, r):
             p = ebeveyn.get(tx)
             gorulen = set()
@@ -192,8 +196,8 @@ def main():
             if ana_rutbe(rut) == secilen and not ust_ayni_rutbede(tx, secilen):
                 sec.append((ad, klan.get(tx, 0), tx))
         sec.sort(key=lambda z: -z[1])
-        # ayrik kume denetimi: klan toplami, o rutbede ya da altinda yerlesen
-        # okuma sayisini asamaz
+        # the disjoint set check: the clade total cannot exceed the number of reads that
+        # settle at or below that rank
         _t = sum(z[1] for z in sec)
         if _t > kumulatif[secilen] + 1:
             print(u'   WARNING barcode%02d: at rank %s the clade total (%d) exceeds the placed reads (%d), which can be double counting'
@@ -248,7 +252,7 @@ def main():
             w.writeheader(); w.writerows(satirlar)
     print("\nyazildi: %s" % a.out)
 
-    # grup grup ozet
+    # a summary group by group
     print("\nGRUP BAZINDA VERININ DESTEKLEDIGI RUTBE")
     print("%-4s %-24s %-14s %10s %10s" % ("grup", "aciklama", "secilen rutbe",
                                           "cins orani", "tur orani"))
