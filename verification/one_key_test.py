@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
-u"""one_key.py'nin SENARYO SINAMALARI - hicbiri gercek klasore dokunmaz.
-
-NEDEN GOLGE KOK
----------------
-Sinama, asamalarin DUSMESINI ve YARIM KALMASINI da denemek zorunda. Bunu
-gercek klasorde yapmak siparis karariniN dayandigi TSV'leri bozardi. Bu
-yuzden her senaryo /tmp altinda kurulan bir GOLGE KOK'te kosar:
-  * agir ve salt-okunur klasorler SEMBOLIK BAGLANTI ile baglanir (kopyalanmaz)
-  * asama betikleri SAHTE betiklerle degistirilir (davranisi biz belirleriz)
-  * butun yazmalar /tmp icinde kalir
-Bagli klasore tek bayt yazilmaz. Sinama sonunda golge kok /tmp'de kalir.
-
-KOSUM:  python3 verification/one_key_test.py --root .
-"""
+'THE SCENARIO TESTS of one_key.py. Not one of them touches the real '
+'directory.  WHY A SHADOW ROOT ----------------- The tests have to try a '
+'stage FAILING and a stage BEING LEFT HALF DONE. Doing that in the real '
+'directory would corrupt the tables an ordering decision rests on. So every '
+'scenario runs in a SHADOW ROOT set up under the temporary directory:   * the '
+'heavy, read only directories are SYMLINKED rather than copied   * the stage '
+'scripts are replaced by FAKE ones whose behaviour we set   * every write '
+'stays inside the temporary directory Not one byte is written into the '
+'mounted directory. The shadow root is left behind after the run.  To run it: '
+'python3 verification/one_key_test.py --root .'
 
 import os, sys, io, json, time, shutil, argparse, subprocess, tempfile
 
@@ -155,15 +151,17 @@ def ayar_yaz(taban, ayar):
 
 
 def basarili_ayar():
-    u"""Butun asamalari basarili yapan varsayilan davranis."""
+    'The default behaviour, which makes every stage succeed.'
     return {
         'sina': dict(rc=0, selftest_metni=u'TUM SINAMALAR GECTI.'),
         # N: the audit stage. Its fake script has to write its own report,
         # otherwise the output check says DUSTU and the chain stops at N.
         'N': dict(rc=0, yaz={'ONE_KEY_RESULT/DENETIM_RAPORU.md':
-                             u'# denetim raporu\n\nSahte rapor, sinama icin.\n'}),
+                             '# the audit report  A fake report, for the '
+                             'test.'}),
         'H': dict(rc=0, yaz={'QUICK_TEST/QUICK_TEST_REPORT.md':
-                             u'# rapor\n\nZINCIR TUTARLI (kendi referansina gore)\n'}),
+                             '# the report  ZINCIR TUTARLI (against its own '
+                             'reference)'}),
         'E': dict(rc=0, yaz={'ACCESS_RESULT/erisim_dogrulama.tsv':
                              u'vtb\tsonuc\narchaea\tGECTI\n'}),
         'U': dict(rc=0, yaz={'uyelik_yeniden_turetme_uyelik_29991231.tsv':
@@ -181,7 +179,8 @@ def basarili_ayar():
         'G': dict(rc=0, yaz={'ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv':
                              u'kutu\tkimlik\nA1\tX\n'}),
         'S': dict(rc=0, yaz={'SCREENING_RESULT/00_OZET_HEPSI.md':
-                             u'# ozet\n\nSahte ozet dosyasi, sinama icin.\n'}),
+                             '# the summary  A fake summary file, for the '
+                             'test.'}),
     }
 
 

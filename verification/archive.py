@@ -51,7 +51,7 @@ def kod_dosyalari(kok):
 
 
 def _guncel_diziler(kok):
-    """Panelin SU ANKI butun primer dizileri."""
+    'Every primer sequence the panel holds NOW.'
     y = os.path.join(kok, 'primer_final',
                      'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     out = set()
@@ -74,7 +74,7 @@ def _guncel_diziler(kok):
 
 
 def _xlsx_dizi_sayimi(yol, guncel):
-    """(dosyadaki primer benzeri dizi sayisi, bunlarin GUNCEL olani)."""
+    '(how many primer-like sequences the file holds, and how many of those are CURRENT).'
     try:
         import openpyxl
         wb = openpyxl.load_workbook(yol, data_only=True, read_only=True)
@@ -94,7 +94,7 @@ def _xlsx_dizi_sayimi(yol, guncel):
 
 
 def adaylar(kok):
-    """(yol, sebep) listesi. Yol koke GORELIDIR."""
+    'A list of (path, reason). The path is RELATIVE to the root.'
     a = []
     # The CURRENT produced Excel is NEVER a candidate. (In the first plan the
     # PrimerJury_PANEL_20260811.xlsx I had produced myself fell into the list of files
@@ -112,23 +112,26 @@ def adaylar(kok):
         if n_dizi == 0:
             continue
         a.append((os.path.relpath(f, kok),
-                  u'primer dizisi tasiyor ve %d/%d tanesi GUNCEL DEGIL; '
-                  u'tek dogru dosya PrimerJury_PANEL_*.xlsx'
+                  'it carries primer sequences and %d of %d are NOT CURRENT; '
+                  'the one correct file is PrimerJury_PANEL_*.xlsx'
                   % (n_dizi - n_guncel, n_dizi)))
     for kalip, sebep in ((u'**/*.yedek_*', u'gece/gun yedegi'),
-                         (u'**/*.orig_*', u'eski surum yedegi'),
-                         (u'**/*.yedek_LF', u'satir sonu duzeltmesi oncesi yedek')):
+                         (u'**/*.orig_*', 'a backup of an older version'),
+                         (u'**/*.yedek_LF', 'a backup from before the line '
+                                            'ending fix')):
         for f in glob.glob(os.path.join(kok, kalip), recursive=True):
             if os.path.isfile(f) and not any(y in f for y in YOKSAY):
                 a.append((os.path.relpath(f, kok), sebep))
     if os.path.exists(os.path.join(kok, 'geo.json')):
-        a.append(('geo.json', u'geometry_core.py ice aktarilinca yaziliyordu; artik '
-                  u'uretilmiyor (__main__ korumasi eklendi)'))
+        a.append(('geo.json', 'it used to be written whenever '
+                              'geometry_core.py was imported; it is no longer '
+                              'produced, since a __main__ guard was added'))
     for f in ('REFERANS_DB/SILVA_SSURef_NR99.fasta',
               'REFERANS_DB/SILVA_LSURef_NR99.fasta'):
         if os.path.exists(os.path.join(kok, *f.split('/'))):
-            a.append((f, u'ikiz kopya; oylamaya girmiyor ve SSU olani artik '
-                      u'ikiz DEGIL (138.2 surumu U->T cevrildi, bu kopya RNA)'))
+            a.append((f, 'a twin copy. It does not enter the vote, and the '
+                         'SSU one is NO LONGER a twin: the 138.2 release was '
+                         'converted from U to T while this copy is RNA'))
     # the same file can come twice under two patterns
     gor = set()
     tek = []
@@ -164,20 +167,21 @@ def main():
     # move" flag.
     ZORLA = {
         'PrimerJury_PCR_Paneli_2026-08-02.xlsx':
-            u'yalniz tarihsel duzeltme betikleri okuyor (DUZELTME_/MADDE123_/'
-            u'SON_ETAP_/WSL devir_2026-08-02); zincirde kosan hicbir sey okumuyor',
+            'only historical correction scripts read it; nothing that runs in '
+            'the chain does',
         'PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx':
-            u'canli okuyucular bugun YENI Excel e baglandi (cross_check.py, '
-            u'audit_all.py, one_key.py); kalan gecisler tarihsel betikler '
-            u've aciklama metinleri',
+            'the live readers were moved onto the NEW Excel today '
+            '(cross_check.py, audit_all.py, one_key.py); what is left are '
+            'historical scripts and explanatory text',
         'PrimerJury_Primer_Tasarimi.xlsx':
-            u'WSL betikleri bu dosyayi URETIYOR (--out), okumuyor; gerekirse '
-            u'yeniden uretilir',
+            'the step scripts PRODUCE this file with --out rather than '
+            'reading it, so it can be produced again',
         'REFERANS_DB/SILVA_SSURef_NR99.fasta':
-            u'identity_verification.py listesinden bugun cikarildi (oylamaya zaten '
-            u'girmiyordu ve artik ikiz DEGIL: bu kopya RNA, 138.2 surumu DNA)',
+            'taken out of the identity_verification.py list today. It never '
+            'entered the vote, and it is NO LONGER a twin: this copy is RNA '
+            'while the 138.2 release is DNA',
         'REFERANS_DB/SILVA_LSURef_NR99.fasta':
-            u'identity_verification.py listesinden bugun cikarildi',
+            'taken out of the identity_verification.py list today',
     }
 
     tasinacak, birakilacak = [], []
@@ -197,7 +201,7 @@ def main():
                   'order_form.py')]
         canli = [g for g in gecen if not any(t in g for t in tarihsel)]
         if gecen and not canli:
-            sebep = sebep + (u' | yalniz tarihsel betikler aniyor: %s'
+            sebep = sebep + (' | only historical scripts mention it: %s'
                              % ', '.join(gecen[:3]))
             gecen = []
         if yol in ZORLA:

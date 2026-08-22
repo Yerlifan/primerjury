@@ -157,8 +157,9 @@ def kutu_envanteri(kok, K):
     kons = {d['kutu']: d['dizi'] for d in kons_l}
     hepsi = sorted(kons)
     katilan = sorted(set(uye) | set(rakip))
-    atlanan = [(k, u'hicbir hedefin uyesi ya da rakibi degil - panel olcumlerine '
-                   u'girmiyor, ayrim hesaplarini etkilemiyor')
+    atlanan = [(k, 'it is neither a member nor a competitor of any target, so '
+                   'it does not enter the panel measurements and does not '
+                   'affect the separation figures')
                for k in hepsi if k not in set(katilan)]
     return katilan, atlanan, uye, rakip, kons, H
 
@@ -349,7 +350,7 @@ def kutu_hukmu(K, bulgular, lokus_tab):
     if len(uyusan_vtb) >= 2:
         hukum = 'DOGRULANDI'
     elif len(uyusan_vtb) == 1:
-        hukum = 'DOGRULANAMADI (tek kaynak)'
+        hukum = 'DOGRULANAMADI (a single source)'
     else:
         hukum = 'DOGRULANAMADI'
     return adl, hukum, uyusan_cins, uyusan_vtb, lokus, oy
@@ -362,13 +363,13 @@ def kutu_hukmu(K, bulgular, lokus_tab):
 def ayni_mi(kayitli, dogrulanan_cins, adl):
     """Do the recorded identity and the verified identity point at the same genus?"""
     if not kayitli or kayitli in ('?', '-'):
-        return 'KAYIT YOK', u'taxid_names.tsv icinde bu taxid icin ad yok'
+        return 'KAYIT YOK', 'there is no name for this taxid in taxid_names.tsv'
     if not dogrulanan_cins:
-        return 'BELIRSIZ', u'dogrulanan kimlikte cins cozulemedi'
+        return 'BELIRSIZ', 'no genus could be resolved from the confirmed identity'
     kc = re.sub(r'^(Ca\.|Candidatus)\s+', '', kayitli).split()[0]
     if kc.lower() == dogrulanan_cins.lower():
         return 'EVET', ''
-    return 'HAYIR', u'kayitli "%s" -> olculen "%s"' % (kayitli, dogrulanan_cins)
+    return 'HAYIR', 'recorded "%s" against measured "%s"' % (kayitli, dogrulanan_cins)
 
 
 # --------------------------------------------------------------- THE RUN
@@ -545,7 +546,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
             bek = BEKLENEN_KAYIT.get(et)
             kapsam = ('TAMAMI' if bek and taranan >= bek else
                       ('TAMAMI (beklenen bilinmiyor)' if not bek else
-                       'EKSIK (%d / %d)' % (taranan, bek)))
+                       'INCOMPLETE (%d of %d)' % (taranan, bek)))
             kapsam_kayit[et] = (taranan, bek, kapsam)
             for k, q in kalan.items():
                 kl = kls.get(k) or []
@@ -555,10 +556,11 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                                hizalanan=0, isabet=[], kazanan_sira=None,
                                kazanan_kaynak=None, sira_uyarisi=None,
                                taranan_kayit=taranan, kapsam=kapsam,
-                               sebep=u'TEMIZ SAYILMAZ: tarandi (%s kayit, kapsam %s) '
-                                     u'ama hicbir kayit sorgunun tohumlarini '
-                                     u'tutturmadi; kutu bu veritabaninin alani '
-                                     u'disinda olabilir'
+                               sebep='IT DOES NOT COUNT AS CLEAN: it was '
+                                     'scanned (%s records, coverage %s) but '
+                                     "not one record matched the query's "
+                                     'seeds, so the bin may be outside this '
+                                     "database's domain"
                                      % ('{:,}'.format(taranan).replace(',', ' '), kapsam))
                 else:
                     res = K.kl_degerlendir(kl, q, kl_ust, taranan=taranan, t0=t0)
@@ -613,7 +615,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
 # -------------------------------------------------------------------------
 def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_kip,
                KONTROL, CIKTI, yaz, var, yok):
-    u"""Tek kutunun satiri: kayitli kimlik, dogrulanan kimlik, uyusma, kaynak muhasebesi."""
+    "One bin's row: the recorded identity, the confirmed identity, whether they agree, and the source accounting."
     taxid = kutu.split('_')[-1]
     kayitli = H.taxid_adlari().get(taxid, '')
 
@@ -627,10 +629,11 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
     if K.NT_ETIKET not in bulgular:
         if nt_kip == 'yok':
             bulgular[K.NT_ETIKET] = dict(
-                durum=u'SORULMADI (--nt yok)', isabet=[],
-                sebep=u'G asamasinda nt varsayilan olarak kapali: kutu basina ayri '
-                      u'BLAST kuyrugu gerekir. `I` asamasindan onbellek de yok. '
-                      u'--nt oto ile acilir.')
+                durum='NOT ASKED (--nt was not given)', isabet=[],
+                sebep='nt is off by default at this stage, because it needs a '
+                      'separate BLAST queue per bin, and there is no cache '
+                      'left from the identity stage either. It is turned on '
+                      'with --nt oto.')
         else:
             bulgular[K.NT_ETIKET] = K.nt_katmani(kutu, q, CIKTI, yaz, nt_kip)
             if str(bulgular[K.NT_ETIKET].get('durum', '')).startswith('TAMAM'):
@@ -660,7 +663,8 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
         v = bulgular.get(et)
         if v is None:
             detay[et] = dict(durum=u'SORULMADI (BILINMEYEN)', en_iyi='', kimlik=None,
-                             sebep=u'bu veritabani hic denenmedi - HATA, bildirin')
+                             sebep='this database was never tried, which is a '
+                                   'FAULT; please report it')
             continue
         d = str(v.get('durum', '?'))
         isb = (v.get('isabet') or [])
@@ -698,7 +702,7 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
 # on a tie, the bin affecting more targets comes first. Whoever reads the report
 # should see the row that creates the most work first.
 def _sirala(s):
-    """UYUSMAYANLAR EN BASA. Sonra belirsizler, sonra uyusanlar."""
+    'THE DISAGREEMENTS COME FIRST, then the undecided ones, then the ones that agree.'
     o = {'HAYIR': 0, 'BELIRSIZ': 1, 'KAYIT YOK': 2, 'EVET': 3}
     return (o.get(s['uyusuyor'], 9), -len(s['uye_hedefler']) - len(s['rakip_hedefler']),
             s['kutu'])
@@ -754,7 +758,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
             hepsi = ' | '.join(
                 '%s [%s]: %s%s%s%s'
                 % (e,
-                   ('%s kayit, kapsam %s' % ('{:,}'.format(v['taranan_kayit']).replace(',', ' '),
+                   ('%s records, coverage %s' % ('{:,}'.format(v['taranan_kayit']).replace(',', ' '),
                                              v.get('kapsam') or '?'))
                    if v.get('taranan_kayit') else v['durum'],
                    v['en_iyi'] or v['durum'],
@@ -854,7 +858,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                 fh.write(u'- **Recorded identity:** %s\n' % s['kayitli_kimlik'])
                 fh.write(u'- **Dogrulanan:** %s  (`%s`) - %s\n'
                          % (s['dogrulanan_ad'], s['duzey'], s['hukum']))
-                fh.write(u'  - *Gerekce:* %s\n' % s['gerekce'])
+                fh.write('  - *The reason:* %s' % s['gerekce'])
                 fh.write(u'- **The targets it is a member of:** %s\n'
                          % (', '.join(s['uye_hedefler']) or '-'))
                 fh.write(u'- **The targets it is a competitor of:** %s\n'
@@ -877,7 +881,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                                 v.get('kazanan_sira') if v.get('kazanan_sira') is not None else '-'))
                 fh.write(u'\n')
         if atlanan:
-            fh.write(u'## Atlanan kutular\n\n')
+            fh.write('## The bins that were skipped')
             fh.write(u'These are not a member or a competitor of any target, so they enter no discrimination calculation. They are not skipped silently')
             for k, sebep in atlanan:
                 fh.write(u'- `%s` - %s\n' % (k, sebep))
