@@ -273,8 +273,7 @@ def main():
     notlar = [u'Tedarikciye bu sayfa verilir. %d cift = %d oligo. Diziler 5→3 '
               u'yonundedir, hicbirinde dejenere baz yoktur.' % (len(oligo) // 2, len(oligo))]
     if ek_uyari:
-        notlar.append(u'UYARI: %s icin panel tablosunda satir yok; plaka ve Ta '
-                      u'bilinmiyor, "BELIRSIZ" yazildi.' % ', '.join(ek_uyari))
+        notlar.append(u'WARNING: there is no row for %s in the panel table; the plate and Ta are unknown, so "BELIRSIZ" was written.' % ', '.join(ek_uyari))
     sayfa(wb, '1 Siparis',
           ['oligo adi', 'dizi (5→3)', 'uzunluk', 'hedef', 'yon', 'plaka',
            'Ta (C)', 'urun (bp)', 'sinif', 'siparis sarti'],
@@ -503,7 +502,7 @@ def main():
 
     cy = T('PrimerJury_PANEL_%s.xlsx' % time.strftime('%Y%m%d'))
     wb.save(cy)
-    print('yazildi: %s' % cy)
+    print(u'written: %s' % cy)
     print('  sayfalar: %s' % ', '.join(wb.sheetnames))
     print(u'  order oligos: %d | panel pairs: %d | bins: %d | genus-species rows: %d'
           % (len(oligo), len(pr), len(kim), len(ct)))

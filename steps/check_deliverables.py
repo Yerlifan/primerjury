@@ -189,7 +189,7 @@ def main():
                                                  kuyruk.count("G") + kuyruk.count("C")))
             if en_uzun_tekrar(s) > a.homopolimer_max:
                 ekle("KRITIK", r, "homopolimer",
-                     "%s %d ardisik ayni baz" % (ad, en_uzun_tekrar(s)))
+                     u'%s %d identical bases in a row' % (ad, en_uzun_tekrar(s)))
             t3, tb = tm3(s), tmb(s)
             if abs((t3 - tb) - kayma) > a.tm_capraz_tol:
                 ekle("KRITIK", r, "tm_capraz",
@@ -212,14 +212,14 @@ def main():
                 yazili_tm = float(r["%s_tm" % ad])
                 if abs(yazili_tm - t3) > 0.05:
                     ekle("KRITIK", r, "tablo_tm",
-                         "%s tabloda %.2f, yeniden olculen %.2f" % (ad, yazili_tm, t3))
+                         u'%s the table says %.2f, remeasured %.2f' % (ad, yazili_tm, t3))
             except (KeyError, ValueError):
-                ekle("UYARI", r, "tablo_tm", "%s Tm okunamadi" % ad)
+                ekle("UYARI", r, "tablo_tm", u'%s the Tm could not be read' % ad)
             try:
                 yazili_gc = float(r["%s_gc" % ad])
                 if abs(yazili_gc - g) > 0.6:
                     ekle("KRITIK", r, "tablo_gc",
-                         "%s tabloda %.1f, yeniden olculen %.1f" % (ad, yazili_gc, g))
+                         u'%s the table says %.1f, remeasured %.1f' % (ad, yazili_gc, g))
             except (KeyError, ValueError):
                 pass
 
@@ -233,7 +233,7 @@ def main():
         try:
             if abs(float(r["tm_farki"]) - dfark) > 0.05:
                 ekle("KRITIK", r, "tablo_tm_farki",
-                     "tabloda %.2f, yeniden olculen %.2f"
+                     u'the table says %.2f, remeasured %.2f'
                      % (float(r["tm_farki"]), dfark))
         except (KeyError, ValueError):
             pass
@@ -265,8 +265,7 @@ def main():
                     break
             if not bulundu:
                 ekle("BILGI", r, "kalipta_tam_eslesme_yok",
-                     "hicbir konsensuste birebir F...rc(R) bulunamadi "
-                     "(uyumsuzluga izin verilen baglanma ayri denetlenir)")
+                     u'no exact F...rc(R) was found in any consensus (binding that allows a mismatch is audited separately)')
 
     # --- alan (domain) tutarliligi -------------------------------------
     # Kural ihlali degil, ama biyolojik olarak tutarsiz sonucu yakalar.
@@ -287,7 +286,7 @@ def main():
                 taxid_alan=_ta, hedef_taxid=_ht)
             if uyumsuz:
                 ekle("KRITIK", r, "alan_karisimi",
-                     "hedefin kutulari %s; bu cift %s alaninda, oysa baskin alan %s"
+                     u'the target\'s bins are %s; this pair is in the %s domain, while the dominant domain is %s'
                      % (", ".join("%s=%d" % kv for kv in sorted(dag.items())),
                         (r.get("sinif") or "")[:1], baskin))
 
@@ -318,7 +317,7 @@ def main():
             w = csv.DictWriter(fh, fieldnames=list(bulgu[0].keys()),
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(bulgu)
-        print("\nyazildi: %s" % a.out)
+        print(u'\nwritten: %s' % a.out)
 
     print("\n" + "=" * 72)
     if kritik:

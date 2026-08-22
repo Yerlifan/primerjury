@@ -123,23 +123,21 @@ def main():
         panel = ESLEME.get(ad, '__ESLENMEDI__')
         if panel == '__ESLENMEDI__':
             satirlar.append(dict(karar=no, istenen=ad, duzey=duzey, panel='',
-                                 durum=u'ESLEME TABLOSUNDA YOK',
+                                 durum=u'NOT IN THE MAPPING TABLE',
                                  hukum='', dcq='', kapsam='',
-                                 not_=u'Bu ad esleme tablosuna girilmemis - '
-                                      u'elle bakilmali.'))
+                                 not_=u'This name was never entered into the mapping table, so it has to be looked at by hand.'))
             continue
         if panel is None:
             satirlar.append(dict(karar=no, istenen=ad, duzey=duzey, panel='',
                                  durum=u'YAPILAMADI', hukum='', dcq='', kapsam='',
-                                 not_=YOK_SEBEBI.get(ad, u'Sebep yazilmamis.')))
+                                 not_=YOK_SEBEBI.get(ad, u'No reason was written down.')))
             continue
         r = SL.get(panel)
         if r is None:
             satirlar.append(dict(karar=no, istenen=ad, duzey=duzey, panel=panel,
-                                 durum=u'PANEL CIKTISINDA YOK', hukum='',
+                                 durum=u'NOT IN THE PANEL OUTPUT', hukum='',
                                  dcq='', kapsam='',
-                                 not_=u'Esleme "%s" diyor ama SIPARIS_LISTESI\'nde '
-                                      u'bu ad yok. Esleme bayat olabilir.' % panel))
+                                 not_=u'The mapping says "%s" but that name is not in SIPARIS_LISTESI. The mapping may be stale.' % panel))
             continue
         sart = (r.get('siparis_sarti') or '').strip()
         sinif = (r.get('SINIF') or '').strip()
@@ -206,8 +204,8 @@ def main():
             for s in yapilamadi:
                 fh.write(u'### %s\n\n%s\n\n' % (s['istenen'], s['not_']))
 
-    print('yazildi: %s' % my)
-    print('yazildi: %s' % ty)
+    print(u'written: %s' % my)
+    print(u'written: %s' % ty)
     for k in sorted(sayim, key=lambda x: -sayim[x]):
         print('  %-24s %d' % (k, sayim[k]))
     return 0

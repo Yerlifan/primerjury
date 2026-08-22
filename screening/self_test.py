@@ -157,7 +157,7 @@ def calistir(yaz):
         except Exception as e:
             tum &= _ok(yaz, 'geometry == geometry_core.py', False, str(e)[:70])
     else:
-        _ok(yaz, 'geometry_core.py bulunamadi (karsilastirma atlandi)', True)
+        _ok(yaz, 'geometry_core.py was not found (the comparison was skipped)', True)
 
     # ---- 3 ispcr panel urun boylarini dogruluyor mu
     #
@@ -207,9 +207,9 @@ def calistir(yaz):
                                 'panel %d, olculen %s' % (
                                     d['urun_bp'],
                                     ','.join('%d(%d)' % x for x in sorted(boylar.items())))))
-        tum &= _ok(yaz, u'geometry_core.py was not found (the comparison was skipped)' % TOLERANS,
+        tum &= _ok(yaz, u'ispcr confirms the panel product lengths (+-%d bp)' % TOLERANS,
                    sapan == 0 and tutan >= 15,
-                   u'ispcr confirms the panel\'s product lengths (+-%d bp)' % (tutan, sapan, urunsuz))
+                   u'%d matching, %d deviating, %d with no product' % (tutan, sapan, urunsuz))
         for tip, ad, ek in ayrinti:
             if tip == 'SAPMA':
                 yaz('        *** %s: %s' % (ad[:34], ek))

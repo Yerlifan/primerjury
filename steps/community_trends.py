@@ -166,11 +166,10 @@ def guvenilirlik_kur(a):
             g = ("dizi düzeyinde %s ile ayrılmıyor (katı özdeşlik %%%s, "
                  "sınıf %s)" % (a2, oz, r.get("sinif", "")))
             ekle(tur, a1, g)
-            ekle(tur, a2, ("dizi düzeyinde %s ile ayrılmıyor (katı özdeşlik "
-                           "%%%s, sınıf %s)" % (a1, oz, r.get("sinif", ""))))
+            ekle(tur, a2, (u'it does not separate from %s at sequence level (strict identity %%%s, class %s)' % (a1, oz, r.get("sinif", ""))))
             for x in (a1, a2):
                 ekle(cins, cins_adi(x),
-                     "bu cinste ayırt edilemeyen tür çifti var")
+                     u'there is an indistinguishable species pair in this genus')
 
     for yol in a.kimlik:
         if not os.path.exists(yol):
@@ -194,19 +193,17 @@ def guvenilirlik_kur(a):
             cogunluk_yok = oran < a.kimlik_esik
             if yanlis_cins:
                 ekle(tur, adi,
-                     "kutunun ham okumaları başka bir cinse gidiyor "
-                     "(%s kutusunda baskın referans: %s, %%%.1f)"
+                     u'the bin\'s raw reads go to another genus (in bin %s the dominant reference is %s, %%%.1f)'
                      % (r.get("grup", ""), bref[:52], oran))
                 ekle(cins, kendi,
-                     "bu cinsin kutularında okumalar başka cinslere gidiyor")
+                     u'in the bins of this genus the reads go to other genera')
             elif cogunluk_yok:
                 ekle(tur, adi,
-                     "hiçbir referans okumaların çoğunluğunu almıyor, kutu "
-                     "tür düzeyinde belirsiz (%s kutusu, en iyi referans "
-                     "%s, yalnız %%%.1f)"
+                     u'no reference takes the majority of the reads, so the bin is undefined '
+                     u'at species level (bin %s, the best reference %s, only %%%.1f)'
                      % (r.get("grup", ""), bref[:44], oran))
                 ekle(cins, kendi,
-                     "bu cinsin kutularında hiçbir referans çoğunluk sağlamıyor")
+                     u'in the bins of this genus no reference reaches a majority')
     return tur, cins
 
 
@@ -232,7 +229,7 @@ def bolum_yaz(ws, satir, veri, ust, supheli, duzey):
     """Bir grup icin takson x yil tablosu yazar. Doner: sonraki satir."""
     basliklar = ["Takson"] + ["%d" % y for y in YILLAR] + ["Dört yıl ortalaması"]
     if duzey == "tur":
-        basliklar.append("Güvenilirlik")
+        basliklar.append(u'Reliability')
     yaz_baslik(ws, basliklar, satir=satir, dondur=False)
     ilk = satir + 1
     for i, (tk, vals) in enumerate(veri[:ust]):
@@ -625,7 +622,7 @@ def main():
     if d:
         os.makedirs(d, exist_ok=True)
     wb.save(a.out)
-    print("yazildi: %s" % a.out)
+    print(u'written: %s' % a.out)
     print("sayfa: %s" % ", ".join(w.title for w in wb.worksheets))
     print(u'suspect species marks: %d, suspect genus marks: %d'
           % (len(s_tur), len(s_cins)))

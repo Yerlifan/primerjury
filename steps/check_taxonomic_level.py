@@ -252,7 +252,7 @@ def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
     for dbad in PANEL_DB:
         yol = os.path.join(dbklasor, dbad)
         if not os.path.exists(yol):
-            gunluk.append("panel: %s yok, atlandi" % dbad)
+            gunluk.append(u'panel: there is no %s, skipped' % dbad)
             continue
         alinan = 0
         with open(yol, encoding="utf-8", errors="replace") as fh:
@@ -296,20 +296,18 @@ def panelleri_topla(dbklasor, cinsler, en_fazla_tur_basina, gunluk):
                     alinan += 1
                 else:
                     kirpilan[(c, t)] += 1
-        gunluk.append("panel: %-34s %d kayit alindi" % (dbad, alinan))
+        gunluk.append(u'panel: %-34s %d records taken' % (dbad, alinan))
     # NO SILENT TRIMMING: the records trimmed, and the ones dropped for having no
     # species name, are reported; otherwise a gap in the panel reads as full coverage.
     for (c, t), n in sorted(kirpilan.items(), key=lambda x: -x[1])[:10]:
-        gunluk.append("panel KIRPILDI: %s / %s icin %d kayit alinmadi"
-                      % (c, t, n))
+        gunluk.append(u'the panel was TRIMMED: %d records for %s / %s were not taken'
+                      % (n, c, t))
     for c, n in dusen_tursuz.items():
         if n:
-            gunluk.append("panel: %s icin tur adi tasimayan %d kayit "
-                          "panele ALINMADI" % (c, n))
+            gunluk.append(u'panel: %d records carrying no species name for %s WERE NOT TAKEN into the panel' % (n, c))
     for c, n in dusen_baska_cins.items():
         if n:
-            gunluk.append("panel: %s adi geciyor ama ikili ad baska cinse "
-                          "ait olan %d kayit panele ALINMADI" % (c, n))
+            gunluk.append(u'panel: %d records where the name %s appears but the binomial belongs to another genus WERE NOT TAKEN into the panel' % (n, c))
     return panel
 
 
@@ -582,7 +580,7 @@ def main():
                            delimiter="\t", lineterminator="\n")
         w.writeheader()
         w.writerows(sonuc)
-    print("\nyazildi: %s" % a.out)
+    print(u'\nwritten: %s' % a.out)
 
     print("\n%-32s %-5s %-6s %-26s %s"
           % ("hedef", "duzey", "cift", "karar", "cogaltilan diger turler"))
