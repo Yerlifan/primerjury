@@ -90,7 +90,7 @@ def main():
                     pencere.add(w)
     print('  tekil pencere (ucuz suzgec): %d   [%.1f sn]' % (len(pencere), time.time() - t0))
 
-    # --- SINAMA: bilinen calisan bir cift bu pencere kumesinde var mi?
+    # --- A TEST: is a pair known to work present in this window set?
     if g.sinama_F:
         rcR = motor.rc(g.sinama_R)
         print('  SINAMA  panel F pencerede: %s | panel rc(R) pencerede: %s'
