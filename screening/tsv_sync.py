@@ -1,37 +1,40 @@
 # -*- coding: utf-8 -*-
-r"""
-tsv_sync.py - TESLIM TSV ikizlerini panel xlsx'inden YENIDEN URETIR.
-
-Neden: TSV'ler panelden elle turetildigi icin kayabiliyor. 2026-08-02 denetimi
-Metanojen_universal ileri primerinin TSV'de hala 21 nt'lik ESKI dizi oldugunu buldu
-(panelde bir G eklenmisti, kapsam %19 -> %97). Siparis TSV'den kopyalanirsa YANLIS
-PRIMER SIPARIS EDILIR.
-
-Once FARKLARI bildirir, sonra --yaz ile uretir. Primer dizisi sutunlarindaki her fark
-ayrica KRITIK olarak isaretlenir.
-
-Kullanim:
-  python tsv_sync.py --xlsx ..\PrimerJury_..._TESLIM.xlsx --kok ..          (yalniz rapor)
-  python tsv_sync.py --xlsx ... --kok .. --yaz                                  (uret)
 """
-# ---------------------------------------------------------------------------
-# tsv_sync.py — teslim TSV ikizlerini panel xlsx'inden yeniden uretir ve
-#                  aradaki her hucre farkini, ozellikle primer dizisi
-#                  farklarini, KRITIK olarak bildirir.
+tsv_sync.py REPRODUCES the DELIVERY TSV twins from the panel xlsx.
+
+Why: because the TSVs are derived from the panel by hand they can drift. The
+2026-08-02 audit found that the Metanojen_universal forward primer was still the OLD
+21 nt sequence in the TSV (a G had been added in the panel and the coverage went
+from 19 percent to 97). If the order is copied from the TSV, THE WRONG PRIMER IS
+ORDERED.
+
+It reports the DIFFERENCES first and only produces with --yaz. Every difference in a
+primer sequence column is also marked CRITICAL.
+
+Usage:
+  python tsv_sync.py --xlsx ../PrimerJury_..._TESLIM.xlsx --kok ..   (report only)
+  python tsv_sync.py --xlsx ... --kok .. --yaz                       (produce)
+
+"""
+# -------------------------------------------------------------------------
+# tsv_sync.py reproduces the delivery TSV twins from the panel xlsx and reports
+#                  every cell difference between them, and the primer sequence
+#                  differences in particular, as CRITICAL.
 #
-# GIRDI  : --xlsx teslim paneli (openpyxl) ve --kok altindaki mevcut TSV
-#          dosyalari. Sayfa -> TSV yolu eslemesi (ESLEME) dosyanin icinde
-#          sabittir.
-# CIKTI  : --yaz verilirse eslemedeki TSV dosyalarini panelden yeniden yazar;
-#          verilmezse hicbir seyi degistirmeden yalniz farklari ekrana basar.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilir.
+# INPUT  : the delivery panel given with --xlsx (openpyxl) and the existing TSV
+#          files under --kok. The sheet to TSV path mapping (ESLEME) is fixed inside
+#          the file.
+# OUTPUT : with --yaz it rewrites the TSV files in the mapping from the panel;
+#          without it, it changes nothing and only prints the differences.
+# CALLED BY: IT IS NOT IN THE MENU, it is run by hand.
 #
-# NEDEN VAR: TSV'ler panelden elle turetildigi icin kayabiliyor. Olculen ornek,
-# Metanojen_universal ileri primerinin TSV'de hala 21 nt'lik eski dizi olarak
-# durmasidir; panelde bir G eklenmis ve kapsam %19'dan %97'ye cikmisti. Siparis
-# TSV'den kopyalanirsa yanlis primer siparis edilir - bu yuzden primer dizisi
-# sutunlarindaki farklar diger farklardan AYRI, KRITIK basligi altinda listelenir.
-# ---------------------------------------------------------------------------
+# WHY IT EXISTS: because the TSVs are derived from the panel by hand they can drift.
+# The measured example is the Metanojen_universal forward primer still sitting in
+# the TSV as the old 21 nt sequence; a G had been added in the panel and the
+# coverage had gone from 19 percent to 97. If the order is copied from the TSV the
+# wrong primer is ordered, and that is why differences in the primer sequence
+# columns are listed SEPARATELY from the rest, under a CRITICAL heading.
+# -------------------------------------------------------------------------
 import os, sys, csv, argparse
 import openpyxl
 
@@ -51,7 +54,7 @@ ESLEME = [
     ('14 Plaka ve Jel',          'primer_final/plaka_ve_jel_20260802_TESLIM.tsv'),
     ('15 On Kararlar',           'primer_final/on_kararlar_20260802_TESLIM.tsv'),
 ]
-# primer dizisi tasiyan sutun basliklari (kritik fark denetimi icin)
+# the column headers carrying a primer sequence (for the critical difference check)
 DIZI_BASLIK = ("Ileri primer", "Geri primer")
 
 

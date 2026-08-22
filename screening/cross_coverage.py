@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
-"""cross_coverage.py - evrensel/genis ciftleri SINIF SINIRI OLMADAN her kutuya kosar.
+"""cross_coverage.py runs the universal and broad pairs in every bin WITH NO CLASS
+BOUNDARY.
 
-Panelin olcumleri sinif bazliydi (A ciftleri yalniz A kutularinda, F ciftleri yalniz
-F kutularinda). Bu yuzden "hangi takson hicbir hedefin kapsamina girmiyor" sorusu
-sinif kapsamindan dogan yapay bosluklar uretiyordu. Bu betik bes genis hedefi
-99 kutunun HEPSINDE olcer.
+The panel's measurements were class based (the A pairs only in the A bins, the F
+pairs only in the F bins). Because of that, the question "which taxon falls under no
+target" produced artificial gaps that came from the class coverage rather than from
+the data. This script measures the five broad targets in ALL 99 bins.
 
-Kullanim: python cross_coverage.py --fastq "..\fastq files" --out capraz.json
+Usage: python cross_coverage.py --fastq "../fastq files" --out capraz.json
+
 """
-# ---------------------------------------------------------------------------
-# cross_coverage.py — bes genis/evrensel cifti, amplikon sinifi sinirini
-#                    gozetmeden butun kutularda olcer.
+# -------------------------------------------------------------------------
+# cross_coverage.py measures the five broad or universal pairs in every bin,
+#                    without regard to the amplicon class boundary.
 #
-# GIRDI  : --fastq ile "fastq files" klasoru (istege bagli --dizin ile alt
-#          kume, --nmax ile kutu basina okuma tavani). Bes genis cift dosyanin
-#          icinde sabit listedir. Olcumu read_engine.py yapar.
-# CIKTI  : --out ile verilen json dosyasi; her satir "<panel_satiri>|<kutu>"
-#          anahtariyla kutu basina urun sayisini tasir. Dosya varsa uzerine
-#          eklenir, boylece kosu kesilse de kaldigi yerden devam eder.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilir. Ciktisi target_taxon_mapping.py
-#          icin --capraz girdisi olur.
+# INPUT  : the "fastq files" directory given with --fastq (optionally a subset with
+#          --dizin and a per bin read ceiling with --nmax). The five broad pairs are
+#          a fixed list inside the file. read_engine.py does the measuring.
+# OUTPUT : the json file given with --out; each row carries the product count per
+#          bin under the key "<panel_row>|<bin>". If the file exists it is appended
+#          to, so an interrupted run continues where it stopped.
+# CALLED BY: IT IS NOT IN THE MENU, it is run by hand. Its output becomes the
+#          --capraz input of target_taxon_mapping.py.
 #
-# NEDEN SINIF SINIRI KALDIRILIYOR: panelin olcumleri sinif bazliydi (A ciftleri
-# yalniz A kutularinda). Bu, "hangi takson hicbir hedefin kapsamina girmiyor"
-# sorusuna yapay bosluklar uretiyordu - takson aslinda kapsaniyor olabilir ama
-# olcum onu hic denememis oluyordu. Burada bes genis hedef butun kutulara
-# kosulur, boylece bosluklar gercek olcumden cikar.
-# ---------------------------------------------------------------------------
+# WHY THE CLASS BOUNDARY IS LIFTED: the panel's measurements were class based (the A
+# pairs only in the A bins). That produced artificial gaps in the question "which
+# taxon falls under no target": the taxon might really be covered while the
+# measurement had never tried it. Here the five broad targets are run over every
+# bin, so the gaps come out of a real measurement.
+# -------------------------------------------------------------------------
 import sys, os, glob, json, argparse, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import read_engine as om
