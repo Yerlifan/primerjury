@@ -97,19 +97,19 @@ PY
 
 bar "6. The RAW read files (the most critical point)"
 cat <<'NOT'
-PrimerTasarlama\fastq files klasorundeki dosyalar HAM OKUMA DEGIL.
-kaynak calismanin sequence_extraction.sh betigi her ornekten yalnizca en bol ILK BES
-taksonu cikarmis. Kraken raporlarindan olculen tutulma oranlari:
-  A1 grubu (bc01-04) : yuzde 71 ile 85
-  A2 grubu (bc05-08) : yuzde 90 ile 98
-  F2 grubu (bc09-12) : yuzde 12 ile 63
-  F1 grubu (bc13-16) : yuzde 17 ile 41
-  B  grubu (bc17-20) : yuzde 12 ile 18
-Siniflandirilamayan okuma orani yuzde 0,04 ile 1,68 arasinda, yani kayip
-siniflandirmadan degil ilk bes filtresinden geliyor.
-Bu yuzden 106 GB veritabaniyla yeniden siniflandirma icin ORIJINAL barkod
-fastq dosyalari gerekiyor (kraken2_driver.sh betigindeki ./inputs/*.fastq).
-Asagidaki arama onlari bulmayi dener.
+The files in the "fastq files" directory ARE NOT RAW READS.
+The source study's sequence_extraction.sh took only the FIRST FIVE most abundant
+taxa out of each sample. The retention rates measured from the Kraken reports:
+  group A1 (bc01-04) : 71 to 85 percent
+  group A2 (bc05-08) : 90 to 98 percent
+  group F2 (bc09-12) : 12 to 63 percent
+  group F1 (bc13-16) : 17 to 41 percent
+  group B  (bc17-20) : 12 to 18 percent
+The unclassified read ratio is between 0.04 and 1.68 percent, so the loss comes
+from the first five filter and not from the classification.
+That is why the ORIGINAL barcode fastq files are needed to reclassify with the
+106 GB database (the ./inputs/*.fastq of kraken2_driver.sh).
+The search below tries to find them.
 NOT
 echo
 for r in "$HOME" /mnt/c /mnt/d /mnt/e; do
