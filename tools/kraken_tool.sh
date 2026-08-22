@@ -1297,18 +1297,19 @@ tus_ozelvt_kos() {
 
 
 # ---------------------------------------------------------------------------
-# tus_bellek_ayari - WSL2'nin Windows'u bogmasini engelleyen .wslconfig uretir.
+# tus_bellek_ayari produces the .wslconfig that stops WSL2 from choking Windows.
 #
-# SORUN
-# WSL2 ayri bir sanal makinedir. Varsayilan olarak Windows RAM'inin buyuk bir
-# kismini alabilir VE 110 GB'lik bir veritabani --memory-mapping ile okundugunda
-# sayfa onbellegi de sanal makinenin bellegine sayilir. Sonuc: WSL sinirsizca
-# buyur, Windows takas etmeye baslar ve makine kilitlenir.
+# THE PROBLEM
+# WSL2 is a separate virtual machine. By default it can take a large part of the
+# Windows RAM, AND when a 110 GB database is read with --memory-mapping the page
+# cache counts towards the virtual machine's memory too. The result: WSL grows
+# without bound, Windows starts swapping and the machine freezes.
 #
-# COZUM
-# .wslconfig ile SANAL MAKINEYE UST SINIR konur. Windows'a nefes payi kalir.
-# WSL yavaslar, ama makine kullanilabilir kalir. Bu bir takas degil, dogru
-# yapilandirmadir: sinirsiz WSL zaten kimseye hizli calismiyor, kilitliyor.
+# THE FIX
+# An UPPER BOUND is put ON THE VIRTUAL MACHINE with .wslconfig. Windows is left
+# some room to breathe. WSL slows down but the machine stays usable. That is not a
+# trade-off but the right configuration: an unbounded WSL is not running fast for
+# anyone, it is locking up.
 # ---------------------------------------------------------------------------
 tus_bellek_ayari() {
   echo "======================================================================"
@@ -1329,7 +1330,7 @@ tus_bellek_ayari() {
   fi
   local TOPLAM_GB=$(( TOPLAM_MB / 1024 ))
   # Yuzde 60: WSL'e yeter, Windows'a nefes payi birakir. Alt sinir 4 GB,
-  # cunku 110 GB'lik veritabani mmap ile bile bir taban bellek ister.
+  # because a 110 GB database needs a floor of memory even with mmap.
   local WSL_GB=$(( TOPLAM_GB * 60 / 100 ))
   [ "$WSL_GB" -lt 4 ] && WSL_GB=4
   local SWAP_GB=$(( WSL_GB / 2 ))
@@ -1384,15 +1385,17 @@ autoMemoryReclaim=gradual"
 }
 
 # ---------------------------------------------------------------------------
-# tus_dogrula_ornek - ORNEGIN TEMSIL ETTIGINI olcer.
+# tus_dogrula_ornek measures THAT THE SAMPLE IS REPRESENTATIVE.
 #
-# Tek bir esikte hem ornegi hem TAM veriyi siniflandirir ve YUZDELERI
-# karsilastirir. Mutlak sayilar elbette farkli olacak; bakilan sey oranlarin
-# tutup tutmadigidir. Tutuyorsa esik egrisi gecerlidir.
+# At a single threshold it classifies both the sample and the FULL data and
+# compares THE PERCENTAGES. The absolute numbers will of course differ; what is
+# being looked at is whether the ratios hold. If they do, the threshold curve is
+# valid.
 #
-# DIKKAT: bu tus TAM veriyle bir kez kosar, yani agirdir. Gece birakin.
-# Kosmadan da esik egrisi kullanilabilir, ama o zaman raporda "temsil
-# dogrulamasi YAPILMADI" yazar - ve oyle sunulmalidir.
+# CAREFUL: this key runs once on the FULL data, so it is heavy. Leave it overnight.
+# The threshold curve can be used without running it, but then the report says
+# "the representativeness WAS NOT CONFIRMED", and it has to be presented that
+# way.
 # ---------------------------------------------------------------------------
 tus_dogrula_ornek() {
   log_ac dogrula_ornek

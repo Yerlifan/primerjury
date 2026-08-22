@@ -1,0 +1,9 @@
+[wsl2]
+memory=9GB
+swap=4GB
+processors=3
+# Caps the page cache, so that reading a 110 GB database through mmap does
+# not let the cache inflate the virtual machine.
+pageReporting=true
+# Gives idle memory back to Windows.
+autoMemoryReclaim=gradual
