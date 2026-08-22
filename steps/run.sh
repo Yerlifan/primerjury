@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
 # =====================================================================
 # run.sh
-# Toplantı kararlarının tamamını uçtan uca çalıştırır ve her adımı
-# tarih saatle log'lar. Yarıda kesilirse aynı komutla kaldığı yerden
-# devam eder, çünkü 08 ve 09 checkpoint tutuyor.
+# It runs every meeting decision end to end and logs each step with a date and
+# time. If it is cut short, the same command continues where it stopped, because
+# batch_design.py and specificity.py keep checkpoints.
 #
 #   bash run.sh
 #
-# Ortam değişkeniyle yol değiştirilebilir:
+# The paths can be changed with environment variables:
 #   PT=/baska/yol bash run.sh
 #
-# Adımlar:
-#   0  bağımlılık denetimi
-#   1  baskın alel konsensüsü (12)   ham okumalardan, belirsizliksiz
-#   2  toplu tasarım (08)            hedef başına primer adayı
-#   3  özgüllük ve ham okuma doğrulaması (09)
-#   4  dış veritabanı taraması (14)
-#   5  referans tabanlı tasarım (15)
-#   6  Excel teslimatı (13)
-#   7  öz denetim: regresyon testi (17) + teslim denetimi (18)
+# The steps:
+#   0  the dependency check
+#   1  the dominant allele consensus (dominant_allele_consensus.py), from the raw
+#      reads, with no ambiguity
+#   2  the bulk design (batch_design.py), primer candidates per target
+#   3  specificity and the raw read verification (specificity.py)
+#   4  the external database scan (external_databases.py)
+#   5  the reference based design (design_from_reference.py)
+#   6  the Excel delivery (export_excel.py)
+#   7  the self audit: the regression test (regression_test.py) plus the delivery
+#      audit (check_deliverables.py)
 # =====================================================================
 set -uo pipefail
 
@@ -49,14 +51,14 @@ say "ADAY        : $ADAY"
 say "FINAL       : $FINAL"
 
 if [ ! -d "$KONS_IUPAC" ]; then
-  say "HATA: konsensus klasoru yok: $KONS_IUPAC"
+  say "ERROR: there is no consensus directory: $KONS_IUPAC"
   say "Once 06 ve 07 --mode self calistirilmali."
   exit 1
 fi
 
 # --- 0. bagimlilik denetimi -------------------------------------------
 say "----------------------------------------------------------------"
-say "ADIM 0/7  bagimlilik denetimi"
+say "STEP 0/7  the dependency check"
 python3 - <<'PYX' 2>&1 | tee -a "$ANA_LOG"
 eksik = []
 for m in ("primer3", "Bio", "mappy", "openpyxl"):
@@ -69,58 +71,58 @@ for m in ("primer3", "Bio", "mappy", "openpyxl"):
 if eksik:
     kur = {"Bio": "biopython", "primer3": "primer3-py"}
     paket = " ".join(kur.get(m, m) for m in eksik)
-    # Debian ve Ubuntu tabanli dagitimlarda sistem Python'u PEP 668 ile
-    # korumali; duz 'pip install' externally-managed-environment hatasi verir.
-    print("   Kurmak icin: pip install --break-system-packages " + paket)
+    # On Debian and Ubuntu based distributions the system Python is protected by
+    # PEP 668; a plain 'pip install' gives an externally-managed-environment error.
+    print("   To install them: pip install --break-system-packages " + paket)
     print("   Alternatif (sistem Python'una dokunmadan):")
     print("     python3 -m venv ~/primer_venv && source ~/primer_venv/bin/activate")
     print("     pip install " + paket + " primer3-py biopython openpyxl mappy")
     if "mappy" in eksik:
-        print("   mappy olmadan ayirt edilemez kutu olcumu ve capraz bulasma")
-        print("   olcumu YAPILAMAZ; kosu durmaz ama ozgulluk guvencesi zayiflar.")
+        print("   without mappy the indistinguishable bin measurement and the cross")
+        print("   contamination measurement CANNOT BE MADE; the run does not stop but")
 PYX
 
 # --- 1. baskin alel konsensusu ---------------------------------------
 # samtools consensus -A ciktisi degisken pozisyonlari IUPAC koduyla yaziyor.
-# Baglanma kurali kodu temsil ettigi butun bazlara uyar saydigi icin, rakip
-# konsensusu belirsizlik acisindan zenginse hangi primeri secerseniz secin
-# rakipte de bagliyor gorunuyor. Bu adim ayni ham okumalardan ikinci ve
+# Because the binding rule counts a code as matching every base it stands for, if
+# the competitor consensus is rich in ambiguity then whichever primer you pick looks
+# as though it binds the competitor too. This step produces a second and
 # belirsizliksiz bir konsensus uretir.
 say "----------------------------------------------------------------"
-say "ADIM 1/7  baskin alel konsensusu (12)"
+say "STEP 1/7  the dominant allele consensus (dominant_allele_consensus.py)"
 T0=$(date +%s)
 MEVCUT=$(ls "$KONS"/*_konsensus.fasta 2>/dev/null | wc -l)
 if [ "$MEVCUT" -gt 0 ] && [ "${YENIDEN_KONS:-0}" != "1" ]; then
-  say "  zaten var ($MEVCUT dosya), atlandi. Yeniden uretmek icin YENIDEN_KONS=1"
+  say "  it is there already ($MEVCUT files), skipped. To reproduce it: YENIDEN_KONS=1"
 else
   python3 "$HERE/dominant_allele_consensus.py" \
       --kons "$KONS_IUPAC" \
       --fastq "$PT/fastq files" \
       --out "$BASKIN" 2>&1 | tee -a "$ANA_LOG"
 fi
-say "ADIM 1 bitti, sure=$(( ($(date +%s)-T0)/60 )) dakika"
+say "STEP 1 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 N=$(ls "$KONS"/*_konsensus.fasta 2>/dev/null | wc -l)
 say "baskin alel konsensus dosyasi: $N"
-[ "$N" -gt 0 ] || { say "HATA: baskin konsensus uretilemedi"; exit 1; }
+[ "$N" -gt 0 ] || { say "ERROR: no dominant consensus could be produced"; exit 1; }
 
 # --- 2. toplu tasarim -------------------------------------------------
 say "----------------------------------------------------------------"
-say "ADIM 2/7  toplu tasarim (08)"
+say "STEP 2/7  the bulk design (batch_design.py)"
 T0=$(date +%s)
 python3 "$HERE/batch_design.py" \
     --kons "$KONS" \
     --hedefler "$HERE/hedefler.tsv" \
     --out "$ADAY" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
-say "ADIM 2 bitti, cikis=$RC, sure=$(( ($(date +%s)-T0)/60 )) dakika"
-[ "$RC" -eq 0 ] || { say "ADIM 2 hatali bitti, duruldu"; exit "$RC"; }
+say "STEP 2 finished, exit=$RC, time=$(( ($(date +%s)-T0)/60 )) minutes"
+[ "$RC" -eq 0 ] || { say "STEP 2 ended with an error, stopped"; exit "$RC"; }
 
 A=$(ls "$ADAY"/*__*.tsv 2>/dev/null | wc -l)
 say "uretilen aday dosyasi: $A"
 
-# --- 3. ozgulluk ve ham okuma dogrulamasi -----------------------------
+# --- 3. specificity and the raw read verification ---------------------
 say "----------------------------------------------------------------"
-say "ADIM 3/7  ozgulluk ve ham okuma dogrulamasi (09)"
+say "STEP 3/7  specificity and the raw read verification (specificity.py)"
 T0=$(date +%s)
 python3 "$HERE/specificity.py" \
     --adaylar "$ADAY" \
@@ -130,29 +132,29 @@ python3 "$HERE/specificity.py" \
     --out "$FINAL" \
     --top "$TOP" --max-okuma "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
-say "ADIM 3 bitti, cikis=$RC, sure=$(( ($(date +%s)-T0)/60 )) dakika"
+say "STEP 3 finished, exit=$RC, time=$(( ($(date +%s)-T0)/60 )) minutes"
 
-# --- 4. dis veritabani taramasi ---------------------------------------
+# --- 4. the external database scan ------------------------------------
 say "----------------------------------------------------------------"
-say "ADIM 4/7  dis veritabani taramasi (14)"
+say "STEP 4/7  the external database scan (external_databases.py)"
 T0=$(date +%s)
 if command -v blastn >/dev/null 2>&1; then
   python3 "$HERE/external_databases.py" \
       --final "$FINAL" --db "$PT/REFERANS_DB" \
       --out "$FINAL/dis_veritabani.tsv" 2>&1 | tee -a "$ANA_LOG"
 else
-  say "  blastn bulunamadi, dis veritabani taramasi atlandi."
-  say "  Kurmak icin: sudo apt-get install -y ncbi-blast+"
+  say "  blastn was not found, the external database scan was skipped."
+  say "  To install it: sudo apt-get install -y ncbi-blast+"
 fi
-say "ADIM 4 bitti, sure=$(( ($(date +%s)-T0)/60 )) dakika"
+say "STEP 4 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 
 # --- 5. referans tabanli tasarim (kapsanamayan hedefler) --------------
-# Numunedeki kutular ayrilamadigi icin cift bulunamayan hedefler icin
-# referans veritabanindan tasarim yapilir. Bu ciftler numuneyle
-# DOGRULANMAZ; yalnizca numunede destek olup olmadigi olculur ve cikti
+# For the targets where no pair could be found because the sample's bins cannot be
+# separated, a design is made from a reference database. Those pairs ARE NOT
+# CONFIRMED against the sample; only whether the sample supports them is measured,
 # ayri bir sayfada, ayri etiketle sunulur.
 say "----------------------------------------------------------------"
-say "ADIM 5/7  referans tabanli tasarim (15)"
+say "STEP 5/7  the reference based design (design_from_reference.py)"
 T0=$(date +%s)
 REFC="$PT/primer_referans"
 if [ -f "$HERE/hedefler_referans.tsv" ]; then
@@ -161,13 +163,13 @@ if [ -f "$HERE/hedefler_referans.tsv" ]; then
       --hedefler-ref "$HERE/hedefler_referans.tsv" \
       --out "$REFC" --max-okuma "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 else
-  say "  hedefler_referans.tsv yok, adim atlandi"
+  say "  there is no hedefler_referans.tsv, the step was skipped"
 fi
-say "ADIM 5 bitti, sure=$(( ($(date +%s)-T0)/60 )) dakika"
+say "STEP 5 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 
 # --- 6. Excel teslimati -----------------------------------------------
 say "----------------------------------------------------------------"
-say "ADIM 6/7  Excel teslimati (13)"
+say "STEP 6/7  the Excel delivery (export_excel.py)"
 REFARG=""
 [ -s "$REFC/primer_referans.tsv" ] && REFARG="--referans $REFC/primer_referans.tsv"
 python3 "$HERE/export_excel.py" \
@@ -177,14 +179,14 @@ python3 "$HERE/export_excel.py" \
     --hedefler "$HERE/hedefler.tsv" --kons "$KONS" $REFARG \
     --out "$PT/PrimerJury_Primer_Tasarimi.xlsx" 2>&1 | tee -a "$ANA_LOG"
 
-# --- 7. oz denetim ----------------------------------------------------
-# Iki ayri denetim calisir:
+# --- 7. the self audit ------------------------------------------------
+# Two separate audits run:
 #   17  kod kurallarini bagimsiz referans uygulamalarla karsilastirir
-#   18  teslim edilen tabloyu sifirdan yeniden olcer (tasarim kodunu
+#   check_deliverables.py  measures the delivered table again from scratch (it
 #       ice aktarmaz), yazili Tm/GC/urun boyu degerlerini de dogrular
 # 18 KRITIK bulgu bulursa cikis kodu 1 doner ve burada acikca raporlanir.
 say "----------------------------------------------------------------"
-say "ADIM 7/7  oz denetim (17 regresyon + 18 teslim denetimi)"
+say "STEP 7/7  the self audit (regression_test.py plus check_deliverables.py)"
 T0=$(date +%s)
 python3 "$HERE/regression_test.py" \
     --gercek-veri --aday "$ADAY" --kons "$KONS" 2>&1 | tee -a "$ANA_LOG"
@@ -196,33 +198,33 @@ if [ -s "$FINAL/primer_final.tsv" ]; then
   RC18=${PIPESTATUS[0]}
 else
   RC18=2
-  say "  primer_final.tsv yok, teslim denetimi calistirilamadi"
+  say "  there is no primer_final.tsv, the delivery audit could not be run"
 fi
-say "ADIM 7 bitti, 17=$RC17, 18=$RC18, sure=$(( ($(date +%s)-T0)/60 )) dakika"
-[ "$RC17" -eq 0 ] || say "DIKKAT: regresyon testinde kalan test var, log'a bakin"
-[ "$RC18" -eq 0 ] || say "DIKKAT: teslim denetiminde KRITIK bulgu var, log'a bakin"
+say "STEP 7 finished, regression=$RC17, delivery=$RC18, time=$(( ($(date +%s)-T0)/60 )) minutes"
+[ "$RC17" -eq 0 ] || say "CAREFUL: an item failed in the regression test, look at the log"
+[ "$RC18" -eq 0 ] || say "CAREFUL: there is a CRITICAL finding in the delivery audit, look at the log"
 
-# --- ozet -------------------------------------------------------------
+# --- the summary ------------------------------------------------------
 say "----------------------------------------------------------------"
 if [ -s "$FINAL/primer_final.tsv" ]; then
   G=$(awk -F'\t' 'NR>1 && $4=="GECTI"' "$FINAL/primer_final.tsv" | wc -l)
   H=$(awk -F'\t' 'NR>1 && $4=="GECTI" {print $2}' "$FINAL/primer_final.tsv" | sort -u | wc -l)
-  say "SONUC: butun kurallardan gecen aday = $G, kapsanan hedef = $H"
-  say "Dosya: $FINAL/primer_final.tsv"
+  say "RESULT: candidates passing every rule = $G, targets covered = $H"
+  say "The file: $FINAL/primer_final.tsv"
   say "Excel: $PT/PrimerJury_Primer_Tasarimi.xlsx"
 else
   say "UYARI: primer_final.tsv olusmadi"
 fi
 if [ -s "$ADAY/ayirt_edilemez.tsv" ]; then
   AE=$(( $(wc -l < "$ADAY/ayirt_edilemez.tsv") - 1 ))
-  say "AYIRT EDILEMEZ TAKSON CIFTI: $AE  (dosya: $ADAY/ayirt_edilemez.tsv)"
+  say "INDISTINGUISHABLE TAXON PAIRS: $AE  (the file: $ADAY/ayirt_edilemez.tsv)"
   say "  Bu ciftler dizi duzeyinde ayrilmiyor; rakip listesinden cikarildilar."
 fi
 say "Loglar:"
 say "  $ANA_LOG"
 say "  $ADAY/toplu_tasarim.log"
 say "  $FINAL/ozgulluk.log"
-say "Checkpointler (yarida kesilirse ayni komut kaldigi yerden devam eder):"
+say "The checkpoints (if it is cut short the same command continues where it stopped):"
 say "  $ADAY/checkpoint.json"
 say "  $FINAL/checkpoint.json"
-say "BITTI"
+say "FINISHED"
