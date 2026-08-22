@@ -1,37 +1,42 @@
 # -*- coding: utf-8 -*-
-r"""
-orientation_code_scan.py - konsensus okuyan HER betigi bulur ve yonu nasil ele aldigini
-siniflandirir. Amac: "hangi kod yolu hala yamalanmamis" sorusunu tahminle degil
-taramayla cevaplamak.
-
-Siniflar:
-  NORMALIZE_KAYNAK   normalize edilmis klasoru okuyor (referans_konsensus/... )
-  IKI_YON_DENIYOR    diziyi hem duz hem rc ile deniyor (yon farketmez)
-  KENDI_YAMASI       kendi icinde yon duzeltmesi yapiyor (hiza/edlib/en iyi yon secimi)
-  HAM_KAYNAK_VARSAYIM  karisik yonlu klasoru okuyup TEK yon varsayiyor  <-- RISKLI
-  YON_ILGISIZ        konsensus okuyor ama yon bagimli is yapmiyor (sayim, rapor, ad)
-Kullanim: python orientation_code_scan.py --kok .. --out ..\yon_kod_taramasi.tsv
 """
-# ---------------------------------------------------------------------------
-# orientation_code_scan.py — projedeki her .py dosyasini okuyup konsensus okuyan kod
-#                       yollarini bulur ve yonu nasil ele aldiklarina gore
-#                       siniflandirir.
+orientation_code_scan.py finds EVERY script that reads a consensus and classifies
+how it handles orientation. The aim: to answer "which code route is still unpatched"
+by scanning rather than by guessing.
+
+The classes:
+  NORMALIZE_KAYNAK   it reads the normalised directory (referans_konsensus/...)
+  IKI_YON_DENIYOR    it tries the sequence both as it is and as rc (orientation does
+                     not matter)
+  KENDI_YAMASI       it corrects the orientation inside itself (alignment, edlib,
+                     picking the better direction)
+  HAM_KAYNAK_VARSAYIM  it reads a mixed orientation directory and assumes ONE
+                     direction  <-- RISKY
+  YON_ILGISIZ        it reads a consensus but does no orientation dependent work
+                     (counting, reporting, naming)
+Usage: python orientation_code_scan.py --kok .. --out ../yon_kod_taramasi.tsv
+
+"""
+# -------------------------------------------------------------------------
+# orientation_code_scan.py reads every .py file in the project, finds the code
+#                       routes that read a consensus and classifies them by how
+#                       they handle orientation.
 #
-# GIRDI  : --kok altindaki butun Python kaynak dosyalari; siniflandirma desenleri
-#          dosyanin icinde sabittir. Kaynak metin ast ile ayristirilip yorum ve
-#          docstring satirlari ELENIR.
-# CIKTI  : --out ile verilen TSV: dosya, sinif (NORMALIZE_KAYNAK /
-#          IKI_YON_DENIYOR / KENDI_YAMASI / HAM_KAYNAK_VARSAYIM / YON_ILGISIZ)
-#          ve gerekce.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir denetimdir. Ciktisi
-#          orientation_report.py ile panelin yon sayfasina islenir.
+# INPUT  : every Python source file under --kok; the classification patterns are
+#          fixed inside the file. The source text is parsed with ast and the comment
+#          and docstring lines are DROPPED.
+# OUTPUT : the TSV given with --out: the file, the class (NORMALIZE_KAYNAK /
+#          IKI_YON_DENIYOR / KENDI_YAMASI / HAM_KAYNAK_VARSAYIM / YON_ILGISIZ) and
+#          the reason.
+# CALLED BY: IT IS NOT IN THE MENU, it is an audit run by hand. Its output is
+#          written into the panel's orientation sheet by orientation_report.py.
 #
-# YORUM VE DOCSTRING NEDEN ELENIYOR: bir aciklama satirinda gecen klasor adi
-# calisan bir kod yolu degildir. Ilk taramada bu yuzden yanlis pozitif cikti -
-# targets.py ve config.py "consensus sequences" adini yalniz aciklamada
-# aniyor ama tarama onlari RISKLI olarak isaretliyordu. Amac "hangi kod yolu
-# hala yamalanmamis" sorusunu tahminle degil olcumle cevaplamaktir.
-# ---------------------------------------------------------------------------
+# WHY COMMENTS AND DOCSTRINGS ARE DROPPED: a directory name appearing in an
+# explanation line is not a running code route. That produced false positives on the
+# first scan: targets.py and config.py mention "consensus sequences" only in an
+# explanation, and the scan was marking them RISKLI. The aim is to answer "which
+# code route is still unpatched" by measurement rather than by guessing.
+# -------------------------------------------------------------------------
 import os, re, ast, csv, glob, argparse
 
 KARISIK = ['consensus sequences', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni', 'konsensus_yeni']
@@ -46,9 +51,11 @@ YON_BAGIMLI = [r'find_sites', r'amplify', r'Sonda', r'kutu_pcr', r'baglan', r'pr
 
 
 def kod_govdesi(metin):
-    """Yorum ve docstring'leri AT. Aciklama satirinda gecen klasor adi kod yolu
-    degildir - ilk taramada bu yuzden yanlis pozitif cikti (targets.py,
-    config.py 'consensus sequences'i yalniz aciklamada aniyor)."""
+    """Drop the comments and docstrings. A directory name appearing in an explanation
+    line is not a code route; that produced false positives on the first scan (targets.py
+    and config.py mention 'consensus sequences' only in an explanation).
+
+    """
     try:
         agac = ast.parse(metin)
         ds = set()

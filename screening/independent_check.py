@@ -1,37 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-independent_check.py - Baslik sayilarini UC AYRI yolla olcup tuttugunu gosterir.
+independent_check.py measures the numbers in the headings THREE SEPARATE ways and
+shows that they hold.
 
-  Yol A  ispcr.find_sites / amplify   : numpy vektor tarama, TOHUMSUZ.
-                                        Panelin KENDI kodu (engine/ispcr.py),
-                                        bu oturumda degistirilmedi.
-  Yol B  brute_force.py               : saf python, her pozisyon tek tek denenir.
-                                        Bagimsiz yazildi, ortak kod yok.
-  Yol C  read_engine.py              : bu oturumda duzeltilen motor (referans).
+  Route A  ispcr.find_sites / amplify   : a numpy vector scan, SEEDLESS.
+                                          The panel's OWN code (engine/ispcr.py),
+                                          unchanged in this session.
+  Route B  brute_force.py               : pure python, every position tried one at a
+                                          time. Written independently, no shared code.
+  Route C  read_engine.py               : the engine corrected in this session (the
+                                          reference).
 
-A ve B, duzeltilmis motorun hicbir satirini kullanmaz. Ucu de ayni sayiyi
-veriyorsa duzeltilmis motorun ciktisi bagimsiz olarak dogrulanmis olur.
+A and B use not one line of the corrected engine. If all three give the same number,
+the output of the corrected engine is independently confirmed.
 
-Kullanim:
-    python independent_check.py --fastq "..\fastq files" [--mm 1] [--nmax 3000]
+Usage:
+    python independent_check.py --fastq "../fastq files" [--mm 1] [--nmax 3000]
+
 """
-# ---------------------------------------------------------------------------
-# independent_check.py — teslim basliklarindaki sayilari uc ayri kod yoluyla
-#                         olcup ucunun de ayni cevabi verdigini gosterir.
+# -------------------------------------------------------------------------
+# independent_check.py measures the numbers in the delivery headings through three
+#                         separate code routes and shows that all three give the
+#                         same answer.
 #
-# GIRDI  : --fastq ile "fastq files" klasoru (--mm uyumsuzluk tavani, --nmax
-#          kutu basina okuma, --seed ornekleme tohumu). Sinanan cift ve kutu
-#          listesi (TESTLER) dosyanin icinde sabittir. Uc yol:
-#          engine/ispcr.py, brute_force.py ve read_engine.py.
-# CIKTI  : dosyaya yazmaz; uc yolun sayilarini yan yana ekrana basar.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir kanit uretecidir.
+# INPUT  : the "fastq files" directory given with --fastq (--mm the mismatch
+#          ceiling, --nmax the reads per bin, --seed the sampling seed). The list of
+#          pairs and bins tested (TESTLER) is fixed inside the file. The three
+#          routes: engine/ispcr.py, brute_force.py and read_engine.py.
+# OUTPUT : it writes no file; it prints the numbers of the three routes side by side.
+# CALLED BY: IT IS NOT IN THE MENU, it is an evidence generator run by hand.
 #
-# NEDEN UC YOL: yol A (ispcr) panelin kendi kodudur ve bu oturumda hic
-# degistirilmedi; yol B (kaba kuvvet) tohumsuzdur ve ortak kod paylasmaz; yol C
-# duzeltilmis motordur. A ve B, duzeltilmis motorun hicbir satirini kullanmaz -
-# ucu ayni sayiyi veriyorsa guvercin yuvasi tohumlamasinin kayipsizligi kendi
-# koduyla degil, disaridan dogrulanmis olur.
-# ---------------------------------------------------------------------------
+# WHY THREE ROUTES: route A (ispcr) is the panel's own code and was not changed at
+# all in this session; route B (brute force) is seedless and shares no code; route C
+# is the corrected engine. A and B use not one line of the corrected engine, so if
+# all three give the same number, the losslessness of the pigeonhole seeding is
+# confirmed from outside rather than by its own code.
+# -------------------------------------------------------------------------
 import sys, os, glob, random, argparse
 
 BURA = os.path.dirname(os.path.abspath(__file__))
@@ -48,8 +52,8 @@ except Exception as e:
     ISPCR = False
     sys.stderr.write(u'WARNING: ispcr could not be loaded (%s). Route A will be skipped.\n' % e)
 
-# Baslik sayilarinin dayandigi kutular: M. mazei cifti (satir 22) ve
-# hatanin en buyuk oldugu M. hadiensis rakip kutulari.
+# The bins the numbers in the headings rest on: the M. mazei pair (row 22) and the
+# M. hadiensis competitor bins, where the fault was largest.
 TESTLER = [
     ('Methanosarcina_mazei_turu', 'GCCCTTGGGACCGGCATAA', 'TCGCTGGCTAGTAGGTACATTACA',
      [('A1-4', '3078083', 'RAKIP M. hadiensis - hatanin merkezi'),
