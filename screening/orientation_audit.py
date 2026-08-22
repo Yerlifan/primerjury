@@ -178,7 +178,7 @@ def main():
                       'referans_konsensus/konsensus',
                       'referans_konsensus/baskin/konsensus',
                       'referans_konsensus/self/konsensus',
-                      'KAPSAMLI_ARAMA_SONUC/konsensus_yeni']
+                      'SCREENING_RESULT/konsensus_yeni']
     satirlar = tara(a.kok, kl)
     if satirlar:
         with open(a.out, 'w', newline='', encoding='utf-8') as fh:

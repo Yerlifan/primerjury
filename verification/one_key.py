@@ -3,9 +3,9 @@
 one command.
 
 CALLED BY : verification/one_key.py  and  verification/full_chain.py -> key B
-OUTPUT    : TEK_TUS_SONUC/00_SABAH_OZETI.md   (the ONE file to look at in the morning)
-            TEK_TUS_SONUC/durum.json          (the checkpoints)
-            TEK_TUS_SONUC/gunluk_<time>.log   (a timestamped copy of the screen)
+OUTPUT    : ONE_KEY_RESULT/00_SABAH_OZETI.md   (the ONE file to look at in the morning)
+            ONE_KEY_RESULT/durum.json          (the checkpoints)
+            ONE_KEY_RESULT/gunluk_<time>.log   (a timestamped copy of the screen)
 
 WHY THIS FILE EXISTS
 --------------------
@@ -45,7 +45,7 @@ import os, sys, io, csv, json, time, glob, signal, hashlib, argparse
 import subprocess, threading
 
 SURUM = u'1.0 (2026-08-08)'
-CIKTI_KLASOR = 'TEK_TUS_SONUC'
+CIKTI_KLASOR = 'ONE_KEY_RESULT'
 CANLILIK_SN = 60          # uzun asamalarda seconds between liveness messages
 LOG_YAZMA_ARALIGI = 2.0   # bagli klasore en cok bu sikligta yaziyoruz (D-11 kurali)
 
@@ -195,13 +195,13 @@ def d_selftest(kok, ayar, cikti_metni):
 
 
 def d_hizli_test(kok, ayar, cikti_metni):
-    y = os.path.join(kok, 'HIZLI_TEST', 'HIZLI_TEST_RAPORU.md')
+    y = os.path.join(kok, 'QUICK_TEST', 'QUICK_TEST_REPORT.md')
     if not os.path.exists(y):
-        return False, u'HIZLI_TEST/HIZLI_TEST_RAPORU.md uretilmedi'
+        return False, u'QUICK_TEST/QUICK_TEST_REPORT.md uretilmedi'
     m = io.open(y, encoding='utf-8', errors='ignore').read()
     if u'ZINCIR TUTARSIZ' in m:
         return False, (u'rapor ZINCIR TUTARSIZ diyor. Uzun kosuya GIRILMEZ - '
-                       u'HIZLI_TEST/HIZLI_TEST_RAPORU.md dosyasina bakin.')
+                       u'QUICK_TEST/QUICK_TEST_REPORT.md dosyasina bakin.')
     if u'ZINCIR TUTARLI' in m:
         return True, u'rapor ZINCIR TUTARLI diyor'
     return False, u'raporda ne TUTARLI ne TUTARSIZ karari var - bicim beklenmedik'
@@ -245,10 +245,10 @@ def d_yok(kok, ayar, cikti_metni):
 #             uyelik_yeniden_turetme_uyelik_*.tsv (verification/full_chain.py line
 #             1092 looks for it too).
 #    P -> K : recovery_round.py's input is
-#             TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv
+#             ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv
 #             (verification/full_chain.py line 946 verifies it as a precondition).
 #    P -> D : dogrulama_turu.siparistekiler() reads
-#             TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv (specificity_round.py lines 150-155).
+#             ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv (specificity_round.py lines 150-155).
 #    K -> D : D also tests the pairs K recovered (kurtarma_satirlari.tsv).
 #    I -> G : all_bin_identities.py SHARES its cache with I; if I runs first the
 #             same bin is not scanned twice (verification/full_chain.py line 686).
@@ -291,7 +291,7 @@ def ASAMALAR(ayar):
              grup=u'Grup 4', betik='screening/__main__.py',
              argv=lambda kok, a: [_py('-m', 'screening', '--selftest')],
              girdi=['screening'], cikti=[], bagimli=[],
-             sure_sn=4.6, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 kosusu',
+             sure_sn=4.6, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 kosusu',
              denet=d_selftest, hep_kos=True),
 
         # ADDED 2026-08-10. In this project most of the bugs were not in the measurement but
@@ -305,8 +305,8 @@ def ASAMALAR(ayar):
                                       '--root', '.')],
              girdi=['verification/audit_all.py',
                     'screening/hedef_taxid.tsv',
-                    'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'],
-             cikti=['TEK_TUS_SONUC/DENETIM_RAPORU.md'], bagimli=[],
+                    'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
+             cikti=['ONE_KEY_RESULT/DENETIM_RAPORU.md'], bagimli=[],
              sure_sn=90.0, kaynak=u'olculdu 2026-08-10 (yerel 2 sn + NCBI kapsama ~85 sn)',
              # MEASURED: when this stage was added the 'denet' key was not written.
              # main() calls a['denet'] for every stage, so the chain died with
@@ -314,7 +314,7 @@ def ASAMALAR(ayar):
              # run before that, which is why it was never seen. What is verified is
              # that the audit report WAS PRODUCED; findings inside it are not a
              # problem, an advisory stage exists for exactly that.
-             denet=d_tsv_dolu(['TEK_TUS_SONUC/DENETIM_RAPORU.md']),
+             denet=d_tsv_dolu(['ONE_KEY_RESULT/DENETIM_RAPORU.md']),
              hep_kos=True, danisma=True),
 
         dict(kod='H', ad=u'HIZLI TUTARLILIK TESTI - uzun kosudan ONCE gerileme kapisi',
@@ -322,9 +322,9 @@ def ASAMALAR(ayar):
              argv=lambda kok, a: [_py(os.path.join('verification', 'quick_consistency_test.py'),
                                       '--root', '.')],
              girdi=['verification/quick_consistency_test.py',
-                    'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv'],
-             cikti=['HIZLI_TEST/HIZLI_TEST_RAPORU.md'], bagimli=[],
-             sure_sn=122.0, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 kosusu',
+                    'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'],
+             cikti=['QUICK_TEST/QUICK_TEST_REPORT.md'], bagimli=[],
+             sure_sn=122.0, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 kosusu',
              denet=d_hizli_test),
 
         dict(kod='E', ad=u'VERITABANI ERISIM DOGRULAMASI - her VT gercekten okunuyor mu',
@@ -332,10 +332,10 @@ def ASAMALAR(ayar):
              argv=lambda kok, a: [_py(os.path.join('verification', 'access_check.py'),
                                       '--root', '.')],
              girdi=['verification/access_check.py'],
-             cikti=['ERISIM_SONUC/erisim_dogrulama.tsv'], bagimli=[],
+             cikti=['ACCESS_RESULT/erisim_dogrulama.tsv'], bagimli=[],
              sure_sn=None,
-             kaynak=u'OLCULMEDI - bu asama hic kosulmamis (ERISIM_SONUC klasoru yok)',
-             denet=d_tsv_dolu(['ERISIM_SONUC/erisim_dogrulama.tsv'])),
+             kaynak=u'OLCULMEDI - bu asama hic kosulmamis (ACCESS_RESULT klasoru yok)',
+             denet=d_tsv_dolu(['ACCESS_RESULT/erisim_dogrulama.tsv'])),
 
         dict(kod='U', ad=u'UYELIGI OLCULEN KIMLIKTEN YENIDEN TURET',
              grup=u'Grup 4', betik='engine/rederive_membership.py',
@@ -356,14 +356,14 @@ def ASAMALAR(ayar):
              girdi=['protocol/single_protocol_measure.py', 'primer_final',
                     'screening/ciftler.tsv',
                     'GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'],
-             cikti=['TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv',
-                    'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'],
+             cikti=['ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
+                    'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
              bagimli=['U'],
              sure_sn=36.0,
              kaynak=u'verification/full_chain.py yorumu ("Olculen: P 36 sn"); '
-                    u'TUM_KOSU_SONUC/durum.json sicak kosuda 9,2 sn',
-             denet=d_tsv_dolu(['TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv',
-                               'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'])),
+                    u'ALL_STAGES_RESULT/durum.json sicak kosuda 9,2 sn',
+             denet=d_tsv_dolu(['ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
+                               'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'])),
 
         dict(kod='K', ad=u'verification - esik alti satirlar dort yolla kurtarilir',
              grup=u'Grup 1', betik='verification/recovery_round.py',
@@ -372,10 +372,10 @@ def ASAMALAR(ayar):
              # 2026-08-09: ciftler.tsv eklendi, gerekce D asamasindaki notta.
              girdi=['verification/recovery_round.py',
                     'screening/ciftler.tsv',
-                    'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv'],
-             cikti=['KURTARMA_SONUC/kurtarma_satirlari.tsv'], bagimli=['P'],
+                    'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'],
+             cikti=['RECOVERY_RESULT/kurtarma_satirlari.tsv'], bagimli=['P'],
              sure_sn=300.0, kaynak=u'verification/full_chain.py yorumu ("K 5 dk")',
-             denet=d_tsv_dolu(['KURTARMA_SONUC/kurtarma_satirlari.tsv'])),
+             denet=d_tsv_dolu(['RECOVERY_RESULT/kurtarma_satirlari.tsv'])),
 
         dict(kod='D', ad=u'DOGRULAMA - paneldeki ciftler dort kanit katmaniyla sinanir',
              grup=u'Grup 1', betik='verification/specificity_round.py',
@@ -391,60 +391,60 @@ def ASAMALAR(ayar):
                     'screening/hedef_klad.tsv',
                     'screening/ciftler.tsv',
                     'SIPARIS_LISTESI.tsv',
-                    'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv',
-                    'KURTARMA_SONUC/kurtarma_satirlari.tsv',
+                    'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv',
+                    'RECOVERY_RESULT/kurtarma_satirlari.tsv',
                     'REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta.primerqc.bin'],
-             cikti=['DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv'], bagimli=['P', 'K'],
+             cikti=['VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'], bagimli=['P', 'K'],
              sure_sn=6900.0,
              kaynak=u'TUM_CIFTLER_DEVIR_2026-08-07: katman2 81 dk (soguk, 22 cift) '
                     u'+ katman3 2,5 dk + katman4 NCBI 31 dk = ~1 sa 55 dk',
-             denet=d_tsv_dolu(['DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv'])),
+             denet=d_tsv_dolu(['VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'])),
 
         dict(kod='I', ad=u'KIMLIK DOGRULAMA - rapora giren iddialar bagimsiz sinanir',
              grup=u'Grup 2', betik='verification/identity_verification.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'identity_verification.py'),
                                       '--root', '.')],
              girdi=['verification/identity_verification.py'],
-             cikti=['KIMLIK_SONUC/kimlik_iddialari.tsv'], bagimli=[],
+             cikti=['IDENTITY_RESULT/kimlik_iddialari.tsv'], bagimli=[],
              sure_sn=12007.0,
-             kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 (3 sa 20 dk)',
-             denet=d_tsv_dolu(['KIMLIK_SONUC/kimlik_iddialari.tsv'])),
+             kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (3 sa 20 dk)',
+             denet=d_tsv_dolu(['IDENTITY_RESULT/kimlik_iddialari.tsv'])),
 
         dict(kod='G', ad=u'TUM KUTU KIMLIKLERI - panele giren HER kutu dogrulanir',
              grup=u'Grup 2', betik='verification/all_bin_identities.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'all_bin_identities.py'),
                                       '--root', '.', '--nt', 'yok')],
              girdi=['verification/all_bin_identities.py'],
-             cikti=['TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv'], bagimli=['I'],
+             cikti=['ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv'], bagimli=['I'],
              sure_sn=17038.0,
-             kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 (4 sa 44 dk)',
-             denet=d_tsv_dolu(['TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv'])),
+             kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (4 sa 44 dk)',
+             denet=d_tsv_dolu(['ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv'])),
 
         dict(kod='W', ad=u'KRAKEN2 ORTAM DENETIMI - kurulu mu, hangi veritabani',
              grup=u'Grup 3', betik=None, argv=kraken_argv('W'),
              girdi=[], cikti=[], bagimli=[],
-             sure_sn=81.0, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06',
+             sure_sn=81.0, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06',
              denet=d_yok, kraken=True, hep_kos=True),
 
         dict(kod='X', ad=u'KRAKEN GUVEN ESIGI TARAMASI',
              grup=u'Grup 3', betik=None, argv=kraken_argv('X'),
              girdi=[], cikti=[], bagimli=['W'],
              sure_sn=6916.0,
-             kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 (1 sa 55 dk)',
+             kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (1 sa 55 dk)',
              denet=d_yok, kraken=True),
 
         dict(kod='Z', ad=u'DORT SUTUNLU KARSILASTIRMA TABLOSU',
              grup=u'Grup 3', betik=None, argv=kraken_argv('Z'),
              girdi=[], cikti=[], bagimli=['X'],
-             sure_sn=4.8, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06',
+             sure_sn=4.8, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06',
              denet=d_yok, kraken=True),
 
         dict(kod='S', ad=u'OZETI YENILE - olcum yapmaz, mevcut dosyalari okur',
              grup=u'Grup 4', betik='screening/__main__.py',
              argv=lambda kok, a: [_py('-m', 'screening', '--mode', 'ozet')],
-             girdi=[], cikti=['KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md'], bagimli=[],
-             sure_sn=0.7, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06',
-             denet=d_tsv_dolu(['KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md']),
+             girdi=[], cikti=['SCREENING_RESULT/00_OZET_HEPSI.md'], bagimli=[],
+             sure_sn=0.7, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06',
+             denet=d_tsv_dolu(['SCREENING_RESULT/00_OZET_HEPSI.md']),
              hep_kos=True),
     ]
     for a in L:
@@ -887,14 +887,14 @@ def plan_yaz(kok, asamalar, durum, ayar, yaz):
 # itself, it follows the order written here.
 # THE 2026-08-10 FIX. An ESIK_VE_OLCUT dated 08-08 stood at the head of the list and
 # the morning summary said "11 pairs ORDERABLE", while the
-# TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv produced by THE SAME RUN said 20 (15 KESIN
+# ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv produced by THE SAME RUN said 20 (15 KESIN
 # plus 5 EVRENSEL). The difference is that five pairs were changed after 08-08 and
 # Microascaceae was brought back. The summary said openly which file it had read,
 # so it was not lying, but it was READING THE WRONG FILE, and that is the first
 # place anyone looks in the morning. The table THE RUN ITSELF produces was moved to
 # the head of the list.
 SIPARIS_KAYNAKLARI = [
-    ('TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv', 'durum'),
+    ('ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv', 'durum'),
     ('ESIK_VE_OLCUT_2026-08-08.tsv', 'YENI_HUKUM'),
     ('NIHAI_SIPARIS_LISTESI_2026-08-07.tsv', None),
 ]
@@ -1030,7 +1030,7 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
             for a in uyarili:
                 d = durum[a['kod']]
                 w(u'- **%s** %s — %s\n' % (a['kod'], a['ad'], (d.get('sebep') or '')[:200]))
-            w(u'\nDetail: `TEK_TUS_SONUC/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`.\n\n')
+            w(u'\nDetail: `ONE_KEY_RESULT/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`.\n\n')
 
         if dusen:
             w(u'## 2. FAILED STAGES: look at these first\n\n')
@@ -1051,26 +1051,26 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
         w(u'| question | file |\n|---|---|\n')
         for soru, dosya in (
             (u'What should I order (FINAL)',
-             u'`TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv`, the `durum` and '
+             u'`ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv`, the `durum` and '
              u'`siparis_sarti` columns (the table THIS RUN produced itself)'),
             (u'What was asked for at the meeting, and what came of it',
              u'`TOPLANTI_DURUMU.md`'),
             (u'What the NCBI 4th layer said',
-             u'`DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md`'),
+             u'`VERIFICATION_RESULT/NCBI_KATMAN4_RAPORU.md`'),
             (u'Are the audits clean in this run',
-             u'`TEK_TUS_SONUC/DENETIM_RAPORU.md`'),
+             u'`ONE_KEY_RESULT/DENETIM_RAPORU.md`'),
             (u'Why the threshold rule changed', u'`ESIK_VE_OLCUT_2026-08-08.md`'),
             (u'Where to copy the sequences from',
              u'`PrimerJury_PANEL_*.xlsx` (the `1 Siparis` sheet)'),
             (u'Which pair is risky, and why', u'`SIPARIS_KARARI_2026-08-07.md`'),
             (u'Did a contradiction come up in this run',
-             u'`DOGRULAMA_SONUC/CELISKILER.md`'),
+             u'`VERIFICATION_RESULT/CELISKILER.md`'),
             (u'The verification layers side by side',
-             u'`DOGRULAMA_SONUC/DOGRULAMA_RAPORU.md`'),
+             u'`VERIFICATION_RESULT/DOGRULAMA_RAPORU.md`'),
             (u'The detail of the off target products',
              u'`HEDEF_DISI_AYRINTI_2026-08-07.tsv`'),
             (u'Are the bin identities right',
-             u'`TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md`'),
+             u'`ALL_IDENTITIES_RESULT/TUM_KUTU_KIMLIK_RAPORU.md`'),
             (u'The raw output of this run',
              u'`%s`' % os.path.relpath(gunluk_yolu, kok).replace('\\', '/')),
         ):

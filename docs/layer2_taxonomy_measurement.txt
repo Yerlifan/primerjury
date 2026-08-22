@@ -1,14 +1,14 @@
 22 cift, 5 veritabani
   taraniyor: SILVA_138.2_SSURef_NR99.fasta      (824 MB)  1187 sn
-     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+     kismi sonuc yazildi: SCREENING_RESULT\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
   taraniyor: SILVA_138.2_LSURef_NR99.fasta      (297 MB)  369 sn
-     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+     kismi sonuc yazildi: SCREENING_RESULT\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
   taraniyor: UNITE_ITS.fasta                    (1526 MB)  1686 sn
-     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+     kismi sonuc yazildi: SCREENING_RESULT\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
   taraniyor: PR2_SSU_taxo_long.fasta            (369 MB)  438 sn
-     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+     kismi sonuc yazildi: SCREENING_RESULT\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
   taraniyor: ROD_v1.2_operon_variants.fasta     (357 MB)  460 sn
-     kismi sonuc yazildi: KAPSAMLI_ARAMA_SONUC\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
+     kismi sonuc yazildi: SCREENING_RESULT\kontrol\A2_olcum\kismi_sonuc_c25aa382b9.json
 
 ======================================================================================================================
 hedef                                          tum |   BOY: disi | a klad-ici ao organel b ayni-alan c fark-alan | TAKSON: b+c

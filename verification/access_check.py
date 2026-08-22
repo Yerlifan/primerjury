@@ -33,7 +33,7 @@ identity result should be trusted.
 # INPUT  : the FASTA sets under REFERANS_DB/ (which of them to ask is read from the
 #          VTB list inside identity_verification.py) and those sets' OWN records; the
 #          query does not come from outside, it is chosen from inside the database.
-# OUTPUT : ERISIM_SONUC/erisim_dogrulama.tsv (GECTI / KISMEN / DUSTU per database,
+# OUTPUT : ACCESS_RESULT/erisim_dogrulama.tsv (GECTI / KISMEN / DUSTU per database,
 #          plus the reason; it is APPENDED to the file, so earlier runs are kept).
 # CALLED BY: verification/full_chain.py -> key E
 #          (python3 verification/access_check.py --root .)
@@ -117,7 +117,7 @@ def main():
             % (type(e).__name__, e, _kd_yolu))
         return 1
 
-    CIKTI = os.path.join(kok, 'ERISIM_SONUC')
+    CIKTI = os.path.join(kok, 'ACCESS_RESULT')
     os.makedirs(CIKTI, exist_ok=True)
     vtb = [(e, d, t) for e, d, t, kullan, _n in kd.VTB
            if kullan and os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]

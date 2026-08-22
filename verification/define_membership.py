@@ -38,7 +38,7 @@ import time
 
 
 def kimlikler(kok):
-    y = os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')
+    y = os.path.join(kok, 'ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv')
     sat = [x.rstrip('\n').split('\t') for x in io.open(y, encoding='utf-8')]
     bi = None
     for i, r in enumerate(sat):
@@ -54,7 +54,7 @@ def kimlikler(kok):
 
 def uyelik_dosyasi(kok):
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_RESULT', '*uyelik*.tsv'))
     if not a:
         return None
     a.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))
@@ -79,7 +79,7 @@ def main():
     sinif = a.sinif.strip().upper()
     if not sinif:
         import csv
-        y = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+        y = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
         if os.path.exists(y):
             with io.open(y, encoding='utf-8') as fh:
                 for r in csv.DictReader((l for l in fh if not l.startswith('#')),
@@ -190,7 +190,7 @@ def main():
         else:
             import csv as _csv
             sl = None
-            with io.open(os.path.join(kok, 'TEK_PROTOKOL_SONUC',
+            with io.open(os.path.join(kok, 'ONE_PROTOCOL_RESULT',
                                       'SIPARIS_LISTESI.tsv'), encoding='utf-8') as fh:
                 for r in _csv.DictReader((l for l in fh if not l.startswith('#')),
                                          delimiter='\t'):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """THE CALIBRATION TEST: does the shared scorer reproduce the panel's numbers?
 
-The panel's OWN checkpoints (TEK_PROTOKOL_SONUC/kontrol/*.json) are the source of
+The panel's OWN checkpoints (ONE_PROTOCOL_RESULT/kontrol/*.json) are the source of
 the expected values: for each pair they hold the member and competitor bin lists, k
 and n per bin, and kat_enkotu. Those files are READ ONLY.
 
@@ -13,7 +13,7 @@ The comparison has FOUR STEPS; looking at the last number alone is not enough:
 The fourth matching without the first three matching is A COINCIDENCE and cannot be
 trusted.
 
-It runs batch by batch (a 45 s bash ceiling). The state is kept under SONUCLAR.
+It runs batch by batch (a 45 s bash ceiling). The state is kept under RESULTS.
 
 """
 import os, sys, json, glob, argparse
@@ -27,7 +27,7 @@ KP = '/tmp/mrb/kontrol/kalib.json'
 def beklenenler():
     """Panelin kontrol noktalarindan beklenen degerleri cikarir."""
     out = []
-    for y in sorted(glob.glob(os.path.join(KOK, 'TEK_PROTOKOL_SONUC', 'kontrol', '*.json'))):
+    for y in sorted(glob.glob(os.path.join(KOK, 'ONE_PROTOCOL_RESULT', 'kontrol', '*.json'))):
         v = json.load(open(y, encoding='utf-8'))
         o1 = (v.get('olcum') or {}).get('1')
         out.append(dict(hedef=v['hedef'], F=v.get('F', ''), R=v.get('R', ''),

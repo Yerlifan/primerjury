@@ -7,7 +7,7 @@ summary is produced: the final order list plus the recovered targets plus the
 contradictions plus the identity table.
 
 It is designed to be started at night and read from ONE FILE in the morning:
-    TUM_KOSU_SONUC/00_BIRLESIK_OZET.md
+    ALL_STAGES_RESULT/00_BIRLESIK_OZET.md
 
 """
 
@@ -20,9 +20,9 @@ It is designed to be started at night and read from ONE FILE in the morning:
 #          (protocol/single_protocol_measure.py, verification/recovery_round.py,
 #          verification/specificity_round.py,
 #          verification/identity_verification.py) and the TSV files they produce;
-#          plus TUM_KOSU_SONUC/durum.json (where the previous run stopped).
-# OUTPUT : TUM_KOSU_SONUC/00_BIRLESIK_OZET.md (the one file to read in the morning),
-#          TUM_KOSU_SONUC/durum.json, TUM_KOSU_SONUC/kosu_gunlugu.txt.
+#          plus ALL_STAGES_RESULT/durum.json (where the previous run stopped).
+# OUTPUT : ALL_STAGES_RESULT/00_BIRLESIK_OZET.md (the one file to read in the morning),
+#          ALL_STAGES_RESULT/durum.json, ALL_STAGES_RESULT/kosu_gunlugu.txt.
 # CALLED BY: verification/full_chain.py -> key T
 #          (python3 verification/run_all_stages.py --root .)
 #
@@ -38,16 +38,16 @@ VERSIYON = '1.0 (2026-08-03)'
 
 ASAMALAR = [
     ('P', u'TEK PROTOKOL - panelin tamami tek kuralla olculur',
-     ['protocol/single_protocol_measure.py'], 'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv',
+     ['protocol/single_protocol_measure.py'], 'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
      u'1-2 saat'),
     ('K', u'verification - esik alti satirlar dort yolla kurtarilir',
-     ['verification/recovery_round.py'], 'KURTARMA_SONUC/kurtarma_satirlari.tsv',
+     ['verification/recovery_round.py'], 'RECOVERY_RESULT/kurtarma_satirlari.tsv',
      u'1-3 saat'),
     ('D', u'DOGRULAMA - kurtarilan ciftler uc katmanla sinanir',
-     ['verification/specificity_round.py'], 'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv',
+     ['verification/specificity_round.py'], 'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv',
      u'1-4 saat'),
     ('I', u'KIMLIK DOGRULAMA - rapora giren iddialar bagimsiz sinanir',
-     ['verification/identity_verification.py'], 'KIMLIK_SONUC/kimlik_iddialari.tsv',
+     ['verification/identity_verification.py'], 'IDENTITY_RESULT/kimlik_iddialari.tsv',
      u'3-7 saat'),
 ]
 
@@ -113,7 +113,7 @@ def tsv_oku(yol):
 # chain is stopped.
 # -------------------------------------------------------------------------
 def calistir(kok, ncbi, yeniden, atla):
-    CIKTI = os.path.join(kok, 'TUM_KOSU_SONUC')
+    CIKTI = os.path.join(kok, 'ALL_STAGES_RESULT')
     os.makedirs(CIKTI, exist_ok=True)
     dyol = os.path.join(CIKTI, 'durum.json')
     durum = {}
@@ -209,11 +209,11 @@ def ozet(kok, CIKTI, durum, yaz):
     d_bitti = durum.get('D', {}).get('durum') == 'bitti'
     k_bitti = durum.get('K', {}).get('durum') == 'bitti'
     """Dort asamanin ciktisini TEK dosyada birlestirir."""
-    P = tsv_oku(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
-    SIP = tsv_oku(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
-    K = tsv_oku(os.path.join(kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'))
-    D = tsv_oku(os.path.join(kok, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))
-    I = tsv_oku(os.path.join(kok, 'KIMLIK_SONUC', 'kimlik_iddialari.tsv'))
+    P = tsv_oku(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
+    SIP = tsv_oku(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
+    K = tsv_oku(os.path.join(kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv'))
+    D = tsv_oku(os.path.join(kok, 'VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'))
+    I = tsv_oku(os.path.join(kok, 'IDENTITY_RESULT', 'kimlik_iddialari.tsv'))
 
     yol = os.path.join(CIKTI, '00_BIRLESIK_OZET.md')
     with open(yol, 'w', encoding='utf-8') as fh:
@@ -336,7 +336,7 @@ def ozet(kok, CIKTI, durum, yaz):
                          % (r['hedef'], r.get('1_NUMUNE', ''), r.get('2_YEREL_DB', ''),
                             r.get('2_hedef_disi_urun', ''), r.get('3_NCBI', ''),
                             r.get('3_hedef_disi_urun', '')))
-            fh.write(u'\nDetail, and what to do about it: `DOGRULAMA_SONUC/CELISKILER.md`\n')
+            fh.write(u'\nDetail, and what to do about it: `VERIFICATION_RESULT/CELISKILER.md`\n')
 
         # --- 4) KIMLIK ---
         fh.write(u'\n---\n\n## 4. Identity claims\n\n')
@@ -397,7 +397,7 @@ def ozet(kok, CIKTI, durum, yaz):
         else:
             fh.write(u'The chain covers THE WHOLE of the meeting list.\n')
 
-        fh.write(u'\n---\n\n## Where to look\n\n| Question | File |\n|---|---|\n| What should I order? | `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` |\n| Why did this row fail? | `KURTARMA_SONUC/KURTARMA_RAPORU.md` |\n| Which pair is suspect? | `DOGRULAMA_SONUC/CELISKILER.md` |\n| What do I write in the report? | `KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
+        fh.write(u'\n---\n\n## Where to look\n\n| Question | File |\n|---|---|\n| What should I order? | `ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv` |\n| Why did this row fail? | `RECOVERY_RESULT/KURTARMA_RAPORU.md` |\n| Which pair is suspect? | `VERIFICATION_RESULT/CELISKILER.md` |\n| What do I write in the report? | `IDENTITY_RESULT/KIMLIK_DOGRULAMA_RAPORU.md` |\n')
     yaz(u'  written: %s' % yol)
     yaz('')
     yaz(u'  LOOK AT THIS FIRST: %s' % yol)

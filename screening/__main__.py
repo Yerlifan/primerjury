@@ -21,7 +21,7 @@ Usage (normally verification/full_chain.py calls it):
 #          checkpoints through checks.py. It takes its arguments with argparse
 #          (--mode, --target, --reads, --light, --rerun, --full-depth, --selftest,
 #          --skip-tests).
-# OUTPUT : the kontrol/hedef_*.json checkpoints under KAPSAMLI_ARAMA_SONUC/;
+# OUTPUT : the kontrol/hedef_*.json checkpoints under SCREENING_RESULT/;
 #          adaylar.tsv, parametre_izgarasi.tsv and KAPSAMLI_ARAMA_RAPORU.md
 #          through report.uret(). main() returns the process exit code
 #          (0 = success, 2 = a gate or self test failed).
@@ -518,7 +518,7 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
     yolar = report.uret(checks.hepsi(), panel, panel_yolu, yaz)
     cizgi('=')
     yaz(u'  TOTAL TIME: %s' % sure(time.time() - BASLANGIC))
-    yaz('  SONUCLAR:')
+    yaz('  RESULTS:')
     for p in yolar:
         yaz('    %s' % p)
     cizgi('=')

@@ -127,12 +127,12 @@ def main():
     if sinav() != 0:
         print(u'  THE NAME RULE TEST FAILED, no classification was done.')
         return 1
-    ham = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_ham')
+    ham = os.path.join(kok, 'VERIFICATION_RESULT', 'ncbi_ham')
     if not os.path.isdir(ham):
         sys.exit(u'ERROR: %s is missing.' % ham)
 
     eski = {}
-    ey = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_katman4.tsv')
+    ey = os.path.join(kok, 'VERIFICATION_RESULT', 'ncbi_katman4.tsv')
     if os.path.exists(ey):
         bas = None
         for l in io.open(ey, encoding='utf-8'):
@@ -178,7 +178,7 @@ def main():
         satir.append((hedef, eski_adli, len(adli), len(ur) - len(adli), len(ur),
                       [x[1] for x in adli[:5]]))
 
-    cy = os.path.join(kok, 'DOGRULAMA_SONUC', 'ncbi_katman4_siki.tsv')
+    cy = os.path.join(kok, 'VERIFICATION_RESULT', 'ncbi_katman4_siki.tsv')
     with io.open(cy, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# NCBI layer 4, the STRICT name rule. Generated %s\n'
                  % time.strftime('%Y-%m-%d %H:%M'))

@@ -125,7 +125,7 @@ def main():
      'referans_konsensus/konsensus': 'Gece normalize edilen set. Temiz.',
      'referans_konsensus/baskin/konsensus': 'Baskin alel seti. Temiz (6 dosya olculemedi - N orani yuksek).',
      'referans_konsensus/self/konsensus': 'Self set. Temiz (1 dosya bos).',
-     'KAPSAMLI_ARAMA_SONUC/konsensus_yeni': 'BU GECE KOSULACAK URETIMIN CIKTISI. KARISIK ve '
+     'SCREENING_RESULT/konsensus_yeni': 'BU GECE KOSULACAK URETIMIN CIKTISI. KARISIK ve '
                                             'agirlikli ANTISENSE. Kok neden: sablonu karisik '
                                             'klasorden aliyordu (asagi bakiniz).',
     }

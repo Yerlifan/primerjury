@@ -66,8 +66,8 @@ def main():
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 
-    panel = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
-    ham = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'kutu_bazli_ham_sayilar.tsv'))
+    panel = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
+    ham = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'kutu_bazli_ham_sayilar.tsv'))
     if not panel:
         sys.exit(u'ERROR: panel_tek_protokol.tsv could not be read.')
 
@@ -157,7 +157,7 @@ def main():
     my = os.path.join(kok, 'ESIK_IKI_KURAL.md')
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# The two threshold rules side by side\n\n')
-        fh.write(u'Generated: %s, source `TEK_PROTOKOL_SONUC/` (this run\'s own output)\n\n' % time.strftime('%Y-%m-%d %H:%M'))
+        fh.write(u'Generated: %s, source `ONE_PROTOCOL_RESULT/` (this run\'s own output)\n\n' % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'| rule | definition |\n|---|---|\n')
         fh.write(u'| Flat | dCq >= %.2f |\n' % DUZ_ESIK)
         fh.write(u'| Abundance-weighted | dCq >= max(log2(R) + %.1f, %.2f) |\n\n'

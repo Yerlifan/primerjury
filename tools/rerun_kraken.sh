@@ -53,8 +53,8 @@ if [ -z "$DB" ] || [ ! -f "$DB/hash.k2d" ]; then
   exit 1
 fi
 echo "Kraken2 database found: $DB  (not hard coded, hash.k2d was searched for)"
-IS="$PROJE/SONUCLAR/kraken_yeniden"
-KAYNAK="$PROJE/SONUCLAR/fastq files"
+IS="$PROJE/RESULTS/kraken_yeniden"
+KAYNAK="$PROJE/RESULTS/fastq files"
 IPLIK="${IPLIK:-12}"
 BURASI="$_BETIK_DIZIN"
 

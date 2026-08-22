@@ -14,7 +14,7 @@ The question the report has to answer:
 #          one is the dictionary __main__.hedefi_isle returns: the baseline
 #          measurement, the grid table, the candidate list, the global scan result);
 #          the panel rows and the panel path hedefler.panel_oku() gives.
-# OUTPUT : KAPSAMLI_ARAMA_SONUC/adaylar.tsv, parametre_izgarasi.tsv and
+# OUTPUT : SCREENING_RESULT/adaylar.tsv, parametre_izgarasi.tsv and
 #          KAPSAMLI_ARAMA_RAPORU.md. uret() returns the list of those three paths.
 # CALLED BY: inside __main__.aramayi_kos, once after each target finishes (quietly)
 #          and once more at the end of the run. So it runs through

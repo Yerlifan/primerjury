@@ -62,10 +62,10 @@ USAGE
 #          "fastq files"/*/*.fastq(.gz) (the raw reads),
 #          screening/hedef_uyelik.tsv (the current membership definition),
 #          primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (the panel pairs).
-# OUTPUT : engine_SONUC/engine_TURETME.md,
-#          engine_SONUC/ciftler_yeniden_olcum.tsv,
-#          engine_SONUC/kutu_olculen_kimlik.tsv,
-#          engine_SONUC/_ck_*.json (interruption checkpoints).
+# OUTPUT : engine_RESULT/engine_TURETME.md,
+#          engine_RESULT/ciftler_yeniden_olcum.tsv,
+#          engine_RESULT/kutu_olculen_kimlik.tsv,
+#          engine_RESULT/_ck_*.json (interruption checkpoints).
 #          It WRITES NOTHING into the panel files.
 # CALLED BY: verification/full_chain.py -> key U
 #          (python3 engine/rederive_membership.py --root .)
@@ -364,7 +364,7 @@ def main():
     ap.add_argument('--reset', dest='sifirla', action='store_true', help='delete checkpoints and start over')
     a = ap.parse_args()
     KOK = a.kok
-    CIK = os.path.join(KOK, 'engine_SONUC')
+    CIK = os.path.join(KOK, 'engine_RESULT')
     os.makedirs(CIK, exist_ok=True)
     if a.sifirla:
         for f in glob.glob(os.path.join(CIK, '_ck_*.json')): os.remove(f)

@@ -29,11 +29,11 @@ report for every target; no change is made silently.
 # INPUT  : the paths in config.py; kontrol/hepsi_durum.json (which stage has
 #          finished); panel_yeniden_olcum.tsv, panel_kutu_duzeyi.tsv,
 #          uyelik_duyarlilik.tsv, konsensus_yeniden_uretim.tsv, adaylar.tsv and
-#          kontrol/hedef_*.json under KAPSAMLI_ARAMA_SONUC.
+#          kontrol/hedef_*.json under SCREENING_RESULT.
 #          It calls the stages itself: build_canonical.py (as a subprocess),
 #          build_consensus.calistir, panel_measurement.calistir,
 #          membership_check.calistir, __main__.aramayi_kos.
-# OUTPUT : KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md (the path ozet_yaz returns);
+# OUTPUT : SCREENING_RESULT/00_OZET_HEPSI.md (the path ozet_yaz returns);
 #          kontrol/hepsi_durum.json (the stage state). calistir() returns an exit
 #          code: 0 fine, 1 the user stopped it, 2 a gate did not pass.
 # CALLED BY: verification/full_chain.py key 9 (--mode hepsi -> HP.calistir) and key

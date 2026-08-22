@@ -85,7 +85,7 @@ PR2         = os.path.join(REFDB, 'PR2_SSU_taxo_long.fasta')
 # were brought into one place.
 BETIK_YOLLARI = [y('engine')]
 
-CIKTI       = y('KAPSAMLI_ARAMA_SONUC')
+CIKTI       = y('SCREENING_RESULT')
 KONTROL     = os.path.join(CIKTI, 'kontrol')      # checkpoint
 ONBELLEK    = os.path.join(CIKTI, 'onbellek')     # cache
 

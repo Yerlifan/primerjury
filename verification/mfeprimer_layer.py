@@ -25,7 +25,7 @@ Two traps this module handles, both measured the hard way:
 # INPUT  : the .fna/.fasta sets under REFERANS_DB/ and their .primerqc.bin
 #          indexes (the MFE_DB list), the tools/mfeprimer binary, and the primer
 #          pairs to verify (which come from the calling script).
-# OUTPUT : the input and raw output files under DOGRULAMA_SONUC/mfe/
+# OUTPUT : the input and raw output files under VERIFICATION_RESULT/mfe/
 #          (girdi_*.tsv, spec_*.txt, hairpin.txt, dimer.txt) plus JSON checkpoints
 #          per pair and database. It writes no report of its own; the result is
 #          combined by specificity_round.py.
@@ -224,7 +224,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
             # file EXISTS:
             #   "... is already exists, please remove it first"  (returncode 1)
             # This was a trap that never saw daylight: the spec_*.txt files of earlier runs sat
-            # under DOGRULAMA_SONUC/mfe/ (16 SILVA outputs, all of them written while the index
+            # under VERIFICATION_RESULT/mfe/ (16 SILVA outputs, all of them written while the index
             # was broken, so all of them "0 potential amplicons"). While the checkpoint
             # matched, mfeprimer was never called and the error was invisible; and when the
             # stale checkpoint was cleared and a re-run attempted, mfeprimer returned 1, we

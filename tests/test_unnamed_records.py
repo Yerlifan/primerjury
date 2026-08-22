@@ -9,7 +9,7 @@ NCBI nt gibi kumeler adlandirilmamis kayitlarla doludur:
 
 Duzeltme oncesi ad_coz bunlari ikili ad saniyordu ('Uncultured prokaryote',
 'Bacterium enrichment') ve kimlik %99 oldugu icin savunulabilir_duzey TUR
-duzeyinde bir ad uretiyordu. Sonuc: KIMLIK_SONUC/kimlik_iddialari.tsv icinde
+duzeyinde bir ad uretiyordu. Sonuc: IDENTITY_RESULT/kimlik_iddialari.tsv icinde
 CEVAPSIZLIK, DOGRULANDI damgali kimlik gibi duruyordu.
 
 Iki sey ayni anda dogru olmali:

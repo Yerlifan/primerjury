@@ -10,7 +10,7 @@ This script changes nothing, it only measures. The questions:
      the read length is measured separately.
   4. How alike are the member consensuses (is the cluster heterogeneous)?
 
-The output: JSON, under SONUCLAR. Only the script is written to the mounted
+The output: JSON, under RESULTS. Only the script is written to the mounted
 directory.
 
 """
@@ -23,7 +23,7 @@ import os, sys, json, gzip, random, itertools
 KOK = os.environ.get('_FL_KOK') or os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
-os.environ['_KURTARMA_KOK'] = KOK
+os.environ['_RECOVERY_ROOT'] = KOK
 
 from screening import targets as H, engine_gateway
 import importlib.util as _iu
@@ -95,7 +95,7 @@ def main():
     kmap = {d['kutu']: d['dizi'] for d in kons}
     panel = {}
     import csv
-    p = os.path.join(KOK, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+    p = os.path.join(KOK, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     for r in csv.DictReader((l for l in open(p, encoding='utf-8')
                              if not l.startswith('#')), delimiter='\t'):
         panel[r['hedef']] = r
@@ -134,7 +134,7 @@ def main():
             ad[:46], len(uye),
             '/'.join(str(x['kons_bp']) for x in d['uye_kutu'])), flush=True)
 
-    yol = os.environ.get('_FL_CIKTI') or os.path.join(KOK, 'SONUCLAR', 'envanter.json')
+    yol = os.environ.get('_FL_CIKTI') or os.path.join(KOK, 'RESULTS', 'envanter.json')
     json.dump(cikti, open(yol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('yazildi:', yol)
 

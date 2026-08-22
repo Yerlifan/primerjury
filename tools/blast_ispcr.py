@@ -157,7 +157,7 @@ def okumalari_yukle(kok, okuma_basina=300, en_az_uzunluk=300):
 
     """
     dosyalar = defaultdict(list)
-    for p in glob.glob(f"{kok}/SONUCLAR/fastq files/*/*reads_*.fastq"):
+    for p in glob.glob(f"{kok}/RESULTS/fastq files/*/*reads_*.fastq"):
         m = re.search(r"reads_(\d+)\.fastq$", os.path.basename(p))
         if m: dosyalar[m.group(1)].append(p)
     veri = {}
@@ -796,7 +796,7 @@ def main():
 
     satirlar = []; ozet = []
     log("")
-    log("SONUCLAR")
+    log("RESULTS")
     for taban in sorted(ciftler):
         s = sayimlar[taban]; b = boy_bilgisi[taban]
         hedefler = HEDEF_TAXID.get(taban, [])

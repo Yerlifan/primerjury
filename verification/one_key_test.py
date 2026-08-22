@@ -160,27 +160,27 @@ def basarili_ayar():
         'sina': dict(rc=0, selftest_metni=u'TUM SINAMALAR GECTI.'),
         # N: the audit stage. Its fake script has to write its own report,
         # otherwise the output check says DUSTU and the chain stops at N.
-        'N': dict(rc=0, yaz={'TEK_TUS_SONUC/DENETIM_RAPORU.md':
+        'N': dict(rc=0, yaz={'ONE_KEY_RESULT/DENETIM_RAPORU.md':
                              u'# denetim raporu\n\nSahte rapor, sinama icin.\n'}),
-        'H': dict(rc=0, yaz={'HIZLI_TEST/HIZLI_TEST_RAPORU.md':
+        'H': dict(rc=0, yaz={'QUICK_TEST/QUICK_TEST_REPORT.md':
                              u'# rapor\n\nZINCIR TUTARLI (kendi referansina gore)\n'}),
-        'E': dict(rc=0, yaz={'ERISIM_SONUC/erisim_dogrulama.tsv':
+        'E': dict(rc=0, yaz={'ACCESS_RESULT/erisim_dogrulama.tsv':
                              u'vtb\tsonuc\narchaea\tGECTI\n'}),
         'U': dict(rc=0, yaz={'uyelik_yeniden_turetme_uyelik_29991231.tsv':
                              u'kutu\thedef\nA1\tX\n'}),
-        'P': dict(rc=0, yaz={'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv':
+        'P': dict(rc=0, yaz={'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv':
                              u'hedef\tayrim\nX\t9\n',
-                             'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv':
+                             'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv':
                              u'hedef\tSINIF\tF\tR\nX\tKESIN\tAAA\tTTT\n'}),
-        'K': dict(rc=0, yaz={'KURTARMA_SONUC/kurtarma_satirlari.tsv':
+        'K': dict(rc=0, yaz={'RECOVERY_RESULT/kurtarma_satirlari.tsv':
                              u'hedef\tgecti\nX\tEVET\n'}),
-        'D': dict(rc=0, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
+        'D': dict(rc=0, yaz={'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv':
                              u'hedef\tKARAR\nX\tKOSULLU\n'}),
-        'I': dict(rc=0, yaz={'KIMLIK_SONUC/kimlik_iddialari.tsv':
+        'I': dict(rc=0, yaz={'IDENTITY_RESULT/kimlik_iddialari.tsv':
                              u'iddia\tsonuc\n1\tDOGRULANDI\n'}),
-        'G': dict(rc=0, yaz={'TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv':
+        'G': dict(rc=0, yaz={'ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv':
                              u'kutu\tkimlik\nA1\tX\n'}),
-        'S': dict(rc=0, yaz={'KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md':
+        'S': dict(rc=0, yaz={'SCREENING_RESULT/00_OZET_HEPSI.md':
                              u'# ozet\n\nSahte ozet dosyasi, sinama icin.\n'}),
     }
 
@@ -217,7 +217,7 @@ def sina(ad, kosul, ayrinti=u''):
 
 
 def durum_oku(taban):
-    y = os.path.join(taban, 'TEK_TUS_SONUC', 'durum.json')
+    y = os.path.join(taban, 'ONE_KEY_RESULT', 'durum.json')
     if not os.path.exists(y):
         return {}
     return json.load(io.open(y, encoding='utf-8'))
@@ -247,14 +247,14 @@ def s1_sifirdan(ana):
          out.find(u'] P ') < out.find(u'] K ') < out.find(u'] D '))
     sina(u'S1 the order is right: I before G',
          out.find(u'] I ') < out.find(u'] G '))
-    ozet = os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md')
+    ozet = os.path.join(t, 'ONE_KEY_RESULT', '00_SABAH_OZETI.md')
     sina(u'S1 the morning summary was produced', os.path.exists(ozet))
     m = io.open(ozet, encoding='utf-8').read() if os.path.exists(ozet) else u''
     sina(u'S1 the summary says NO STAGE FAILED', u'NO STAGE FAILED' in m)
     sina(u'S1 the summary holds the order table',
          u'ORDERABLE' in m and u'| X |' in m)
     # MEASURED: these two expectations WENT STALE. In one_key.py's order source
-    # list the run's own TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv was moved to the
+    # list the run's own ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv was moved to the
     # front (deliberately: the order before it read a stale file and misled the
     # first table anyone looks at in the morning). The fake P stage writes ONE
     # KESIN row to that file, so the right count is 1 in and 0 out.
@@ -266,7 +266,7 @@ def s1_sifirdan(ana):
          u'SIPARIS_LISTESI.tsv' in m and u'SINIF' in m)
     sina(u'S1 the log file is time stamped',
          any(x.startswith('gunluk_') for x in
-             os.listdir(os.path.join(t, 'TEK_TUS_SONUC'))))
+             os.listdir(os.path.join(t, 'ONE_KEY_RESULT'))))
     return t
 
 
@@ -326,7 +326,7 @@ def s4_eksik_dosya(ana):
     sina(u'S4 it wrote the install command', u'mfeprimer index -i' in out)
     sina(u'S4 NO STAGE RAN',
          u'>> [1/' not in out and not os.path.exists(
-             os.path.join(t, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')))
+             os.path.join(t, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')))
     return t
 
 
@@ -335,8 +335,8 @@ def s5_asama_dustu(ana):
     t = golge_kur(os.path.join(ana, 's5'))
     a = basarili_ayar()
     a['P'] = dict(rc=3, yaz={  # the output IS PRODUCED but the exit code IS NOT ZERO.
-        'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv': u'hedef\tayrim\nX\t9\n',
-        'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv': u'hedef\tSINIF\tF\tR\nX\tKESIN\tA\tT\n'})
+        'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv': u'hedef\tayrim\nX\t9\n',
+        'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv': u'hedef\tSINIF\tF\tR\nX\tKESIN\tA\tT\n'})
     ayar_yaz(t, a)
     rc, out = kos(t)
     d = durum_oku(t)
@@ -353,7 +353,7 @@ def s5_asama_dustu(ana):
     sina(u'S5 BAGIMSIZ asamalar (I, G) yine de kostu',
          d.get('I', {}).get('durum') == 'bitti' and d.get('G', {}).get('durum') == 'bitti',
          u'I=%s G=%s' % (d.get('I', {}).get('durum'), d.get('G', {}).get('durum')))
-    m = io.open(os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md'),
+    m = io.open(os.path.join(t, 'ONE_KEY_RESULT', '00_SABAH_OZETI.md'),
                 encoding='utf-8').read()
     sina(u'S5 the summary opened a FAILED STAGES section', u'FAILED STAGES' in m)
     sina(u'S5 the summary carries the word DUSTU on the P row', u'DUSTU' in m)
@@ -364,7 +364,7 @@ def s6_bos_cikti(ana):
     print(u'\n--- S6: EXIT CODE 0 BUT EMPTY OUTPUT - must NOT count as "done" ---')
     t = golge_kur(os.path.join(ana, 's6'))
     a = basarili_ayar()
-    a['K'] = dict(rc=0, yaz={'KURTARMA_SONUC/kurtarma_satirlari.tsv':
+    a['K'] = dict(rc=0, yaz={'RECOVERY_RESULT/kurtarma_satirlari.tsv':
                              u'hedef\tgecti\n'})     # yalniz baslik: 0 veri satiri
     ayar_yaz(t, a)
     rc, out = kos(t)
@@ -382,7 +382,7 @@ def s7_kesinti(ana):
     print(u'\n--- S7: INTERRUPTED (Ctrl+C) AND RESUMED WITH THE SAME COMMAND ---')
     t = golge_kur(os.path.join(ana, 's7'))
     a = basarili_ayar()
-    a['D'] = dict(rc=0, bekle=25, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
+    a['D'] = dict(rc=0, bekle=25, yaz={'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv':
                                        u'hedef\tKARAR\nX\tKOSULLU\n'})
     ayar_yaz(t, a)
     rc, out = kos(t, sinyal_sn=14)
@@ -395,9 +395,9 @@ def s7_kesinti(ana):
          all(d.get(k, {}).get('durum') == 'bitti' for k in ('H', 'E', 'U', 'P', 'K')),
          u', '.join(u'%s=%s' % (k, d.get(k, {}).get('durum')) for k in 'HEUPK'))
     sina(u'S7 the morning summary was written on an interruption too',
-         os.path.exists(os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md')))
+         os.path.exists(os.path.join(t, 'ONE_KEY_RESULT', '00_SABAH_OZETI.md')))
     # RESUME: the same command is run again
-    a['D'] = dict(rc=0, bekle=0, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
+    a['D'] = dict(rc=0, bekle=0, yaz={'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv':
                                       u'hedef\tKARAR\nX\tKOSULLU\n'})
     ayar_yaz(t, a)
     t0 = time.time()

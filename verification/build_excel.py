@@ -160,12 +160,12 @@ def main():
     panel_yolu = T('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     kaynaklar = {
         'panel (diziler, plaka, Ta)': panel_yolu,
-        'siparis listesi (hukum)': T('TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'),
-        'panel olcumu (dCq, kapsam)': T('TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'),
+        'siparis listesi (hukum)': T('ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'),
+        'panel olcumu (dCq, kapsam)': T('ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'),
         'geometri (primer3)': None,     # the newest one is chosen below
-        'kutu kimlikleri': T('TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv'),
-        'dogrulama (4 katman)': T('DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'),
-        'NCBI 4. katman (siki)': T('DOGRULAMA_SONUC', 'ncbi_katman4_siki.tsv'),
+        'kutu kimlikleri': T('ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv'),
+        'dogrulama (4 katman)': T('VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'),
+        'NCBI 4. katman (siki)': T('VERIFICATION_RESULT', 'ncbi_katman4_siki.tsv'),
         'iki esik kurali': T('ESIK_IKI_KURAL.tsv'),
         'toplanti durumu': T('toplanti_durumu.tsv'),
     }
@@ -483,7 +483,7 @@ def main():
           (IYI if 'kosulsuz' in str(s['durum']) else None))
 
     # ================= 8 BULGULAR =================
-    bulgu_yolu = T('TEK_TUS_SONUC', 'DENETIM_RAPORU.md')
+    bulgu_yolu = T('ONE_KEY_RESULT', 'DENETIM_RAPORU.md')
     bl = []
     if os.path.exists(bulgu_yolu):
         onem = ''

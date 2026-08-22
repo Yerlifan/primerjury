@@ -292,8 +292,8 @@ def main():
 
     # --- uretim -----------------------------------------------------------
     ek = [a.ham_kok] if a.ham_kok else []
-    ek += [os.path.join(kok, os.pardir, 'tools', 'SONUCLAR', 'fastq files'),
-           os.path.join(kok, os.pardir, 'tools', 'SONUCLAR'),
+    ek += [os.path.join(kok, os.pardir, 'tools', 'RESULTS', 'fastq files'),
+           os.path.join(kok, os.pardir, 'tools', 'RESULTS'),
            os.path.join(kok, 'HAM_OKUMA')]
     uretilen = 0
     atlanan = []
