@@ -308,12 +308,12 @@ def ASAMALAR(ayar):
                     'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'],
              cikti=['TEK_TUS_SONUC/DENETIM_RAPORU.md'], bagimli=[],
              sure_sn=90.0, kaynak=u'olculdu 2026-08-10 (yerel 2 sn + NCBI kapsama ~85 sn)',
-             # OLCULDU: bu asama eklendiginde 'denet' anahtari yazilmamisti.
-             # main() her asama icin a['denet'] cagirir, dolayisiyla zincir N
-             # bittigi anda KeyError ile cokuyordu. Kosuyu on kontrol
-             # engelledigi icin bu hic gorulmemisti. Denetim raporunun
-             # URETILDIGI dogrulanir; icinde bulgu olmasi bir sorun degildir,
-             # danisma asamasi zaten bunun icin var.
+             # MEASURED: when this stage was added the 'denet' key was not written.
+             # main() calls a['denet'] for every stage, so the chain died with
+             # KeyError the moment N finished. The pre-check had been stopping the
+             # run before that, which is why it was never seen. What is verified is
+             # that the audit report WAS PRODUCED; findings inside it are not a
+             # problem, an advisory stage exists for exactly that.
              denet=d_tsv_dolu(['TEK_TUS_SONUC/DENETIM_RAPORU.md']),
              hep_kos=True, danisma=True),
 
@@ -496,12 +496,12 @@ def on_kontrol(kok, ayar, yaz):
         satir(u'script: %s' % a['betik'], os.path.exists(t),
               boyut_metni(os.path.getsize(t)) if os.path.exists(t) else u'NOT FOUND')
 
-    # --- 3) Veri klasorleri ------------------------------------------------
-    # OLCULDU: bu liste 'engine' klasorunu DORT KEZ sayiyordu. Yeniden
-    # adlandirmada dort ayri kaynak klasoru tek ada dusmus, kopyalar
-    # temizlenmemisti; on kontrol ayni klasoru dort kez olcup ekrana dort
-    # ayni satir basiyordu. Liste artik depoda gercekten bulunan klasorleri
-    # birer kez sayiyor.
+    # --- 3) The data directories ------------------------------------------
+    # MEASURED: this list counted the 'engine' directory FOUR TIMES. In the
+    # rename four separate source directories fell onto one name and the
+    # copies were never cleaned up; the pre-check measured the same directory
+    # four times and printed four identical lines. The list now names the
+    # directories this repository actually has, once each.
     for d, zor in (('fastq files', True), ('consensus sequences', True),
                    ('primer_final', True), ('REFERANS_DB', True),
                    ('screening', True), ('protocol', True),

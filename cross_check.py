@@ -512,11 +512,11 @@ def xlsx_sayfalari(yol):
         zero.
 
     """
-    # yol None olabilir: kokte hicbir panel xlsx dosyasi yoksa Kaynaklar.panel_xlsx
-    # None kalir. Onceden dogrudan os.path.exists(None) cagriliyordu ve TypeError
-    # butun modulu dusuruyordu; kendini sinamada 2 IC TUTARLILIK tam bu yuzden
-    # ekilen hatayi yakalayamiyordu. Dosya yoksa bu bir "kaynak yok" durumudur,
-    # cokme degil.
+    # The path can be None: when there is no panel xlsx in the root,
+    # Kaynaklar.panel_xlsx stays None. os.path.exists(None) was being called
+    # directly, TypeError took the whole module down, and that is exactly why
+    # 2 INTERNAL CONSISTENCY could not catch its planted error in the self test.
+    # A missing file is a missing source, not a crash.
     if not yol or not os.path.exists(yol):
         return None
     try:
@@ -2942,12 +2942,12 @@ def modul_7_kapsam(kay, rap):
     kapatilmamis = 0
     kategori_sayaci = collections.Counter()
     for bolum, istek, durum in istekler:
-        # Kaynak belge (TOPLANTI_KARARLARI_SON_DURUM.md) Turkce yazilmis bir
-        # teslim dosyasidir, ama ayni belgenin Ingilizce yazilmis hali de
-        # denetlenebilmelidir. OLCULDU: kendini sinamanin 7. maddesi Ingilizce
-        # bir durum satiri ekiyordu ("**Not achieved.** No reason recorded") ve
-        # desen yalnizca Turkceyi tanidigi icin satir "yapilamadi" sayilmiyor,
-        # modul ekilen hatayi hic gormuyordu. Iki dil de taninir.
+        # The source document (TOPLANTI_KARARLARI_SON_DURUM.md) is a delivery file
+        # written in Turkish, but the same document written in English has to be
+        # auditable too. MEASURED: item 7 of the self test planted an English status
+        # line ("**Not achieved.** No reason recorded"), the pattern knew Turkish
+        # only, so the line never counted as "not achieved" and the module never saw
+        # its planted error at all. Both languages are recognised now.
         yapilamadi = bool(re.search(
             r'yap[iı]lamad[iı]|sipari[sş]\s*edilmez|panelden\s*[cç][iı]kar'
             r'|not\s*achieved|could\s*not\s*be\s*done|not\s*ordered'

@@ -82,10 +82,10 @@ YASAK = [
     (r'\bcapraz_kontrol\.py\b', 'old entry point (now cross_check.py)'),
     # Personal names, split so a bulk rename cannot rewrite them (see warning).
     (r'\bBur' + r'ak\b', 'personal name'),
-    # OLCULDU: bu desen once yalniz "Al" + "i'nin" idi. Kaynakta kesme
-    # isareti KACISLI durdugu icin (Ali'nin) hicbir zaman eslesmedi. Ustelik
-    # ciplak ALI ve Ali gecisleri, bir CLI bayragi (--ali) ve bir ortam
-    # degiskeni olarak depoda duruyordu. Desen artik ada bakiyor.
+    # MEASURED: this pattern used to be only "Al" + "i'nin". The apostrophe is
+    # ESCAPED in the source (Ali'nin), so it never matched anything. On top of
+    # that, bare ALI and Ali occurrences, a CLI flag (--ali) and an environment
+    # variable were sitting in the repository. The pattern looks at the name now.
     (r'\bAl' + r'i\b', 'personal name'),
     (r'\bAL' + r'I\b', 'personal name'),
     (r'--al' + r'i\b', 'personal name as a CLI flag'),
@@ -517,7 +517,7 @@ def kontrol_mutlak_yol(bulgu):
         if not y.endswith(('.py', '.sh')):
             continue
         if rel(y).startswith('tests/'):
-            continue                      # bu dosyanin kendi deseni
+            continue                      # this file's own pattern
         for i, satir in enumerate(oku(y).split('\n'), 1):
             m = _MUTLAK.search(satir)
             if m:
