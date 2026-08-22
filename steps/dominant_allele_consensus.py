@@ -2,28 +2,28 @@
 # -*- coding: utf-8 -*-
 """
 dominant_allele_consensus.py
-Her konsensüs için, o kutunun kendi ham okumalarından BASKIN ALEL dizisini
-ve pozisyon başına alel oranlarını üretir.
+For each consensus it produces the DOMINANT ALLELE sequence from that bin's own raw
+reads, plus the allele ratios per position.
 
-Neden gerekli: `samtools consensus -A` çıktısı değişken pozisyonları IUPAC
-koduyla yazıyor. Bağlanma kuralı IUPAC'ı küme kesişimiyle değerlendirdiği
-için, kodun taşıdığı belirsizlik primeri her iki alele de uyar gösteriyor.
-Ölçtüm: F2 sınıfında Trichoderma asperellum ile Metarhizium brunneum
-konsensüsleri karakter karakter %79,8 özdeş, ama kesişim ölçütüyle %99,9.
-Yani gerçek fark var, belirsizlik onu görünmez kılıyor. Bu betik aynı
-veriden ikinci ve belirsizliksiz bir ölçüm üretir; tasarım ve özgüllük iki
-küme üzerinde ayrı ayrı çalıştırılıp sonuçlar karşılaştırılabilir.
+Why it is needed: the `samtools consensus -A` output writes variable positions with
+an IUPAC code. Because the binding rule judges IUPAC by set intersection, the
+uncertainty the code carries makes the primer look as though it suits both alleles.
+Measured: in class F2, the Trichoderma asperellum and Metarhizium brunneum
+consensuses are 79.8 percent identical character by character but 99.9 percent under
+the intersection criterion. So there is a real difference and the uncertainty hides
+it. This script produces a second, unambiguous measurement from the same data; the
+design and the specificity can be run over the two sets separately and the results
+compared.
 
-Çıktı:
-  <out>/konsensus/<etiket>_baskin_konsensus.fasta
-  <out>/oran/<etiket>_alel.tsv       poz, derinlik, A, C, G, T, baskin, oran,
-                                     wilson_alt
+The output:
+  <out>/konsensus/<label>_baskin_konsensus.fasta
+  <out>/oran/<label>_alel.tsv       position, depth, A, C, G, T, dominant, ratio,
+                                    wilson_alt
   <out>/ozet.tsv
 
-Kullanım:
-  python3 dominant_allele_consensus.py \
-      --kons referans_konsensus/self/konsensus \
-      --fastq "fastq files" --out referans_konsensus/baskin
+Usage:
+  python3 dominant_allele_consensus.py       --kons referans_konsensus/self/konsensus       --fastq "fastq files" --out referans_konsensus/baskin
+
 """
 import argparse, csv, glob, math, os, re, sys
 
@@ -43,9 +43,11 @@ def oku_fasta(f):
 
 
 def wilson_alt(k, n, z=1.96):
-    """Oranın Wilson alt sınırı. Tek okumalık gürültünün yüksek oran gibi
-    görünmesini engeller; toplantı kararında rakip oranları için istenen
-    ölçüt budur."""
+    """The Wilson lower bound of the ratio. It keeps single read noise from looking like
+    a high ratio; that is the criterion the meeting decision asks for on competitor
+    ratios.
+
+    """
     if n == 0:
         return 0.0
     p = k / n
@@ -56,8 +58,10 @@ def wilson_alt(k, n, z=1.96):
 
 
 def fastq_bul(kok, grp, taxid):
-    """Sikistirilmamis fastq aranir. .gz destegi yoktur; boyle bir dosya
-    varsa sessizce atlamak yerine acikca uyarilir."""
+    """An uncompressed fastq is looked for. There is no .gz support; if such a file
+    exists it is warned about plainly rather than skipped silently.
+
+    """
     d = os.path.join(kok, grp)
     for p in sorted(glob.glob(os.path.join(d, "*reads[-_]%s.fastq" % taxid))):
         return p
@@ -105,12 +109,13 @@ def main():
             continue
         grp, taxid = m.group(1), m.group(2)
         ref = oku_fasta(f)
-        # N'ler SILINMEZ. Silinirse ic kapsama bosluklarinin iki yani
-        # birbirine yapisir ve dogada olmayan bir kavsak olusur; 08 bu diziyi
-        # tasarim kalibi olarak kullandigi icin kavsagin uzerinden primer
-        # secilebilir ve o primer hicbir zaman calismaz. Bastaki ve sondaki
-        # N'ler kirpilir (koordinat kaymasi cikti basliginda raporlanir),
-        # ic N'ler yerinde birakilir; minimap2 N'i zaten uyumsuz sayar.
+        # The N's ARE NOT DELETED. Deleting them sticks the two sides of an
+        # inner coverage gap together and forms a junction that does not exist
+        # in nature; because batch_design.py uses this sequence as a design
+        # template, a primer can be chosen across that junction and it will
+        # never work. The N's at the start and the end are trimmed (the
+        # coordinate shift is reported in the output header) and the inner N's
+        # are left in place; minimap2 counts an N as a mismatch anyway.
         bas = 0
         while bas < len(ref) and ref[bas] == "N":
             bas += 1
@@ -140,7 +145,7 @@ def main():
             for i, line in enumerate(fh):
                 if i % 4 != 1:
                     continue
-                r = line.strip().upper()   # kucuk harfli FASTQ da kabul edilir
+                r = line.strip().upper()   # a lower case FASTQ is accepted too
                 if len(r) < a.min_uzunluk:
                     continue
                 n += 1
@@ -148,8 +153,8 @@ def main():
                     break
                 okumalar["o%d" % n] = r
         hiz = 0
-        # Toplu hizalama: minimap2 komut satiri arka ucunda okuma basina
-        # surec baslatmak kabul edilemez derecede yavas olurdu.
+        # A bulk alignment: starting a process per read on the minimap2 command
+        # line backend would be unacceptably slow.
         for bas in range(0, len(okumalar), a.yigin):
             parca = dict(list(okumalar.items())[bas:bas + a.yigin])
             for adq, hl in A.map_toplu(parca):
@@ -193,8 +198,8 @@ def main():
             en = max(c)
             esitler = [x for x in range(4) if c[x] == en]
             if len(esitler) > 1:
-                # Tam esitlikte alfabetik sira belirleyici olmamali; iki alel
-                # esit orandaysa baskin alel yoktur, N yazilir.
+                # On an exact tie the alphabetical order must not decide; if two alleles
+                # are at an equal ratio there is no dominant allele and an N is written.
                 cikti.append("N"); belirsiz += 1
                 if a.oran_yaz:
                     oran_satir.append([i + 1, d, c[0], c[1], c[2], c[3], "N",

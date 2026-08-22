@@ -2,27 +2,25 @@
 # -*- coding: utf-8 -*-
 """
 community_trends.py
-TOPLULUK TREND CALISMA KITABI, ham Bracken ciktisindan yeniden uretilir.
+THE COMMUNITY TREND WORKBOOK, reproduced from the raw Bracken output.
 
-Neden yeniden: onceki kitap tur duzeyindeki sayilari cins duzeyindekilerle
-esit agirlikta sunuyordu. Oysa olctugumuz iki bulgu tur duzeyini bazi
-taksonlar icin okunamaz kiliyor:
-  1. Ayirt edilemez kutular: iki tur kutusunun dizileri birbirinden
-     ayrilmiyor (ayirt_edilemez.tsv, olculmus).
-  2. Kutu kimligi: bir kutunun ham okumalari kendi atandigi turu tercih
-     etmiyor, baska bir referansa gidiyor (kimlik_*.tsv, olculmus).
-Her iki dosya da olcumdur; bu betik guvenilirlik isaretini onlardan
-TURETIR, elle yazilmis bir liste tutmaz. Dosyalar verilmezse isaret
-konmaz ve bu durum kapak sayfasinda acikca yazilir.
+Why again: the previous workbook presented the species level counts with the same
+weight as the genus level ones. But two findings we measured make the species level
+unreadable for some taxa:
+  1. Indistinguishable bins: the sequences of two species bins do not separate from
+     one another (ayirt_edilemez.tsv, measured).
+  2. Bin identity: a bin's raw reads do not prefer the species it was assigned to,
+     they go to another reference (kimlik_*.tsv, measured).
+Both files are measurements; this script DERIVES the reliability mark from them and
+keeps no hand written list. If the files are not given, no mark is placed and that
+is written plainly on the cover sheet.
 
-Grup ve yil eslemesi barkod NUMARASINDAN kurulur, klasor adindan degil:
-kaynak calismanin klasor adlarinda F1 ve F2 yer degistirmisti.
+The group and year mapping is built from the barcode NUMBER rather than from the
+directory name: F1 and F2 had been swapped in the source study's directory names.
 
-Kullanim:
-  python3 community_trends.py --bracken "bracken results" \
-      --ayirt primer_adaylari/ayirt_edilemez.tsv \
-      --kimlik t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv \
-      --adlar taxid_adlari.tsv --out Topluluk_Trend.xlsx
+Usage:
+  python3 community_trends.py --bracken "bracken results"       --ayirt primer_adaylari/ayirt_edilemez.tsv       --kimlik t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv       --adlar taxid_adlari.tsv --out Topluluk_Trend.xlsx
+
 """
 import argparse, csv, datetime, glob, math, os, re, sys
 from collections import defaultdict
@@ -128,9 +126,11 @@ def bray_curtis(a, b):
 
 
 def cins_adi(tur_adi):
-    """Tur adindan cins adini cikarir. 'Candidatus' ve kisaltmasi 'Ca.'
-    cins adi degildir; bunlar atlanir, yoksa butun Candidatus taksonlari
-    tek bir 'Ca.' cinsinde toplanir."""
+    """Extracts the genus name from a species name. 'Candidatus' and its abbreviation
+    'Ca.' are not genus names; they are skipped, otherwise every Candidatus taxon is
+    gathered into a single 'Ca.' genus.
+
+    """
     if not tur_adi:
         return ""
     p = tur_adi.split()
@@ -186,9 +186,9 @@ def guvenilirlik_kur(a):
                 continue
             bref = r.get("baskin_referans", "")
             kendi = cins_adi(adi)
-            # IKI AYRI SINYAL, ayri ayri raporlanir:
-            #  (a) okumalar baska bir CINSE gidiyor  -> kutu kimligi yanlis
-            #  (b) hicbir referans cogunluk saglamiyor -> kutu belirsiz
+            # TWO SEPARATE SIGNALS, reported separately:
+            #  (a) the reads go to another GENUS   -> the bin identity is wrong
+            #  (b) no reference reaches a majority -> the bin is undefined
             yanlis_cins = bool(kendi) and kendi not in bref
             cogunluk_yok = oran < a.kimlik_esik
             if yanlis_cins:
@@ -226,7 +226,7 @@ def genislik(ws, gs):
 
 
 def bolum_yaz(ws, satir, veri, ust, supheli, duzey):
-    """Bir grup icin takson x yil tablosu yazar. Doner: sonraki satir."""
+    """Writes a taxon by year table for one group. Returns: the next row."""
     basliklar = ["Takson"] + ["%d" % y for y in YILLAR] + ["Dört yıl ortalaması"]
     if duzey == "tur":
         basliklar.append(u'Reliability')
@@ -250,7 +250,7 @@ def bolum_yaz(ws, satir, veri, ust, supheli, duzey):
             c.alignment = Alignment(wrap_text=True, vertical="top")
             c.fill = KIRMIZI if g else YESIL
     son = ilk + min(len(veri), ust) - 1
-    # toplam kontrolu: gosterilen taksonlar + digerleri
+    # the total check: the taxa shown plus the others
     r = son + 1
     c = ws.cell(row=r, column=1, value="Gösterilenlerin toplamı")
     c.font = KALIN; c.border = KENAR
@@ -385,10 +385,10 @@ def main():
         ws = wb.create_sheet(ad_sayfa)
         genislik(ws, [46, 12, 12, 12, 12, 18] + ([74] if duzey == "tur" else []))
         r = 1
-        # Bu sayfalar ozgun Bracken ciktisindan gelir; guven esigi
-        # UYGULANMAMISTIR. Rutbe kapsamasi olculduyse hangi sayfaya
-        # bakilacagi acikca yazilir, yoksa iki farkli cins tablosu yan yana
-        # durur ve okuyan hangisinin gecerli oldugunu bilemez.
+        # These sheets come from the original Bracken output; the confidence
+        # threshold WAS NOT APPLIED. If the rank coverage was measured, which
+        # sheet to look at is written plainly; otherwise two different genus
+        # tables sit side by side and the reader cannot tell which one holds.
         if a.rutbe and os.path.exists(os.path.join(a.rutbe, "ozet.tsv")):
             c = ws.cell(row=1, column=1,
                         value="BU SAYFA GÜVEN EŞİĞİ UYGULANMAMIŞ Bracken "
@@ -513,12 +513,13 @@ def main():
                         c.fill = YESIL if d < 0.3 else (SARI if d < 0.6 else KIRMIZI)
                 r += 1
 
-    # ---------------- Rutbe kapsamasi ve guvenilir bolluk ----------------
-    # Bracken CALISTIRILMADI. Sebep olculdu: guven duzeltmesinden sonra
-    # arke okumalarinin %86-97'si cins duzeyine inebiliyor, mantar
-    # okumalarinin %0,1-1,5'i. Bracken ust rutbede kalanlari veritabani
-    # onceliklerine gore asagi dagitir; gercek organizma veritabaninda
-    # yoksa bu olcum degil sayi uretmek olur.
+    # ---------------- Rank coverage and reliable abundance ----------------
+    # Bracken WAS NOT RUN. The reason was measured: after the confidence
+    # correction, 86 to 97 percent of the archaeal reads can reach genus
+    # level and 0.1 to 1.5 percent of the fungal reads. Bracken distributes
+    # what stays at an upper rank downward by the database's priors; if the
+    # real organism is not in the database that is manufacturing numbers
+    # rather than measuring.
     rk = os.path.join(a.rutbe, "rutbe_kapsamasi.tsv") if a.rutbe else None
     ro = os.path.join(a.rutbe, "ozet.tsv") if a.rutbe else None
     rb = os.path.join(a.rutbe, "bolluk.tsv") if a.rutbe else None

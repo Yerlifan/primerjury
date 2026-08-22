@@ -2,29 +2,30 @@
 # -*- coding: utf-8 -*-
 """
 check_deliverables.py
-TESLIM EDILEN TABLONUN BAGIMSIZ DENETIMI.
+AN INDEPENDENT AUDIT OF THE DELIVERED TABLE.
 
-Bu betik tasarim kodunun hicbir fonksiyonunu ice aktarmaz. primer_final.tsv
-dosyasini okur ve her satiri toplanti kararindaki kurallara gore SIFIRDAN
-yeniden olcer. Amac, tasarim kodu ile teslim edilen tablo arasinda hicbir
-sessiz kayma kalmadigini gostermektir: tabloda yazan Tm, GC, urun boyu ve
-tm_farki degerleri de yeniden hesaplanip karsilastirilir.
+This script imports not one function of the design code. It reads primer_final.tsv
+and measures every row again FROM SCRATCH against the rules of the meeting decision.
+The aim is to show that no silent drift is left between the design code and the
+delivered table: the Tm, GC, product length and tm_farki values written in the table
+are recomputed and compared as well.
 
-Denetlenen kurallar
-  Oligo   : yalniz A/C/G/T, uzunluk 18-25, GC %40-60 (sert 35-65),
-            3' uc G ya da C, son bes bazda en fazla 3 G/C,
-            en fazla 4 ardisik ayni baz
-  Termo   : Tm 58-62 (sert 57-63) iki kutuphaneyle, hairpin >= -3000,
+The rules audited
+  Oligo   : A/C/G/T only, length 18-25, GC 40-60 percent (hard 35-65),
+            G or C at the 3' end, at most 3 G or C in the last five bases,
+            at most 4 identical bases in a row
+  Thermo  : Tm 58-62 (hard 57-63) with two libraries, hairpin >= -3000,
             self-dimer >= -6000, hetero-dimer >= -6000
-  Cift    : |TmF - TmR| < 1,5 ; urun 70-250 (sert 300)
-  Tablo   : yazili ileri_tm/geri_tm/ileri_gc/geri_gc/tm_farki degerleri
-            yeniden hesaplananla ayni mi
-  Kalip   : (--kons verilirse) geri primer gercekten kalibin ters
-            tumleyeni mi, urun ileri primerle baslayip geri primerin ters
-            tumleyeniyle bitiyor mu
+  Pair    : |TmF - TmR| < 1,5 ; the product 70-250 (hard 300)
+  Table   : are the ileri_tm/geri_tm/ileri_gc/geri_gc/tm_farki values written the
+            same as the recomputed ones
+  Template: (if --kons is given) is the reverse primer really the reverse complement
+            of the template, and does the product start with the forward primer and
+            end with the reverse complement of the reverse primer
 
-Kullanim:
+Usage:
   python3 check_deliverables.py --final pr_final --kons pr_kons/konsensus
+
 """
 import argparse, csv, glob, os, re, sys
 
@@ -92,12 +93,13 @@ def get_args():
     p.add_argument("--urun-min", type=int, default=70)
     p.add_argument("--urun-max", type=int, default=250)
     p.add_argument("--urun-sert-max", type=int, default=300)
-    # termodinamik kosullar, 03/04 ile ayni
+    # the thermodynamic conditions, the same as in generate_primer_candidates.py and design_group_primers.py
     p.add_argument("--mv", type=float, default=50.0)
     p.add_argument("--dv", type=float, default=1.5)
     p.add_argument("--dntp", type=float, default=0.6)
-    # 03 ve 04'un --dna-conc varsayilani ile ayni olmak zorunda; farkli olursa
-    # yeniden olculen Tm sistematik olarak kayar ve sahte bulgu uretir.
+    # It has to be the same as the --dna-conc default of generate_primer_candidates.py
+    # and design_group_primers.py; if it differs, the remeasured Tm drifts
+    # systematically and produces a false finding.
     p.add_argument("--dna", type=float, default=50.0)
     return p.parse_args()
 
@@ -147,7 +149,7 @@ def main():
         return float(mt.Tm_NN(Seq(s), nn_table=mt.DNA_NN3, Na=a.mv, Mg=a.dv,
                               dNTPs=a.dntp, dnac1=a.dna, dnac2=0, saltcorr=7))
 
-    bulgu = []          # (agirlik, hedef, sinif, kural, ayrinti)
+    bulgu = []          # (weight, target, class, rule, detail)
 
     def ekle(ag, r, kural, ayrinti):
         bulgu.append(dict(agirlik=ag, hedef=r.get("hedef", ""),
@@ -267,16 +269,18 @@ def main():
                 ekle("BILGI", r, "kalipta_tam_eslesme_yok",
                      u'no exact F...rc(R) was found in any consensus (binding that allows a mismatch is audited separately)')
 
-    # --- alan (domain) tutarliligi -------------------------------------
-    # Kural ihlali degil, ama biyolojik olarak tutarsiz sonucu yakalar.
-    # Bir hedefin uye kutulari birden fazla ALANDA (A arke, B bakteri,
-    # F mantar) bulunuyorsa, azinlik alandaki tasarim o alanin lokus
-    # kitapligina dusmus yabanci okumalardan yapilmis demektir. Kural
-    # denetiminden gecer ama laboratuvarda hedefi temsil etmez.
-    # Alan bilgisi elle yazilmaz, veriden cikarilir: hangi taxid hangi
-    # sinif kutularinda geciyorsa o sayilir.
-    # Olcu 13 ile AYNI modulden gelir; iki yerde iki ayri kural olursa
-    # Excel'den cikarilan cift burada temiz gorunebilir ya da tersi olur.
+    # --- domain consistency --------------------------------------------
+    # Not a rule violation, but it catches a biologically inconsistent
+    # result. If a target's member bins sit in more than one DOMAIN (A
+    # archaea, B bacteria, F fungi), the design in the minority domain was
+    # made from foreign reads that fell into that domain's locus library. It
+    # passes the rule check but it does not represent the target in the
+    # laboratory.
+    # The domain is not written by hand, it is derived from the data:
+    # whichever class bins a taxid appears in is what counts.
+    # The measure comes from the SAME module as check 13; with two separate
+    # rules in two places, a pair taken out of the Excel could look clean here
+    # or the other way round.
     if a.hedefler and a.kons:
         _ta = field_audit.taxid_alanlari(a.kons)
         _ht = field_audit.hedef_taxidleri(a.hedefler)
