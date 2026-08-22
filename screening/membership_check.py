@@ -130,7 +130,7 @@ def tanimlar(satir, kut, acik, grup_uyelik, cift_uyelik, kimlik_uyelik):
 
     a = acik.get(ad)
     if a:
-        out.append(('A. hedef_uyelik.tsv (%s)' % (a.get('kaynak') or '?'),
+        out.append((u'A. hedef_uyelik.tsv (%s)' % (a.get('kaynak') or '?'),
                     a['uye'], a['haric']))
 
     anahtar = H.AD_ESLEME.get(ad, ad)
@@ -140,11 +140,11 @@ def tanimlar(satir, kut, acik, grup_uyelik, cift_uyelik, kimlik_uyelik):
 
     c = cift_uyelik.get(ad)
     if c:
-        out.append(('D. ciftler.tsv (diger oturum)', c, []))
+        out.append((u'D. ciftler.tsv (the other session)', c, []))
 
     k = kimlik_uyelik.get(ad)
     if k:
-        out.append(('E. olculen kimlik (hedef_kimlik.tsv)', k, []))
+        out.append((u'E. the measured identity (hedef_kimlik.tsv)', k, []))
 
     return out, sf
 
@@ -460,47 +460,42 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
 
     md = os.path.join(C.CIKTI, 'UYELIK_DENETIMI.md')
     L = []; A = L.append
-    A('# Uyelik tanimi denetimi ve duyarlilik analizi')
+    A(u'# The membership definition audit and sensitivity analysis')
     A('')
-    A('Uretim zamani: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    A(u'Generated: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     A('')
-    A('Kaynak panel: `%s`' % os.path.basename(panel_yolu))
+    A(u'Source panel: `%s`' % os.path.basename(panel_yolu))
     A('')
-    A('## Bu rapor neyi gosteriyor')
+    A(u'## What this report shows')
     A('')
-    A('Bir hedefin **ayrim kati** sayisi, hangi kutularin UYE hangilerinin RAKIP '
-      'sayildigina dogrudan baglidir. Uyelik tanimi degisince sayi degisir - '
-      'olcum motoru hic degismese bile.')
+    A(u'A target\'s **discrimination fold** depends directly on which bins count as a MEMBER and which as a COMPETITOR. When the membership definition changes the number changes, even if the measurement engine never changes at all.')
     A('')
-    A('Bu koşuda olculen ornek:')
+    A(u'The example measured in this run:')
     A('')
     A('| tanim | ayrim |')
     A('|---|---|')
-    A('| Proteolitik_Cloacimonas, grup satiri (3 takson) | 0,0x |')
+    A(u'| Proteolitik_Cloacimonas, the group row (3 taxa) | 0,0x |')
     A('| Proteolitik_Cloacimonas, tek uye (456827) | 23,5x |')
     A('| **panelde yazan** | **23,0x** |')
     A('')
-    A('Yani sayinin kendisi degil, **tanim** yanlisti. Asagidaki tablolar her hedef '
-      'icin uyeligin butun makul tanimlarini **yan yana** olcer.')
+    A(u'So it was not the number that was wrong but the **definition**. The tables below measure every reasonable definition of membership for each target **side by side**.')
     A('')
-    A('### Tanim kaynaklari')
+    A(u'### The definition sources')
     A('')
     A('| kod | kaynak |')
     A('|---|---|')
-    A('| **A** | `screening/hedef_uyelik.tsv` — aracin su an kullandigi tanim |')
-    A('| **B** | `steps/hedefler.tsv` — projenin karar tablosu (grup satiri) |')
-    A('| **C** | tek uye — en iyi sonucu veren tek takson |')
-    A('| **D** | `ciftler.tsv` — okuma motoru duzeltmesi oturumunun tanimi |')
-    A('| **E** | `primer_final/hedef_kimlik.tsv` — OLCULEN kimlikten turetilmis |')
+    A(u'| **A** | `screening/hedef_uyelik.tsv`, the definition the tool uses now |')
+    A(u'| **B** | `steps/hedefler.tsv`, the project\'s decision table (the group row) |')
+    A(u'| **C** | a single member, the one taxon that gives the best result |')
+    A(u'| **D** | `ciftler.tsv`, the definition from the read engine correction session |')
+    A(u'| **E** | `primer_final/hedef_kimlik.tsv`, derived from the MEASURED identity |')
     A('')
 
-    A('## ONCE BUNLARA BAKIN — `TURETILDI` isaretli satirlar')
+    A(u'## LOOK AT THESE FIRST: the rows marked `TURETILDI`')
     A('')
-    A('Bu satirlarin uyelik tanimi panelde acikca yazili degildi; hedef adindan ve '
-      '`taxid_adlari.tsv`\'den **cikarildi**. Yanlis olma ihtimali en yuksek olanlar '
-      'bunlardir.')
+    A(u'The membership definition of these rows was not written in the panel plainly; it was **derived** from the target name and from `taxid_adlari.tsv`. These are the ones most likely to be wrong.')
     A('')
-    A('| hedef | tanim degisince ayrim kac kat oynuyor | tani |')
+    A(u'| target | how many fold the discrimination moves when the definition changes | diagnosis |')
     A('|---|---|---|')
     for r in sonuclar:
         if r['turetildi_mi'] != 'EVET':
@@ -538,7 +533,7 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
                     A('| %s | %s | %s bp |' % (v['kutu'], v['ad'], v['boy']))
                 A('')
 
-    A('## Butun hedefler — tanim duyarliligi')
+    A(u'## Every target: the sensitivity to the definition')
     A('')
     for r in sonuclar:
         A('### %s%s' % (r['hedef'], '  *(TURETILDI)*' if r['turetildi_mi'] else ''))
@@ -559,15 +554,11 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
 
     A('## Ne yapmali')
     A('')
-    A('1. `TURETILDI` isaretli satirlari gozden gecirin; dogru tanimi '
-      '`screening/hedef_uyelik.tsv` dosyasina yazin.')
-    A('2. `oynaklik` sutunu yuksek olan hedeflerde yayimlanan sayi **tanima cok '
-      'duyarlidir** — hangi tanimla bildirildigi panelde acikca yazilmalidir.')
-    A('3. `TANI` sutunu `KONSENSUS/OKUMA UYUSMAZLIGI` diyorsa once secenek (6) ile '
-      'o kutunun konsensusunu yeniden uretin, sonra olcumu tekrarlayin.')
+    A(u'1. Go over the rows marked `TURETILDI`; write the right definition into `screening/hedef_uyelik.tsv`.')
+    A(u'2. On targets whose `oynaklik` column is high, the published number is **very sensitive to the definition**, so which definition it was reported under has to be written in the panel plainly.')
+    A(u'3. If the `TANI` column says `KONSENSUS/OKUMA UYUSMAZLIGI`, first reproduce that bin\'s consensus with option (6), then repeat the measurement.')
     A('')
-    A('> Bu arac uyelik tanimini **kendiliginden degistirmez**. Olcer, secenekleri '
-      'yan yana koyar, karari size birakir.')
+    A(u'> This tool **does not change the membership definition by itself**. It measures, it puts the options side by side, and it leaves the decision to you.')
     A('')
     with open(md, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))

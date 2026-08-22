@@ -168,19 +168,16 @@ def _hedef_karari(s):
     p = []
     tb_kotu, tb_havuz = _taban(s)
     if tb_kotu is not None or tb_havuz is not None:
-        p.append('TABAN - paneldeki mevcut cift ayni motorla: ayrim %sx (en kotu kutu) / '
-                 '%sx (havuz). Asagidaki sayilar bununla karsilastirilmalidir.'
+        p.append(u'THE BASELINE, the panel\'s current pair under the same engine: discrimination %sx (the worst bin) / %sx (the pool). The numbers below are to be compared against it.'
                  % (_f(tb_kotu), _f(tb_havuz)))
     if en_siki:
-        p.append('En siki ayar (%s) altinda %d aday hayatta.' % (en_siki['ad'], en_siki['hayatta']))
+        p.append(u'Under the strictest setting (%s), %d candidates survive.' % (en_siki['ad'], en_siki['hayatta']))
     bos_siki = [x for x in izg if x['sikilik'] == 0 and x['hayatta'] == 0]
     if bos_siki:
-        p.append('TAM SIKI ayarda (GC 40-60, Tm 58-62, urun 60-150, 3\' uc G/C sart, '
-                 'son 5 baz <=3 G/C) COZUM YOK.')
+        p.append(u'Under the FULLY STRICT setting (GC 40-60, Tm 58-62, product 60-150, a G or C required at the 3\' end, <=3 G or C in the last 5 bases) THERE IS NO SOLUTION.')
     if duz_li:
         b = duz_li[0]
-        p.append('ARMS\'siz en iyi aday %s / %s (%s bp), ayrim %sx (en kotu kutu), '
-                 'uye %%%s-%%%s, izgara hucresi: %s.'
+        p.append(u'The best candidate without ARMS is %s / %s (%s bp), discrimination %sx (the worst bin), member %%%s-%%%s, grid cell: %s.'
                  % (b['F'], b['R'], b['urun'], _f(b['numune_kat_enkotu']),
                     _f(b['numune_uye_min']), _f(b['numune_uye_max']), b['izgara_hucresi']))
     if arms_li:
@@ -188,26 +185,26 @@ def _hedef_karari(s):
         p.append('ARMS varyantiyla en iyi: %s / %s (%s bp), ayrim %sx  [%s].'
                  % (b['F'], b['R'], b['urun'], _f(b['numune_kat_enkotu']), b['arms']))
     if iyi.get('kuresel_urun') not in ('', None):
-        p.append('Kuresel taramada en iyi adayin urun sayisi: %s.' % iyi['kuresel_urun'])
+        p.append(u'The product count of the best candidate in the global scan: %s.' % iyi['kuresel_urun'])
     # bedel
     bedeller = []
     if iyi.get('cift_urun_sinifi', '').startswith('kabul'):
-        bedeller.append('urun 150-250 bp -> protokolde 30 sn annealing/extension')
+        bedeller.append(u'a product of 150-250 bp -> a 30 s annealing and extension in the protocol')
     if iyi.get('cift_urun_sinifi', '').startswith('ONERILMEZ'):
-        bedeller.append('urun >250 bp -> QuantiNova icin onerilmez')
+        bedeller.append(u'a product above 250 bp -> not recommended for QuantiNova')
     if iyi.get('cift_Ta60_uygun') in (False, 'False'):
-        bedeller.append('Ta = min(Tm)-3 kurali ile %s C cikiyor, 60 C hedefinin altinda'
+        bedeller.append(u'under the Ta = min(Tm)-3 rule this comes out at %s C, below the 60 C aim'
                         % _f(iyi.get('cift_Ta_kural')))
     if iyi.get('arms'):
-        bedeller.append('kasitli uyumsuzluk (ARMS) gerekiyor - ayri toplanti maddesi')
+        bedeller.append(u'a deliberate mismatch (ARMS) is needed, a separate meeting item')
     if 'serbest' in str(iyi.get('izgara_hucresi', '')):
-        bedeller.append('geometri kuralinin gevsetilmesi gerekiyor: %s' % iyi['izgara_hucresi'])
+        bedeller.append(u'the geometry rule has to be relaxed: %s' % iyi['izgara_hucresi'])
     if bedeller:
         p.append('BEDELI: ' + '; '.join(bedeller) + '.')
     en = iyi.get('numune_kat_enkotu') or 0
     if tb_kotu and en <= tb_kotu:
         karar = 'COZUM YOK (mevcut cift daha iyi)'
-        p.append('SONUC: taranan hicbir aday mevcut cifti GECEMEDI - mevcut cift korunmali.')
+        p.append(u'RESULT: not one candidate scanned BEAT the current pair, so the current pair should be kept.')
     elif en >= 10:
         karar = 'COZUM VAR'
     else:
@@ -219,59 +216,34 @@ def _rapor_md(sonuclar, panel, panel_yolu):
     p = os.path.join(C.CIKTI, 'KAPSAMLI_ARAMA_RAPORU.md')
     L = []
     A = L.append
-    A('# Kapsamli primer aramasi - rapor')
+    A(u'# The comprehensive primer search, the report')
     A('')
-    A('Uretim zamani: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    A(u'Generated: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     A('')
-    A('Kaynak panel: `%s`' % os.path.basename(panel_yolu))
+    A(u'Source panel: `%s`' % os.path.basename(panel_yolu))
     A('')
-    A('## Nasil okunur')
+    A(u'## How to read it')
     A('')
-    A('Her hedef icin sorulan soru: **hangi parametre ayarinda cozum var, yok mu, '
-      'varsa bedeli ne?** Ozet tablodaki `Karar` sutunu bunu tek kelimeyle, '
-      'altindaki paragraf ayrintisiyla soyler.')
+    A(u'The question asked for every target: **under which parameter setting is there a solution, is there none, and if there is, what does it cost?** The `Karar` column in the summary table answers it in one word, and the paragraph under it in detail.')
     A('')
     A('Sabit qPCR kisitlari (QIAGEN Rotor-Gene Q + QuantiNova SYBR Green):')
     A('')
-    A('- Amplikon **60-150 bp tercih edilir**; 150-250 kabul edilebilir ama protokolde '
-      'annealing/extension **30 sn** gerektirir; **>250 onerilmez**.')
-    A('- Rotor-Gene tek kosuda tek dongu programi calistirir: butun panelin **ayni Ta**\'da '
-      'kosmasi hedeftir, **60 C oncelikli**. Her aday 60 C\'de de degerlendirildi '
-      '(`cift_Ta60_marj`, `cift_Ta60_uygun` sutunlari).')
-    A('- SYBR Green oldugu icin **primer-dimer ve hairpin ELEYICI olcuttur**, uyari degil: '
-      'hairpin/homodimer/heterodimer Tm >= 45 C ya da dG < -9 kcal/mol olan aday elenir.')
+    A(u'- An amplicon of **60-150 bp is preferred**; 150-250 is acceptable but needs a **30 s** annealing and extension in the protocol; **above 250 is not recommended**.')
+    A(u'- The Rotor-Gene runs a single cycling program per run: the aim is for the whole panel to run at **the same Ta**, with **60 C preferred**. Every candidate was judged at 60 C as well (the `cift_Ta60_marj` and `cift_Ta60_uygun` columns).')
+    A(u'- Because this is SYBR Green, **primer dimer and hairpin are an ELIMINATING criterion**, not a warning: a candidate whose hairpin, homodimer or heterodimer Tm is >= 45 C, or whose dG is < -9 kcal/mol, is eliminated.')
     A('')
-    A('> **60 C uyarisi (olcumden cikan yapisal sonuc).** Panelin kurali `Ta = min(Tm) - 3`. '
-      'Bu kuralla Ta\'nin 60 C olmasi icin daha dusuk Tm\'li primerin **63 C** olmasi gerekir. '
-      'Izgaradaki en genis Tm penceresi 56-64 oldugu icin 60 C\'lik ortak Ta yalnizca '
-      '**Tm 56-64 penceresinde ve Tm >= 63** olan adaylarla mumkundur. Adaylarin 60 C '
-      'uygunlugu `cift_Ta60_uygun` sutununda ayrica isaretlendi; uymayanlar icin secenek '
-      'ya Tm penceresini yukari tasimak ya da `Ta = min(Tm) - 3` kuralini bu panel icin '
-      'gevsetmektir. Bu bir **toplanti karari**dir, arac kendiliginden secmez.')
+    A(u'> **The 60 C warning (a structural consequence that comes out of the measurement).** The panel\'s rule is `Ta = min(Tm) - 3`. Under that rule, for Ta to be 60 C the primer with the lower Tm has to be at **63 C**. Since the widest Tm window in the grid is 56-64, a shared Ta of 60 C is possible only with candidates **inside the Tm 56-64 window and with Tm >= 63**. Whether a candidate suits 60 C is marked separately in the `cift_Ta60_uygun` column; for those that do not, the choice is either to move the Tm window up or to relax the `Ta = min(Tm) - 3` rule for this panel. That is a **meeting decision**; the tool does not choose by itself.')
     A('')
-    A('> **ARMS hakkinda.** Kasitli uyumsuzluk **dejenere baz degildir**: tek tanimli bir '
-      'bazdir, tupte tek oligo kalir, sentez maliyeti artmaz ve "panelde dejenere baz yok" '
-      'kaydini bozmaz. Ama sablonla **tam eslesmez**: verimi dusurur ve ayri bir toplanti '
-      'maddesidir. Rapor ARMS\'li ve ARMS\'siz en iyi adayi **ayri ayri** verir ki karar '
-      'kullanicida kalsin.')
+    A(u'> **About ARMS.** A deliberate mismatch **is not a degenerate base**: it is one defined base, one oligo stays in the tube, the synthesis cost does not rise and it does not spoil the "no degenerate base in the panel" record. But it **does not match the template exactly**: it lowers the yield and it is a separate meeting item. The report gives the best candidate with ARMS and without ARMS **separately**, so that the decision stays with the user.')
     A('')
 
-    A('> **Taban degerler hakkinda.** Her hedefte paneldeki MEVCUT cift de ayni motorla, '
-      'ayni kutularda, ayni olcutle yeniden olculur ve adaylar **o tabanla** '
-      'karsilastirilir. Bazi hedeflerde bu taban, panelin yayimladigi sayidan sapar '
-      '(farkli okuma derinligi, farkli uye kutu alt kumesi ya da farkli gevseklik ayari '
-      'yuzunden). Sapma buyukse hedefin altinda **UYARI** olarak yazilir. '
-      'Karsilastirma yine de gecerlidir: aday ve taban **ayni** kosullarda olculur. '
-      'Ama panel sayisiyla bu rapordaki sayi **dogrudan karsilastirilmamalidir**.')
+    A(u'> **About the baseline values.** For every target the CURRENT pair in the panel is measured again with the same engine, on the same bins, under the same criterion, and the candidates are compared **against that baseline**. On some targets that baseline departs from the number the panel published (a different read depth, a different subset of member bins, or a different relaxation setting). Where the departure is large it is written under the target as a **WARNING**. The comparison still holds: candidate and baseline are measured under **the same** conditions. But the panel\'s number and the number in this report **must not be compared directly**.')
     A('')
-    A('## Ozet')
+    A(u'## Summary')
     A('')
-    A('Sutun `Neden sorunlu` harf kodlari: '
-      '**G** geometri ihlali, **K** kosullu/on karar, **A** ayrim ya da kapsam esik alti, '
-      '**U** urun boyu qPCR ideali disinda, **C** panelden cikarilmis, '
-      '**P** plaka ici jelde ayrilamiyor.')
+    A(u'The letter codes in the `Neden sorunlu` column: **G** a geometry violation, **K** conditional or a preliminary decision, **A** discrimination or coverage below the threshold, **U** the product length is outside the qPCR ideal, **C** removed from the panel, **P** it cannot be separated on a gel within the plate.')
     A('')
-    A('| Hedef | Neden sorunlu | Karar | Mevcut cift (x) | En iyi aday (x) | Urun (bp) | ARMS gerekti mi |')
+    A(u'| Target | Why it is a problem | Decision | Current pair (x) | Best candidate (x) | Product (bp) | Was ARMS needed |')
     A('|---|---|---|---|---|---|---|')
     for s in sonuclar:
         kar, _ = _hedef_karari(s)
@@ -301,43 +273,41 @@ def _rapor_md(sonuclar, panel, panel_yolu):
             A('')
             continue
         pn = s.get('panel', {})
-        A('**Paneldeki cift:** `%s` / `%s` — %s bp, plaka %s, Ta %s'
+        A(u'**The pair in the panel:** `%s` / `%s`, %s bp, plate %s, Ta %s'
           % (pn.get('F'), pn.get('R'), pn.get('urun'), pn.get('plaka'), pn.get('ta')))
         A('')
         t = s.get('panel_olcum') or {}
         if t:
             A('')
-            A('**Mevcut ciftin AYNI motorla olculmus degerleri (karsilastirma tabani):** '
-              'uye %%%s-%%%s (%s kutu), rakip havuz %s, **ayrim %sx (havuz) / %sx (en kotu kutu: %s)**'
+            A(u'**The current pair\'s values measured with THE SAME engine (the comparison baseline):** member %%%s-%%%s (%s bins), competitor pool %s, **discrimination %sx (pool) / %sx (worst bin: %s)**'
               % (_f(t.get('uye_min')), _f(t.get('uye_max')), t.get('uye_kutu_sayisi'),
                  t.get('havuz'), _f(t.get('kat_havuz')), _f(t.get('kat_enkotu')),
                  t.get('enkotu_kutu')))
         if s.get('uyelik_uyarisi'):
             A('')
-            A('> **UYARI - uyelik tanimi kontrol edilmeli.**')
+            A(u'> **WARNING, the membership definition has to be checked.**')
             for u in s['uyelik_uyarisi']:
                 A('> ' + u.replace('!! ', ''))
         A('')
         A('**Neden arandi:** ' + '; '.join(s.get('gerekceler', [])))
         A('')
-        A('**Omurga:** `%s` (%s bp) — uyelik kaynagi `%s`, uye taxid: %s'
+        A(u'**The backbone:** `%s` (%s bp), the membership source is `%s`, member taxids: %s'
           % (s['omurga']['kutu'], s['omurga']['uzunluk'], s.get('uyelik_kaynagi'),
              ', '.join(s.get('uye_tax', []))))
         A('')
         sy = s.get('sayilar', {})
-        A('**Arama boyu:** %s pencere -> %s ileri + %s geri aday -> %s cift '
-          '(+%s ARMS varyanti) -> %s numunede olculdu -> %s cift yapisini gecti.'
+        A(u'**The length of the search:** %s windows -> %s forward + %s reverse candidates -> %s pairs (+%s ARMS variants) -> %s measured in the sample -> %s passed the pair structure.'
           % (sy.get('pencere'), sy.get('ileri'), sy.get('geri'), sy.get('cift'),
              sy.get('arms'), sy.get('numune_olculen'), sy.get('cift_yapisi_gecen')))
         A('')
         kar, aciklama = _hedef_karari(s)
-        A('### Karar: %s' % kar)
+        A(u'### The decision: %s' % kar)
         A('')
         A(aciklama)
         A('')
-        A('### Parametre izgarasi — hangi ayar kac aday birakiyor')
+        A(u'### The parameter grid, how many candidates each setting leaves')
         A('')
-        A('| GC | Tm | Urun | 3\' uc G/C | son 5 G/C | gevseklik | hayatta kalan |')
+        A(u'| GC | Tm | Product | 3\' end G or C | G or C in the last 5 | relaxation | survivors |')
         A('|---|---|---|---|---|---|---|')
         for x in s.get('izgara', [])[:24]:
             h = x['hucre']
@@ -348,9 +318,9 @@ def _rapor_md(sonuclar, panel, panel_yolu):
         A('')
         A('(Tam 144 hucre: `parametre_izgarasi.tsv`)')
         A('')
-        A('### En iyi adaylar')
+        A(u'### The best candidates')
         A('')
-        A('| # | Ileri | Geri | bp | uye kapsam | ayrim x (en kotu kutu) | havuz x | uye % | ref uye | ref rakip | kuresel urun | ARMS | izgara hucresi |')
+        A(u'| # | Forward | Reverse | bp | member coverage | discrimination x (worst bin) | pool x | member % | ref member | ref competitor | global product | ARMS | grid cell |')
         A('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
         ad = sorted([a for a in s.get('adaylar', [])],
                     key=lambda a: -(a.get('numune_kat_enkotu') or 0))
@@ -362,33 +332,20 @@ def _rapor_md(sonuclar, panel, panel_yolu):
                 a.get('ref_uye', ''), a.get('ref_rakip', ''), a.get('kuresel_urun', ''),
                 a.get('arms', '') or '-', a.get('izgara_hucresi', '')))
         A('')
-        A('Butun sutunlar (Tm, GC, hairpin/dimer dG, 60 C marji, urun boyu dagilimi): `adaylar.tsv`')
+        A(u'Every column (Tm, GC, hairpin and dimer dG, the 60 C margin, the product length distribution) is in `adaylar.tsv`')
         A('')
 
     A('---')
     A('')
     A('## Yontem ve sinirlar')
     A('')
-    A('- Olcum motoru **yeniden yazilmadi**: `engine/ispcr.py` '
-      '(`find_sites`/`amplify`), `engine/scanner.py` (`Havuz`) ve '
-      '`engine/pair.py` (`urunler`) dogrudan ice aktarildi. '
-      'Geometri esikleri `engine/geometry_core.py` ile birebir olacak sekilde '
-      'her koşuda sinaniyor (bkz. kendini sinama).')
-    A('- **Olcut etiketi her satirda yazilidir** (`numune_olcut` sutunu). Eleme '
-      '**<=1 uyumsuzluk** ile yapilir (panelin numune olcutu); en iyi adaylar '
-      'ayrica **<=3** ile de olculup `numune_olcut_2` / `*_mm3` sutunlarina '
-      'yazilir. Iki olcut ayridir, birbirinin yerine kullanilamaz.')
-    A('- Numune olcutu panelin olcutuyle ayni: **uyumsuzluk <=1 + 3\' son 2 baz TAM**. '
-      'Kuresel olcut: **toplam <=5 uyumsuzluk**, F ve R ayri. Iki olcut ayridir.')
-    A('- Ayrim oranlari **Wilson** ile muhafazakar yonde: uye icin ALT sinir, rakip icin '
-      'UST sinir. Farkli hedeflerin oranlari farkli okuma derinliginde olculur, '
-      '**dogrudan karsilastirilamaz** (panelin A26 uyarisinin aynisi).')
-    A('- Aramanin tamligi: omurga TEK zincirde taranir; cift-zincirli sablonda bir cift '
-      '(+ zincirde F, - zincirde R) ile tam tanimlandigi icin ters zincir ayni kumeyi '
-      'verir. Konsensuslerin bir kisminin ters yonde saklanmis olmasi kapsami etkilemez.')
-    A('- Huni yapisi: pencere -> geometri -> cift -> numune -> referans -> **kuresel** '
-      '(en pahali adim en sonda, yalniz diger butun suzgeclerden gecen adaylara).')
-    A('- Bu araç **karar vermez**: olcer, bedelini yazar, secimi kullaniciya birakir.')
+    A(u'- The measurement engine **was not rewritten**: `engine/ispcr.py` (`find_sites` and `amplify`), `engine/scanner.py` (`Havuz`) and `engine/pair.py` (`urunler`) are imported directly. The geometry thresholds are tested on every run to be identical to `engine/geometry_core.py` (see the self test).')
+    A(u'- **The criterion label is written on every row** (the `numune_olcut` column). The elimination is done with **<=1 mismatch** (the panel\'s sample criterion); the best candidates are also measured with **<=3** and written into the `numune_olcut_2` and `*_mm3` columns. The two criteria are separate and cannot stand in for one another.')
+    A(u'- The sample criterion is the same as the panel\'s: **<=1 mismatch plus an EXACT last 2 bases at the 3\' end**. The global criterion: **<=5 mismatches in total**, F and R separately. The two criteria are separate.')
+    A(u'- The discrimination ratios are conservative through **Wilson**: the LOWER bound for a member and the UPPER bound for a competitor. The ratios of different targets are measured at different read depths and **cannot be compared directly** (the same warning as the panel\'s A26).')
+    A(u'- On the completeness of the search: the backbone is scanned on ONE strand; since a pair is fully defined on a double stranded template (F on the + strand, R on the -), the reverse strand gives the same set. Some of the consensuses being stored in reverse does not affect the coverage.')
+    A(u'- The funnel: window -> geometry -> pair -> sample -> reference -> **global** (the most expensive step last, and only on the candidates that passed every other filter).')
+    A(u'- This tool **does not decide**: it measures, it writes down the cost, and it leaves the choice to the user.')
     A('')
     with open(p, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))

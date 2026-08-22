@@ -452,8 +452,7 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
             except Exception:
                 pass
         if not os.path.exists(os.path.join(vt, 'hash.k2d')):
-            sebep.append(u'Kraken2 veritabani yok (%s icinde hash.k2d aranmisti; '
-                         u'arac vt-ara ile diski da taradi)' % vt)
+            sebep.append(u'There is no Kraken2 database (hash.k2d was looked for inside %s; the tool also swept the disk with vt-ara)' % vt)
     return {
         'arac': arac,
         'karac': karac,
@@ -656,21 +655,23 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
     yol = os.path.join(CIKTI, '00_TAM_ZINCIR_OZET.md')
     L = []
     A = L.append
-    A(u'# Tam zincir - birleşik özet\n')
-    A(u'Üretim: %s · sürüm %s\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
+    A(u'# The full chain, a combined summary\n')
+    A(u'Generated: %s · version %s\n' % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON))
     if kesildi:
-        A(u'> **ZİNCİR TAMAMLANMADI.** Aşağıdaki tabloda DÜŞTÜ işaretli aşamada '
-          u'durdu. Sonraki aşamalar koşulmadı.\n')
+        A(u'> **THE CHAIN DID NOT FINISH.** It stopped at the stage marked DUSTU in the table below. The stages after it did not run.\n')
 
-    A(u'## Aşamaların durumu\n')
-    A(u'| # | Aşama | Grup | Durum | Süre | Not |')
+    A(u'## The state of the stages\n')
+    A(u'| # | Stage | Group | State | Time | Note |')
     A(u'|---|---|---|---|---|---|')
     for kod, ad, grup, dk, kr, _k, _d in secili:
         d = durum.get(kod, {})
-        du = d.get('durum', 'koşulmadı')
-        etiket = {'bitti': 'BİTTİ', 'atlandi': 'ATLANDI',
-                  'eksik': 'EKSİK (yeniden denenecek)',
-                  'DUSTU': '**DÜŞTÜ**'}.get(du, du)
+        # Sol taraf DEPOLANAN degerdir ve degismez: durum.json'a yazilir,
+        # geri okunur ve kontrol noktasi karari buna bakar. Degisen yalnizca
+        # ekrana basilan etikettir.
+        du = d.get('durum', 'not run')
+        etiket = {'bitti': 'FINISHED', 'atlandi': 'SKIPPED',
+                  'eksik': 'INCOMPLETE (will be retried)',
+                  'DUSTU': '**FAILED**'}.get(du, du)
         A(u'| %s | %s | %s | %s | %s | %s |'
           % (kod, ad, grup, etiket,
              sn_metni(d.get('sure', 0)) if d.get('sure') else '-',
@@ -680,57 +681,46 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
     atlanan = [k for k, v in durum.items() if v.get('durum') == 'atlandi']
     dusen = [k for k, v in durum.items() if v.get('durum') == 'DUSTU']
     eksikler = [k for k, v in durum.items() if v.get('durum') == 'eksik']
-    A(u'\n**Özet:** %d aşama bitti, %d atlandı, %d eksik, %d düştü.\n'
+    A(u'\n**Summary:** %d stages finished, %d skipped, %d incomplete, %d failed.\n'
       % (len(bitti), len(atlanan), len(eksikler), len(dusen)))
     if eksikler:
-        A(u'*Eksik* işaretli aşamalar koştu ama tamamlanmadı; `bitti` damgası '
-          u'almadıkları için aynı seçeneğe yeniden basıldığında kendiliğinden '
-          u'yeniden denenirler. Veri sonradan geldiğinde tamamlanırlar.\n')
+        A(u'The stages marked *incomplete* ran but did not finish; because they never got the `bitti` stamp they are retried by themselves when the same key is pressed again. They finish once the data arrives.')
 
     if atlanan:
-        A(u'## Atlanan adımlar\n')
-        A(u'Bu adımlar koşulmadı. Zincir bu yüzden durmadı, ama sonuçları '
-          u'da elde yok.\n')
+        A(u'## The steps that were skipped\n')
+        A(u'These steps did not run. The chain did not stop for it, but their results are not in hand either.\n')
         for k in sorted(atlanan):
             A(u'* **%s**, %s' % (k, durum[k].get('sebep', '')))
         A(u'')
         if not ayar['kraken_var']:
-            A(u'### Kraken kısmını sonradan tamamlamak\n')
-            A(u'Zinciri baştan koşmanız **gerekmez.** Atlanan aşamalar `bitti` damgası '
-              u'almadığı için bir sonraki koşuda kendiliğinden yeniden denenir. '
-              u'Yalnız Kraken kısmını koşmak için menüden **W**, sonra **X**, sonra '
-              u'**Z** tuşlarına basın; ya da tek komutla:\n')
+            A(u'### Finishing the Kraken part later\n')
+            A(u'You **do not need** to run the chain from the start. Because the skipped stages never got the `bitti` stamp they are retried by themselves on the next run. To run the Kraken part only, press **W**, then **X**, then **Z** in the menu; or in a single command:')
             A(u'```\npython3 verification/full_chain.py --kok . --yalniz W,X,Z,S --onayla\n```\n')
-            A(u'Z aşaması tabloyu **sıfırdan değil, eldeki veriyle** kurar: eksik '
-              u'sütunları boş bırakıp hangilerinin eksik olduğunu yazar, veri '
-              u'sonradan geldiğinde aynı tuş tabloyu tamamlar. Bu yüzden Kraken '
-              u'ölçümü haftalar sonra yapılsa bile tablo yeniden üretilebilir.\n')
-            A(u'kraken2 kurulu değilse: `micromamba create -n mikro -c bioconda '
-              u'-c conda-forge kraken2 bracken`. Zaten kuruluysa ortam adı farklı '
-              u'olabilir; `micromamba env list` ile bakıp `--ortam <ad>` verin, ya da '
-              u'ikilinin tam yolunu `KRAKEN2_BIN=/tam/yol/kraken2` ile geçin.\n')
+            A(u'Stage Z builds the table **from the data in hand, not from scratch**: it leaves the missing columns empty and writes down which ones are missing, and when the data arrives the same key completes the table. That is why the table can be reproduced even if the Kraken measurement is made weeks later.')
+            A(u'if kraken2 is not installed: `micromamba create -n mikro -c bioconda -c conda-forge kraken2 bracken`. If it is installed already the environment name may differ; look with `micromamba env list` and pass `--ortam <name>`, or give the binary\'s full path with `KRAKEN2_BIN=/full/path/kraken2`.')
 
-    A(u'## Nereye bakılacak\n')
-    A(u'| Soru | Dosya |')
+    A(u'## Where to look\n')
+    A(u'| Question | File |')
     A(u'|---|---|')
     bakilacak = [
-        (u'Zincir tutarlı mıydı', 'HIZLI_TEST/HIZLI_TEST_RAPORU.md'),
-        (u'Kimlik iddiaları ne oldu', 'KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md'),
-        (u'Bütün kutuların kimliği', 'TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md'),
-        (u'Ölçüm ve kurtarma sonucu', 'TUM_KOSU_SONUC/00_BIRLESIK_OZET.md'),
-        (u'Ne sipariş edeyim', 'SIPARIS_LISTESI.tsv'),
-        (u'Kraken eşik eğrisi', '../tools/SONUCLAR/kraken_esik_A/esik_egrisi.txt'),
+        (u'Was the chain consistent', 'HIZLI_TEST/HIZLI_TEST_RAPORU.md'),
+        (u'What became of the identity claims',
+         'KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md'),
+        (u'The identity of every bin',
+         'TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md'),
+        (u'The measurement and recovery result',
+         'TUM_KOSU_SONUC/00_BIRLESIK_OZET.md'),
+        (u'What should I order', 'SIPARIS_LISTESI.tsv'),
+        (u'The Kraken threshold curve',
+         '../tools/SONUCLAR/kraken_esik_A/esik_egrisi.txt'),
         (u'Rapora gidecek Kraken tablosu', '../tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md'),
     ]
     for soru, dy in bakilacak:
         t = os.path.join(kok, dy)
         A(u'| %s | `%s`%s |' % (soru, dy, u'' if os.path.exists(t) else u' *(yok)*'))
 
-    A(u'\n## Bu özet ne değildir\n')
-    A(u'Bu dosya aşamaların **koştuğunu** ve çıktılarının **boş olmadığını** '
-      u'gösterir. Ölçümlerin **doğru** olduğunu göstermez; doğruluk her aşamanın '
-      u'kendi raporunda tartışılır. Sipariş kararı bu özete değil, yukarıdaki '
-      u'tabloda adı geçen raporlara bakılarak verilir.\n')
+    A(u'\n## What this summary is not\n')
+    A(u'This file shows that the stages **ran** and that their outputs are **not empty**. It does not show that the measurements are **right**; correctness is argued in each stage\'s own report. The order decision is made by reading the reports named in the table above, not by reading this summary.')
 
     io.open(yol, 'w', encoding='utf-8').write(u'\n'.join(L) + u'\n')
     return yol
