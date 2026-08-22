@@ -24,8 +24,8 @@ not started.
 # self_test.py, the gate that tests the engines for correctness before any
 #                   measurement starts; if even one item fails, no stage is started.
 #
-# INPUT  : the paths in config.py (the panel TSV, hedefler.tsv, the consensus and
-#          fastq directories, hedef_uyelik.tsv, SILVA); engine/geometry_core.py (run
+# INPUT  : the paths in config.py (the panel TSV, targets.tsv, the consensus and
+#          fastq directories, target_membership.tsv, SILVA); engine/geometry_core.py (run
 #          in a separate process, its geo.json output is read); the panel pairs and
 #          the canonical consensuses through targets.py; the engines through
 #          engine_gateway.py (ispcr, tarayici, okuma_motoru, kaba_kuvvet and the old
@@ -113,9 +113,9 @@ def calistir(yaz):
     from . import engine_gateway, geometry as G, targets as H, generator as U, sample as N
 
     # ---- 1b dosyalar
-    for ad, p in (('the panel TSV', C.PANEL_TSV), ('hedefler.tsv', C.HEDEFLER_TSV),
+    for ad, p in (('the panel TSV', C.PANEL_TSV), ('targets.tsv', C.HEDEFLER_TSV),
                   ('the consensus directory', C.KONSENSUS), ('the fastq directory', C.FASTQ),
-                  ('hedef_uyelik.tsv', H.UYELIK_TSV)):
+                  ('target_membership.tsv', H.UYELIK_TSV)):
         tum &= _ok(yaz, ad, os.path.exists(p), '' if os.path.exists(p) else p)
     var_ref = os.path.exists(C.SILVA_SSU)
     _ok(yaz, u'REFERANS_DB/SILVA SSU (for the global step)', var_ref,

@@ -362,7 +362,7 @@ def kutu_hukmu(K, bulgular, lokus_tab):
 def ayni_mi(kayitli, dogrulanan_cins, adl):
     """Do the recorded identity and the verified identity point at the same genus?"""
     if not kayitli or kayitli in ('?', '-'):
-        return 'KAYIT YOK', u'taxid_adlari.tsv icinde bu taxid icin ad yok'
+        return 'KAYIT YOK', u'taxid_names.tsv icinde bu taxid icin ad yok'
     if not dogrulanan_cins:
         return 'BELIRSIZ', u'dogrulanan kimlikte cins cozulemedi'
     kc = re.sub(r'^(Ca\.|Candidatus)\s+', '', kayitli).split()[0]

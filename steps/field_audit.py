@@ -19,7 +19,7 @@ F mantar) bulundugu VERIDEN cikarilir. Hedef birden cok alanda kutu
 tasiyorsa, azinlik alandaki tasarim isaretlenir.
 
 Bu dosya elle yazilmis bir alan tablosu icermez. Alan bilgisi yalnizca
-konsensus dosya adlarindan ve hedefler.tsv'deki taxid listesinden gelir.
+konsensus dosya adlarindan ve targets.tsv'deki taxid listesinden gelir.
 """
 import os
 import re
@@ -46,7 +46,7 @@ def taxid_alanlari(kons_klasoru):
 
 
 def hedef_taxidleri(hedefler_tsv):
-    """hedefler.tsv -> {hedef_adi: [taxid, ...]}"""
+    """targets.tsv -> {hedef_adi: [taxid, ...]}"""
     d = {}
     if not hedefler_tsv or not os.path.exists(hedefler_tsv):
         return d

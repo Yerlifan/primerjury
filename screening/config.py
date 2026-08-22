@@ -58,8 +58,8 @@ def y(*p):
 
 PANEL_TSV   = y('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
 PANEL_TSV_YEDEK = y('primer_final', 'devir_ciftleri_20260802_sonrotus.tsv')
-HEDEFLER_TSV= y('steps', 'hedefler.tsv')
-TAXID_ADLARI= y('steps', 'taxid_adlari.tsv')
+HEDEFLER_TSV= y('steps', 'targets.tsv')
+TAXID_ADLARI= y('steps', 'taxid_names.tsv')
 # ORIENTATION NORMALISATION (2026-08-02): consensuses are now read from ONE
 # CANONICAL directory. 'consensus sequences' is MIXED orientation (71 antisense /
 # 27 sense, measured) and reading it directly is forbidden; on a reversed consensus

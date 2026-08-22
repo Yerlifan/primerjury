@@ -21,7 +21,7 @@ Girdi tablosu (--reference-targets), sekmeyle ayrılmış:
 
 Kullanım:
   python3 design_from_reference.py --db REFERANS_DB --pt . \
-      --reference-targets hedefler_referans.tsv --out primer_referans
+      --reference-targets reference_targets.tsv --out primer_referans
 """
 import argparse, csv, glob, importlib.util, os, re, subprocess, sys, tempfile, datetime
 

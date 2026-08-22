@@ -218,7 +218,7 @@ def kapsam_olc(db, diziler, calisma, etiket, threads, zaman_asimi):
 # and A FOREIGN TAXON.
 #
 # The taxon names are not written by hand; they come from two data sources:
-#   1) the taxid list in hedefler.tsv plus taxid_adlari.tsv  (THE DECLARED name)
+#   1) the taxid list in targets.tsv plus taxid_names.tsv  (THE DECLARED name)
 #   2) the olculen_kimlik column of hedef_kimlik.tsv         (THE MEASURED name)
 # The two can diverge, and they do: the measured identity of the Trichoderma_cinsi
 # target is Petriella musispora. Both count as "its own taxon"; which of them
@@ -404,7 +404,7 @@ def get_args():
     p.add_argument("--db", required=True, help='the reference database '
                                                'directory')
     p.add_argument("--targets", default=None, help="targets.tsv")
-    p.add_argument("--names", default=None, help="taxid_adlari.tsv")
+    p.add_argument("--names", default=None, help="taxid_names.tsv")
     p.add_argument("--identity", default=None,
                    help='the measured identity from the target identity step')
     p.add_argument("--consensus", default=None,

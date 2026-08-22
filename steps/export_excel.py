@@ -67,7 +67,7 @@ def get_args():
     p.add_argument("--reference", default=None,
                    help="output of the design-from-reference step (primer_referans.tsv)")
     p.add_argument("--names", default=None)
-    p.add_argument("--targets", default="hedefler.tsv")
+    p.add_argument("--targets", default="targets.tsv")
     p.add_argument("--identity", default=None,
                    help='the output of the target identity step; when it is '
                         'given, a measured identity column is added to every '

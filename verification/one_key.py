@@ -304,7 +304,7 @@ def ASAMALAR(ayar):
              argv=lambda kok, a: [_py(os.path.join('verification', 'audit_all.py'),
                                       '--root', '.')],
              girdi=['verification/audit_all.py',
-                    'screening/hedef_taxid.tsv',
+                    'screening/target_taxids.tsv',
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
              cikti=['ONE_KEY_RESULT/DENETIM_RAPORU.md'], bagimli=[],
              sure_sn=90.0, kaynak=u'olculdu 2026-08-10 (yerel 2 sn + NCBI kapsama ~85 sn)',
@@ -352,9 +352,9 @@ def ASAMALAR(ayar):
              grup=u'Grup 1', betik='protocol/single_protocol_measure.py',
              argv=lambda kok, a: [_py(os.path.join('protocol', 'single_protocol_measure.py'),
                                       '--root', '.')],
-             # 2026-08-09: ciftler.tsv eklendi, gerekce D asamasindaki notta.
+             # 2026-08-09: pairs.tsv eklendi, gerekce D asamasindaki notta.
              girdi=['protocol/single_protocol_measure.py', 'primer_final',
-                    'screening/ciftler.tsv',
+                    'screening/pairs.tsv',
                     'GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'],
              cikti=['ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
@@ -369,9 +369,9 @@ def ASAMALAR(ayar):
              grup=u'Grup 1', betik='verification/recovery_round.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'recovery_round.py'),
                                       '--root', '.')],
-             # 2026-08-09: ciftler.tsv eklendi, gerekce D asamasindaki notta.
+             # 2026-08-09: pairs.tsv eklendi, gerekce D asamasindaki notta.
              girdi=['verification/recovery_round.py',
-                    'screening/ciftler.tsv',
+                    'screening/pairs.tsv',
                     'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'],
              cikti=['RECOVERY_RESULT/kurtarma_satirlari.tsv'], bagimli=['P'],
              sure_sn=300.0, kaynak=u'verification/full_chain.py yorumu ("K 5 dk")',
@@ -381,15 +381,15 @@ def ASAMALAR(ayar):
              grup=u'Grup 1', betik='verification/specificity_round.py',
              argv=d_argv,
              # THE 2026-08-09 FIX (input tracking): NONE of the stages counted
-             # screening/ciftler.tsv as an input. That file holds the panel's PRIMER
+             # screening/pairs.tsv as an input. That file holds the panel's PRIMER
              # SEQUENCES. So even if the sequences of the whole panel were changed, the
              # chain would say "the input has not changed" and skip every stage. On
              # 09.08 two pairs were changed and D would have been skipped again; what it
              # verified would have been the old pair. The root SIPARIS_LISTESI.tsv was
              # added too, because D reads the order rows from there.
              girdi=['verification/specificity_round.py', 'verification/mfeprimer_layer.py',
-                    'screening/hedef_klad.tsv',
-                    'screening/ciftler.tsv',
+                    'screening/target_clades.tsv',
+                    'screening/pairs.tsv',
                     'SIPARIS_LISTESI.tsv',
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv',
                     'RECOVERY_RESULT/kurtarma_satirlari.tsv',

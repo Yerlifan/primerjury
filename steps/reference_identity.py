@@ -61,7 +61,7 @@ def get_args():
     p.add_argument("--pt", required=True, help="the root holding the 'fastq "
                                                "files' directory")
     p.add_argument("--db", required=True)
-    p.add_argument("--reference-targets", default=os.path.join(HERE, "hedefler_referans.tsv"))
+    p.add_argument("--reference-targets", default=os.path.join(HERE, "reference_targets.tsv"))
     p.add_argument("--out", required=True)
     p.add_argument("--max-reads", type=int, default=20000)
     p.add_argument("--min-product", type=int, default=30,
@@ -134,7 +134,7 @@ def main():
             if r.get("ad"):
                 amac[r["ad"]] = (r.get("ic", ""), r.get("taxid", ""))
     if not amac:
-        print(u'WARNING: hedefler_referans.tsv could not be read, the intended organism will stay empty: %s' % a.reference_targets)
+        print(u'WARNING: reference_targets.tsv could not be read, the intended organism will stay empty: %s' % a.reference_targets)
 
     fq = collections.defaultdict(list)
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):

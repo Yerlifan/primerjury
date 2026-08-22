@@ -88,7 +88,7 @@ def main():
         return 2
 
     # --- dislama haritasi ONCEDEN denetlenir: eksik hedef varsa BASTAN soyle ---
-    hy = os.path.join(kok, 'screening', 'hedef_taxid.tsv')
+    hy = os.path.join(kok, 'screening', 'target_taxids.tsv')
     harita = {}
     if os.path.exists(hy):
         for l in io.open(hy, encoding='utf-8'):

@@ -17,10 +17,10 @@ that it becomes visible which number depends on which definition.
 
 THE DEFINITION SOURCES
 ----------------------
-  A. hedef_uyelik.tsv       the definition the tool currently uses (PANEL / TURETILDI)
-  B. hedefler.tsv           the project's decision table (the group row)
+  A. target_membership.tsv       the definition the tool currently uses (PANEL / TURETILDI)
+  B. targets.tsv           the project's decision table (the group row)
   C. a single member        only the single taxon giving the most product
-  D. ciftler.tsv            the definition from the other session (the read engine fix)
+  D. pairs.tsv            the definition from the other session (the read engine fix)
   E. the measured identity  derived from the MEASURED organism in hedef_kimlik.tsv
 
 THE DIAGNOSIS (situations like Proteiniphilum)
@@ -42,9 +42,9 @@ The module tests BOTH and writes down which it is.
 #
 # INPUT  : the panel TSV through hedefler.panel_oku(); the fastq bins through
 #          hedefler.kutular(); the canonical consensuses through
-#          hedefler.konsensusler(); screening/hedef_uyelik.tsv through
-#          hedefler.acik_uyelik(); steps/hedefler.tsv through hedefler.uyelik_oku();
-#          screening/ciftler.tsv (or eski/ciftler.tsv);
+#          hedefler.konsensusler(); screening/target_membership.tsv through
+#          hedefler.acik_uyelik(); steps/targets.tsv through hedefler.uyelik_oku();
+#          screening/pairs.tsv (or eski/pairs.tsv);
 #          primer_final/hedef_kimlik.tsv. numune.Numune does the measuring.
 # OUTPUT : SCREENING_RESULT/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
 #          (calistir returns those two paths as a list); plus a
@@ -56,7 +56,7 @@ The module tests BOTH and writes down which it is.
 # THIS MODULE DOES NOT CHANGE THE MEMBERSHIP. It measures every reasonable
 # definition, puts them side by side, and writes at the end of the report "this tool
 # does not change the membership definition by itself"; it DOES NOT WRITE to
-# hedef_uyelik.tsv. The principle: an absence of evidence is not evidence. A number
+# target_membership.tsv. The principle: an absence of evidence is not evidence. A number
 # coming out different from what was expected is not evidence for moving a bin; a bin
 # moves only on positive measured evidence and by hand. So this module's output is
 # not a decision but a table of options.
@@ -75,10 +75,10 @@ PAKET = os.path.dirname(os.path.abspath(__file__))
 
 # ---------------------------------------------------------------- tanim kaynaklari
 def _ciftler_tsv_uyelik():
-    """eski/ciftler.tsv (the other session's definition) -> target -> the taxid list."""
+    """eski/pairs.tsv (the other session's definition) -> target -> the taxid list."""
     out = {}
-    for aday in (os.path.join(PAKET, 'ciftler.tsv'),
-                 os.path.join(PAKET, 'eski', 'ciftler.tsv')):
+    for aday in (os.path.join(PAKET, 'pairs.tsv'),
+                 os.path.join(PAKET, 'eski', 'pairs.tsv')):
         if not os.path.exists(aday):
             continue
         try:
@@ -130,17 +130,17 @@ def tanimlar(satir, kut, acik, grup_uyelik, cift_uyelik, kimlik_uyelik):
 
     a = acik.get(ad)
     if a:
-        out.append((u'A. hedef_uyelik.tsv (%s)' % (a.get('kaynak') or '?'),
+        out.append((u'A. target_membership.tsv (%s)' % (a.get('kaynak') or '?'),
                     a['uye'], a['haric']))
 
     anahtar = H.AD_ESLEME.get(ad, ad)
     g = grup_uyelik.get(anahtar)
     if g:
-        out.append(('B. hedefler.tsv:%s' % anahtar, g['uye'], g['haric']))
+        out.append(('B. targets.tsv:%s' % anahtar, g['uye'], g['haric']))
 
     c = cift_uyelik.get(ad)
     if c:
-        out.append((u'D. ciftler.tsv (the other session)', c, []))
+        out.append((u'D. pairs.tsv (the other session)', c, []))
 
     k = kimlik_uyelik.get(ad)
     if k:
@@ -307,7 +307,7 @@ def calistir(yaz, sure, okuma_sayisi=C.NUMUNE_OKUMA_SAYISI, yalniz=None,
     yaz(u'  MEMBERSHIP DEFINITION AUDIT and SENSITIVITY ANALYSIS')
     yaz('=' * 78)
     yaz(u'  number of targets   : %d' % len(panel))
-    yaz(u'  definition sources  : hedef_uyelik.tsv, hedefler.tsv, ciftler.tsv,')
+    yaz(u'  definition sources  : target_membership.tsv, targets.tsv, pairs.tsv,')
     yaz(u'                        measured identity, single member')
     yaz(u'  marked DERIVED      : %d rows  (these deserve a specific look)' % len(turetildi))
     for t in turetildi:
@@ -484,16 +484,16 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
     A('')
     A('| kod | kaynak |')
     A('|---|---|')
-    A(u'| **A** | `screening/hedef_uyelik.tsv`, the definition the tool uses now |')
-    A(u'| **B** | `steps/hedefler.tsv`, the project\'s decision table (the group row) |')
+    A(u'| **A** | `screening/target_membership.tsv`, the definition the tool uses now |')
+    A(u'| **B** | `steps/targets.tsv`, the project\'s decision table (the group row) |')
     A(u'| **C** | a single member, the one taxon that gives the best result |')
-    A(u'| **D** | `ciftler.tsv`, the definition from the read engine correction session |')
+    A(u'| **D** | `pairs.tsv`, the definition from the read engine correction session |')
     A(u'| **E** | `primer_final/hedef_kimlik.tsv`, derived from the MEASURED identity |')
     A('')
 
     A(u'## LOOK AT THESE FIRST: the rows marked `TURETILDI`')
     A('')
-    A(u'The membership definition of these rows was not written in the panel plainly; it was **derived** from the target name and from `taxid_adlari.tsv`. These are the ones most likely to be wrong.')
+    A(u'The membership definition of these rows was not written in the panel plainly; it was **derived** from the target name and from `taxid_names.tsv`. These are the ones most likely to be wrong.')
     A('')
     A(u'| target | how many fold the discrimination moves when the definition changes | diagnosis |')
     A('|---|---|---|')
@@ -554,7 +554,7 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
 
     A('## Ne yapmali')
     A('')
-    A(u'1. Go over the rows marked `TURETILDI`; write the right definition into `screening/hedef_uyelik.tsv`.')
+    A(u'1. Go over the rows marked `TURETILDI`; write the right definition into `screening/target_membership.tsv`.')
     A(u'2. On targets whose `oynaklik` column is high, the published number is **very sensitive to the definition**, so which definition it was reported under has to be written in the panel plainly.')
     A(u'3. If the `TANI` column says `KONSENSUS/OKUMA UYUSMAZLIGI`, first reproduce that bin\'s consensus with option (6), then repeat the measurement.')
     A('')

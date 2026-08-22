@@ -118,7 +118,7 @@ fi
 # --- B. target identity -----------------------------------------------
 calistir B "target identity: the name against what the sequence shows" \
   python3 "$HERE/target_identity.py" --consensus "$KONS" --db "$PT/REFERANS_DB" \
-    --targets "$HERE/hedefler.tsv" --names "$HERE/taxid_adlari.tsv" \
+    --targets "$HERE/targets.tsv" --names "$HERE/taxid_names.tsv" \
     --threads "$IS" --out "$FINAL/hedef_kimlik.tsv"
 
 # --- C. mfeprimer -----------------------------------------------------
@@ -159,7 +159,7 @@ calistir D "the community trend: a rank aware abundance workbook" \
   python3 "$HERE/community_trends.py" --bracken "$PT/bracken results" \
     --distinguishable "$ADAY/ayirt_edilemez.tsv" \
     ${KIMLIK[@]+--identity "${KIMLIK[@]}"} \
-    --names "$HERE/taxid_adlari.tsv" $RUTBEARG \
+    --names "$HERE/taxid_names.tsv" $RUTBEARG \
     --out "$PT/PrimerJury_Community_Trends.xlsx"
 
 # --- E. the self audit ------------------------------------------------
@@ -173,7 +173,7 @@ say "----------------------------------------------------------------"
 say "STEP E2  the self audit: the delivery audit"
 T0E2=$(date +%s)
 python3 "$HERE/check_deliverables.py" --final "$FINAL" --consensus "$KONS" \
-  --targets "$HERE/hedefler.tsv" --out "$FINAL/teslim_denetimi.tsv" \
+  --targets "$HERE/targets.tsv" --out "$FINAL/teslim_denetimi.tsv" \
   2>&1 | tee -a "$LOGD/adim_E2.log" | tail -n 40
 RCE2=${PIPESTATUS[0]}
 say "STEP E2 finished, exit=$RCE2, time=$(( ($(date +%s)-T0E2)/60 )) minutes"
@@ -230,7 +230,7 @@ if [ -z "$YALNIZ" ] || [ "$YALNIZ" = "G" ]; then
   calistir G "the Excel delivery, with the measured identity columns" \
     python3 "$HERE/export_excel.py" \
       --candidates "$ADAY" --final "$FINAL" --splits "$ADAY/kume_setleri" \
-      --names "$HERE/taxid_adlari.tsv" --targets "$HERE/hedefler.tsv" \
+      --names "$HERE/taxid_names.tsv" --targets "$HERE/targets.tsv" \
       --consensus "$KONS" --identity "$FINAL/hedef_kimlik.tsv" $REFARG \
       --out "$PT/PrimerJury_Primer_Tasarimi.xlsx"
 fi
@@ -246,7 +246,7 @@ if [ "$YALNIZ" = "H" ]; then
   calistir H "the broad external database scan (external_databases.py --wide)" \
     python3 "$HERE/external_databases.py" --final "$FINAL" \
       --db "$PT/REFERANS_DB" --wide --threads "$IS" --consensus "$KONS" \
-      --targets "$HERE/hedefler.tsv" --names "$HERE/taxid_adlari.tsv" \
+      --targets "$HERE/targets.tsv" --names "$HERE/taxid_names.tsv" \
       --identity "$FINAL/hedef_kimlik.tsv" \
       --timeout 21600 --out "$FINAL/dis_veritabani_genis.tsv"
   calistir H2 "the broad set, the second measurement (mfeprimer_layer.py --wide)" \

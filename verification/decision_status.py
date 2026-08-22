@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """WHAT WAS ASKED FOR AT THE MEETING, WHAT CAME OF IT, AND WHAT DID NOT.
 
-The meeting decisions sit numbered inside steps/hedefler.tsv (Decision 1 species
+The meeting decisions sit numbered inside steps/targets.tsv (Decision 1 species
 specific, Decision 2 genus, Decision 3 group, Decision 4 domain and universal,
 Decision 5 the additions derived from the measurement and put up for approval). This
 script puts that list side by side with the panel's output AS IT IS TODAY.
@@ -104,7 +104,7 @@ def main():
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 
-    ky = os.path.join(kok, 'steps', 'hedefler.tsv')
+    ky = os.path.join(kok, 'steps', 'targets.tsv')
     if not os.path.exists(ky):
         sys.exit(u'ERROR: %s is missing.' % ky)
     K = kararlar(ky)
@@ -177,7 +177,7 @@ def main():
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# What was requested, and what was achieved\n\n')
         fh.write(u'Generated: %s\n\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'Source: `steps/hedefler.tsv` (the requested targets themselves) beside `ONE_PROTOCOL_RESULT/SIPARIS_LISTES')
+        fh.write(u'Source: `steps/targets.tsv` (the requested targets themselves) beside `ONE_PROTOCOL_RESULT/SIPARIS_LISTES')
         fh.write(u'| status | how many requests |\n|---|---|\n')
         for k in sorted(sayim, key=lambda x: -sayim[x]):
             fh.write(u'| %s | %d |\n' % (k, sayim[k]))

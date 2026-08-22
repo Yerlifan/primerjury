@@ -20,31 +20,31 @@
 #                Kural: UYELIK OLCULEN KIMLIGE GORE, adlandirmaya gore DEGIL.
 #   haric      : ne uye ne rakip sayilir (yakin akraba, bilerek disarida).
 #                Burada da "KUTU:" oneki kullanilabilir.
-#   kaynak     : PANEL = panel/hedefler.tsv'de acikca yazili
-#                TURETILDI = hedef adindan ve taxid_adlari.tsv'den cikarildi -> KONTROL EDIN
+#   kaynak     : PANEL = panel/targets.tsv'de acikca yazili
+#                TURETILDI = hedef adindan ve taxid_names.tsv'den cikarildi -> KONTROL EDIN
 #   not
 hedef	uye_taxid	haric	kaynak	not
 Metanojen_universal	2209,2223,2208,2210,1434102,3078083,394967,83986,118126,83984,224719,2201,1406512		TURETILDI	Butun metanojenler; Nitrosocosmicus (1826872) rakip. Panel: "13/14 kutu; Ca. Methanomassiliicoccus haric" ve "metanojen kutularinin 33/34'u"
 Methanothrix_cinsi	2223		PANEL	Cins duzeyi; numunede tek Methanothrix taxid'i var
-Petrimonas_cinsi	1642646,285070		PANEL	hedefler.tsv karar 2
+Petrimonas_cinsi	1642646,285070		PANEL	targets.tsv karar 2
 Metanomikrobiyales_hidrojenotrof	394967,83986,118126,83984,2201	224719	TURETILDI	Methanomicrobiales: Methanoculleus, Methanocorpusculum, Methanofollis. Methanobrevibacter (224719) Methanobacteriales'tir - HARIC. Panel "13/13 Methanomicrobiales" diyor
 Mantar_universal (F1)	*F1		OLCULEN KIMLIK	2026-08-11 DUZELTME: haric sutununda 44689 (Dictyostelium) yaziyordu ve gerekcesi KRAKEN ETIKETIYDI - projenin guvenmemeye karar verdigi sey. Olcum tam tersini soyluyor: F1-1_44689 = Zoopagomycota_gen_Incertae_sedis sp. (CINS, %100), F1-2 ve F1-3_44689 = adlandirilamayan soy, en yakin EU825622, Opisthokonta > Nucletmycea (%96,70), F1-4_44689 = adlandirilamayan soy, en yakin JX974768, ayni klad (%67,08). Dordu de mantar tarafinda, hicbiri Amoebozoa degil; ustelik ucu evrensel ciftle cogaliyor (k/n = 1775/2118, 879/1086, 2460/3000). Yani haric birakilmalari yanlisti, tek protokolun uye saymasi dogruydu. Kaynak: BOLLUK_OLCULEN_2026-08-11/karsilastirma_kutu.tsv
 Methanosarcina_cinsi	2209,2208,2210,1434102,3078083		TURETILDI	Numunedeki bes Methanosarcina taxid'i
-Metilotrofik_metanojen	1406512		PANEL	hedefler.tsv karar 3, tek uye
-Nitrosocosmicus_AOA	1826872		PANEL	hedefler.tsv karar 3
-Proteiniphilum_cinsi	2829812,1642647		PANEL	hedefler.tsv karar 2
-Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	1197717		PANEL	hedefler.tsv karar 5; numunedeki organizma adlandirilamayan Synergistaceae (bkz. KAPANIS madde 2)
+Metilotrofik_metanojen	1406512		PANEL	targets.tsv karar 3, tek uye
+Nitrosocosmicus_AOA	1826872		PANEL	targets.tsv karar 3
+Proteiniphilum_cinsi	2829812,1642647		PANEL	targets.tsv karar 2
+Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	1197717		PANEL	targets.tsv karar 5; numunedeki organizma adlandirilamayan Synergistaceae (bkz. KAPANIS madde 2)
 Bacteroidales_kumesi	818,28116,214856,1642646,285070,2829812,1642647,1760811		TURETILDI	Bacteroidales takimi: Bacteroides, Alistipes, Petrimonas, Proteiniphilum, Fermentimonas, Acetobacteroides
 Mantar_universal (F2)	*F2	KUTU:F2-2_1760811,KUTU:F2-3_1760811,KUTU:F2-3_5855,KUTU:F2-4_5811	OLCULEN KIMLIK	2026-08-11: haric taxid ile yaziliydi, artik kutu kutu ve OLCULEN kimlikle: F2-2_1760811 ve F2-3_1760811 = Cercozoa (Rhizaria, Ventricleftida), F2-3_5855 = Cercozoa (Endomyxa, Vampyrellida), F2-4_5811 = Cyrtohymena cf. torrenticola (siliyat). Dordu de protist, mantar degil - universal mantar ciftinin ne uyesi ne rakibi sayilir. Kraken etiketleri (Plasmodium, Toxoplasma, Acetobacteroides) tutmuyor, olcum esas alindi.
 Microascaceae_askomikot	KUTU:F2-1_101201,KUTU:F2-1_2034170,KUTU:F2-1_500148,KUTU:F2-2_101201,KUTU:F2-2_500148,KUTU:F2-3_101201,KUTU:F2-4_101201,KUTU:F2-4_2034170,KUTU:F2-4_500148		OLCULEN KIMLIK	2026-08-11 DUZELTME: onceki hali yalniz 101201 idi, dort kutu goruyordu; oysa Petriella setifera olcen 2034170 ve 500148 kutulari da Microascaceae. Aile hedefi olduğu icin "adlandirilamayan soy - en yakin kayit Lomentospora" (F2-4_500148) da UYEDIR: Lomentospora Microascaceae icindedir. Tek protokolun 9 kutuluk listesiyle birebir ayni.
-Sakarolitik_Sphaerochaeta	1129264		PANEL	hedefler.tsv karar 5
-Asetoklastik_metanojenler	2209,2223,2208,2210,1434102,3078083		PANEL	hedefler.tsv karar 3
-Bakteri_universal	*B		PANEL	hedefler.tsv karar 4
+Sakarolitik_Sphaerochaeta	1129264		PANEL	targets.tsv karar 5
+Asetoklastik_metanojenler	2209,2223,2208,2210,1434102,3078083		PANEL	targets.tsv karar 3
+Bakteri_universal	*B		PANEL	targets.tsv karar 4
 Petriella_musispora	KUTU:F2-1_101201,KUTU:F2-1_2034170,KUTU:F2-1_500148,KUTU:F2-2_101201,KUTU:F2-2_500148,KUTU:F2-3_101201,KUTU:F2-4_101201,KUTU:F2-4_2034170,KUTU:F2-4_500148		OLCULEN KIMLIK	2026-08-11 DUZELTME: onceki hali 101201,2034170,63577 idi ve 63577 kutularini uye sayiyordu; o dort kutunun olculen kimligi Microascus sp., Lomentospora sp. (x2) ve Graphium sp. - hicbiri Petriella degil, uctu ayri cins. Ustelik gercek Petriella setifera kutulari (500148) uyelikten DISARIDA kalmisti. Siparis sayisi (8,32x) tek protokolun 9 kutuluk uyeligiyle uretildi; buradaki liste onunla BIREBIR ayni yapildi.
-Proteolitik_Cloacimonas	456827		TURETILDI	YALNIZ Ca. Cloacimonas. hedefler.tsv'de bu ad yok; grup satiri (Proteolitik_sintrofik_bakteriler) kullanilirsa uye kapsami yanlis cikar - panel bu cifti tek kutu uzerinden bildiriyor ("uye %78,5, 1 kutu")
-Arke_universal	*A1,*A2		PANEL	hedefler.tsv karar 4
-Methanothrix_soehngenii_turu	2223		PANEL	hedefler.tsv karar 1
-Methanosarcina mazei / M. soligelidi grubu	2209		PANEL	hedefler.tsv karar 1; organizma M. soligelidi'den 16S ile ayrilamiyor (KAPANIS madde 3)
-Proteolitik_Synergistaceae	1197717		PANEL	2026-08-09: ciftler.tsv bu hedefi KISA adla ("Proteolitik_Synergistaceae") yaziyor, bu dosyada yalniz UZUN ad ("... (eski ad: Proteolitik_Cloacibacillus)") vardi; ad normallestirmesi ikisini eslestirmedigi icin M3-UYELIK-SATIRI-YOK bulgusu cikiyordu. Uye kumesi uzun adli satirla BIREBIR AYNIDIR, yeni bir hedef degildir.
-Methanosarcina_mazei_turu	2209		PANEL	2026-08-09: ciftler.tsv bu hedefi "Methanosarcina_mazei_turu" olarak yaziyor, bu dosyada yalniz "Methanosarcina mazei / M. soligelidi grubu" vardi. Uye kumesi o satirla BIREBIR AYNIDIR (taxid 2209), yeni bir hedef degildir. Organizma M. soligelidi'den 16S ile ayrilamiyor (KAPANIS madde 3).
+Proteolitik_Cloacimonas	456827		TURETILDI	YALNIZ Ca. Cloacimonas. targets.tsv'de bu ad yok; grup satiri (Proteolitik_sintrofik_bakteriler) kullanilirsa uye kapsami yanlis cikar - panel bu cifti tek kutu uzerinden bildiriyor ("uye %78,5, 1 kutu")
+Arke_universal	*A1,*A2		PANEL	targets.tsv karar 4
+Methanothrix_soehngenii_turu	2223		PANEL	targets.tsv karar 1
+Methanosarcina mazei / M. soligelidi grubu	2209		PANEL	targets.tsv karar 1; organizma M. soligelidi'den 16S ile ayrilamiyor (KAPANIS madde 3)
+Proteolitik_Synergistaceae	1197717		PANEL	2026-08-09: pairs.tsv bu hedefi KISA adla ("Proteolitik_Synergistaceae") yaziyor, bu dosyada yalniz UZUN ad ("... (eski ad: Proteolitik_Cloacibacillus)") vardi; ad normallestirmesi ikisini eslestirmedigi icin M3-UYELIK-SATIRI-YOK bulgusu cikiyordu. Uye kumesi uzun adli satirla BIREBIR AYNIDIR, yeni bir hedef degildir.
+Methanosarcina_mazei_turu	2209		PANEL	2026-08-09: pairs.tsv bu hedefi "Methanosarcina_mazei_turu" olarak yaziyor, bu dosyada yalniz "Methanosarcina mazei / M. soligelidi grubu" vardi. Uye kumesi o satirla BIREBIR AYNIDIR (taxid 2209), yeni bir hedef degildir. Organizma M. soligelidi'den 16S ile ayrilamiyor (KAPANIS madde 3).
 Petriella_cinsi	KUTU:F2-1_101201,KUTU:F2-1_2034170,KUTU:F2-1_500148,KUTU:F2-2_101201,KUTU:F2-2_500148,KUTU:F2-3_101201,KUTU:F2-4_101201,KUTU:F2-4_2034170		OLCULEN KIMLIK	2026-08-11 DUZELTME: onceki hali taxid ile yazilmisti (101201,2034170,500148) ve F2-4_500148'i de uye sayiyordu; o kutu Petriella degil, "adlandirilamayan soy - en yakin kayit Lomentospora". Tek protokol onu RAKIP sayiyor ve cifti dusuren karar kutusu odur (1655/3000). Iki kaynak ayni sonucu versin diye uyelik kutu kutu yazildi.

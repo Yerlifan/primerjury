@@ -509,7 +509,7 @@ def testler(a):
                      % (Fp, ref_rc(Rp)))
             fh.write("ONERILIR\tArke_universal\tA1\tGECTI\t%s\t%s\n"
                      % (Fp, ref_rc(Rp)))
-        open(os.path.join(gec2, "hedefler.tsv"), "w").write(
+        open(os.path.join(gec2, "targets.tsv"), "w").write(
             "karar\tad\tx\ttaxid\n"
             "ONERILIR\tMethanothrix_soehngenii_turu\t-\t2223\n"
             "ONERILIR\tArke_universal\t-\t*A\n")
@@ -521,7 +521,7 @@ def testler(a):
              "--final", os.path.join(gec2, "final"),
              "--db", os.path.join(gec2, "REFERANS_DB"),
              "--consensus", os.path.join(gec2, "kons"),
-             "--targets", os.path.join(gec2, "hedefler.tsv"),
+             "--targets", os.path.join(gec2, "targets.tsv"),
              "--names", os.path.join(gec2, "adlar.tsv"),
              "--out", cik], capture_output=True, text=True)
         satir = {}
@@ -706,7 +706,7 @@ def testler(a):
          DZ.tur_adi("UDB1|k__Fungi;g__Petriella;s__Petriella_setifera|SH1")
          == "Petriella setifera")
     # 'Methanosarcina_barkeri_referans' strips to 'Methanosarcina_barkeri' while the
-    # name in hedefler.tsv is 'Methanosarcina_barkeri_turu'. When the match failed, the
+    # name in targets.tsv is 'Methanosarcina_barkeri_turu'. When the match failed, the
     # target's ONLY primer set dropped silently and the target appeared as CIFT_YOK.
     _ADL = ["Methanosarcina_barkeri_turu", "Proteiniphilum_cinsi",
             "Podospora_pseudopauciseta", "Proteolitik_sintrofik_bakteriler"]
@@ -768,7 +768,7 @@ def testler(a):
                      % (Fp, Rp))
             fh.write("1\tMethanothrix_soehngenii_turu\tA1\tGECTI\t%s\t%s\n"
                      % (Fp2, Rp2))
-        open(os.path.join(g3, "hedefler.tsv"), "w").write(
+        open(os.path.join(g3, "targets.tsv"), "w").write(
             "karar\thedef\tduzey\tin_taxid\tharic\tnot\n"
             "1\tMethanothrix_soehngenii_turu\ttur\t2223\t\tM. soehngenii\n")
         open(os.path.join(g3, "adlar.tsv"), "w").write(
@@ -776,7 +776,7 @@ def testler(a):
         cik3 = os.path.join(g3, "cikti.tsv")
         r3 = subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
@@ -809,7 +809,7 @@ def testler(a):
         cik5 = os.path.join(g3, "cikti_esik3.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
@@ -829,7 +829,7 @@ def testler(a):
         sina(u'check_taxonomic_level.py finished with exit code zero', r3.returncode == 0,
              r3.stderr.strip()[-120:])
         # if the target species is absent from the panel, it must NOT say TUR_OZGUL
-        open(os.path.join(g3, "hedefler.tsv"), "w").write(
+        open(os.path.join(g3, "targets.tsv"), "w").write(
             "karar\thedef\tduzey\tin_taxid\tharic\tnot\n"
             "1\tMethanothrix_soehngenii_turu\ttur\t9999\t\tyok\n")
         open(os.path.join(g3, "adlar.tsv"), "w").write(
@@ -837,7 +837,7 @@ def testler(a):
         cik4 = os.path.join(g3, "cikti2.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
@@ -884,7 +884,7 @@ def testler(a):
                      "geri_dizi\n")
             fh.write("2\tProteiniphilum_cinsi\tB\tGECTI\t%s\t%s\n" % (Fc, Rc))
             fh.write("2\tProteiniphilum_cinsi\tB\tGECTI\t%s\t%s\n" % (Fc2, Rc2))
-        open(os.path.join(g4, "hedefler.tsv"), "w").write(
+        open(os.path.join(g4, "targets.tsv"), "w").write(
             "karar\thedef\tduzey\tin_taxid\tharic\tnot\n"
             "2\tProteiniphilum_cinsi\tcins\t2829812,1642647\t\tP. cinsi\n")
         open(os.path.join(g4, "adlar.tsv"), "w").write(
@@ -897,7 +897,7 @@ def testler(a):
         cik6 = os.path.join(g4, "cikti.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--targets", os.path.join(g4, "hedefler.tsv"),
+             "--targets", os.path.join(g4, "targets.tsv"),
              "--names", os.path.join(g4, "adlar.tsv"),
              "--final", os.path.join(g4, "final"),
              "--db", os.path.join(g4, "REFERANS_DB"),

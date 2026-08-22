@@ -8,7 +8,7 @@ rapor ile Excel ayni kumeyi anlatmak zorundadir.
 
 Kullanim:
   python3 rapor/veri_uret.py --final <FINAL> --consensus <KONS> \
-      --targets hedefler.tsv --names taxid_adlari.tsv --out rapor/veri.json
+      --targets targets.tsv --names taxid_names.tsv --out rapor/veri.json
 """
 import argparse, csv, json, os, sys
 
@@ -27,7 +27,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--final", required=True)
     p.add_argument("--consensus", required=True)
-    p.add_argument("--targets", default="hedefler.tsv")
+    p.add_argument("--targets", default="targets.tsv")
     p.add_argument("--external", default=None)
     p.add_argument("--out", required=True)
     a = p.parse_args()

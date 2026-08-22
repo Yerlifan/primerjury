@@ -27,8 +27,8 @@ Sorunlu sayilma gerekceleri (hepsi panel dosyasindan turetilir):
 #               competitor set for every target.
 #
 # INPUT  : primer_final/devir_ciftleri_*.tsv (the panel, or its backup),
-#          steps/hedefler.tsv (the decision table, group membership),
-#          steps/taxid_adlari.tsv, screening/hedef_uyelik.tsv (the explicit,
+#          steps/targets.tsv (the decision table, group membership),
+#          steps/taxid_names.tsv, screening/target_membership.tsv (the explicit,
 #          hand editable membership), "fastq files/*/reads_*.fastq" (the bins) and
 #          konsensus_kanonik/INDEKS.tsv (the canonical consensuses).
 # OUTPUT : it writes no file. panel_oku() returns (rows, path); sorunlu_hedefler()
@@ -170,11 +170,11 @@ def sorunlu_hedefler():
 
 
 # ---------------------------------------------------------------- uyelik
-UYELIK_TSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hedef_uyelik.tsv')
+UYELIK_TSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'target_membership.tsv')
 
 
 def acik_uyelik():
-    """screening/hedef_uyelik.tsv - target name -> membership. Hand editable."""
+    """screening/target_membership.tsv - target name -> membership. Hand editable."""
     m = {}
     if not os.path.exists(UYELIK_TSV):
         return m
@@ -197,7 +197,7 @@ def acik_uyelik():
 
 
 def uyelik_oku():
-    """hedefler.tsv -> target name -> the member taxid list. '*A'/'*B'/'*F' = the whole class."""
+    """targets.tsv -> target name -> the member taxid list. '*A'/'*B'/'*F' = the whole class."""
     m = {}
     if not os.path.exists(C.HEDEFLER_TSV):
         return m
@@ -219,7 +219,7 @@ def uyelik_oku():
     return m
 
 
-# panel adi -> hedefler.tsv adi (ad degisiklikleri; kaynak: KAPANIS_2026-08-02.md)
+# panel adi -> targets.tsv adi (ad degisiklikleri; kaynak: KAPANIS_2026-08-02.md)
 AD_ESLEME = {
     'Proteolitik_Synergistaceae': 'Proteolitik_Cloacibacillus',
     'Mantar_universal (F1)': 'Mantar_universal',
@@ -301,8 +301,8 @@ def konsensusler():
 
 def hedef_baglami(panel_satiri, uyelik=None, kons=None, kut=None):
     """For one panel target: the backbone consensus, the member bins, the competitor bins."""
-    # THE MEMBERSHIP SOURCE PRECEDENCE: screening/hedef_uyelik.tsv first (the hand
-    # edited explicit definition), and failing that steps/hedefler.tsv (the project's
+    # THE MEMBERSHIP SOURCE PRECEDENCE: screening/target_membership.tsv first (the hand
+    # edited explicit definition), and failing that steps/targets.tsv (the project's
     # decision table). Which source was used is carried in the 'uyelik_kaynagi' field and
     # written into every report; there is no silent change of source. If there is no
     # definition at all it says 'YOK' and the target is skipped; NO default membership IS
@@ -322,11 +322,11 @@ def hedef_baglami(panel_satiri, uyelik=None, kons=None, kut=None):
     acik = acik_uyelik()
     if ad in acik:
         u = acik[ad]
-        anahtar = 'screening/hedef_uyelik.tsv (%s)' % (u.get('kaynak') or '?')
+        anahtar = 'screening/target_membership.tsv (%s)' % (u.get('kaynak') or '?')
     else:
         anahtar = AD_ESLEME.get(ad, ad)
         u = uyelik.get(anahtar)
-        anahtar = 'steps/hedefler.tsv:%s' % anahtar
+        anahtar = 'steps/targets.tsv:%s' % anahtar
     siniflar = [s.strip() for s in (panel_satiri['sinif'] or '').split('/') if s.strip()]
     if not siniflar:
         siniflar = ['A1', 'A2', 'B', 'F1', 'F2']

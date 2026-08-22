@@ -68,7 +68,7 @@ BLAST is mandatory.
 
 ### 1.7 The targets and the level asked for
 
-They are coded in `hedefler.tsv`: twenty targets under four decision headings.
+They are coded in `targets.tsv`: twenty targets under four decision headings.
 
 **Decision 1, species specific (6 targets):** Methanosarcina mazei, Methanothrix
 soehngenii, Methanosarcina barkeri, Podospora pseudopauciseta, Dictyostelium
@@ -179,7 +179,7 @@ and the fungal class. When no pair could be found in the correct class, only the
 pair on the wrong locus was left, and the table showed the target as covered. A
 rule check cannot catch that, because no rule is broken. The shared module
 `field_audit.py` was written; the field is derived from the consensus file names
-and the taxid list in `hedefler.tsv`, not from a table filled in by hand. The
+and the taxid list in `targets.tsv`, not from a table filled in by hand. The
 batch design produces no cross field design at all, the Excel export leaves them
 out of the workbook, and the delivery check marks them CRITICAL on every run.
 
@@ -245,7 +245,7 @@ plurality and not a majority. It was changed to a real majority condition
 
 ### 3.10 The level check took comment lines for a header
 
-`hedefler_referans.tsv` opens with lines beginning with `#`, and `DictReader`
+`reference_targets.tsv` opens with lines beginning with `#`, and `DictReader`
 took them for the header and raised a KeyError. They are filtered out.
 
 ### 3.11 The level check said "matches" while looking at the genus
@@ -381,7 +381,7 @@ count sent the reader off to **fix the wrong primers**.
 The fix: every product is separated by the taxon of the reference it formed in,
 into `urun_kendi_taksonda`, `urun_yabanci_taksonda` and
 `urun_takson_bilinmiyor`. The taxon names are not written by hand; they come from
-two sources, `hedefler.tsv` plus `taxid_adlari.tsv` for the declared name and
+two sources, `targets.tsv` plus `taxid_names.tsv` for the declared name and
 `hedef_kimlik.tsv` for the measured one. Universal targets are marked separately,
 because amplifying many taxa at once is the point there and no product counts as
 foreign.
@@ -427,7 +427,7 @@ clean; it is reported separately as `OLCUM GECERSIZ`.
 
 In `primer_referans.tsv` the name is `Methanosarcina_barkeri_referans`, and
 stripping the `_referans` suffix gives `Methanosarcina_barkeri`, while the name in
-`hedefler.tsv` is `Methanosarcina_barkeri_turu`. When the match failed, the
+`targets.tsv` is `Methanosarcina_barkeri_turu`. When the match failed, the
 target's **only** primer set, since it has no de novo pair at all, dropped
 silently and the target showed as having no pair. For Proteiniphilum and Podospora
 the names matched exactly, so the fault stood out on one target alone. An exact
@@ -719,7 +719,7 @@ The decision: for organisms that are not in the sample, design **both** from a
 reference under the name in the decision **and** against the real organism, and
 try all three of the groups that failed.
 
-`hedefler_referans.tsv` was raised to nine rows:
+`reference_targets.tsv` was raised to nine rows:
 
 | The name | Class | The database | The target |
 |---|---|---|---|
@@ -739,7 +739,7 @@ false confidence. What stays by hand is only the competitors from other genera.
 
 The taxid of *Petriella musispora* could not be established with certainty and
 was **not invented**. An optional seventh column, `hedef_tur`, was added to
-`hedefler.tsv` and the species name is written there directly. That column
+`targets.tsv` and the species name is written there directly. That column
 **replaces** the taxid name rather than adding to it: adding would have let
 Trichoderma into the target species set, and a pair amplifying Trichoderma would
 have counted as giving a product in the target species.
@@ -781,11 +781,11 @@ bash heavy_jobs.sh --only H
 ```
 
 ```bash
-python3 check_taxonomic_level.py --targets hedefler.tsv --names taxid_adlari.tsv --final "$PT/primer_final" --reference "$PT/primer_referans/primer_referans.tsv" --db "$PT/REFERANS_DB" --identity "$PT/primer_final/hedef_kimlik.tsv" --threads 4 --out "$PT/primer_final/duzey_denetimi.tsv"
+python3 check_taxonomic_level.py --targets targets.tsv --names taxid_names.tsv --final "$PT/primer_final" --reference "$PT/primer_referans/primer_referans.tsv" --db "$PT/REFERANS_DB" --identity "$PT/primer_final/hedef_kimlik.tsv" --threads 4 --out "$PT/primer_final/duzey_denetimi.tsv"
 ```
 
 ```bash
-python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" --reference-targets hedefler_referans.tsv --out "$PT/primer_referans"
+python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" --reference-targets reference_targets.tsv --out "$PT/primer_referans"
 ```
 
 The wide outside database sweep takes about 12 minutes, the level check about 5

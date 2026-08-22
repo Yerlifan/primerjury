@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 batch_design.py
-hedefler.tsv dosyasındaki bütün toplantı kararlarını design_group_primers.py ile
+targets.tsv dosyasındaki bütün toplantı kararlarını design_group_primers.py ile
 sırayla tasarlar ve tek bir özet tablo üretir.
 
 Tasarım her AMPLİKON SINIFI için ayrı yapılır (A1, A2, B, F1, F2), çünkü
@@ -16,7 +16,7 @@ rakip listesine girmez.
 Kullanım:
   python3 batch_design.py \
       --consensus "/.../referans_konsensus/self/konsensus" \
-      --targets hedefler.tsv \
+      --targets targets.tsv \
       --out "/.../primer_adaylari" \
       [--only Karar1] [--jobs 1] [--extra "--degeneracy-budget 2"]
 """
@@ -62,7 +62,7 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--consensus", required=True,
                    help="consensus directory (output of the freeze-reference or anchored-consensus step)")
-    p.add_argument("--targets", default=os.path.join(HERE, "hedefler.tsv"))
+    p.add_argument("--targets", default=os.path.join(HERE, "targets.tsv"))
     p.add_argument("--out", required=True)
     p.add_argument("--only", default=None, help="this target name only")
     p.add_argument("--decision", default=None, help="this decision group only")
@@ -158,7 +158,7 @@ def main():
                 log(u'the checkpoint fingerprint DOES NOT MATCH, it is ignored')
                 log(u'   recorded: %s' % eski)
                 log(u'   current : %s' % parmak)
-                log(u'   The input has changed (the consensus set, hedefler.tsv or the engine scripts). The old results will not be reused.')
+                log(u'   The input has changed (the consensus set, targets.tsv or the engine scripts). The old results will not be reused.')
             else:
                 ckpt = kayitlar
                 log(u'the checkpoint was found and the input fingerprint matches: %d target and class combinations are already done, they will be skipped' % len(ckpt))

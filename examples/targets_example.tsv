@@ -9,7 +9,7 @@
 #
 # hedef_tur (7. sütun, isteğe bağlı): beyan edilen taxid'in adı numunedeki
 # organizmaya karşılık gelmediğinde, doğru tür adı buraya doğrudan yazılır.
-# Taxid UYDURULMAZ; taxid_adlari.tsv'de karşılığı olmayan bir tür bu sütunla
+# Taxid UYDURULMAZ; taxid_names.tsv'de karşılığı olmayan bir tür bu sütunla
 # bildirilir. Sütun boşsa hiçbir şey değişmez.
 #
 # Karar 5 satırları toplantıda konuşulmadı; ölçümden türetildi ve onaya

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""THE COVERAGE AUDIT OF THE EXCLUSION MAP: is hedef_taxid.tsv right?
+"""THE COVERAGE AUDIT OF THE EXCLUSION MAP: is target_taxids.tsv right?
 
 THE QUESTION
 ------------
-hedef_taxid.tsv names, for each target, the taxon to be excluded at NCBI. That taxon
+target_taxids.tsv names, for each target, the taxon to be excluded at NCBI. That taxon
 MUST hold ALL of the target's members. If it does not, a member left outside counts
 as an "off target product" although it IS the target itself, and the pair looks
 dirty for no reason.
@@ -189,8 +189,8 @@ def main():
     def yaz(s=''):
         print(s, flush=True)
 
-    hy = os.path.join(kok, 'screening', 'hedef_taxid.tsv')
-    uy = os.path.join(kok, 'screening', 'hedef_uyelik.tsv')
+    hy = os.path.join(kok, 'screening', 'target_taxids.tsv')
+    uy = os.path.join(kok, 'screening', 'target_membership.tsv')
     for f in (hy, uy):
         if not os.path.exists(f):
             sys.exit(u'ERROR: %s is missing.' % f)
@@ -200,7 +200,7 @@ def main():
     # KABUL EDILMIS ISTISNALAR: bilerek disarida birakilan uyeler. Alarmi
     # susturur ama sebebi dosyada durur - susturma sessizce olmaz.
     IST = {}
-    iy = os.path.join(kok, 'screening', 'kapsama_istisna.tsv')
+    iy = os.path.join(kok, 'screening', 'coverage_exceptions.tsv')
     if os.path.exists(iy):
         for l in io.open(iy, encoding='utf-8'):
             l = l.rstrip('\n')
@@ -234,7 +234,7 @@ def main():
     # "Trichoderma" and "Cloacimonas" in Kraken and "Petriella" and "Planctomycetales"
     # under measurement. The test is made against the MEASURED identity.
     ESD = {}
-    ey = os.path.join(kok, 'screening', 'kimlik_taxid_esdegeri.tsv')
+    ey = os.path.join(kok, 'screening', 'identity_taxid_equivalents.tsv')
     if os.path.exists(ey):
         for l in io.open(ey, encoding='utf-8'):
             l = l.rstrip('\n')

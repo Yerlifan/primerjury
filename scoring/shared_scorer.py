@@ -10,7 +10,7 @@ primer pair. The cause was not the arithmetic but THE MEMBERSHIP SOURCE:
                           membership); a mixed bin counts as a COMPETITOR and the bin
                           names are normalised.
   multi_locus.py,        -> hedefler.hedef_baglami(): a TAXID set plus a class filter
-  referans_tasarim.py     over steps/hedefler.tsv and screening/hedef_uyelik.tsv.
+  referans_tasarim.py     over steps/targets.tsv and screening/target_membership.tsv.
                           There is NO notion of a mixed bin.
 
 The two routes build different member and competitor sets. Each is internally

@@ -328,7 +328,7 @@ def uyelik_uyarisi(satir, taban):
     """
     # THE MEMBERSHIP IS NOT ADOPTED UNCONDITIONALLY. This function only REPORTS the
     # deviation; it does not change the member or competitor bin list on its own and it
-    # does not write to hedef_uyelik.tsv. The principle: an absence of evidence is not
+    # does not write to target_membership.tsv. The principle: an absence of evidence is not
     # evidence. For a bin to change place, positive measured evidence is needed, and "the
     # number came out different from what was expected" is not such evidence. So the only
     # thing done here is to point the user at which row of the file to look at.
@@ -348,14 +348,14 @@ def uyelik_uyarisi(satir, taban):
     if not olculen:
         return [' !! WARNING: the discrimination ratio for the current pair could NOT be measured at all, because the member bins',
                 '   hicbiri urun vermiyor. Uyelik tanimi yanlis olabilir:',
-                '   screening/hedef_uyelik.tsv -> satir "%s"' % satir['hedef']]
+                '   screening/target_membership.tsv -> satir "%s"' % satir['hedef']]
     if any(0.34 * p <= o <= 3.0 * p for o in olculen):
         return []
     return [
         '!! UYARI: panelin yayimladigi ayrim %.1fx, bu koşuda olculen %s.' % (
             p, ' / '.join('%.1fx' % o for o in olculen)),
         '   The deviation is large. The most likely cause is the MEMBERSHIP DEFINITION (which bin is a member, which is a competitor).',
-        '   Once su dosyaya bakin: screening/hedef_uyelik.tsv  ->  satir "%s"' % satir['hedef'],
+        '   Once su dosyaya bakin: screening/target_membership.tsv  ->  satir "%s"' % satir['hedef'],
         '   (If the read count is low the Wilson interval widens, and part of the deviation comes from that.)',
     ]
 

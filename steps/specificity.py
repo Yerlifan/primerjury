@@ -374,7 +374,7 @@ def get_args():
     p.add_argument("--candidates", required=True, help="08'in output directory")
     p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
     p.add_argument("--out", required=True)
-    p.add_argument("--targets", default=os.path.join(HERE, "hedefler.tsv"))
+    p.add_argument("--targets", default=os.path.join(HERE, "targets.tsv"))
     p.add_argument("--top", type=int, default=15,
                    help="number of best candidates tested per target")
     p.add_argument("--max-reads", type=int, default=20000,

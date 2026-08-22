@@ -94,8 +94,8 @@ cat <<'EOF'
   ------------------------------------------------------------------ YOUR DATA
 
     1. Put .fasta / .fastq files in    sequences/
-    2. Describe your targets in        steps/hedefler.tsv
-       and their clade membership in   screening/hedef_klad.tsv
+    2. Describe your targets in        steps/targets.tsv
+       and their clade membership in   screening/target_clades.tsv
        Working examples are in         examples/
 
   ------------------------------------------------------------------- RUNNING
