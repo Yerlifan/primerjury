@@ -1,40 +1,42 @@
 # -*- coding: utf-8 -*-
-"""Referans kapsami ve rakip ayrimi: SILVA/UNITE havuzlarindan cins/aile
-duzeyinde dizi kumeleri cikarilir, ispcr.find_sites ile OLCULUR.
+"""Reference coverage and competitor discrimination: sequence sets are extracted at
+genus or family level from the SILVA and UNITE pools and MEASURED with
+ispcr.find_sites.
 
-Havuz cikarma pahalidir; sonuc CIKTI/onbellek altina yazilir ve bir daha
-cikarilmaz. Kesinti olursa onbellekten devam eder.
+Extracting a pool is expensive; the result is written under CIKTI/onbellek and not
+extracted again. After an interruption it continues from the cache.
+
 """
-# ---------------------------------------------------------------------------
-# reference.py — uye ve rakip cinsler icin referans veritabanlarindan dizi
-#               havuzlari cikarir ve bir cift bu havuzlarda kac kayitta urun
-#               veriyor olcer.
+# -------------------------------------------------------------------------
+# reference.py extracts sequence pools from the reference databases for the member
+#               and competitor genera, and measures in how many records of those
+#               pools a pair gives a product.
 #
-# GIRDI  : REFERANS_DB altindaki SILVA SSU / LSU, UNITE ITS fasta dosyalari
-#          (amplikon sinifina gore secilir); uye ve rakip cins adlari
-#          hedefler.taxid_adlari() + hedef_baglami ciktisindan
-#          uye_ve_rakip_anahtar() ile turetilir.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/onbellek/havuz_*.pkl onbellek dosyalari.
-#          havuz_cikar() (baslik, dizi) listesi, kapsam() veren/toplam/boy/
-#          basliklar sozlugu dondurur.
-# CAGRAN : __main__.aramayi_kos (toplu havuz cikarimi) ve
-#          __main__.hedefi_isle asama D - yani tuslar 1, 2, 3, 7 ve 9'un
-#          7. asamasi. --hafif verilirse bu adim atlanir.
+# INPUT  : the SILVA SSU / LSU and UNITE ITS fasta files under REFERANS_DB (chosen
+#          by the amplicon class); the member and competitor genus names are derived
+#          from hedefler.taxid_adlari() plus the hedef_baglami output through
+#          uye_ve_rakip_anahtar().
+# OUTPUT : the KAPSAMLI_ARAMA_SONUC/onbellek/havuz_*.pkl cache files.
+#          havuz_cikar() returns a (header, sequence) list and kapsam() a dictionary
+#          of giving/total/length/headers.
+# CALLED BY: __main__.aramayi_kos (the bulk pool extraction) and stage D of
+#          __main__.hedefi_isle, that is keys 1, 2, 3, 7 and the 7th stage of 9.
+#          The step is skipped if --hafif is given.
 #
-# toplu_cikar() NEDEN VAR: her hedef icin ayri gecis yapilsaydi ayni dev fasta
-# dosyasi hedef sayisi kadar bastan okunurdu. Burada istekler veritabanina gore
-# gruplanir ve her veritabani en fazla BIR kez okunur; 21 hedef icin 21 gecis
-# yerine veritabani sayisi kadar gecis olur.
-# ---------------------------------------------------------------------------
+# WHY toplu_cikar() EXISTS: had a separate pass been made for each target, the same
+# huge fasta file would have been read from the start once per target. Here the
+# requests are grouped by database and each database is read at most ONCE; for 21
+# targets that is one pass per database instead of 21.
+# -------------------------------------------------------------------------
 import os, re, pickle
 from . import config as C
 from . import engine_gateway
 
-MIN_UZ = 1200          # 16S icin; ITS havuzlarinda 300'e duser
+MIN_UZ = 1200          # for 16S; it drops to 300 in the ITS pools
 
 
 def _uygun_db(sinif):
-    """Amplikon sinifina gore hangi referans veritabani."""
+    """Which reference database, by amplicon class."""
     if sinif in ('F1', 'F2'):
         for p in (C.UNITE_ITS, C.SILVA_LSU):
             if os.path.exists(p):
@@ -72,11 +74,12 @@ def _cache_yolu(ad):
 
 
 def toplu_cikar(istekler, ilerle=None):
-    """BUTUN havuzlari TEK gecisde cikar.
+    """Extracts ALL the pools in a SINGLE pass.
 
-    istekler: [(onbellek_adi, [anahtar,...], sinif)]
-    Her veritabani en fazla BIR kez okunur. 21 hedef icin 21 gecis yerine
-    veritabani sayisi kadar gecis olur - saatlerce fark eder.
+    istekler: [(cache_name, [key,...], class)]
+    Each database is read at most ONCE. For 21 targets that is one pass per database
+    instead of 21, which is a difference of hours.
+
     """
     os.makedirs(C.ONBELLEK, exist_ok=True)
     kalan = [(ad, [a.lower() for a in anah if a], sinif)
@@ -84,7 +87,7 @@ def toplu_cikar(istekler, ilerle=None):
              if anah and not os.path.exists(_cache_yolu(ad))]
     if not kalan:
         return
-    # veritabanina gore grupla
+    # group by database
     gruplar = {}
     for ad, anah, sinif in kalan:
         db, minuz = _uygun_db(sinif)
@@ -130,7 +133,7 @@ def kapsam(havuz, F, R, lo, hi, max_mm=C.REFERANS_MAX_MM):
 
 
 def uye_ve_rakip_anahtar(baglam, taxad):
-    """Uye taxid adlarindan cins anahtarlari; rakip = ayni sinifin geri kalani."""
+    """Genus keys from the member taxid names; the competitor is the rest of the same class."""
     uye_adlar = [taxad.get(t, '') for t in baglam['uye_tax']]
     cinsler = sorted({a.split()[0] for a in uye_adlar if a and not a.startswith('Ca.')}
                      | {' '.join(a.split()[:2]) for a in uye_adlar if a.startswith('Ca.')})

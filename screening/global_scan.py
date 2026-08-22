@@ -33,40 +33,30 @@ OPTIONAL TAXONOMIC CLASSIFICATION
     'siniflandirildi' False means the classification was NOT RUN. It does not
     mean "no cross-reaction found". Callers must not conflate the two.
 
---- ozgun aciklama ---
-KURESEL OZGULLUK - aramanin EN PAHALI adimi, en sona birakilir.
-
-REFERANS_DB altindaki tam veritabanina (SILVA SSURef NR99 ~500 bin kayit,
-gerekirse UNITE/LSU) karsi tarama. Olcut panelin kuresel olcutuyle ayni:
-toplam <=5 uyumsuzluk, F ve R ayri bildirilir.
-
-Verimlilik: veritabani BIR KEZ okunur; o parcada BUTUN son adaylar birlikte
-olculur. Aday basina ayri gecis yapilmaz.
-
-Kesinti dayanikliligi: her parca bitince ara sonuc diske yazilir; program
-yeniden baslatilinca kalinan parcadan devam eder.
 """
-# ---------------------------------------------------------------------------
-# global_scan.py, hayatta kalan son adaylari REFERANS_DB'deki tam
-#                     veritabanina karsi tarar; aramanin en pahali adimidir.
+# -------------------------------------------------------------------------
+# global_scan.py scans the last surviving candidates against the full database in
+#                     REFERANS_DB; it is the most expensive step of the search.
 #
-# GIRDI  : aday listesi ({'ad','F','R','lo','hi'}); veritabani olarak
-#          yapilandirma.SILVA_SSU (ya da cagiranin verdigi baska fasta);
-#          varsa kontrol/kuresel_<hedef>.pkl ara durumu. Tarama engine_gateway.encode
-#          ve engine_gateway.find_sites (numpy vektor arama) ile yapilir.
-# CIKTI  : durum_yolu verilirse her parca sonunda pickle ara durumu yazar.
-#          tara() {aday_ad: {'urun': n, 'boy': {...}, 'vurus': [...]}} sozlugu
-#          dondurur.
-# CAGRAN : __main__.hedefi_isle icinde asama E - yani verification/full_chain.py
-#          tuslari 1, 2, 3, 7 ve 9'un 7. asamasi (--hafif verilirse atlanir).
-#          Disaridan verification/specificity_round.py (tus D) AYNEN bu modulu
-#          kullanir; dogrulama turunun yerel veritabani katmani budur.
+# INPUT  : the candidate list ({'ad','F','R','lo','hi'}); as the database,
+#          yapilandirma.SILVA_SSU (or another fasta the caller gives); the
+#          kontrol/kuresel_<target>.pkl intermediate state if there is one. The scan
+#          is done with engine_gateway.encode and engine_gateway.find_sites (a numpy
+#          vector search).
+# OUTPUT : if durum_yolu is given it writes a pickled intermediate state at the end
+#          of every chunk. tara() returns a
+#          {candidate_name: {'urun': n, 'boy': {...}, 'vurus': [...]}} dictionary.
+# CALLED BY: stage E inside __main__.hedefi_isle, that is verification/full_chain.py
+#          keys 1, 2, 3, 7 and the 7th stage of 9 (skipped if --hafif is given).
+#          From outside, verification/specificity_round.py (key D) uses this module
+#          AS IT IS; it is the local database layer of the verification round.
 #
-# VERIMLILIK GEREKCESI: veritabani BIR KEZ okunur ve her parcada BUTUN adaylar
-# birlikte olculur. Aday basina ayri gecis yapilsaydi ~500 bin kayit aday
-# sayisi kadar kez taranirdi. Parca boyu KURESEL_PARCA ile sinirlidir cunku
-# bellek tavani yaklasik o boyutun alti katidir.
-# ---------------------------------------------------------------------------
+# THE EFFICIENCY REASON: the database is read ONCE and ALL the candidates are
+# measured together on each chunk. Had a separate pass been made per candidate, the
+# roughly 500 thousand records would have been scanned once per candidate. The chunk
+# size is bounded by KURESEL_PARCA because the memory ceiling is about six times
+# that size.
+# -------------------------------------------------------------------------
 import os, json, pickle, time
 import numpy as np
 from . import config as C
@@ -81,15 +71,15 @@ def _parcalar(db, parca_baz=C.KURESEL_PARCA):
     ad_l, uz_l, buf, tot = [], [], [], 0
     for ad, seq in engine_gateway.read_fasta(db):
         s = engine_gateway.clean(seq.upper())
-        # A2 (2026-08-21): baslik ARTIK KESILMIYOR (eskiden ad[:150] idi).
-        # Olculdu: SILVA SSU basliklarinin %16,6'si 150 karakteri asiyor ve
-        # kesilen kuyruk tam da CINS ve TUR jetonlaridir - yani hedef kladla
-        # eslesme ihtimali en yuksek olanlar. Kesik baslikla siniflandirmak,
-        # klad ICI bir kaydi klad DISI saydirir; duzeltmeye calistigimiz
-        # hatanin ta kendisini uretir.
-        # Maliyet olculdu ve onemsiz: parca 40 MB dizi ~= 28.500 kayit,
-        # ortalama baslik 134 karakter -> parca basina ~3,8 MB. ad_l parca
-        # yereli, pickle'a YAZILMAZ.
+        # A2 (2026-08-21): the header IS NO LONGER CUT (it used to be ad[:150]).
+        # Measured: 16.6 percent of SILVA SSU headers go over 150 characters and
+        # the tail that gets cut is exactly the GENUS and SPECIES tokens, that is,
+        # the ones most likely to match the target clade. Classifying with a cut
+        # header makes a record INSIDE the clade count as OUTSIDE it; it produces
+        # the very fault we are trying to correct.
+        # The cost was measured and is negligible: a 40 MB sequence chunk is about
+        # 28,500 records at an average header of 134 characters, so roughly 3.8 MB
+        # per chunk. ad_l is local to the chunk and IS NOT WRITTEN to the pickle.
         ad_l.append(ad); uz_l.append(len(s)); buf.append(s)
         tot += len(s) + len(AYIRAC)
         if tot >= parca_baz:
@@ -109,10 +99,11 @@ def _kayit_indeksi(uz_l):
     return off
 
 
-# Kontrol noktasi bicim surumu. A2 ile 'sinif' sayaclari eklendi; bu alani
-# TASIMAYAN eski pickle'lar GECERSIZDIR. Surum kontrolu olmasaydi eski kontrol
-# noktasi sessizce geri okunur ve taksonomik sayaclar sifir kalirdi - "olculdu
-# ve capraz cikmadi" ile "hic olculmedi" ayirt edilemezdi.
+# The checkpoint format version. A2 added the 'sinif' counters; old pickles that DO
+# NOT CARRY that field ARE INVALID. Without the version check an old checkpoint
+# would be read back silently and the taxonomic counters would stay zero, and
+# "measured, no cross reaction found" could not be told apart from "never
+# measured".
 DURUM_SURUMU = 2
 
 SINIFLAR = ('a', 'ao', 'b', 'c', 'bilinmiyor')
@@ -125,22 +116,24 @@ def _bos_sonuc():
 
 def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM,
          siniflandirici=None):
-    """adaylar: [{'ad':..,'F':..,'R':..,'lo':..,'hi':..}]  (az sayida olmali)
+    """adaylar: [{'ad':..,'F':..,'R':..,'lo':..,'hi':..}]  (there should be few of them)
 
-    siniflandirici : None ya da  f(aday_ad, baslik, db_dosya_adi) -> sinif dizgesi
-        Verilirse her vurus D-12'nin siniflarindan birine sokulur ve SAYILIR.
-        A2 (2026-08-21): kimlikleri SAKLAMAK yerine SAYMAK bilincli bir karardir.
-        Olculdu - Bakteri_universal tek basina 483.098 vurus veriyor; her biri
-        icin baslik saklamak ~100 MB eder ve 'vurus' listesi zaten 300'de
-        kesiliyor. Sayac ise aday basina SABIT bellek tutar ve sayi EKSIKSIZ
-        olur. 'vurus' listesi kanit ornegi olarak 300'de kalir.
+    siniflandirici : None, or  f(candidate_name, header, db_file_name) -> a class string
+        If it is given, every hit is put into one of D-12's classes and COUNTED.
+        A2 (2026-08-21): COUNTING rather than STORING the identities is a deliberate
+        decision. Measured: Bakteri_universal alone gives 483,098 hits; keeping a
+        header for each would come to about 100 MB, and the 'vurus' list is capped at
+        300 anyway. A counter, on the other hand, holds CONSTANT memory per candidate
+        and the count is COMPLETE. The 'vurus' list stays at 300 as an evidence
+        sample.
 
-    Donen: {aday_ad: {'urun':n, 'boy':{}, 'vurus':[(baslik,boy,mmF,mmR)],
+    Returns: {candidate_name: {'urun':n, 'boy':{}, 'vurus':[(header,length,mmF,mmR)],
                       'sinif':{'a':n,'ao':n,'b':n,'c':n,'bilinmiyor':n},
                       'siniflandirildi':bool}}
-    'siniflandirildi' False ise sinif sayaclari SIFIRDIR ama bu "capraz yok"
-    DEMEK DEGILDIR - olcum yapilmamis demektir. Cagiran taraf ikisini
-    karistirmamalidir.
+    If 'siniflandirildi' is False the class counters are ZERO, but that DOES NOT MEAN
+    "no cross reaction"; it means no measurement was made. The caller must not confuse
+    the two.
+
     """
     db = db or C.SILVA_SSU
     if not os.path.exists(db):
@@ -154,7 +147,7 @@ def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM
             eski = pickle.load(open(durum_yolu, 'rb'))
             if eski.get('surum') == DURUM_SURUMU:
                 durum = eski
-            # surum tutmuyorsa BASTAN taranir; sessizce eski sonuc DONMEZ.
+            # if the version does not match it is scanned FROM SCRATCH; the old result is NOT returned silently.
         except Exception:
             pass
 
