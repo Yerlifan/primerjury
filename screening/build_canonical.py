@@ -37,7 +37,7 @@ Usage:
 # OUTPUT : <bin>.kanonik.fa per bin under konsensus_kanonik/; besides that
 #          INDEKS.tsv (the one list consumers must read), MANIFEST.tsv (the source,
 #          the old orientation, whether it was flipped), BELIRSIZ.tsv and
-#          OKUBENI.txt. Exit code 0 = no file needing a flip is left in the
+#          README.txt. Exit code 0 = no file needing a flip is left in the
 #          canonical directory.
 # CALLED BY: hepsi.kanonik_kos() runs it as a separate process, as the 2nd stage of
 #          key 9 (--priority ozgun) and the 4th stage (--priority yeni). It is also
@@ -189,15 +189,15 @@ def main():
                             eski_yon=m['eski_yon'], cevrildi=m['cevrildi'],
                             uzunluk=m['uzunluk'])
                        for m in manifest if m['durum'] == 'yazildi'])
-    open(os.path.join(cik, 'OKUBENI.txt'), 'w', encoding='utf-8').write(
+    open(os.path.join(cik, 'README.txt'), 'w', encoding='utf-8').write(
         u'CANONICAL CONSENSUS DIRECTORY\nValid files: *.kanonik.fa  (listed in INDEKS.tsv)\nThis directory can hold LEFTOVER files ending in *_kanonik.fasta. Those are the\nmisnamed output of the first run and could not be deleted on a mounted drive. IGNORE THEM.\nEvery consumer must read INDEKS.tsv and must NOT use glob.\nCanonical orientation: SENSE. Definition and criterion: screening/orientation.py\n')
 
     yazilan = [m for m in manifest if m['durum'] == 'yazildi']
     cevrilen = [m for m in yazilan if m['cevrildi'] == 'EVET']
     print(u'\ncanonical directory : %s' % cik)
     print(u'bins written        : %d' % len(yazilan))
-    print('  cevrildi     : %d (ANTISENSE -> SENSE)' % len(cevrilen))
-    print('  zaten sense  : %d' % (len(yazilan) - len(cevrilen)))
+    print(u'  converted           : %d (ANTISENSE -> SENSE)' % len(cevrilen))
+    print(u'  already sense       : %d' % (len(yazilan) - len(cevrilen)))
     print(u'BELIRSIZ       : %d (not written, BELIRSIZ.tsv)' % len(belirsiz))
     kay = {}
     for m in yazilan:
