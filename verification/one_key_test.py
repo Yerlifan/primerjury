@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
-'THE SCENARIO TESTS of one_key.py. Not one of them touches the real '
-'directory.  WHY A SHADOW ROOT ----------------- The tests have to try a '
-'stage FAILING and a stage BEING LEFT HALF DONE. Doing that in the real '
-'directory would corrupt the tables an ordering decision rests on. So every '
-'scenario runs in a SHADOW ROOT set up under the temporary directory:   * the '
-'heavy, read only directories are SYMLINKED rather than copied   * the stage '
-'scripts are replaced by FAKE ones whose behaviour we set   * every write '
-'stays inside the temporary directory Not one byte is written into the '
-'mounted directory. The shadow root is left behind after the run.  To run it: '
-'python3 verification/one_key_test.py --root .'
+"""THE SCENARIO TESTS of one_key.py. Not one of them touches the real directory.
+
+WHY A SHADOW ROOT
+-----------------
+The tests have to try a stage FAILING and a stage BEING LEFT HALF DONE. Doing
+that in the real directory would corrupt the tables an ordering decision rests
+on. So every scenario runs in a SHADOW ROOT set up under the temporary
+directory:
+  * the heavy, read only directories are SYMLINKED rather than copied
+  * the stage scripts are replaced by FAKE ones whose behaviour we set
+  * every write stays inside the temporary directory
+Not one byte is written into the mounted directory. The shadow root is left
+behind after the run.
+
+To run it:  python3 verification/one_key_test.py --root .
+"""
 
 import os, sys, io, json, time, shutil, argparse, subprocess, tempfile
 

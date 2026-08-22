@@ -214,8 +214,7 @@ def _cins(ad):
 
 
 def vtb_ayristir(hucre):
-    'The per database cell -> [(database, record_count, result_text, per '
-    'cent), ...]'
+    """The per database cell -> [(database, record_count, result_text, per cent), ...]"""
     out = []
     for m in _VTB_PAT.finditer(hucre or ''):
         vtb, kapsam, sonuc = m.group(1).strip(), m.group(2), m.group(3).strip()

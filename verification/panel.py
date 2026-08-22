@@ -1,27 +1,34 @@
 # -*- coding: utf-8 -*-
-'panel.py, THE ONE ENTRY POINT.  WHY THEY WERE MERGED -------------------- '
-'Eight separate scripts piled up in one night: the audit, the geometry, the '
-'plate, the thresholds, the current state, the state of the requests, the '
-'NCBI layer and bin generation. Eight separate commands means running one and '
-'forgetting another, and every fault in this project came out exactly that '
-'way: something changed and what depended on it was not run again.  Here they '
-'are all subcommands of ONE command. The code WAS NOT COPIED: every '
-'subcommand calls its own script, so two copies cannot drift apart over time. '
-'Usage:     python verification/panel.py hepsi           # all of them in '
-'order (measures, writes nothing)     python verification/panel.py denetle '
-'# the audit gate     python verification/panel.py geometri        # Tm and '
-'rule checks with primer3     python verification/panel.py geometri --write '
-'# correct the Tm and dTm columns     python verification/panel.py plaka '
-'# a plate suggestion against gel overlap     python verification/panel.py '
-'esik            # the two threshold rules side by side     python '
-'verification/panel.py guncel          # produce the current state document '
-'python verification/panel.py toplanti        # what was asked for and what '
-'came of it     python verification/panel.py ncbi4           # the NCBI '
-'fourth layer, about 30 minutes     python verification/panel.py kutu --plan '
-'# a plan for the taxa never measured     python verification/panel.py '
-'referans        # refresh the quick test references  "hepsi" measures and '
-'changes NO file: the steps with a side effect, such as geometri --write and '
-'ncbi4, ARE NOT INCLUDED in it. A person asks for a side effect.'
+"""panel.py, THE ONE ENTRY POINT.
+
+WHY THEY WERE MERGED
+--------------------
+Eight separate scripts piled up in one night: the audit, the geometry, the plate,
+the thresholds, the current state, the state of the requests, the NCBI layer and
+bin generation. Eight separate commands means running one and forgetting another,
+and every fault in this project came out exactly that way: something changed and
+what depended on it was not run again.
+
+Here they are all subcommands of ONE command. The code WAS NOT COPIED: every
+subcommand calls its own script, so two copies cannot drift apart over time.
+
+Usage:
+    python verification/panel.py hepsi           # all of them in order (measures, writes nothing)
+    python verification/panel.py denetle         # the audit gate
+    python verification/panel.py geometri        # Tm and rule checks with primer3
+    python verification/panel.py geometri --write  # correct the Tm and dTm columns
+    python verification/panel.py plaka           # a plate suggestion against gel overlap
+    python verification/panel.py esik            # the two threshold rules side by side
+    python verification/panel.py guncel          # produce the current state document
+    python verification/panel.py toplanti        # what was asked for and what came of it
+    python verification/panel.py ncbi4           # the NCBI fourth layer, about 30 minutes
+    python verification/panel.py kutu --plan     # a plan for the taxa never measured
+    python verification/panel.py referans        # refresh the quick test references
+
+"hepsi" measures and changes NO file: the steps with a side effect, such as
+geometri --write and ncbi4, ARE NOT INCLUDED in it. A person asks for a side
+effect.
+"""
 from __future__ import print_function
 
 import os

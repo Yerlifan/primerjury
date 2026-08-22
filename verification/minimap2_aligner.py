@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-' minimap2_aligner.py is a SECOND, OPTIONAL aligner for the identity stage. '
-'This file DOES NOT REPLACE the existing engine, it stands beside it. The '
-'pure Python and numpy aligner inside identity_verification.py stays where it '
-'is and remains the default. The minimap2 route here comes into play only '
-'when both conditions hold: mappy is installed AND the user chose it '
-'explicitly.'
+"""
+minimap2_aligner.py is a SECOND, OPTIONAL aligner for the identity stage.
+
+This file DOES NOT REPLACE the existing engine, it stands beside it. The pure
+Python and numpy aligner inside identity_verification.py stays where it is and
+remains the default. The minimap2 route here comes into play only when both
+conditions hold: mappy is installed AND the user chose it explicitly.
+"""
 # -------------------------------------------------------------------------
 # minimap2_aligner.py
 #

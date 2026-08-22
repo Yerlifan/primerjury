@@ -37,9 +37,8 @@ from . import engine_gateway
 
 # ---------------------------------------------------------------- pencereler
 def pencereler(omurga, uz_ar=C.UZUNLUK):
-    'Every oligo starting at EVERY position of the backbone, with its length '
-    'running     across the allowed range. Returns (start, length, '
-    'forward_sequence).'
+    """Every oligo starting at EVERY position of the backbone, with its length running
+        across the allowed range. Returns (start, length, forward_sequence)."""
     L = len(omurga)
     lo, hi = uz_ar
     for i in range(L):

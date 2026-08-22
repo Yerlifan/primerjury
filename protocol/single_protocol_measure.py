@@ -173,9 +173,11 @@ def uyelik_oku(yol):
 
 
 def ek_ciftler_oku(kok):
-    'protocol/extra_pairs.tsv holds pairs that are NOT IN the panel table. '
-    'The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp, '
-    'not.'
+    """protocol/extra_pairs.tsv holds pairs that are NOT IN the panel table.
+            The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp,
+            not.
+
+"""
     yol = os.path.join(kok, 'protocol', 'extra_pairs.tsv')
     if not os.path.exists(yol):
         return []
