@@ -665,9 +665,9 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
     A(u'|---|---|---|---|---|---|')
     for kod, ad, grup, dk, kr, _k, _d in secili:
         d = durum.get(kod, {})
-        # Sol taraf DEPOLANAN degerdir ve degismez: durum.json'a yazilir,
-        # geri okunur ve kontrol noktasi karari buna bakar. Degisen yalnizca
-        # ekrana basilan etikettir.
+        # The left side is the STORED value and does not change: it is written into
+        # durum.json, read back, and the checkpoint decision looks at it. What changes is
+        # only the label printed to the screen.
         du = d.get('durum', 'not run')
         etiket = {'bitti': 'FINISHED', 'atlandi': 'SKIPPED',
                   'eksik': 'INCOMPLETE (will be retried)',

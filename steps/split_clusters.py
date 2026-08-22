@@ -2,23 +2,18 @@
 # -*- coding: utf-8 -*-
 """
 split_clusters.py
-Tek bir universal primer ile kapsanamayan bir hedef kumesini, veriden
-turetilerek en az sayida alt kumeye boler.
+Splits a target set that cannot be covered by a single universal primer into the
+smallest number of subsets, derived from the data.
 
-Yontem, acgozlu birakma: kume 04 ile denenir. Gecerli cift cikmazsa 04'un
-"en cok engelleyen uyeler" raporundan en cok engelleyen uye cikarilir ve
-tekrar denenir. Ilk gecerli cift ciktiginda kalan uyeler SET-1 olur,
-cikarilanlar yeni bir kume olarak ayni islemden gecer.
+The method is greedy dropping: the set is tried with design_group_primers.py. If no
+valid pair comes out, the member blocking most is taken from that script's "the
+members blocking most" report and it is tried again. When the first valid pair comes
+out, the members left become SET-1 and the ones dropped go through the same process
+as a new set.
 
-Boylece bolme, dizi benzerligine degil TASARLANABILIRLIGE gore yapilir.
-ITS gibi cok ayrisan bolgelerde k-mer benzerligi anlamsiz derecede dusuk
-kalir (F1 grubunda ikili Jaccard 0,028 ile 0,035 arasi), bu yuzden benzerlik
-kumelemesi yanlis yol olurdu.
+So the split rests not on sequence similarity but on THE DESIGN ITSELF: a set stays
+together as long as one pair can cover it.
 
-Kullanim:
-  python3 split_clusters.py --in-group "consensus sequences/F1-*/*.fasta" \
-      --out-group "consensus sequences/B-1/*.fasta" \
-      --label Mantar_F1 --outdir primer_adaylari/F1_setleri
 """
 import argparse, glob, os, re, subprocess, sys, json
 
@@ -51,8 +46,10 @@ def expand(pats):
 
 
 def tag_of(p):
-    """04 ile AYNI etiketleme. Iki yerde farkli olursa engelleyen uye
-    eslestirilemez ve bolme sessizce durur."""
+    """THE SAME labelling as design_group_primers.py. If the two differ, the blocking
+    member cannot be matched and the split stops silently.
+
+    """
     return os.path.basename(p).split("_consensus")[0]
 
 
@@ -133,17 +130,17 @@ def main():
         else:
             pass
         if not sets or sets[-1]["set"] != si:
-            # Bu turda hic cift cikmadi. `cur` icinde hala uye olabilir
-            # (min_members'in altina dusuldugu, engelleyen raporlanmadigi ya
-            # da eslestirilemedigi durumlar). Eski surumde bu uyeler ne bir
-            # SET'e ne de 'kalan' listesine giriyordu, yani sessizce
-            # kayboluyorlardi ve rapor grubun tamamen karsilandigini
-            # gosteriyordu. Kalanlar havuza geri verilir.
+            # No pair came out in this round. `cur` may still hold members (the
+            # cases where it fell below min_members, where no blocker was reported,
+            # or where one could not be matched). In the old version those members
+            # went into neither a SET nor the 'kalan' list, so they disappeared
+            # silently and the report showed the group as fully met. The ones left
+            # are given back to the pool.
             pool = removed + [x for x in cur if x not in removed]
             if not pool:
                 break
             if len(pool) == len(expand(a.in_group)):
-                # hic ilerleme yok, sonsuz donguye girmemek icin durulur
+                # no progress at all; it stops so as not to enter an infinite loop
                 break
 
     print(u'\n=== RESULT ===')
@@ -153,8 +150,8 @@ def main():
         if s["best"]:
             print("        %s" % s["best"])
     kalan = [tag_of(x) for x in pool]
-    # Koruma denetimi: girdi kumesindeki her uye ya bir SET'te ya kalan
-    # listesinde olmali. Tutmuyorsa sessiz kayip var demektir.
+    # The conservation check: every member of the input set has to be either in a SET
+    # or in the 'kalan' list. If that does not hold there is a silent loss.
     girdi = set(tag_of(x) for x in expand(a.in_group))
     yazilan = set(kalan)
     for st in sets:

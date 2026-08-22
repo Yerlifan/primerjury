@@ -60,11 +60,12 @@ def geo_yukle(kok):
     return None, u'geometry_core.py bulunamadi (engine ya da engine)'
 
 
-# --- URUN BOYU: yazilan degil OLCULEN --------------------------------------
-# Tm gibi urun boyu da elle yazilabilen bir sayidir ve elle yazilan her sayi
-# bir gun kayar. 2026-08-10: Proteolitik_Synergistaceae satirinda 173 bp
-# yaziyordu, olcum 172 diyor. Bir baz, ama jel ayrimi ve bant sinifi
-# hesaplarina giriyor. Olcut panelin kendi olcutu: mm<=1, 3' son iki baz tam.
+# --- THE PRODUCT LENGTH: measured, not written ------------------------------
+# Like the Tm, the product length is a number that can be written by hand, and every
+# number written by hand drifts one day. 2026-08-10: the
+# Proteolitik_Synergistaceae row said 173 bp and the measurement says 172. One base,
+# but it enters the gel separation and the band class calculations. The criterion is
+# the panel's own: mm<=1, the last two bases at the 3' end exact.
 def _rc(x):
     return x.translate(str.maketrans('ACGT', 'TGCA'))[::-1]
 
@@ -206,10 +207,10 @@ def main():
     kok = os.path.abspath(a.kok)
 
     geo, geo_yol = geo_yukle(kok)
-    # primer3 yoksa Tm olculemez ama URUN BOYU olculebilir: o olcum
-    # konsensus dizileri uzerinde yapilir ve primer3'e bagli degildir.
-    # Bir eksik yuzunden yapilabilecek olcumu de atlamak, denetimi
-    # gereksizce kor birakir.
+    # Without primer3 the Tm cannot be measured but THE PRODUCT LENGTH can:
+    # that measurement is made on the consensus sequences and does not depend
+    # on primer3. Skipping a measurement that can be made because of one
+    # missing piece leaves the audit needlessly blind.
     if geo is None:
         print('=' * 78)
         print(u'  Tm OLCULEMEDI - %s' % geo_yol)
