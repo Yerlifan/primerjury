@@ -1,53 +1,62 @@
 # -*- coding: utf-8 -*-
-r"""
-orientation_audit.py - her konsensus dosyasinin SAKLANDIGI YONU tespit eder.
-
-Neden gerek: yon hatasi gece boyunca EN AZ UC AYRI YERDE ayri ayri bulunup ayri ayri
-yamandi (kaynak calismada 85'in iplik secimi, tasarim tarafinda "konsensusler SILVA'ya gore ters",
-B/F yeniden olcumunde "58 konsensusten 39'u ters"). Uc ayri yama = tek kanonik cozum yok.
-Bu betik "sanirim duzeltildi"yi olcuye baglar.
-
-YONTEM - iki BAGIMSIZ olcut, ikisi ayrilirsa dosya BELIRSIZ sayilir (proje kurali):
-
-  Olcut 1 (panelin kendi evrensel primerleri):
-      Sense (referans/artı) yonde saklanan bir SSU konsensusunde ileri primer F
-      DOGRUDAN, ters primerin tumleyeni rc(R) de DOGRUDAN bulunur.
-      Antisense saklanmissa bunun yerine rc(F) ve R bulunur.
-  Olcut 2 (literatur evrensel motifleri - panelden bagimsiz):
-      SSU  : 515F  GTGYCAGCMGCCGCGGTAA  ve  806R bolgesi sense hali GGATTAGATACCC
-      ITS  : ITS1  TCCGTAGGTGAACCTGCGG  ve  rc(ITS4)  GCATATCAATAAGCGGAGGA
-
-Her olcut icin: motiflerin DUZ dizide mi yoksa TERS TUMLEYENINDE mi bulundugu sayilir.
-Uyumsuzluk toleransi <=2 (nanopore konsensusunde tek tuk hata olur), kayipsiz motor.
-
-Kullanim:
-    python orientation_audit.py --kok ..  --out ..\yon_denetimi_20260802.tsv
-    python orientation_audit.py --kok .. --klasor "consensus sequences"
 """
-# ---------------------------------------------------------------------------
-# orientation_audit.py — bir konsensus klasorundeki HER dosyanin saklandigi yonu iki
-#                   bagimsiz olcutle tespit eder ve tabloya doker.
+orientation_audit.py determines the ORIENTATION EACH consensus file IS STORED IN.
+
+Why it is needed: the orientation fault was found and patched separately in AT
+LEAST THREE DIFFERENT PLACES over one night (the strand choice in the source study,
+"the consensuses are reversed against SILVA" on the design side, and "39 of 58
+consensuses are reversed" in the B and F remeasurement). Three separate patches
+means there is no single canonical fix. This script ties "I think it was fixed" to
+a measurement.
+
+THE METHOD: two INDEPENDENT criteria, and if they disagree the file counts as
+BELIRSIZ (the project rule):
+
+  Criterion 1 (the panel's own universal primers):
+      In an SSU consensus stored in the sense (reference, plus) direction, the
+      forward primer F is found DIRECTLY and so is rc(R), the complement of the
+      reverse primer.
+      If it is stored antisense, rc(F) and R are found instead.
+  Criterion 2 (universal motifs from the literature, independent of the panel):
+      SSU  : 515F  GTGYCAGCMGCCGCGGTAA  and the 806R region in its sense form
+             GGATTAGATACCC
+      ITS  : ITS1  TCCGTAGGTGAACCTGCGG  and  rc(ITS4)  GCATATCAATAAGCGGAGGA
+
+For each criterion it counts whether the motifs are found in the sequence AS IT IS
+or in its REVERSE COMPLEMENT. The mismatch tolerance is <=2 (a nanopore consensus
+carries the occasional error) and the engine is lossless.
+
+Usage:
+    python orientation_audit.py --kok ..  --out ../yon_denetimi_20260802.tsv
+    python orientation_audit.py --kok .. --klasor "consensus sequences"
+
+"""
+# -------------------------------------------------------------------------
+# orientation_audit.py determines the stored orientation of EVERY file in a
+#                   consensus directory under two independent criteria and writes
+#                   them into a table.
 #
-# GIRDI  : --kok altinda --klasor ile verilen bir ya da birden fazla konsensus
-#          klasoru (varsayilanlar dosyanin icinde tanimli). Baglanma yeri
-#          aramasi okuma_motoru.Sonda ile, <=2 uyumsuzluk toleransiyla yapilir.
-# CIKTI  : --out ile verilen TSV dosyasi: dosya basina sinif, iki olcutun
-#          sonucu ve nihai karar (SENSE / ANTISENSE / BELIRSIZ).
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir denetimdir. Urettigi tablo
-#          orientation_report.py ile panele "19 Yon Normalizasyonu" sayfasi olarak
-#          islenir. Kanonik uretimin kendisi build_canonical.py'de yapilir.
+# INPUT  : one or more consensus directories given with --klasor under --kok (the
+#          defaults are defined inside the file). The binding site search is done
+#          with okuma_motoru.Sonda at a tolerance of <=2 mismatches.
+# OUTPUT : the TSV given with --out: per file, the class, the result of each of the
+#          two criteria and the final verdict (SENSE / ANTISENSE / BELIRSIZ).
+# CALLED BY: IT IS NOT IN THE MENU, it is an audit run by hand. The table it
+#          produces is written into the panel as the "19 Yon Normalizasyonu" sheet
+#          by orientation_report.py. The canonical production itself is done in
+#          build_canonical.py.
 #
-# IKI OLCUT NEDEN: karar tek bir kod yoluna birakilmaz. Olcut 1 panelin kendi
-# evrensel primerlerini, olcut 2 panelden bagimsiz literatur motiflerini
-# kullanir. Ikisi ayrilirsa dosya BELIRSIZ sayilir - yanlis yone cevrilmis bir
-# konsensus, hic cevrilmemis kadar sessiz zarar verir.
-# ---------------------------------------------------------------------------
+# WHY TWO CRITERIA: the decision is not left to a single code route. Criterion 1
+# uses the panel's own universal primers and criterion 2 literature motifs that are
+# independent of the panel. If the two disagree the file counts as BELIRSIZ; a
+# consensus flipped the wrong way does as much silent damage as one never flipped.
+# -------------------------------------------------------------------------
 import sys, os, glob, csv, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import read_engine as om
 
-# --- olcut 1: panelin evrensel ciftleri (sinifa gore) ------------------------
+# --- criterion 1: the panel's universal pairs (by class) --------------------
 PANEL = {
     'A':  ('Arke_universal',        'CTGCGGTTTAATTGGATTCAACGC', 'GAACTGACGACGGCCATGC'),
     'B':  ('Bakteri_universal',     'ACAAGCGGTGGAGCATGTG',      'ACGACAGCCATGCAGCAC'),
@@ -55,7 +64,7 @@ PANEL = {
     'F2': ('Mantar_universal (F2)', 'GTGCATGGCCGTTCTTAGTTG',    'CAAACTTCCATCGGCTTGAGC'),
 }
 
-# --- olcut 2: literatur motifleri, sense (artı) iplikte beklenen -------------
+# --- criterion 2: literature motifs, expected on the sense (plus) strand -----
 MOTIF = {
     'SSU': ['GTGYCAGCMGCCGCGGTAA',      # 515F
             'GGATTAGATACCC',            # 806R bolgesi, sense hali
@@ -66,7 +75,7 @@ MOTIF = {
 
 
 def var_mi(dizi, desen, mm=2):
-    """desen dizide (kayipsiz motor, <=mm uyumsuzluk) var mi"""
+    """is the pattern in the sequence (lossless engine, <=mm mismatches)"""
     s = om.Sonda(desen, uc5=False, max_mm=mm, son2=False)
     return len(s.bul(dizi)) > 0
 

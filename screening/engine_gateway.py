@@ -9,42 +9,39 @@ Everything goes through here on purpose: one import point means one place where
 a version or path problem can surface, instead of a dozen modules each loading
 their own copy.
 
---- ozgun aciklama ---
-Mevcut olcum kodunu ICE AKTARAN tek kapi.
-
-Bu dosya hicbir olcum algoritmasini yeniden yazmaz. Projede zaten calisan ve
-panelin sayilarini uretmis olan modulleri bulur ve disari acar:
-
+WHAT COMES FROM WHERE
   engine/ispcr.py   -> find_sites / amplify / scan_file / rc / clean / encode
-  engine/reads.py   -> Sonda / okumalar / kutu_pcr  (ham okuma hatti)
-  engine/scanner.py-> Havuz  (3' tohumlu hizli havuz)
-  engine/pair.py    -> urunler (havuz uzerinde cift taramasi)
+  engine/reads.py   -> Sonda / okumalar / kutu_pcr  (the raw read pipeline)
+  engine/scanner.py -> Havuz  (the fast 3' seeded pool)
+  engine/pair.py    -> urunler (the pair scan over the pool)
 
-Betikler oturuma bagli mutlak yollar (sys.path.insert('/tmp/wk2/...')) iceriyor;
-ice aktarmadan once o yollar gecerli hale getirilir.
+Some scripts hold absolute paths from the session they were written in
+(sys.path.insert('/tmp/wk2/...')); those paths are made valid before the import.
+
 """
-# ---------------------------------------------------------------------------
-# engine_gateway.py, projede zaten calisan olcum kodunu ice aktaran tek kapi; hicbir
-#            algoritmayi yeniden yazmaz, yalnizca disari acar.
+# -------------------------------------------------------------------------
+# engine_gateway.py, the single door that imports the measurement code already
+#            running in this project; it rewrites no algorithm, it only exposes
+#            them.
 #
-# GIRDI  : yapilandirma.BETIK_YOLLARI altindaki engine/ispcr.py,
-#          engine/reads.py, engine/scanner.py ve
-#          engine/pair.py dosyalari; ayrica bu paketin icindeki
-#          read_engine.py ve brute_force.py.
-# CIKTI  : dosyaya yazmaz. Modul duzeyinde fonksiyon ve modul nesneleri acar:
-#          rc, clean, encode, read_fasta, find_sites, amplify, scan_file,
-#          IUPAC, wilson(), urun_var() ve surum_bilgisi().
-# CAGRAN : paketteki butun olcum modulleri; disaridan verification/recovery_round.py
-#          (tus K) ve protocol/single_protocol_measure.py (tus P). Yani her olcum
-#          tusunda yuklenir.
+# INPUT  : the files engine/ispcr.py, engine/reads.py, engine/scanner.py and
+#          engine/pair.py under yapilandirma.BETIK_YOLLARI; also read_engine.py and
+#          brute_force.py inside this package.
+# OUTPUT : it writes no file. It exposes functions and module objects at module
+#          level: rc, clean, encode, read_fasta, find_sites, amplify, scan_file,
+#          IUPAC, wilson() and urun_bilgisi().
+# CALLED BY: every measurement module in the package; from outside,
+#          verification/recovery_round.py (key K) and
+#          protocol/single_protocol_measure.py (key P). So it is loaded on every
+#          measuring key.
 #
-# NEDEN ICE AKTARIM, YENIDEN YAZIM DEGIL: panelin yayimlanmis sayilari bu
-# betiklerle uretildi. Ayni islevi yeniden yazmak, eski ve yeni sayilari
-# karsilastirilamaz hale getirirdi. Tek istisna ham okuma hattidir: panelin
-# reads.py/Sonda motoru site kaciriyor, bu yuzden numune olcumlerinde otorite
-# read_engine.py'dir; reads.py yalniz "duzeltme ne kadar fark yaratti"
-# sorusuna cevap uretmek icin duruyor.
-# ---------------------------------------------------------------------------
+# WHY IMPORT RATHER THAN REWRITE: the panel's published numbers were produced with
+# these scripts. Rewriting the same function would make the old and the new numbers
+# incomparable. The one exception is the raw read pipeline: the panel's
+# reads.py/Sonda engine misses sites, so in the sample measurements the authority is
+# read_engine.py; reads.py stays only to answer the question "how much difference
+# did the fix make".
+# -------------------------------------------------------------------------
 import os, sys, importlib.util, math
 
 from . import config as C
@@ -57,7 +54,7 @@ def _yol_hazirla():
 
 
 def _yukle(ad, dosya):
-    """Bir .py dosyasini modul olarak yukle (paket disindan)."""
+    """Load a .py file as a module (from outside the package)."""
     if ad in sys.modules:
         return sys.modules[ad]
     spec = importlib.util.spec_from_file_location(ad, dosya)
@@ -92,7 +89,7 @@ tarayici = _yukle('tarayici', _p) if _p else None
 _p = _bul('pair.py')
 cift = _yukle('cift', _p) if _p else None
 
-# ---- dogrudan yeniden kullanilan fonksiyonlar ----
+# ---- the functions reused directly ----
 rc = ispcr.rc
 clean = ispcr.clean
 encode = ispcr.encode
@@ -103,13 +100,13 @@ scan_file = ispcr.scan_file
 IUPAC = ispcr.IUPAC
 
 if okuma is not None:
-    # reads.py'nin okuma uzunluk filtresi duzeltilmis degeri tasisin
+    # let reads.py's read length filter carry the corrected value
     okuma.MINL, okuma.MAXL = C.NUMUNE_OKUMA_MIN, C.NUMUNE_OKUMA_MAX
 
 
-# ---- DUZELTILMIS ham okuma motoru (bu paketin icinde, "Okuma motoru hatasi"
-#      oturumunda uretildi). Panelin reads.py/Sonda motoru site KACIRIYOR;
-#      numune olcumlerinde otorite budur.
+# ---- THE CORRECTED raw read engine (inside this package, produced in the
+#      "the read engine fault" session). The panel's reads.py/Sonda engine MISSES
+#      sites; in the sample measurements this is the authority.
 _pk = os.path.dirname(os.path.abspath(__file__))
 okuma_motoru = _yukle('okuma_motoru', os.path.join(_pk, 'read_engine.py'))
 try:
@@ -119,7 +116,7 @@ except Exception:
 
 
 def wilson(k, n, z=1.96):
-    """numune_olc.py / okuma_pcr.py ile birebir ayni Wilson araligi."""
+    """Exactly the same Wilson interval as numune_olc.py and okuma_pcr.py."""
     if n == 0:
         return (0.0, 1.0)
     p = k / n
