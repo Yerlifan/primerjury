@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 # =====================================================================
 # sync.sh
-# İki taraftaki dosyaların aynı olduğunu SÖYLEMEK yerine DOĞRULAR.
+# It VERIFIES that the files on the two sides are the same, rather than SAYING so.
 #
-#   bash sync.sh              # manifesto üret ve ekrana bas
-#   bash sync.sh --dogrula    # kayıtlı manifestoyla karşılaştır
+#   bash sync.sh              # produce the manifest and print it
+#   bash sync.sh --dogrula    # compare against the recorded manifest
 #
-# Neden gerekli: "gönderdim" ile "sende var" aynı şey değil. Dosya
-# aktarımı sessizce yarım kalabilir, eski sürüm üzerine yazılmayabilir,
-# bir adım eski betikle çalışıp doğru görünen yanlış sonuç üretebilir.
-# Bu betik her dosyanın sha256 özetini çıkarır; iki taraf aynı özeti
-# görüyorsa senkron gerçekten sağlanmıştır.
+# Why it is needed: "I sent it" and "you have it" are not the same thing. A file
+# transfer can stop half way in silence, an old version may not get overwritten, and
+# a step can run with an old script and produce a wrong result that looks right.
+# This script takes the sha256 digest of every file; if the two sides see the same
+# digest then they really are in sync.
 #
-# Manifesto iki bölümdür:
-#   BETIK   sürüm kontrolü gereken kod ve tablolar (iki tarafta AYNI olmalı)
-#   CIKTI   koşu çıktıları (sizin tarafınızda üretilir, bende kopyası olur)
+# The manifest has two sections:
+#   BETIK   the code and tables that need version control (they must be THE SAME on
+#           both sides)
+#   CIKTI   the run outputs (produced on your side, a copy of them on mine)
 # =====================================================================
 set -uo pipefail
 
@@ -28,7 +29,7 @@ MANIFEST="$HERE/MANIFEST.sha256"
 DOGRULA=0
 [ "${1:-}" = "--dogrula" ] && DOGRULA=1
 
-ozet() {   # $1 = kok klasor, gerisi = desenler
+ozet() {   # $1 = the root directory, the rest are patterns
   local kok="$1"; shift
   ( cd "$kok" 2>/dev/null || return 0
     for d in "$@"; do
@@ -64,7 +65,7 @@ uret() {
 if [ "$DOGRULA" = 1 ]; then
   [ -f "$MANIFEST" ] || { echo "no manifest: $MANIFEST"; exit 2; }
   YENI=$(mktemp); uret > "$YENI"
-  # yalniz BETIK bolumu karsilastirilir; CIKTI her kosuda degisir
+  # only the BETIK section is compared; CIKTI changes on every run
   kes() { awk '/^\[BETIK\]/{f=1;next} /^\[CIKTI\]/{f=0} f' "$1"; }
   ESKI_T=$(mktemp); YENI_T=$(mktemp)
   kes "$MANIFEST" | sort -k2 > "$ESKI_T"
@@ -76,7 +77,7 @@ if [ "$DOGRULA" = 1 ]; then
     | while read -r x; do echo "  MISSING  $x (in the manifest, not on disk)"; FARK=1; done
   comm -13 <(cut -d' ' -f3- "$ESKI_T" | sort) <(cut -d' ' -f3- "$YENI_T" | sort) \
     | while read -r x; do echo "  EXTRA    $x (on disk, not in the manifest)"; done
-  # ikisinde de olup ozeti farkli olanlar
+  # the ones present in both whose digest differs
   join -j2 -o 0,1.1,2.1 "$ESKI_T" "$YENI_T" 2>/dev/null \
     | awk '$2!=$3{printf "  FARKLI   %s\n     manifesto: %s\n     disk     : %s\n",$1,substr($2,1,16),substr($3,1,16); n++} END{if(!n) print "  butun dosyalar manifestoyla ayni"}'
   rm -f "$YENI" "$ESKI_T" "$YENI_T"
