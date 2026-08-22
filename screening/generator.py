@@ -37,8 +37,9 @@ from . import engine_gateway
 
 # ---------------------------------------------------------------- pencereler
 def pencereler(omurga, uz_ar=C.UZUNLUK):
-    """Omurgadaki HER pozisyondan baslayan, uzunlugu uz_ar arasinda degisen
-    her oligo. Donen: (baslangic, uzunluk, ileri_dizi)."""
+    'Every oligo starting at EVERY position of the backbone, with its length '
+    'running     across the allowed range. Returns (start, length, '
+    'forward_sequence).'
     L = len(omurga)
     lo, hi = uz_ar
     for i in range(L):
@@ -90,7 +91,7 @@ URUN_KOMBO = list(C.IZGARA_URUN)                                       # 4
 
 
 def primer_maskesi(m):
-    """m (geometri.olc ciktisi) -> 36 bitlik maske."""
+    'm, the geometry measurement output, becomes a 36 bit mask.'
     mask = 0
     for i, (g, t, u, s) in enumerate(PRIMER_KOMBO):
         if G.hucre_gecti(m, g, t, u, s):
@@ -135,7 +136,7 @@ _SIKILIK = [[hucre_sikilik(_hucre(pi, ui)) for ui in range(len(URUN_KOMBO))]
 
 
 def cift_maskesi(c):
-    """Ciftin (primer_maske, urun_maske) ikilisi; bir kez hesaplanip saklanir."""
+    "The pair's (primer_mask, product_mask); computed once and cached."
     if 'pm' not in c:
         c['pm'] = primer_maskesi(c['mF']) & primer_maskesi(c['mR'])
         c['um'] = urun_maskesi(c['urun'])
@@ -185,7 +186,7 @@ def hucre_etiketle(c):
                 s = _SIKILIK[pi][ui]
                 if en is None or s < en[0]:
                     en = (s, hucre_adi(_hucre(pi, ui)))
-    return en if en else (99, 'hicbir izgara hucresini gecmiyor')
+    return en if en else (99, 'it passes no cell of the grid')
 
 
 # ---------------------------------------------------------------- cift kurma
@@ -280,7 +281,7 @@ _ES_ONBELLEK = {}
 
 
 def _en_siki_anahtar(anahtar):
-    """(pm, um) -> en siki hucrenin (pi, ui) indeksi."""
+    '(pm, um) -> the index (pi, ui) of the strictest cell.'
     v = _ES_ONBELLEK.get(anahtar)
     if v is not None:
         return v
@@ -301,7 +302,7 @@ def _en_siki_anahtar(anahtar):
 
 
 def izgara_tablosu_sayactan(sayac):
-    """tara_ve_topla'nin sayacindan 144 hucrelik tabloyu cikar (tam sayim)."""
+    'Build the 144 cell table out of the scan counter, as a full count.'
     say = [[0] * len(URUN_KOMBO) for _ in range(len(PRIMER_KOMBO))]
     for (pm, um), n in sayac.items():
         for pi in range(len(PRIMER_KOMBO)):

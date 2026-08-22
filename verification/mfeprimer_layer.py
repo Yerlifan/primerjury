@@ -82,7 +82,8 @@ def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
     if not os.path.exists(db):
         return (False, u'fasta yok')
     if not os.path.exists(db + '.primerqc.bin'):
-        return (False, u'.primerqc.bin indeksi yok - "mfeprimer index -i %s" ile kurulmali' % dosya)
+        return (False, 'there is no .primerqc.bin index; build it with '
+                       '"mfeprimer index -i %s"' % dosya)
     import tempfile
     with tempfile.TemporaryDirectory() as t:
         gi = os.path.join(t, 'sina.tsv'); co = os.path.join(t, 'sina.txt')
@@ -92,14 +93,15 @@ def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
                                  '-c', '2', '-S', str(URUN_UST)],
                                 capture_output=True, text=True, timeout=sure_tavani)
         except subprocess.TimeoutExpired:
-            return (False, u'indeks sinamasi zaman asimina ugradi (%d sn)' % sure_tavani)
+            return (False, 'the index test timed out after %d s' % sure_tavani)
         if pr.returncode != 0:
-            return (False, u'mfeprimer hata verdi: %s' % ((pr.stderr or '')[:160]))
+            return (False, 'mfeprimer raised an error: %s' % ((pr.stderr or '')[:160]))
         if not os.path.exists(co):
             return (False, u'cikti uretilmedi')
         s = open(co, encoding='utf-8', errors='replace').read()
         if 'RecordCount=0' in s or 'record count' in s.lower():
-            return (False, u'indeks RecordCount=0 bildiriyor - yeniden kurulmali')
+            return (False, 'the index reports RecordCount=0, so it has to be '
+                           'built again')
         if 'Primer ID' not in s:
             return (False, u'cikti ayristirilamadi')
         # THE D-4 BUG FIX (2026-08-06): this is where the real silent failure was.
@@ -115,9 +117,10 @@ def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
         _bag = re.findall(r'^\S+\s+[ACGTUNRYKMSWBDHVacgtu]{10,}\s+\d+\s+[\d.]+\s+'
                           r'[\d.]+\s+[-\d.]+\s+(\d+)\s+(\d+)\s*$', s, re.M)
         if _bag and all(int(a) == 0 and int(b) == 0 for a, b in _bag):
-            return (False, u'indeks BOZUK: butun primerler icin Binding Number 0/0 '
-                           u'donuyor (dosya var ama okunmuyor). "mfeprimer index -i %s" '
-                           u'ile YENIDEN kurulmali.' % dosya)
+            return (False, 'the index is BROKEN: it returns a binding number '
+                           'of 0/0 for every primer, so the file is there but '
+                           'is not being read. Build it AGAIN with "mfeprimer '
+                           'index -i %s".' % dosya)
     return (True, u'okunuyor')
 
 
@@ -175,7 +178,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
             atlanan.append((dosya, not_))
             yaz(u'    index SKIPPED: %s - %s' % (dosya, not_))
     if not kullanilan:
-        return dict(durum='ATLANDI', sebep=u'hicbir MFEprimer indeksi okunamadi',
+        return dict(durum='ATLANDI', sebep='no MFEprimer index could be read',
                     atlanan=atlanan), {}
 
     sonuc = {}
@@ -242,7 +245,8 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                             _silinemedi = str(_e)
             if _silinemedi:
                 sonuc[c['hedef']][dosya] = dict(
-                    hata=u'eski cikti dosyasi silinemedi, MFEprimer uzerine YAZMAZ: %s'
+                    hata='the old output file could not be deleted and '
+                         'MFEprimer DOES NOT overwrite: %s'
                          % _silinemedi)
                 yaz(u'    ERROR: the old output could not be deleted, so this database was not measured: %s'
                     % co)
@@ -321,7 +325,8 @@ def yapi_kos(kok, mfe, ciftler, CIKTI, yaz):
                 except OSError:
                     pass
         if os.path.exists(co):
-            out[komut] = dict(hata=u'eski cikti silinemedi, MFEprimer uzerine yazmaz: %s' % co)
+            out[komut] = dict(hata='the old output could not be deleted and '
+                                   'MFEprimer does not overwrite: %s' % co)
             yaz(u'    ERROR: the old %s output could not be deleted, so it was not measured' % komut); continue
         try:
             pr = subprocess.run([mfe, komut, '-i', fa, '-o', co],
@@ -426,8 +431,9 @@ def hedef_disi_kimlikleri(CIKTI, ciftler, yaz, tolerans=10):
             for i in sorted(tab):
                 bp, er, ftm, rtm, ta = tab[i]
                 try:
-                    _not = (u'primer baglanma Tm (%s/%s C) tavlama sicakligindan (%s C) '
-                            u'DUSUK - bu urun standart kosulda OLUSMAZ'
+                    _not = ('the primer binding Tm (%s/%s C) is BELOW the '
+                            'annealing temperature (%s C), so this product '
+                            'DOES NOT FORM under standard conditions'
                             % (ftm, rtm, ta)) if min(float(ftm), float(rtm)) < float(ta) - 5 \
                         else u'primer Tm tavlama sicakligina yakin - GERCEK risk'
                 except ValueError:

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-minimap2_aligner.py - kimlik asamasi icin IKINCI, SECILEBILIR hizalayici.
-
-Bu dosya mevcut motoru DEGISTIRMEZ, yanina durur. identity_verification.py icindeki
-saf Python + numpy hizalayicisi (hizala) yerinde kalir ve varsayilan olmaya
-devam eder. Buradaki minimap2 yolu ancak iki sart birden saglanirsa devreye
-girer: mappy kurulu olacak VE kullanici acikca secmis olacak.
-"""
+' minimap2_aligner.py is a SECOND, OPTIONAL aligner for the identity stage. '
+'This file DOES NOT REPLACE the existing engine, it stands beside it. The '
+'pure Python and numpy aligner inside identity_verification.py stays where it '
+'is and remains the default. The minimap2 route here comes into play only '
+'when both conditions hold: mappy is installed AND the user chose it '
+'explicitly.'
 # -------------------------------------------------------------------------
 # minimap2_aligner.py
 #
@@ -68,16 +66,16 @@ def var_mi():
     try:
         import mappy
     except ImportError:
-        _SEBEP = u'mappy kurulu degil (pip install mappy)'
+        _SEBEP = 'mappy is not installed (pip install mappy)'
         return False
     try:
         deneme = mappy.Aligner(seq='ACGT' * 40, preset='map-ont', n_threads=1)
         if not deneme:
-            _SEBEP = u'mappy indeksi bos dondu'
+            _SEBEP = 'the mappy index came back empty'
             return False
         list(deneme.map('ACGT' * 40))
     except Exception as e:
-        _SEBEP = u'mappy kurulu ama calismadi: %s: %s' % (type(e).__name__, e)
+        _SEBEP = 'mappy is installed but did not work: %s: %s' % (type(e).__name__, e)
         return False
     _MAPPY = mappy
     return True
@@ -118,7 +116,7 @@ def surum():
 def hizala_mm(q, t):
     """THE SAME signature and THE SAME return form as kimlik_dogrulama.hizala."""
     if not var_mi():
-        raise RuntimeError(u'mappy yok: %s' % _SEBEP)
+        raise RuntimeError('there is no mappy: %s' % _SEBEP)
     if not q or not t:
         return (0.0, len(q or t or ' '))
     try:
@@ -160,7 +158,7 @@ def toplu_hizala(q, hedefler, iplik=3):
 
     """
     if not var_mi():
-        raise RuntimeError(u'mappy yok: %s' % _SEBEP)
+        raise RuntimeError('there is no mappy: %s' % _SEBEP)
     sonuc = dict((a, (0.0, len(q))) for a, _d in hedefler)
     if not q or not hedefler:
         return sonuc
@@ -233,7 +231,7 @@ if __name__ == '__main__':
         print(u'reason           : %s' % _SEBEP)
         print(u'install            : pip install mappy')
         sys.exit(1)
-    print(u'mappy surumu       : %s' % surum())
+    print('the mappy version    : %s' % surum())
     print(u'ALIGNER selected : %s' % (u'minimap2' if secili_mi() else u'python (varsayilan)'))
 
 
