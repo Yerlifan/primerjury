@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
-"""Aday uretimi: pencere -> primer -> cift -> ARMS varyanti -> parametre izgarasi.
+"""Candidate production: window -> primer -> pair -> ARMS variant -> the parameter
+grid.
 
-TAMLIK NOTU
------------
-Omurga tek zincir uzerinde taranir ve bu YETERLIDIR: cift-zincirli sablonda
-bir cift (+ zincirinde i konumundaki F, - zincirinde j>i konumundaki R) ile
-tam olarak tanimlanir. Ters zincirden uretilen kume ayni amplikonlarin
-aynasidir. Konsensuslerin bir kisminin ters tumleyen yonde saklanmis olmasi
-(bkz. "11 B-F Yeniden Olcum" duzeltme 1) bu yuzden aramanin kapsamini
-etkilemez.
+A NOTE ON COMPLETENESS
+----------------------
+The backbone is scanned on a single strand and that IS ENOUGH: on a double stranded
+template a pair is fully defined by (F at position i on the + strand, R at position
+j>i on the - strand). The set produced from the reverse strand is the mirror of the
+same amplicons. That some of the consensuses are stored reverse complemented (see
+"11 B-F Yeniden Olcum" correction 1) therefore does not affect the coverage of the
+search.
+
 """
-# ---------------------------------------------------------------------------
-# generator.py — aday primer ve aday cift ureteci; 144 hucreli parametre
-#             izgarasini ve ARMS varyantlarini da bu modul kurar.
+# -------------------------------------------------------------------------
+# generator.py, the candidate primer and candidate pair producer; this module also
+#             builds the 144 cell parameter grid and the ARMS variants.
 #
-# GIRDI  : omurga konsensus dizisi (hedefler.hedef_baglami()'nin sectigi en uzun
-#          uye konsensusu); config.py'deki UZUNLUK, URUN_IDEAL,
-#          URUN_MUTLAK_UST ve IZGARA_* sabitleri; primer olcumleri icin
-#          geometri.olc / geometri.hucre_gecti; dizi islemleri icin engine_gateway.rc,
-#          engine_gateway.encode, engine_gateway.find_sites.
-# CIKTI  : dosyaya yazmaz. aday_primerler() {'F': [...], 'R': [...]} sozlugu,
-#          tara_ve_topla() toplam cift sayisi + izgara sayaci + temsilci aday
-#          listesi, izgara_tablosu_sayactan() 144 satirlik tablo,
-#          arms_varyantlari() (varyant_dizi, etiket) ciftleri dondurur.
-# CAGRAN : __main__.hedefi_isle icinden asama A, B ve B2'de; yani
-#          full_chain.py asamalari 1, 2, 3, 7 ve 9 (7. asama). Ayrica
-#          verification/recovery_round.py (tus K) bu modulu disaridan ice aktarir.
-# ---------------------------------------------------------------------------
+# INPUT  : the backbone consensus sequence (the longest member consensus, chosen by
+#          hedefler.hedef_baglami()); the UZUNLUK, URUN_IDEAL, URUN_MUTLAK_UST and
+#          IZGARA_* constants in config.py; geometri.olc and geometri.hucre_gecti
+#          for the primer measurements; engine_gateway.rc, engine_gateway.encode and
+#          engine_gateway.find_sites for the sequence work.
+# OUTPUT : it writes no file. aday_primerler() returns a {'F': [...], 'R': [...]}
+#          dictionary, tara_ve_topla() the total pair count plus the grid counter
+#          plus a list of representative candidates, izgara_tablosu_sayactan() a 144
+#          row table, and arms_varyantlari() (variant_sequence, label) pairs.
+# CALLED BY: inside __main__.hedefi_isle at stages A, B and B2; that is,
+#          full_chain.py stages 1, 2, 3, 7 and 9 (the 7th stage). Besides that,
+#          verification/recovery_round.py (key K) imports this module from outside.
+# -------------------------------------------------------------------------
 import itertools
 from . import config as C
 from . import geometry as G
@@ -50,10 +52,13 @@ def pencereler(omurga, uz_ar=C.UZUNLUK):
 
 
 def aday_primerler(omurga, ilerle=None):
-    """Her pencereden iki aday: ileri (oldugu gibi) ve geri (ters tumleyen).
+    """Two candidates from each window: forward (as it is) and reverse (the reverse
+    complement).
 
-    Geri primerin baglanma yeri omurgada [i, i+k); primerin kendisi rc(pencere).
-    Donen sozluk: {'F': [(i, uz, dizi, olcum)], 'R': [...]}
+    The reverse primer's binding site on the backbone is [i, i+k); the primer itself is
+    rc(window).
+    The dictionary returned: {'F': [(i, uz, dizi, olcum)], 'R': [...]}
+
     """
     F, R = [], []
     say = 0
@@ -71,12 +76,12 @@ def aday_primerler(omurga, ilerle=None):
     return dict(F=F, R=R, taranan_pencere=say)
 
 
-# ---------------------------------------------------------------- parametre izgarasi
-# HIZ NOTU: 144 hucre icin 144 kez arama YAPILMAZ. Her primer, primer duzeyindeki
-# 36 alt-kombinasyonun (3 GC x 3 Tm x 2 uc x 2 son5) hangilerini gectigini bir
-# bit maskesinde tasir; bir cift bir hucreyi ancak IKI primeri de o alt-kombinasyonu
-# gecerse ve urun boyu araligina duserse gecer. Boylece izgara tablosu ciftlerin
-# uzerinden TEK gecisle cikar.
+# ---------------------------------------------------------------- the parameter grid
+# A NOTE ON SPEED: the search IS NOT run 144 times for 144 cells. Every primer
+# carries, in a bit mask, which of the 36 primer level subcombinations
+# (3 GC x 3 Tm x 2 end x 2 last5) it passed; a pair passes a cell only if BOTH its
+# primers passed that subcombination and the product length falls in the range. So
+# the grid table comes out in a SINGLE pass over the pairs.
 
 PRIMER_KOMBO = [(g, t, u, s)
                 for g in C.IZGARA_GC for t in C.IZGARA_TM
@@ -119,7 +124,7 @@ def hucre_adi(h):
 
 
 def hucre_sikilik(h):
-    """0 = en siki. Rapor 'en siki hangi ayarda cozum var' sorusunu bununla siralar."""
+    """0 = the strictest. The report orders the question 'under which strictest setting is there a solution' by this."""
     return (C.IZGARA_GC.index(h['gc']) + C.IZGARA_TM.index(h['tm'])
             + C.IZGARA_URUN.index(h['urun']) + (0 if h['uc_gc'] else 1)
             + (0 if h['son5'] else 1))
@@ -138,7 +143,7 @@ def cift_maskesi(c):
 
 
 def izgara_tablosu(cift_listesi):
-    """Her izgara hucresi icin kac aday hayatta kaliyor (tek gecis)."""
+    """How many candidates survive for each grid cell (a single pass)."""
     say = [[0] * len(URUN_KOMBO) for _ in range(len(PRIMER_KOMBO))]
     ornek = [[None] * len(URUN_KOMBO) for _ in range(len(PRIMER_KOMBO))]
     for c in cift_listesi:
@@ -167,7 +172,7 @@ def izgara_tablosu(cift_listesi):
 
 
 def hucre_etiketle(c):
-    """Bir cift hangi izgara hucrelerinde hayatta? En SIKI hucreyi dondurur."""
+    """In which grid cells does a pair survive? It returns the STRICTEST cell."""
     pm, um = cift_maskesi(c)
     en = None
     if pm and um:
@@ -192,10 +197,11 @@ def _urun_maske_tablosu(lo, hi):
 
 
 def cift_akisi(ad, urun_ar=(C.URUN_IDEAL[0], C.URUN_MUTLAK_UST)):
-    """Kurala uyan HER ileri-geri kombinasyonunu AKIS olarak verir.
+    """Yields EVERY forward and reverse combination obeying the rule AS A STREAM.
 
-    Liste kurulmaz: milyonlarca cift bellege sigmaz, ama tek gecisle
-    sayilabilir. Donen: (iF, kF, sF, mF, pmF, iR, kR, sR, mR, pmR, bp)
+    No list is built: millions of pairs do not fit in memory, but they can be counted
+    in a single pass. Returned: (iF, kF, sF, mF, pmF, iR, kR, sR, mR, pmR, bp)
+
     """
     import bisect
     lo, hi = urun_ar
@@ -219,7 +225,7 @@ def cift_akisi(ad, urun_ar=(C.URUN_IDEAL[0], C.URUN_MUTLAK_UST)):
 
 
 def cift_yap(t):
-    """Akis demetini sozluge cevir (yalniz saklanacak adaylar icin)."""
+    """Turn a stream tuple into a dictionary (only for the candidates that will be kept)."""
     iF, kF, sF, mF, pmF, iR, kR, sR, mR, pmR, bp = t
     return dict(iF=iF, F=sF, mF=mF, iR=iR, R=sR, mR=mR, urun=bp,
                 pm=pmF & pmR, um=urun_maskesi(bp))
@@ -227,18 +233,19 @@ def cift_yap(t):
 
 def tara_ve_topla(ad, hucre_basina=6, urun_ar=(C.URUN_IDEAL[0], C.URUN_MUTLAK_UST),
                   ilerle=None):
-    """TEK GECIS: butun ciftleri sayar, izgara tablosunu cikarir ve her
-    izgara hucresi icin sinirli sayida temsilci aday saklar.
+    """A SINGLE PASS: it counts every pair, produces the grid table and keeps a limited
+    number of representative candidates for each grid cell.
 
-    Ust sinir yoktur - cift sayisi milyonlarca olsa da tamami sayilir.
-    Bellekte yalniz temsilciler tutulur.
+    There is no upper bound; even if the pair count runs into the millions all of them
+    are counted. Only the representatives are held in memory.
+
     """
-    # Sayim ile saklama AYRILMISTIR. Izgara tablosu ciftlerin TAMAMI uzerinden
-    # cikar (hicbir kesme yoktur, "kac aday hayatta kaldi" sayisi gercektir),
-    # ama bellege yalniz her izgara hucresinden hucre_basina kadar temsilci
-    # alinir. Boylece milyonlarca cift sayilabilirken bellek sabit kalir.
-    # Temsilci secilirken urun boyu 105 bp'ye en yakin olan tutulur: qPCR icin
-    # ideal aralik 60-150 bp'dir ve 105 bp o araligin ortasidir.
+    # Counting and storing ARE SEPARATE. The grid table comes out over ALL the pairs
+    # (there is no cut anywhere, so the "how many candidates survived" number is real),
+    # but only up to hucre_basina representatives per grid cell are kept in memory. That
+    # way millions of pairs can be counted while the memory stays constant.
+    # When a representative is chosen, the one with the product length closest to 105 bp
+    # is kept: the ideal range for qPCR is 60-150 bp and 105 bp is the middle of it.
     from collections import Counter, defaultdict
     lo, hi = urun_ar
     umt = _urun_maske_tablosu(lo, hi)
@@ -259,7 +266,7 @@ def tara_ve_topla(ad, hucre_basina=6, urun_ar=(C.URUN_IDEAL[0], C.URUN_MUTLAK_US
         if len(kutu) < hucre_basina:
             kutu.append(t)
         else:
-            # daha ideal urun boyuna sahip olani tut (105 bp civari)
+            # keep the one with the more ideal product length (around 105 bp)
             en_kotu = max(range(len(kutu)), key=lambda i: abs(kutu[i][10] - 105))
             if abs(bp - 105) < abs(kutu[en_kotu][10] - 105):
                 kutu[en_kotu] = t
@@ -315,11 +322,13 @@ def izgara_tablosu_sayactan(sayac):
 
 # ---------------------------------------------------------------- ARMS
 def ayirt_edici_mi(primer, uye_diziler, rakip_diziler, geri=False):
-    """Primerin 3' SON BAZI ayirt edici konumda mi?
+    """Is the primer's LAST BASE AT THE 3' END in a discriminating position?
 
-    Olcut: primer uye konsensusune 3' son baz TAM oturuyor; en iyi rakip
-    baglanma yerinde ise 3' son baz UYMUYOR. Hizalama gerekmez - dogrudan
-    olculur (ispcr.find_sites, gevsek uyumsuzluk tavani).
+    The criterion: the primer sits on the member consensus with the last base at the 3'
+    end EXACTLY, while at the best competitor binding site that last base DOES NOT
+    match. No alignment is needed, it is measured directly (ispcr.find_sites, with a
+    relaxed mismatch ceiling).
+
     """
     import numpy as np
     L = len(primer)
@@ -342,7 +351,7 @@ def ayirt_edici_mi(primer, uye_diziler, rakip_diziler, geri=False):
     uye = en_iyi(uye_diziler, True)
     if uye is None or uye > 1:
         return False, None, None
-    # rakipte 3' son baz TAM tutan bir yer var mi?
+    # is there a place in the competitor where the last base at the 3' end matches EXACTLY?
     rak_tam = en_iyi(rakip_diziler, True)
     rak_gevsek = en_iyi(rakip_diziler, False)
     if rak_gevsek is None:
@@ -353,19 +362,23 @@ def ayirt_edici_mi(primer, uye_diziler, rakip_diziler, geri=False):
 
 
 def arms_varyantlari(primer):
-    """3' sondan 2. ve 3. baza kasitli uyumsuzluk. DORT BAZIN HEPSI denenir.
+    """A deliberate mismatch at the 2nd and 3rd base from the 3' end. ALL FOUR BASES are
+    tried.
 
-    NOT: kasitli uyumsuzluk DEJENERE BAZ DEGILDIR - tek tanimli bir bazdir,
-    sentezlenen oligo sayisini artirmaz. Yine de sablonla tam eslesmedigi icin
-    ayri bir toplanti maddesidir (raporda boyle bildirilir).
-    Donen: (varyant_dizi, etiket)
+    NOTE: a deliberate mismatch IS NOT A DEGENERATE BASE, it is one defined base and it
+    does not raise the number of oligos synthesised. All the same, because it does not
+    match the template exactly it is a separate meeting item (and it is reported as such
+    in the report).
+    Returned: (variant_sequence, label)
+
     """
-    # NEDEN -2 ve -3: 3' son baz ayirt ediciligi tasir ve DEGISTIRILMEZ; ARMS
-    # mantigi, zaten ayirt edici olan son bazin yanina kasitli bir uyumsuzluk
-    # koyarak polimerazin uzatmasini rakip sablonda daha da zorlastirmaktir.
-    # Son baz degistirilseydi ayirt edicilik kaybolurdu.
-    # 4 x 4 = 16 kombinasyondan degisiklik icermeyen tek durum atlandigi icin
-    # 15 varyant uretilir; self_test.py bu sayiyi her kosuda dogrular.
+    # WHY -2 AND -3: the last base at the 3' end carries the discrimination and IS NOT
+    # CHANGED; the ARMS idea is to put a deliberate mismatch beside that already
+    # discriminating last base, so the polymerase has an even harder time extending on
+    # the competitor template. Had the last base been changed, the discrimination would
+    # have been lost.
+    # Of the 4 x 4 = 16 combinations the one case with no change is skipped, so 15
+    # variants are produced; self_test.py confirms that number on every run.
     if len(primer) < 4:
         return []
     out = []
@@ -373,7 +386,7 @@ def arms_varyantlari(primer):
     for b2 in 'ACGT':
         for b3 in 'ACGT':
             if b2 == p[-2] and b3 == p[-3]:
-                continue                      # degisiklik yok
+                continue                      # no change
             q = p[:]
             q[-2], q[-3] = b2, b3
             et = []

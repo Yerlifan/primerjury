@@ -1,49 +1,52 @@
 # -*- coding: utf-8 -*-
 """
-candidate_blastn.py - kimlik asamasi icin blastn tabanli ADAY BULUCU.
+candidate_blastn.py, a blastn based CANDIDATE FINDER for the identity stage.
 
-Kisa liste sorununun tam cozumu icin en guclu aday. Bu dosya PUANLAMAYA
-DOKUNMAZ: kimlik yuzdesi yine kimlik_dogrulama.hizala ile, bizim tanimimizla
-hesaplanir. Degisen tek sey, hangi kayitlarin hizalanacagina KIMIN karar
-verdigidir.
+The strongest candidate for a full solution to the short list problem. This file
+DOES NOT TOUCH THE SCORING: the identity percentage is still computed by
+kimlik_dogrulama.hizala, under our own definition. The only thing that changes is
+WHO decides which records get aligned.
+
 """
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # candidate_blastn.py
 #
-# GIRDI  : kutu konsensusu (sorgu) ve REFERANS_DB altindaki BLAST indeksli
-#          veritabani (.nin/.nhr/.nsq dosyalari zaten mevcut)
-# CIKTI  : [(baslik, dizi), ...] - blastn'in anlamli isabet buldugu kayitlar
-# CAGRAN : verification/identity_verification.py ve all_bin_identities.py,
-#          yalniz ADAY_BULUCU=blastn verildiginde
+# INPUT  : the bin consensus (the query) and a BLAST indexed database under
+#          REFERANS_DB (the .nin/.nhr/.nsq files already exist)
+# OUTPUT : [(header, sequence), ...], the records where blastn found a meaningful
+#          hit
+# CALLED BY: verification/identity_verification.py and all_bin_identities.py, only
+#          when ADAY_BULUCU=blastn is given
 #
-# NEDEN BU SECENEK EN GUCLU - VE NEDEN DAHA ONCE DUSUNULMEDI
-# Bu projede kendi tohum + hizalama hattimizi yazdik. Ama blastn tam olarak bu
-# is icin tasarlanmis, otuz yildir sinaniyor ve siralamayi BIT SKORU ile
-# yapiyor: eslesme uzunlugu, kimlik ve bosluk cezasi birlikte hesaba giriyor,
-# ayrica e-degeri veritabani boyutuna gore duzeltiliyor. Bizim tohum sayimiz
-# ise kimligin KOTU BIR VEKILIDIR - uzun ve korunmus bir kayit, alakasiz oldugu
-# halde cok tohum toplar.
+# WHY THIS OPTION IS THE STRONGEST, AND WHY IT WAS NOT THOUGHT OF EARLIER
+# In this project we wrote our own seed plus alignment pipeline. But blastn was
+# designed for exactly this job, it has been tested for thirty years, and it ranks
+# by BIT SCORE: the match length, the identity and the gap penalty all enter the
+# calculation together, and the e-value is corrected for the database size. Our own
+# seed count, by contrast, IS A POOR PROXY for identity: a long and conserved
+# record collects many seeds while being irrelevant.
 #
-# Daha da onemlisi: blastn BU KLASORDE ZATEN KULLANILIYOR. Kuresel ozgulluk
-# katmani onunla kosuldu ve REFERANS_DB altinda dokuz veritabaninin BLAST
-# indeksi (.nin) hazir duruyor. Yani hazir, indeksli ve sinanmis bir araci
-# yanimizda tutarken kendi hattimizi yazmisiz. Bu, projenin kendi kuralina
-# aykiridir: once eldeki olculmus araca bakilir.
+# More to the point: blastn IS ALREADY USED IN THIS DIRECTORY. The global
+# specificity layer was run with it and the BLAST index (.nin) of nine databases
+# sits ready under REFERANS_DB. So we wrote our own pipeline while a ready, indexed
+# and tested tool was at hand. That goes against the project's own rule: look at
+# the measured tool you already have first.
 #
-# KISA LISTE SORUNU NASIL COZULUR
-# Bizim yolda adaylar tohum sayisina gore siralanip ilk N alinir; olculdu ki
-# kazanan bir sorguda 4171. siradan geldi. blastn'de "ilk N" diye bir on eleme
-# yoktur; e-deger esigini gecen HER kayit doner. Kesme noktasi, keyfi bir sira
-# sayisi degil ISTATISTIKSEL BIR ESIKTIR ve raporlanabilir.
+# HOW IT SOLVES THE SHORT LIST PROBLEM
+# On our route the candidates are ranked by seed count and the first N are taken;
+# it was measured that on one query the winner came from position 4171. In blastn
+# there is no "first N" prefilter; EVERY record passing the e-value threshold comes
+# back. The cut off is A STATISTICAL THRESHOLD rather than an arbitrary rank, and it
+# can be reported.
 #
-# NEREDE KULLANILMAZ
-# Primer baglanma aramasi ve in-siliko PCR. blastn de kisa sorgularda tohum
-# ayarina baglidir ve kayipsizlik GARANTISI vermez; oralarda guvercin yuvasi
-# motoru kalir.
+# WHERE IT IS NOT USED
+# The primer binding search and in-silico PCR. blastn depends on its seed setting
+# on short queries too and gives NO GUARANTEE of losslessness; the pigeonhole
+# engine stays there.
 #
-# GUVENLIK: blastn yoksa var_mi() False doner ve cagiran taraf mevcut kisa
-# liste yoluna devam eder. Zincir kirilmaz.
-# ---------------------------------------------------------------------------
+# SAFETY: if blastn is missing, var_mi() returns False and the caller carries on
+# with the existing short list route. The chain does not break.
+# -------------------------------------------------------------------------
 
 from __future__ import print_function
 import os
@@ -58,7 +61,7 @@ _SURUM = u''
 
 
 def var_mi():
-    """blastn calisir durumda mi. Bir kez olcer."""
+    """Is blastn in working order. It measures once."""
     global _DENENDI, _VAR, _SEBEP, _SURUM
     if _DENENDI:
         return _VAR
@@ -92,24 +95,26 @@ def surum():
 
 
 def indeks_var_mi(fasta_yolu):
-    """Veritabaninin BLAST indeksi kurulu mu.
+    """Is the database's BLAST index built.
 
-    Indeks yoksa makeblastdb ile kurulabilir ama bu DAKIKALAR surer ve
-    kendiliginden yapilmaz: kullanicinin haberi olmadan gigabaytlik indeks
-    uretmek dogru olmaz. Bunun yerine False donulur ve cagiran taraf eski
-    yola duser.
+    If the index is missing it can be built with makeblastdb, but that takes MINUTES
+    and is not done by itself: producing a gigabyte sized index without the user
+    knowing would not be right. False is returned instead and the caller falls back on
+    the old route.
+
     """
     return os.path.exists(fasta_yolu + '.nin') or os.path.exists(fasta_yolu + '.nal')
 
 
 def adaylar(q, fasta_yolu, e_deger=1e-5, en_fazla=5000, iplik=3):
-    """blastn ile aday kayitlari bulur.
+    """Finds candidate records with blastn.
 
-    Doner: [(baslik, dizi), ...] ya da None (blastn/indeks yoksa).
-    None ile bos liste AYRI SEYLERDIR:
-      None -> arac ya da indeks yok, ESKI YOLA DUS
-      []   -> blastn kostu ve hicbir kayit esigi gecmedi
-    Bu ayrim karistirilirsa bir veritabani sessizce atlanir.
+    Returns: [(header, sequence), ...] or None (when blastn or the index is missing).
+    None and an empty list ARE DIFFERENT THINGS:
+      None -> the tool or the index is missing, FALL BACK ON THE OLD ROUTE
+      []   -> blastn ran and no record passed the threshold
+    Confuse the two and a database is skipped silently.
+
     """
     if not var_mi() or not indeks_var_mi(fasta_yolu):
         return None
@@ -122,9 +127,9 @@ def adaylar(q, fasta_yolu, e_deger=1e-5, en_fazla=5000, iplik=3):
                  '-evalue', str(e_deger),
                  '-max_target_seqs', str(en_fazla),
                  '-num_threads', str(iplik),
-                 # dc-megablast: uzak akrabalari da bulur. megablast yakin
-                 # eslesmeler icin hizlidir ama %90 altini kacirir; bizim
-                 # kutularin bir kismi referanslara %85 civarinda benziyor.
+                 # dc-megablast: it finds distant relatives too. megablast is fast
+                 # for close matches but misses anything under 90 percent; some of
+                 # our bins resemble the references at around 85 percent.
                  '-task', 'dc-megablast']
         p = subprocess.Popen(komut, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cikti, hata = p.communicate()
@@ -150,7 +155,7 @@ def adaylar(q, fasta_yolu, e_deger=1e-5, en_fazla=5000, iplik=3):
 
 
 def _dizileri_cek(fasta_yolu, idler):
-    """blastdbcmd ile dizileri toplu ceker. Tek tek cekmek cok yavas olurdu."""
+    """Pulls the sequences in bulk with blastdbcmd. Pulling them one at a time would be far too slow."""
     fd, liste = tempfile.mkstemp(suffix='.txt', prefix='blid_')
     try:
         with os.fdopen(fd, 'w') as fh:

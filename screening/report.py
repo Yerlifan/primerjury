@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Cikti: makine icin TSV, insan icin okunabilir Markdown raporu.
+"""The output: TSV for a machine, a readable Markdown report for a person.
 
-Raporun cevaplamasi gereken soru:
-  "Bu hedef icin hangi parametre ayarinda cozum var, yok mu, varsa bedeli ne?"
+The question the report has to answer:
+  "For this target, under which parameter setting is there a solution, is there
+  none, and if there is, what does it cost?"
+
 """
-# ---------------------------------------------------------------------------
-# report.py — arama sonuclarini makine icin TSV, insan icin Markdown olarak
-#            yazar; her hedef icin tek paragraflik bir karar cumlesi uretir.
+# -------------------------------------------------------------------------
+# report.py writes the search results as TSV for a machine and as Markdown for a
+#            person; for each target it produces a one paragraph decision sentence.
 #
-# GIRDI  : kontrol.hepsi()'nin diskten okudugu kontrol/hedef_*.json sonuclari
-#          (her biri __main__.hedefi_isle'nin dondurdugu sozluk: taban olcumu,
-#          izgara tablosu, aday listesi, kuresel tarama sonucu);
-#          hedefler.panel_oku()'nun verdigi panel satirlari ve panel yolu.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/adaylar.tsv, parametre_izgarasi.tsv ve
-#          KAPSAMLI_ARAMA_RAPORU.md. uret() bu uc yolun listesini dondurur.
-# CAGRAN : __main__.aramayi_kos icinden - her hedef bittikten sonra bir kez
-#          (sessiz) ve kosunun sonunda bir kez daha. Yani verification/full_chain.py
-#          tuslari 1, 2, 3, 7 ve 9 (icindeki 7. asama) uzerinden calisir.
-# ---------------------------------------------------------------------------
+# INPUT  : the kontrol/hedef_*.json results kontrol.hepsi() reads from disk (each
+#          one is the dictionary __main__.hedefi_isle returns: the baseline
+#          measurement, the grid table, the candidate list, the global scan result);
+#          the panel rows and the panel path hedefler.panel_oku() gives.
+# OUTPUT : KAPSAMLI_ARAMA_SONUC/adaylar.tsv, parametre_izgarasi.tsv and
+#          KAPSAMLI_ARAMA_RAPORU.md. uret() returns the list of those three paths.
+# CALLED BY: inside __main__.aramayi_kos, once after each target finishes (quietly)
+#          and once more at the end of the run. So it runs through
+#          verification/full_chain.py keys 1, 2, 3, 7 and 9 (the 7th stage inside
+#          it).
+# -------------------------------------------------------------------------
 import os, time, csv
 from . import config as C
 
@@ -135,19 +138,20 @@ def _taban(s):
 
 
 def _hedef_karari(s):
-    """'Cozum var mi, varsa bedeli ne' - tek paragraflik cevap uretir."""
-    # Karar UC basamaklidir ve sirasi onemlidir. Once TABAN yazilir: paneldeki
-    # mevcut cift ayni motorla, ayni kutularda olculmus degeridir; aday ancak
-    # bunu geciyorsa "daha iyi" sayilabilir. Ikinci basamak, adayin mevcut cifti
-    # gecip gecmedigidir. Ucuncusu, gecse bile 10x esigini asip asmadigidir -
-    # "daha iyi" ile "yeterli" ayni sey degildir, taban 0,19x iken 1,04x'e cikan
-    # bir aday daha iyidir ama hala kullanilamaz.
+    """'Is there a solution, and if so what does it cost' - it produces a one paragraph answer."""
+    # The decision has THREE steps and their order matters. THE BASELINE is written
+    # first: the value of the panel's current pair measured with the same engine on the
+    # same bins; a candidate can count as "better" only if it beats that. The second
+    # step is whether the candidate beat the current pair. The third is whether, even
+    # having beaten it, it passes the 10x threshold: "better" and "enough" are not the
+    # same thing, and a candidate that rises to 1.04x from a baseline of 0.19x is
+    # better and still unusable.
     #
-    # BEDEL listesi bilerek karar cumlesine baglanir: bir aday esigi gecse bile
-    # urun boyu 250 bp'yi asiyorsa, 60 C'de kosulamiyorsa, kasitli uyumsuzluk
-    # (ARMS) gerektiriyorsa ya da ancak gevsetilmis bir izgara hucresinde
-    # hayattaysa bu bilgi sayinin yaninda durmalidir. Aksi halde rapor "cozum
-    # var" der ve bedeli okunmadan siparise gidilir.
+    # The COST list is deliberately tied to the decision sentence: even if a candidate
+    # passes the threshold, if its product length goes over 250 bp, if it cannot be run
+    # at 60 C, if it needs a deliberate mismatch (ARMS), or if it survives only in a
+    # relaxed grid cell, that has to stand beside the number. Otherwise the report says
+    # "there is a solution" and the order is placed without the cost being read.
     ad = s.get('adaylar', [])
     if s.get('durum') != 'TAMAMLANDI':
         return s.get('durum', 'bilinmiyor'), ''
