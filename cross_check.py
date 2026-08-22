@@ -1615,10 +1615,10 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                 ad = u'%s sp.' % cins
             else:
                 duzey = u'AILE ve USTU (ad VERILEMEZ)'
-                ad = u'adlandirilamayan soy'
-            gerekce = u'%s | AYIRT EDILEBILIRLIK: %s' % (gerekce, ay['sebep'])
+                ad = u'an unnameable lineage'
+            gerekce = u'%s | SEPARABILITY: %s' % (gerekce, ay['sebep'])
         else:
-            gerekce = u'%s | AYIRT EDILEBILIRLIK: %s' % (gerekce, ay['sebep'])
+            gerekce = u'%s | SEPARABILITY: %s' % (gerekce, ay['sebep'])
 
         # --- how many independent databases gave the same GENUS as their best hit
         # vtb_en_iyi above was computed with THE SAME rule as en_iyi.
@@ -1713,7 +1713,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
             t_hazirlik = olc_hazirlik * n_kutu_tam
             t_tarama = toplam_mb / max(0.01, orta_mbsn)
             t_hizalama = orta_hiz * n_kutu_tam * len(tum_vtb)
-            rap.olcum[u'M1 TAM TARAMA TAHMINI'] = (
+            rap.olcum[u'M1 FULL SCAN ESTIMATE'] = (
                 u'~%s  =  preparation %s (%s s per bin x %d bins) + scanning %s '
                 u'(%s MB / %s MB/s) + alignment %s (%s s per bin and database x %d '
                 u'bins x %d databases). How it scales: preparation with the number '
@@ -1730,7 +1730,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
                    u'plus a small overhead per query).' % (len(kutular), n_kutu_tam)
                    if len(kutular) < n_kutu_tam else u''))
         else:
-            rap.olcum[u'M1 TAM TARAMA TAHMINI'] = (
+            rap.olcum[u'M1 FULL SCAN ESTIMATE'] = (
                 u'not measured, because one of the parts an estimate needs was not '
                 u'measured in this run (preparation, scanning or alignment)')
     except (OSError, TypeError, ZeroDivisionError) as e:
@@ -2341,7 +2341,7 @@ def modul_5_desenler(kay, rap):
                          u'%s: the "%s" layer did not run ("%s") but these fields say 0: %s' % (h, katman, cumle, u', '.join(alanlar)),
                          u'%s (row %s)' % (kay.nihai_siparis, r.get('_satir')),
                          u'0 reads as "no off target was found"; what it means is "it was not looked at".')
-        rap.olcum[u'M5 D1 taranan katman alani'] = u'%d' % bakilan
+        rap.olcum[u'M5 P1 layer fields scanned'] = u'%d' % bakilan
         if bakilan == 0:
             rap.atla(M, u'M5-D1', u'the silent zero scan',
                      u'no numeric field carrying a layer prefix was found',
@@ -2419,7 +2419,7 @@ def modul_5_desenler(kay, rap):
         rap.atla(M, u'M5-D3', u'the masked exit code scan',
                  u'no code file to scan was found', u'; '.join(kay.kod_klasorleri))
     else:
-        rap.olcum[u'M5 D3 taranan kod dosyasi'] = u'%d' % tarandi
+        rap.olcum[u'M5 P3 code files scanned'] = u'%d' % tarandi
 
     # ---- DESEN 4: BAYAT KONTROL NOKTASI ------------------------------
     kn_klasorleri = [d for d in glob.glob(os.path.join(kay.kok, u'*', u'kontrol'))
@@ -3214,14 +3214,14 @@ def _sinama_kok_kur(gecici, kay):
       u'Hedef_A\tGECER\tGECER\t5,00\t1\t4,30\tGECER\tEVET\n'
       u'Hedef_B\tKALIR\tKALIR\t4,00\t1\t4,30\tKALIR\tEVET\n')
     d(y('HEDEF_DISI_AYRINTI_2026-08-07.tsv'),
-      u'hedef\ttaxid\tnot\nHedef_A\t777\tbaska organizma\n')
+      u'hedef\ttaxid\tnot\nHedef_A\t777\tanother organism\n')
     # --- literatur ve toplanti
     d(y('LITERATUR_2026-08-07.md'),
-      u'# Literatur\n\ngerekli dCq >= log2(R) + 4,3 ve taban 3,32 olmali.\n')
+      u'# Literature\n\nThe rule: gerekli dCq >= log2(R) + 4,3 with a floor of 3,32.\n')
     d(y('TOPLANTI_KARARLARI_SON_DURUM.md'),
-      u'## Karar 1\n\n| Istenen tur | Durum |\n|---|---|\n'
-      u'| *Taxon A* | Var, siparis edilir |\n'
-      u'| *Taxon C* | **Yapilamadi.** Tur numunede yok |\n')
+      u'## Decision 1\n\n| Requested species | Status |\n|---|---|\n'
+      u'| *Taxon A* | Present, it is ordered |\n'
+      u'| *Taxon C* | **Not achieved.** The species is not in the sample |\n')
     # --- the consensus index and its file
     d(y('konsensus_kanonik', 'A-1_111.kanonik.fa'), u'>x\n%s\n' % (u'ACGT' * 200))
     d(y('konsensus_kanonik', 'INDEKS.tsv'),
