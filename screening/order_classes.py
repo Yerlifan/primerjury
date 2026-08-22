@@ -223,7 +223,7 @@ def kaynak_sutun_basliklari():
 
 
 def kaynak_sutunlari_kutu(d):
-    """G asamasinin BIR KUTU satirindan kaynak sutunlarini uretir."""
+    """Produces the source columns from ONE BIN row of stage G."""
     if not d:
         return ['-'] * 5
     kazanan = (d.get('en_iyi_vtb') or '-').strip()
@@ -260,7 +260,7 @@ def kaynak_sutunlari_kutu(d):
 
 
 def kaynak_tablosu(kok):
-    """hedef -> kaynak sutunlari (uye kutularin EN IYI kimligini veren satirdan)."""
+    """target -> the source columns (from the row giving the BEST identity among the member bins)."""
     yol = os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')
     if not os.path.exists(yol):
         return {}
