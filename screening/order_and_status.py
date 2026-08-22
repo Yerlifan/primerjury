@@ -36,57 +36,93 @@ import openpyxl
 # the panel row -> (decision, requested target); decisions 1 to 4 are the targets
 # REQUESTED at the meeting
 KARAR_ESLEME = {
-    22: ('Karar 1 - tur ozgul', 'Methanosarcina mazei'),
-    21: ('Karar 1 - tur ozgul', 'Methanothrix soehngenii'),
-    10: ('Karar 2 - cins ozgul', 'Proteiniphilum'),
-    4:  ('Karar 2 - cins ozgul', 'Petrimonas'),
-    5:  ('Karar 3 - islev/ekolojik grup', 'Hidrojenotrofik metanojenler'),
-    16: ('Karar 3 - islev/ekolojik grup', 'Asetoklastik metanojenler'),
-    8:  ('Karar 3 - islev/ekolojik grup', 'Metilotrofik metanojen'),
-    9:  ('Karar 3 - islev/ekolojik grup', 'Nitrosocosmicus AOA'),
-    15: ('Karar 3 - islev/ekolojik grup', 'Sakarolitik bakteriler'),
-    11: ('Karar 3 - islev/ekolojik grup', 'Proteolitik / sintrofik bakteriler'),
-    19: ('Karar 3 - islev/ekolojik grup', 'Proteolitik / sintrofik bakteriler'),
-    20: ('Karar 4 - alan / evrensel', 'Arke universal'),
-    17: ('Karar 4 - alan / evrensel', 'Bakteri universal'),
-    6:  ('Karar 4 - alan / evrensel', 'Mantar universal (F1)'),
-    13: ('Karar 4 - alan / evrensel', 'Mantar universal (F2)'),
-    2:  ('Karar 4 - alan / evrensel', 'Universal metanojen'),
-    12: ('Karar 5 - olcumden turetilen', 'Bacteroidales kumesi'),
-    7:  ('Karar 5 - olcumden turetilen', 'Methanosarcina cinsi'),
-    3:  ('Karar 5 - olcumden turetilen', 'Methanothrix cinsi'),
-    14: ('Karar 5 - olcumden turetilen', 'Microascaceae askomikot'),
-    18: ('Karar 5 - olcumden turetilen', 'Petriella musispora'),
+    22: ('Decision 1, species specific', 'Methanosarcina mazei'),
+    21: ('Decision 1, species specific', 'Methanothrix soehngenii'),
+    10: ('Decision 2, genus specific', 'Proteiniphilum'),
+    4:  ('Decision 2, genus specific', 'Petrimonas'),
+    5:  ('Decision 3, a functional or ecological group', 'Hidrojenotrofik metanojenler'),
+    16: ('Decision 3, a functional or ecological group', 'Asetoklastik metanojenler'),
+    8:  ('Decision 3, a functional or ecological group', 'Metilotrofik metanojen'),
+    9:  ('Decision 3, a functional or ecological group', 'Nitrosocosmicus AOA'),
+    15: ('Decision 3, a functional or ecological group', 'Sakarolitik bakteriler'),
+    11: ('Decision 3, a functional or ecological group', 'Proteolitik / sintrofik bakteriler'),
+    19: ('Decision 3, a functional or ecological group', 'Proteolitik / sintrofik bakteriler'),
+    20: ('Decision 4, domain and universal', 'Arke universal'),
+    17: ('Decision 4, domain and universal', 'Bakteri universal'),
+    6:  ('Decision 4, domain and universal', 'Mantar universal (F1)'),
+    13: ('Decision 4, domain and universal', 'Mantar universal (F2)'),
+    2:  ('Decision 4, domain and universal', 'Universal metanojen'),
+    12: ('Decision 5, derived from a measurement', 'Bacteroidales kumesi'),
+    7:  ('Decision 5, derived from a measurement', 'Methanosarcina cinsi'),
+    3:  ('Decision 5, derived from a measurement', 'Methanothrix cinsi'),
+    14: ('Decision 5, derived from a measurement', 'Microascaceae askomikot'),
+    18: ('Decision 5, derived from a measurement', 'Petriella musispora'),
 }
 
 # targets REQUESTED at the meeting for which no pair could be given at all (no panel row)
 YAPILAMIYOR = [
- ('Karar 1 - tur ozgul', 'Methanosarcina barkeri',
-  'Organizma numunede yok: 2208 kutusunun en yakin referansi M. vacuolata %97,4-97,9 - tur esiginin altinda. Yerine CINS duzeyi verildi (Methanosarcina_cinsi).'),
- ('Karar 1 - tur ozgul', 'Podospora pseudopauciseta',
-  'Organizma numunede yok: bes referans ciftinden ucu F1 sinifinin 85 804 okumasinin tamaminda 0 urun verdi.'),
- ('Karar 1 - tur ozgul', 'Dictyostelium discoideum (44689)',
-  'Kraken2 etiketi olcumle curutuldu: SILVA LSU 28S D1-D2 testinde D. discoideum skoru 195, rastgele bir mantar 480. Kutu heterojen (dort barkod birbirine %70-76).'),
- ('Karar 1 - tur ozgul', 'Trichoderma asperellum (101201)',
-  'Kutudaki organizma Trichoderma degil: ITS Petriella/Microascaceae veriyor. Tasarlanan cift panelden cikarildi (ayrim 0,7x).'),
- ('Karar 2 - cins ozgul', 'Bacteroides',
-  'Cins numunede yok: bes kutunun en iyi Bacteroidales eslesmesi %84,6-85,9, 16S cins esigi ~%94-95. Yerine adlandirilamayan Bacteroidales soyu icin kume cifti verildi.'),
- ('Karar 2 - cins ozgul', 'Alistipes',
-  'Bacteroides ile AYNI organizma (kutular birbirine %95,3-96,8 benziyor); Bacteroidales_kumesi altinda birlestirildi.'),
- ('Karar 3 - islev/ekolojik grup', 'Trichoderma cinsi',
-  'Hedef numunede var ama cins degil: olculen kimlik Petriella/Microascaceae. Cift panelden cikarildi (ayrim 0,7x).'),
+ ('Decision 1, species specific', 'Methanosarcina barkeri',
+  'The organism is not in the sample: the nearest reference of the 2208 bin '
+  'is M. vacuolata at 97.4 to 97.9 per cent, below the species threshold. '
+  'GENUS level was given instead, as Methanosarcina_cinsi.'),
+ ('Decision 1, species specific', 'Podospora pseudopauciseta',
+  'The organism is not in the sample: three of the five reference pairs gave '
+  '0 products across all 85,804 reads of the F1 class.'),
+ ('Decision 1, species specific', 'Dictyostelium discoideum (44689)',
+  'The Kraken2 label was refuted by measurement: in the SILVA LSU 28S D1-D2 '
+  'test D. discoideum scores 195 while a random fungus scores 480. The bin is '
+  'heterogeneous, with the four barcodes 70 to 76 per cent similar to one '
+  'another.'),
+ ('Decision 1, species specific', 'Trichoderma asperellum (101201)',
+  'The organism in the bin is not Trichoderma: ITS gives Petriella and '
+  'Microascaceae. The pair designed for it was taken out of the panel, with a '
+  'separation of 0.7x.'),
+ ('Decision 2, genus specific', 'Bacteroides',
+  'The genus is not in the sample: the best Bacteroidales match of the five '
+  'bins is 84.6 to 85.9 per cent against a 16S genus threshold of about 94 to '
+  '95 per cent. A set pair for the unnameable Bacteroidales lineage was given '
+  'instead.'),
+ ('Decision 2, genus specific', 'Alistipes',
+  'THE SAME organism as Bacteroides, with the bins 95.3 to 96.8 per cent '
+  'similar to one another; they were merged under Bacteroidales_kumesi.'),
+ ('Decision 3, a functional or ecological group', 'Trichoderma cinsi',
+  'The target is in the sample but not the genus: the measured identity is '
+  'Petriella and Microascaceae. The pair was taken out of the panel, with a '
+  'separation of 0.7x.'),
 ]
 
 # the PARTLY reasons (there IS a panel row but the requested level could not be given)
 KISMEN_NOT = {
- 15: 'Toplanti "sakarolitik bakteriler" grubunu istedi; grup capinda cift bulunamadi. Verilen: UYE BAZLI tek cins cifti (Sphaerochaeta associata). Grubun diger uyeleri kapsanmiyor.',
- 11: 'Toplanti "proteolitik/sintrofik bakteriler" grubunu istedi; grup capinda cift yok. Verilen: uye bazli iki ayri cift (Synergistaceae soyu + Cloacimonas cinsi). Hedef adi olculen kimlige cekildi - numunedeki organizma Cloacibacillus degil, adlandirilamayan Synergistaceae (%99,39; Cloacibacillus %90,02, cins esigi %94,5).',
- 19: 'Ayni grubun ikinci uyesi. Bkz. Proteolitik_Synergistaceae satiri.',
- 2:  'Kapsam TAM DEGIL: 34 metanojen kutusunun 33\'u cogaliyor. Ca. Methanomassiliicoccus kutusu bu ciftle cogalmiyor, onu Metilotrofik_metanojen cifti kapsiyor.',
- 21: 'TUR duzeyi verildi ama KOSULLU: amplikon dizilemesi sarti var. Capraz vurusun 52\'si ayni ailedeki diger Methanothrix kayitlari - erime egrisi ayirmiyor.',
- 22: 'TUR GRUBU verildi (M. mazei / M. soligelidi ayrilamiyor). OKUMA MOTORU DUZELTMESI SONRASI ESIK ALTI: en kotu tek kutu 0,82x. M. hadiensis kutusu hedef kadar iyi cogaliyor (%47,22). YENIDEN KARAR GEREKIYOR.',
- 12: 'Toplantinin istedigi Bacteroides/Alistipes cinsleri numunede yok; yerine adlandirilamayan Bacteroidales SOYU icin kume cifti verildi. Ayrim 5,9x - 10x esiginin ALTINDA, teslim kosullu.',
- 4:  'Cins OZGUL ama cins KAPSAMLI DEGIL: dogrulanmis P. sulfuriphila kutusu %57,0; Petrimonas kutularinin tamami kapsanmiyor.',
+ 15: 'A saccharolytic bacteria group was asked for and no pair was found '
+     'across the group. What was given: a single genus pair BASED ON ONE '
+     'MEMBER, Sphaerochaeta associata. The other members of the group are not '
+     'covered.',
+ 11: 'A proteolytic and syntrophic bacteria group was asked for and there is '
+     'no pair across the group. What was given: two separate member based '
+     'pairs, one for the Synergistaceae lineage and one for the Cloacimonas '
+     'genus. The target name was pulled onto the measured identity, because '
+     'the organism in the sample is not Cloacibacillus but an unnameable '
+     'Synergistaceae at 99.39 per cent, against Cloacibacillus at 90.02 per '
+     'cent and a genus threshold of 94.5 per cent.',
+ 19: 'The second member of the same group. See the Proteolitik_Synergistaceae '
+     'row.',
+ 2:  'The coverage IS NOT COMPLETE: 33 of the 34 methanogen bins are '
+     'amplified. The Ca. Methanomassiliicoccus bin is not amplified by this '
+     'pair and is covered by the methylotrophic methanogen pair instead.',
+ 21: 'SPECIES level was given but CONDITIONALLY: amplicon sequencing is '
+     'required. 52 of the cross hits are other Methanothrix records in the '
+     'same family, which a melting curve does not separate.',
+ 22: 'A SPECIES GROUP was given, because M. mazei and M. soligelidi do not '
+     'separate. BELOW THE THRESHOLD after the read engine fix: the worst '
+     'single bin is 0.82x. The M. hadiensis bin is amplified as well as the '
+     'target, at 47.22 per cent. A NEW DECISION IS NEEDED.',
+ 12: 'The Bacteroides and Alistipes genera that were asked for are not in the '
+     'sample; a set pair for the unnameable Bacteroidales LINEAGE was given '
+     'instead. The separation is 5.9x, BELOW the tenfold threshold, so the '
+     'delivery is conditional.',
+ 4:  'It is genus SPECIFIC but does NOT COVER the genus: the confirmed P. '
+     'sulfuriphila bin is at 57.0 per cent and not all the Petrimonas bins '
+     'are covered.',
 }
 
 
@@ -195,17 +231,17 @@ def main():
     BAS = ['#', 'Hedef', 'Duzey', 'Plaka', 'Ta (C)',
            "Ileri primer (5'->3')", 'Ileri uz', 'Ileri Tm',
            "Geri primer (5'->3')", 'Geri uz', 'Geri Tm',
-           'Urun (bp)', 'Urun boyu araligi (numunede)', 'Siparis notu']
+           'Urun (bp)', 'The product length range, in the sample', 'Siparis notu']
     with open(syol, 'w', encoding='utf-8', newline='') as fh:
         w = csv.writer(fh, delimiter='\t')
-        w.writerow(['# SIPARIS YALNIZ BU DOSYADAN VERILIR.'])
-        w.writerow(['# Kaynak: %s ("2 Panel"), md5 %s' % (os.path.basename(xy), ozet)])
-        w.writerow(['# Uretim: %s | Bu dosyada YALNIZ siparis edilecek %d cift vardir. '
-                    'Siparis edilmeyecek satir yoktur.'
+        w.writerow(['# THE ORDER IS PLACED FROM THIS FILE ALONE.'])
+        w.writerow(['# The source: %s, the panel sheet, md5 %s' % (os.path.basename(xy), ozet)])
+        w.writerow(['# Produced: %s | This file holds ONLY the %d pairs to be '
+                    'ordered. There is no row that is not ordered.'
                     % (ETIKET[:4] + '-' + ETIKET[4:6] + '-' + ETIKET[6:], len(sip))])
-        w.writerow(['# Panelden cikarilan ve siparis EDILMEYECEK ciftler: %s'
+        w.writerow(['# Pairs taken out of the panel that will NOT be ordered: %s'
                     % ', '.join(r['hedef'] for r in hayir)])
-        w.writerow(['# Toplam oligo: %d (her cift 2 oligo, dejenere baz YOK - toplanti karari).'
+        w.writerow(['# Oligos in total: %d. Each pair is 2 oligos and there is NO degenerate base, which is what the decision required.'
                     % (2 * len(sip))])
         w.writerow([])
         w.writerow(BAS)

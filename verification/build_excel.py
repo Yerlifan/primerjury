@@ -106,8 +106,71 @@ def _terminal_ad(baslik):
         return y2[:60]
     return ''
 
+# The column labels below are ALSO dictionary keys, and some of them are keys of
+# the source TSV files the rows are read from. Renaming them would be a schema
+# change, so the internal label stays and only the HEADER a person reads is
+# translated here. The same pattern as screening/labels.py.
+BASLIK_EN = {
+    '4 katman hukmu':              'four layer verdict',
+    'EN YUKSEK YUZDELI TUR ADAYI': 'HIGHEST SCORING SPECIES CANDIDATE',
+    'Kraken etiketi':              'Kraken label',
+    'R (bolluk orani)':            'R (the abundance ratio)',
+    'R bayat mi':                  'is R stale',
+    'ad degisti mi':               'did the name change',
+    'ad kaynagi':                  'where the name came from',
+    'adli hedef disi (siki)':      'named off target (strict)',
+    'adsiz cevre klonu':           'unnamed environmental clone',
+    'ayrim (x)':                   'separation (x)',
+    'ayrinti':                     'detail',
+    'bolluk kurali':               'the abundance rule',
+    'bulgu':                       'finding',
+    'durum':                       'state',
+    'duz esik (3,00)':             'flat threshold (3.00)',
+    'en iyi isabet':               'best hit',
+    'gerekli dCq':                 'required dCq',
+    'geri primer':                 'reverse primer',
+    'gevsek kural (eski sayim)':   'loose rule (the old count)',
+    'hedef':                       'target',
+    'iki kural ayrisiyor mu':      'do the two rules disagree',
+    'ikinci aday':                 'second candidate',
+    'ileri primer':                'forward primer',
+    'istenen':                     'requested',
+    'istenen duzey':               'level requested',
+    'kapsam':                      'coverage',
+    'karar':                       'decision',
+    'kimlik %':                    'identity %',
+    'kural ihlali':                'rule broken',
+    'kutu':                        'bin',
+    'lokus':                       'locus',
+    'marj':                        'margin',
+    'neden tur adi verilmedi':     'why no species name was given',
+    'not':                         'note',
+    'olculen duzey':               'measured level',
+    'olculen kimlik':              'measured identity',
+    'oligo adi':                   'oligo name',
+    'onem':                        'importance',
+    'onerilen ad':                 'proposed name',
+    'ornek adli hedef disi':       'example named off target',
+    'paneldeki karsiligi':         'its counterpart in the panel',
+    'plaka':                       'plate',
+    'savunulabilir duzey':         'defensible level',
+    'sinif':                       'class',
+    'siparis sarti':               'order condition',
+    'su an yazan ad':              'the name written now',
+    'toplam urun':                 'products in total',
+    'tur esigi':                   'species threshold',
+    'urun (bp)':                   'product (bp)',
+    'uyesi oldugu hedefler':       'the targets it is a member of',
+    'uz F':                        'len F',
+    'uz R':                        'len R',
+    'uzunluk':                     'length',
+    'veritabani':                  'database',
+    'yon':                         'orientation',
+}
+
+
 def sayfa(wb, ad, basliklar, satirlar, genislik=None, notlar=None, renk=None):
-    """Bir sayfa yazar. renk(satir_sozlugu) -> PatternFill ya da None."""
+    """Writes one sheet. renk(row_dict) returns a PatternFill or None."""
     ws = wb.create_sheet(ad[:31])
     r = 1
     if notlar:
@@ -123,7 +186,7 @@ def sayfa(wb, ad, basliklar, satirlar, genislik=None, notlar=None, renk=None):
         r += 1
     bas_satir = r
     for j, b in enumerate(basliklar, start=1):
-        c = ws.cell(row=r, column=j, value=b)
+        c = ws.cell(row=r, column=j, value=BASLIK_EN.get(b, b))
         c.font = Font(bold=True, color='FFFFFF')
         c.fill = BASLIK
         c.alignment = Alignment(wrap_text=True, vertical='center')
@@ -159,29 +222,29 @@ def main():
     # ---------------- kaynaklar ----------------
     panel_yolu = T('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     kaynaklar = {
-        'panel (diziler, plaka, Ta)': panel_yolu,
-        'siparis listesi (hukum)': T('ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'),
-        'panel olcumu (dCq, kapsam)': T('ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'),
-        'geometri (primer3)': None,     # the newest one is chosen below
-        'kutu kimlikleri': T('ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv'),
-        'dogrulama (4 katman)': T('VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'),
-        'NCBI 4. katman (siki)': T('VERIFICATION_RESULT', 'ncbi_katman4_siki.tsv'),
-        'iki esik kurali': T('ESIK_IKI_KURAL.tsv'),
-        'toplanti durumu': T('toplanti_durumu.tsv'),
+        'the panel (sequences, plate, Ta)': panel_yolu,
+        'the order list (the verdict)': T('ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'),
+        'the panel measurement (dCq, coverage)': T('ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'),
+        'the geometry (primer3)': None,     # the newest one is chosen below
+        'the bin identities': T('ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv'),
+        'the verification (four layers)': T('VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'),
+        'NCBI layer 4 (strict)': T('VERIFICATION_RESULT', 'ncbi_katman4_siki.tsv'),
+        'the two threshold rules': T('ESIK_IKI_KURAL.tsv'),
+        'the state of the requests': T('toplanti_durumu.tsv'),
     }
     import glob
     gl = sorted(glob.glob(T('primer_final', 'geometri_denetimi_2026*.tsv')),
                 key=os.path.getmtime)
-    kaynaklar['geometri (primer3)'] = gl[-1] if gl else None
+    kaynaklar['the geometry (primer3)'] = gl[-1] if gl else None
 
-    SL = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['siparis listesi (hukum)'])}
-    PM = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['panel olcumu (dCq, kapsam)'])}
-    DG = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['dogrulama (4 katman)'])}
-    NC = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['NCBI 4. katman (siki)'])}
-    ES = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['iki esik kurali'])}
-    TP = _tsv(kaynaklar['toplanti durumu'])
+    SL = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['the order list (the verdict)'])}
+    PM = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['the panel measurement (dCq, coverage)'])}
+    DG = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['the verification (four layers)'])}
+    NC = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['NCBI layer 4 (strict)'])}
+    ES = {(r.get('hedef') or '').strip(): r for r in _tsv(kaynaklar['the two threshold rules'])}
+    TP = _tsv(kaynaklar['the state of the requests'])
     GEO = {}
-    for r in _tsv(kaynaklar['geometri (primer3)'] or ''):
+    for r in _tsv(kaynaklar['the geometry (primer3)'] or ''):
         if (r.get('Primer') or '') in ('Ileri', 'Geri'):
             GEO.setdefault((r.get('Hedef') or '').strip(), {})[r['Primer']] = r
 
@@ -224,22 +287,24 @@ def main():
     # ================= 0 OKU =================
     ws = wb.create_sheet('0 OKU')
     metin = [
-        ('PrimerJury qPCR paneli - tek dogru dosya', 16, True),
-        ('Uretim: %s' % time.strftime('%d.%m.%Y %H:%M'), 11, False),
+        ('The PrimerJury qPCR panel: the one file to go by', 16, True),
+        ('Produced: %s' % time.strftime('%d.%m.%Y %H:%M'), 11, False),
         ('', 11, False),
-        ('Bu dosyadaki HER SAYI projenin kendi cikti dosyalarindan okunarak '
-         'uretildi. Elle yazilan tek sey aciklama metinleridir.', 11, False),
+        ("EVERY NUMBER in this file was produced by reading the project's own "
+         'output files. The only thing written by hand is the explanatory '
+         'text.', 11, False),
         ('', 11, False),
-        ('SIPARIS BU DOSYADAN VERILIR. Klasordeki eski Excel dosyalarinda alti '
-         'ciftin dizisi eskidir; oralardan kopyalanirsa yanlis oligo gelir. '
-         'Onlar _SILINECEKLER klasorune tasindi.', 11, True),
+        ('THE ORDER IS PLACED FROM THIS FILE. In the older Excel files the '
+         'sequences of six pairs are out of date, and copying from those '
+         'brings the wrong oligo. They were moved out of the way.', 11, True),
         ('', 11, False),
-        ('OLCUM ile TERCIH ayrimi: "1 Siparis" ve "2 Panel" sayfalarindaki '
-         'diziler, Tm, GC, urun boyu ve dCq OLCUMDUR. "5 Esik" sayfasindaki iki '
-         'kural arasindaki secim, "8 Bulgular" sayfasindaki acik maddeler ve '
-         'plaka yerlesimi TERCIHTIR - onlari insan karara baglar.', 11, False),
+        ('MEASUREMENT against CHOICE: the sequences, Tm, GC, product length '
+         'and dCq on the order and panel sheets are MEASUREMENTS. The choice '
+         'between the two rules on the thresholds sheet, the open items on '
+         'the findings sheet and the plate layout are CHOICES, and a person '
+         'decides them.', 11, False),
         ('', 11, False),
-        ('KAYNAK DOSYALAR (md5 ilk 12 hane)', 12, True),
+        ('THE SOURCE FILES (the first 12 digits of the md5)', 12, True),
     ]
     r = 1
     for t, boy, kalin in metin:
@@ -273,11 +338,12 @@ def main():
                 'urun (bp)': c['urun'], 'sinif': sinif,
                 'siparis sarti': (sl.get('siparis_sarti') or '-').strip()})
     ek_uyari = [c['hedef'] for c in ciftler if c.get('panelde_yok')]
-    notlar = [u'Tedarikciye bu sayfa verilir. %d cift = %d oligo. Diziler 5→3 '
-              u'yonundedir, hicbirinde dejenere baz yoktur.' % (len(oligo) // 2, len(oligo))]
+    notlar = ['This is the sheet to give the supplier. %d pairs come to %d '
+              "oligos. The sequences run 5' to 3' and not one of them holds a "
+              'degenerate base.' % (len(oligo) // 2, len(oligo))]
     if ek_uyari:
         notlar.append(u'WARNING: there is no row for %s in the panel table; the plate and Ta are unknown, so "BELIRSIZ" was written.' % ', '.join(ek_uyari))
-    sayfa(wb, '1 Siparis',
+    sayfa(wb, '1 Order',
           ['oligo adi', 'dizi (5→3)', 'uzunluk', 'hedef', 'yon', 'plaka',
            'Ta (C)', 'urun (bp)', 'sinif', 'siparis sarti'],
           oligo, {'dizi (5→3)': 28, 'hedef': 34, 'oligo adi': 26}, notlar,
@@ -325,7 +391,7 @@ def main():
 
     # ================= 3 KIMLIKLER ve 4 CINS-TUR =================
     ksat = [x.rstrip('\n').split('\t')
-            for x in io.open(kaynaklar['kutu kimlikleri'], encoding='utf-8')]
+            for x in io.open(kaynaklar['the bin identities'], encoding='utf-8')]
     kb = None
     for i, r in enumerate(ksat):
         if r and r[0].strip() == 'kutu':
@@ -362,13 +428,13 @@ def main():
             'marj': ('%.2f' % (e1 - e2)) if (e1 is not None and e2 is not None) else '',
             'lokus': r.get('lokus', ''),
             'uyesi oldugu hedefler': (r.get('UYESI_OLDUGU_HEDEFLER') or '')[:70]})
-    sayfa(wb, '3 Kimlikler',
+    sayfa(wb, '3 Identities',
           ['kutu', 'Kraken etiketi', 'olculen kimlik', 'ad degisti mi',
            'savunulabilir duzey', 'onerilen ad', 'en iyi isabet', 'kimlik %',
            'veritabani', 'ikinci %', 'marj', 'lokus', 'uyesi oldugu hedefler'],
           kim, {'olculen kimlik': 40, 'en iyi isabet': 46, 'Kraken etiketi': 26,
                 'onerilen ad': 30, 'uyesi oldugu hedefler': 32},
-          ['The identity of every bin was re-measured independently. Where the "ad degisti mi" column reads HAYIR, the Kraken label and the measured identity disagree.'],
+          ['The identity of every bin was re-measured independently. Where the "did the name change" column reads HAYIR, the Kraken label and the measured identity disagree.'],
           renk=lambda s: UYARI if str(s['ad degisti mi']).strip().upper().startswith('HAYIR') else None)
 
     # --- 4 Cins-Tur: tur adi VERILEMEYEN kutularda en yuksek yuzdeli tur adayi
@@ -397,16 +463,17 @@ def main():
             kaynak1 = ('ikili ad' if t1 else ('cins' if c1 else 'soyun en dar halkasi'))
             marj = (e1 - e2) if (e1 is not None and e2 is not None) else None
             if e1 is None:
-                neden = u'sayisal kimlik yok'
+                neden = 'there is no numeric identity'
             elif e1 < ce:
-                neden = (u'kimlik %%%.2f, cins esiginin (%%%.1f) bile altinda' % (e1, ce))
+                neden = ('the identity is %.2f per cent, below even the genus threshold of %.1f per cent' % (e1, ce))
             elif e1 < te:
-                neden = (u'kimlik %%%.2f, tur esiginin (%%%.1f) altinda' % (e1, te))
+                neden = ('the identity is %.2f per cent, below the species threshold of %.1f per cent' % (e1, te))
             elif marj is not None and marj < AP:
-                neden = (u'tur esigini geciyor ama ikinci isabetle arasinda yalniz '
-                         u'%%%.2f var (gereken %%%.1f)' % (marj, AP))
+                neden = ('it passes the species threshold but only %.2f per '
+                         'cent separates it from the second hit, against the '
+                         '%.1f per cent needed' % (marj, AP))
             else:
-                neden = u'tur adi cikarilamadi (kayit basliginda ikili ad yok)'
+                neden = 'no species name could be pulled out; the record header holds no binomial'
             ct.append({
                 'kutu': r.get('kutu', ''),
                 'olculen duzey': r.get('SAVUNULABILIR_DUZEY', ''),
@@ -420,7 +487,7 @@ def main():
                 'lokus': lokus,
                 'tur esigi': '%.1f' % te,
                 'neden tur adi verilmedi': neden})
-    sayfa(wb, '4 Cins-Tur',
+    sayfa(wb, '4 Genus and species',
           ['kutu', 'olculen duzey', 'su an yazan ad', 'EN YUKSEK YUZDELI TUR ADAYI',
            'ad kaynagi', 'kimlik %', 'ikinci aday', 'ikinci %', 'marj', 'lokus',
            'tur esigi', 'neden tur adi verilmedi'],
@@ -443,7 +510,7 @@ def main():
                    'iki kural ayrisiyor mu': r.get('ayrisiyor_mu', ''),
                    'R bayat mi': r.get('R_bayat_mi', ''),
                    'dCq 08.08': r.get('dCq_08_08', '')})
-    sayfa(wb, '5 Esik',
+    sayfa(wb, '5 Thresholds',
           ['hedef', 'dCq', 'duz esik (3,00)', 'R (bolluk orani)', 'gerekli dCq',
            'bolluk kurali', 'iki kural ayrisiyor mu', 'R bayat mi', 'dCq 08.08'],
           es, {'hedef': 34},
@@ -462,7 +529,7 @@ def main():
                    'toplam urun': r.get('toplam', ''),
                    'gevsek kural (eski sayim)': r.get('gevsek_kural_adli', ''),
                    'ornek adli hedef disi': (r.get('ornek_adli_basliklar') or '')[:110]})
-    sayfa(wb, '6 NCBI 4katman',
+    sayfa(wb, '6 NCBI layer 4',
           ['hedef', 'adli hedef disi (siki)', 'adsiz cevre klonu', 'toplam urun',
            'gevsek kural (eski sayim)', 'ornek adli hedef disi'],
           nc, {'hedef': 34, 'ornek adli hedef disi': 52},
@@ -474,7 +541,7 @@ def main():
            'paneldeki karsiligi': r.get('paneldeki_karsiligi', ''),
            'durum': r.get('durum', ''), 'dCq': r.get('dCq', ''),
            'not': (r.get('not') or '')[:150]} for r in TP]
-    sayfa(wb, '7 Toplanti',
+    sayfa(wb, '7 Requests',
           ['karar', 'istenen', 'istenen duzey', 'paneldeki karsiligi', 'durum',
            'dCq', 'not'],
           tp, {'istenen': 30, 'paneldeki karsiligi': 34, 'not': 60},
@@ -497,7 +564,7 @@ def main():
             if m:
                 bl.append({'onem': onem, 'bulgu': m.group(1),
                            'ayrinti': m.group(2)[:300]})
-    sayfa(wb, '8 Bulgular',
+    sayfa(wb, '8 Findings',
           ['onem', 'bulgu', 'ayrinti'], bl,
           {'onem': 20, 'bulgu': 40, 'ayrinti': 90},
           ['The open findings from the last run of the audit gate. Those marked "SIPARISI DURDURUR" must be resolved before an order is placed. The full account and the decision options are in GECE_BULGULARI.md.'],
