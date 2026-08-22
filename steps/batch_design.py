@@ -44,12 +44,13 @@ def _ayirt_modulu():
 
 AYIRT = _ayirt_modulu()
 
-# Arama merdiveni. Sirayla denenir, ilk aday veren kademede durulur.
-#   kati        : toplanti kararindaki kural, yetim primer rakiplerde HIC
-#                 baglanmamali
-#   yetim3      : yetim primerin rakiplerdeki EN IYI yerlesimi bile en az uc
-#                 uyumsuzluk tasiyorsa yeterli sayilir
-#   yetim3_genis: ayni gevseme, ustune daha genis oligo taramasi
+# The search ladder. The steps are tried in order and it stops at the first one
+# that gives a candidate.
+#   kati        : the rule from the meeting decision, the orphan primer must NOT
+#                 bind anywhere in the competitors
+#   yetim3      : it is enough if even the orphan primer's BEST placement in the
+#                 competitors carries at least three mismatches
+#   yetim3_genis: the same relaxation, plus a broader oligo scan
 MERDIVEN = [
     ("kati",         []),
     ("yetim3",       ["--yetim-min-uyumsuzluk", "3"]),
@@ -138,11 +139,11 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     _LOG[0] = os.path.join(a.out, "toplu_tasarim.log")
     CKPT = os.path.join(a.out, "checkpoint.json")
-    # Checkpoint'in gecerliligi GIRDIYE baglidir. Konsensus kumesi, hedef
-    # tablosu ya da motor betikleri degistiyse eski sonuclar artik ayni
-    # soruya ait degildir; sessizce yeniden kullanilirsa kosu bitmis gibi
-    # gorunur ama sonuc eski girdiye aittir. Bu yuzden girdi parmak izi
-    # checkpoint'e yazilir ve her aciliata karsilastirilir.
+    # The checkpoint's validity depends ON THE INPUT. If the consensus set, the target
+    # table or the engine scripts changed, the old results no longer belong to the same
+    # question; reusing them silently makes the run look finished while the result
+    # belongs to the old input. That is why the input fingerprint is written into the
+    # checkpoint and compared every time it is opened.
     parmak = _girdi_parmak_izi(a)
     ckpt = {}
     if os.path.exists(CKPT) and not a.yeniden:
@@ -176,10 +177,10 @@ def main():
         tid = taxid_of(tag)
         if not tid:
             continue
-        # Bos ya da tumu N olan konsensus tasarima giremez. 07 self kosusunda
-        # taxid 2233851 icin uzunluk 0 cikti; boyle bir uye hedef kumesine
-        # girerse hicbir oligo ona baglanamaz ve butun hedef coker, rakip
-        # kumesine girerse ozgulluk denetimi sessizce zayiflar.
+        # A consensus that is empty or all N cannot enter the design. In the self run the
+        # length came out 0 for taxid 2233851; a member like that in the target set means
+        # no oligo can bind it and the whole target collapses, and in the competitor set it
+        # weakens the specificity check silently.
         seq = "".join(l.strip() for l in open(f, encoding="utf-8",
                                               errors="replace")
                       if not l.startswith(">")).upper()
@@ -200,8 +201,8 @@ def main():
         log(u'EXCLUDED consensus (fewer than 200 covered bases): %d' % len(bozuk))
         for t, L, k in bozuk:
             log("   %-26s uzunluk=%d kapsanan=%d" % (t, L, k))
-        # 09 da ayni taksonlari dislamali; fastq envanterinden calistigi
-        # icin bunlari kendiliginden bilemez.
+        # specificity.py has to exclude the same taxa; because it works from the fastq
+        # inventory it cannot know them by itself.
         with open(os.path.join(a.out, "dislanan_takson.tsv"), "w",
                   encoding="utf-8") as df:
             df.write("grup\ttaxid\tetiket\tuzunluk\tkapsanan\n")
@@ -219,12 +220,12 @@ def main():
         log(u'   %-3s %2d files, %2d taxa: %s'
             % (s, len(siniflar[s]), len(tids), ",".join(tids)))
 
-    # --- ayirt edilemez takson ciftleri ------------------------------
-    # Kraken2 tek bir populasyonun okumalarini kardes tur dugumlerine
-    # dagitabiliyor. Boyle iki kutu ayni konsensusu uretir. Biri rakip
-    # listesine girerse "rakipte urun olusmasin" kurali MANTIKEN
-    # saglanamaz ve hedef sessizce sifir aday verir. Bu yuzden once
-    # olculur, sonra rakip listesinden cikarilir ve her cikarma loglanir.
+    # --- indistinguishable taxon pairs --------------------------------
+    # Kraken2 can spread the reads of a single population across sibling species
+    # nodes. Two such bins produce the same consensus. If one of them goes into the
+    # competitor list the rule "no product in a competitor" CANNOT LOGICALLY be met
+    # and the target silently gives zero candidates. So it is measured first, then
+    # taken out of the competitor list, and every removal is logged.
     ayirt = {}
     if a.ayirt_edilemez_cikar and AYIRT is not None:
         temsil = {}
@@ -275,22 +276,21 @@ def main():
     for h in hedefler:
         spec = h["inn"]
         haric = set(x for x in h["haric"].split(",") if x)
-        # alan hedefleri: *B, *A, *F  -> o harfle baslayan butun siniflar
+        # domain targets: *B, *A, *F -> every class starting with that letter
         if spec.startswith("*"):
             harf = spec[1:]
             hedef_siniflar = [s for s in siniflar if s.startswith(harf)]
-            in_tids = None            # sinif icindeki her sey
+            in_tids = None            # everything inside the class
         else:
             in_tids = set(x for x in spec.split(",") if x)
             hedef_siniflar = sorted(set(
                 envanter[t]["sinif"] for t in envanter if envanter[t]["taxid"] in in_tids))
-            # ALAN TUTARLILIGI: hedefin taxidleri, ait olmadigi bir lokus
-            # kitapliginda da gecebiliyor (ornegin bakteriyel bir taxid mantar
-            # ITS/28S kutusunda). O siniftaki tasarim hedefi temsil etmez;
-            # dahasi, dogru siniftaki tasarim cift bulamazsa geriye yalniz bu
-            # sahte cift kalir ve hedef kapsanmis gorunur. Alan bilgisi elle
-            # yazilmaz, kutu dagilimindan cikarilir; hedef tek alandaysa
-            # hicbir sey degismez.
+            # DOMAIN CONSISTENCY: a target's taxids can also appear in a locus library it does
+            # not belong to (a bacterial taxid in a fungal ITS or 28S bin, for instance). The
+            # design in that class does not represent the target; worse, if the design in the
+            # right class finds no pair, only this false pair is left and the target looks
+            # covered. The domain is not written by hand, it is derived from the bin
+            # distribution; if the target is in a single domain nothing changes.
             _alan = {}
             for t in envanter:
                 if envanter[t]["taxid"] in in_tids:
@@ -370,11 +370,11 @@ def main():
                 cmd += a.extra.split()
             if h["karar"] in ("3", "4") and a.grup_extra:
                 cmd += a.grup_extra.split()
-            # Kademeli arama. Once toplanti kararindaki KATI kural denenir:
-            # primerlerden biri rakiplerde hic baglanmamali. Bu saglanamazsa
-            # kural bir kademe gevsetilir ve gevseme cikti tablosunda ACIKCA
-            # isaretlenir; boylece "aday yok" ile "aday var ama daha zayif
-            # guvenceyle" ayrimi kaybolmaz.
+            # The stepped search. The STRICT rule from the meeting decision is tried first:
+            # one of the primers must not bind anywhere in the competitors. If that cannot be
+            # met the rule is relaxed by one step and the relaxation is marked PLAINLY in the
+            # output table, so that the difference between "no candidate" and "there is a
+            # candidate but under a weaker guarantee" is not lost.
             th = time.time()
             n, txt, kademe = 0, "", "kati"
             for kad_ad, kad_bayrak in MERDIVEN:
@@ -394,9 +394,9 @@ def main():
                     % r.returncode)
                 for satir in txt.strip().splitlines()[-4:]:
                     log("         %s" % satir[:150])
-            # Sifir cift veren hedefte ONCEKI kosudan kalan aday dosyasi
-            # silinmeli; yoksa 09 bayat primerleri dogrular ve teslimata
-            # gecersiz cift girer.
+            # On a target that gives zero pairs the candidate file left from the PREVIOUS run
+            # has to be deleted; otherwise specificity.py verifies stale primers and an invalid
+            # pair enters the delivery.
             if n == 0 and os.path.exists(tsv):
                 try:
                     os.remove(tsv)
