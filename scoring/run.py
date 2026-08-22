@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-"""COK HEDEFLI TOPLU OLCUM - havuz PAYLASILIR.
+"""A BULK MEASUREMENT OVER MANY TARGETS, with the pool SHARED.
 
-Ayni sinifin hedefleri ayni kutulari kullanir (B sinifi: Petrimonas,
-Proteiniphilum, Bacteroidales). Havuz kurulumu cagri basina ~20 sn tuttugu icin
-tek surecte birden cok hedef olculur.
+The targets of the same class use the same bins (class B: Petrimonas,
+Proteiniphilum, Bacteroidales). Because building the pool takes about 20 s per call,
+several targets are measured in a single process.
 
-EVRENSEL HEDEFLER: karar() bu satirlarda OLCULEMEDI dondurur (ayrim katinin
-paydasi tanimsiz - rakip kumesi yok). Onlarda olcu KAPSAMDIR (uye_kapsam_pay)
-ve siralama ona gore yapilir. Ayrim kati UYDURULMAZ.
+UNIVERSAL TARGETS: karar() returns OLCULEMEDI on those rows (the denominator of the
+discrimination fold is undefined, there is no competitor set). For them the measure
+is COVERAGE (uye_kapsam_pay) and the ranking is made by that. A discrimination fold
+IS NOT INVENTED.
+
 """
 import os, sys, json, time, argparse
 sys.path.insert(0, '/tmp/mrb')
@@ -31,12 +33,13 @@ def main():
     ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
                     help='target::shortlist_file::checkpoint_file')
     ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
-    # BELLEK: KutuHavuzu (otorite=False) kutu basina ~160 MB (1,5 kb okuma) ile
-    # ~400 MB (3,7 kb okuma) tutar; tohum indeksi int64 anahtar dizisi yuzunden
-    # baskin kalem odur. 20 kutu x 3000 okuma F2/F1/A2 siniflarinda 3,9 GB RAM'i
-    # asiyor ve surec OOM ile SIGKILL aliyor (olculdu: 3,77 GB RSS, 23 sn).
-    # Cozum: tarama daha SIG derinlikte (bellek dogrusal duser), KARAR ise her
-    # zaman panel derinliginde ve panelin motoruyla verilir (--otorite 1).
+    # MEMORY: KutuHavuzu (otorite=False) holds about 160 MB per bin (1.5 kb reads) up
+    # to about 400 MB (3.7 kb reads); the dominant item is the seed index, because of
+    # its int64 key array. 20 bins x 3000 reads goes over 3.9 GB of RAM in the F2, F1
+    # and A2 classes and the process is SIGKILLed by the OOM killer (measured: 3.77 GB
+    # RSS, 23 s). The fix: the scan runs at a SHALLOWER depth (the memory falls
+    # linearly) while the DECISION is always made at panel depth with the panel's own
+    # engine (--otorite 1).
     ap.add_argument('--depth', '--derinlik', dest='derinlik', type=int, default=3000)
     ap.add_argument('--authority', '--otorite', dest='otorite', type=int, default=0)
     g = ap.parse_args()

@@ -2,41 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 reassign_confidence.py
-KRAKEN2 GUVEN ESIGINI VERITABANI OLMADAN, CIKTI DOSYALARINDAN UYGULAR.
+APPLIES THE KRAKEN2 CONFIDENCE THRESHOLD FROM THE OUTPUT FILES, WITH NO DATABASE.
 
-Neden: Kraken2 varsayilan ayarinda (--confidence 0) cekimser kalmaz. Gercek
-organizma veritabaninda yoksa okuma, hangi ayirt edici k-mer'leri saglam
-kaldiysa en yuksek puanli kardes yaprakla etiketlenir. Olculdu: A2-4
-ornegindeki dort Methanosarcina kutusunun okumalari ayni referanslara
-gidiyor, hicbiri kendi atandigi turu tercih etmiyor. Cozum guven esigi
-vermektir; ama bunun icin normalde 106 GB veritabaniyla saatler suren bir
-yeniden siniflandirma gerekir.
+Why: under its default setting (--confidence 0) Kraken2 does not abstain. If the real
+organism is not in the database, a read is labelled with the highest scoring sibling
+leaf, whichever discriminating k-mers survived. Measured: in sample A2-4 the reads of
+four Methanosarcina bins go to the same references and not one of them prefers the
+species it was assigned to. The fix is to raise the confidence threshold, and this
+script applies it from the output files themselves so that the whole classification
+does not have to be run again.
 
-Gerekmiyor. Kraken2'nin --output dosyasi her okuma icin k-mer LCA dizisini
-(taxid:sayi ciftleri) zaten tasiyor. Guven puani tam olarak bu diziden
-hesaplanir:
-    guven = C / Q
-    C = etiketin altindaki klanda yer alan k-mer sayisi
-    Q = belirsiz baz icermeyen, yani veritabanina sorulan k-mer sayisi
-        (eslesmeyenler, yani 0: girdileri Q'ya DAHILDIR; yalnizca A:
-        girdileri haric tutulur)
-Esigi gecemeyen okuma, gecene kadar takson agacinda yukari tasinir; hicbir
-ata gecemezse siniflandirilmamis sayilir. Bu betik ayni islemi yapar.
-
-Takson agaci rapor dosyalarindan kurulur (girinti derinligi ebeveyni verir);
-butun raporlar birlestirilir. Olculdu: barcode01 ciktisindaki vurus
-taksonlarinin %99,84'u bu agacta yer aliyor. Agacta bulunamayan vurus
-KLANIN DISINDA sayilir; bu guveni dusurur, yani atamayi yukari iter, yani
-guvenli yondedir. Bulunamayan orani her dosya icin ayrica raporlanir.
-
-Cikti:
-  <out>/<taban>_c<esik>_kraken2.report   Kraken2 rapor bicimi (Bracken okur)
-  <out>/karsilastirma.tsv                okumanin hangi rutbeye tasindigi
-  <out>/ozet.tsv
-
-Kullanim:
-  python3 reassign_confidence.py --kraken "kraken results" \
-      --confidence 0.1 --out kraken_c0.1
 """
 import argparse, csv, glob, os, re, sys
 from collections import defaultdict, Counter
@@ -63,8 +38,10 @@ def get_args():
 
 
 def agac_kur(kraken_kok, desen):
-    """Butun raporlardan takson agacini kurar.
-    Doner: (ebeveyn, rutbe, ad, rapor_sayisi)"""
+    """Builds the taxon tree from all the reports.
+    Returns: (parent, rank, name, report_count)
+
+    """
     ebeveyn, rutbe, ad = {}, {}, {}
     n = 0
     for rep in sorted(glob.glob(os.path.join(kraken_kok, "*", desen))
@@ -104,8 +81,10 @@ def main():
     ata_onbellek = {}
 
     def atalar(t):
-        """t'den koke kadar olan zincir, t dahil. Bilinmeyen takson icin
-        bos liste doner; boyle bir vurus hicbir klanda sayilmaz."""
+        """The chain from t to the root, t included. For an unknown taxon it returns an empty
+        list; such a hit is counted in no clade.
+
+        """
         if t in ata_onbellek:
             return ata_onbellek[t]
         if t not in ebeveyn:
@@ -134,7 +113,7 @@ def main():
     ozet, karsilastirma = [], []
     for yol in ciktilar:
         taban = re.sub(r"_output$", "", os.path.basename(yol))
-        dogrudan = Counter()          # yeni atama -> okuma sayisi
+        dogrudan = Counter()          # the new assignment -> the read count
         eski_yeni = Counter()         # (eski_rutbe, yeni_rutbe) -> sayi
         n = tasinan = sinifsiz_olan = 0
         vurus_top = vurus_eksik = 0
@@ -176,7 +155,7 @@ def main():
                         continue          # belirsiz baz, Q'ya girmez
                     Q += say
                     if t == "0":
-                        continue          # eslesme yok, Q'ya girer, klana girmez
+                        continue          # no match; it enters Q but not the clade
                     try:
                         ti = int(t)
                     except ValueError:
@@ -193,8 +172,9 @@ def main():
                     eski_yeni[(rutbe.get(eski_tx, "?"), "U")] += 1
                     sinifsiz_olan += 1
                     continue
-                # eski atamanin kokten yaprağa yolunda, esigi gecen EN OZGUL
-                # dugum secilir. atalar() yaprak-koke sirali doner.
+                # on the path from the root to the leaf of the old assignment, the MOST
+                # SPECIFIC node passing the threshold is chosen. atalar() returns them
+                # ordered from leaf to root.
                 yeni_tx = 0
                 for k in atalar(eski_tx):
                     if klan.get(k, 0) / Q >= a.confidence:
@@ -218,7 +198,7 @@ def main():
                 klan_say[k] += c
         toplam = n
 
-        # Kraken2 rapor bicimi
+        # the Kraken2 report format
         rap = os.path.join(a.out, "%s_c%g_kraken2.report" % (taban, a.confidence))
         cocuk = defaultdict(list)
         for tx in klan_say:
