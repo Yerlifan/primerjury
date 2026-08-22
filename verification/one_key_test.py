@@ -298,7 +298,7 @@ def s3_bayat(ana, taban):
     os.utime(hk, (time.time() + 5, time.time() + 5))   # ciktidan KESIN yeni
     rc, out = kos(taban, ek=['--plan'])
     sina(u'S3 D was marked BAYAT',
-         u'D  KOSACAK' in out and u'BAYAT' in out.split(u'D  KOSACAK')[1][:300],
+         u'D  KOSACAK' in out and u'STALE' in out.split(u'D  KOSACAK')[1][:300],
          out.split(u'D  KOSACAK')[1][:150].replace(u'\n', u' ')
          if u'D  KOSACAK' in out else u'there is no D KOSACAK row')
     sina(u'S3 the stages that are not stale are still SKIPPED',
@@ -344,7 +344,7 @@ def s5_asama_dustu(ana):
     sina(u'S5 P FAILED (rc!=0 was not masked even though the output was not empty)',
          d.get('P', {}).get('durum') == 'DUSTU', d.get('P', {}).get('durum', 'YOK'))
     sina(u'S5 dusme sebebi cikis kodunu yaziyor',
-         'CIKIS KODU 3' in (d.get('P', {}).get('sebep') or ''),
+         'EXIT CODE 3' in (d.get('P', {}).get('sebep') or ''),
          (d.get('P', {}).get('sebep') or '')[:90])
     sina(u'S5 K was skipped (dependent)', d.get('K', {}).get('durum') == 'atlandi (bagimli)',
          d.get('K', {}).get('durum', 'YOK'))
@@ -371,7 +371,8 @@ def s6_bos_cikti(ana):
     d = durum_oku(t)
     sina(u'S6 K FAILED (an empty output did not count as passing)',
          d.get('K', {}).get('durum') == 'DUSTU', d.get('K', {}).get('durum', 'YOK'))
-    sina(u'S6 the reason says "BOS"', u'BOS' in (d.get('K', {}).get('sebep') or u''),
+    sina(u'S6 the reason says the output is EMPTY',
+         u'EMPTY' in (d.get('K', {}).get('sebep') or u''),
          (d.get('K', {}).get('sebep') or u'')[:90])
     sina(u'S6 D was skipped (dependent)', d.get('D', {}).get('durum') == 'atlandi (bagimli)')
     sina(u'S6 the chain exit code is 3', rc == 3, u'rc=%d' % rc)
