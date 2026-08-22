@@ -106,49 +106,7 @@ PROTOKOL = dict(
     urun_alt=60, urun_ust=400,
 )
 
-GEREKCE = u"""
-PROTOKOL VE NEDEN BOYLE SECILDI
-===============================
-
-1) DERINLIK: kutu basina EN COK %(okuma_tavani)d okuma, sabit tohum, 200-6000 bp suzgeci.
-   Neden tavan var: Wilson araliginin genisligi okuma sayisina baglidir. Tavan
-   konmazsa 46 000 okumalik bir kutu ile 300 okumalik bir kutu ayni tabloda yan
-   yana gelir ve derin kutunun ayrimi YAPAY olarak yuksek cikar. Tavan butun
-   satirlari ayni istatistiksel zemine oturtur.
-   Neden 3000: kutularin buyuk cogunlugu zaten bu sayinin altinda, yani veri
-   kaybi kucuk; ustelik uyeligin turetildigi olcum de bu tavanla yapildi, boylece
-   uyelik ile ayrim ayni zeminde kalir.
-
-2) ASIL OLCUT: <=1 uyumsuzluk + 3' son 2 baz TAM eslesme.
-   Panelin tasarim olcutu budur; primerler bu varsayimla secildi. Karar bu
-   sutuna gore verilir.
-
-3) YAN OLCUT: <=3 uyumsuzluk + 3' son 2 baz TAM eslesme.
-   Karar sutunu DEGILDIR, DAYANIKLILIK gostergesidir. Gercek PCR'de gevsek
-   baglanma olur; bir cift mm<=1'de gecip mm<=3'te cokuyorsa o cift kirilgandir
-   ve bu gorunmelidir (olculmus ornek: ileri primeri NL1 olan cift 8,47x -> 0,67x).
-
-4) KARISIK KUTULAR TEK KURALA BAGLI: karisik kutu = %(karisik)s sayilir.
-   Karisik kutu, hedef organizmayi KISMEN tasidigi olculen kutudur. Uye saymak
-   ayrimi yapay olarak yukseltir; tamamen dislamak gercek capraz sinyali gizler.
-   RAKIP saymak en kotu durumu olcer - siparis karari icin dogru taraf budur.
-   Degistirilebilir (--mixed uye|rakip|disla) ama secim her ciktinin basina yazilir.
-
-5) ESIK: dCq %(esik_dcq).1f = %(esik).2f kat, EN KOTU TEK RAKIP KUTU uzerinden
-   (asgari %(enkotu_asgari_okuma)d okuma). Literatur olcutu; arac esigi DEGILDIR.
-   VERIM %%100 VARSAYILDI - %%90 verimde ayni dCq 6,86 kat eder.
-   Havuz kati da raporlanir ama karar en kotu kutuya gore verilir: havuz kati
-   tek bir kotu kutuyu binlerce temiz okumanin icinde eritir.
-
-6) KAPSAM ayri eksendir: bir uye kutu >=%%%(kapsam_yuzde)d urun veriyorsa "kapsandi" sayilir.
-   Ayrim yuksek ama kapsam dusukse cift ozguldur fakat hedefin tamamini gormez;
-   bu iki sorun birbirine karistirilmamalidir.
-
-7) UYELIK: Kraken etiketinden DEGIL, olculen kimlikten gelir
-   (uyelik_yeniden_turetme_uyelik_*.tsv). Yanlis etiketli bir kutu rakip hanesine
-   yazilinca metrik hedefi hedefle kiyaslar ve mukemmel bir primer bile 1'in
-   altinda cikar - olculmus ornek: 0,71x -> 8,47x, ayni primer.
-""" % dict(PROTOKOL, kapsam_yuzde=int(PROTOKOL['kapsam_esigi'] * 100))
+GEREKCE = "\nTHE PROTOCOL, AND WHY IT WAS CHOSEN THIS WAY\n============================================\n\n1) DEPTH: AT MOST %(okuma_tavani)d reads per bin, a fixed seed, and a 200 to\n   6000 bp filter.\n   Why there is a cap: the width of a Wilson interval depends on the read count.\n   Without a cap a bin of 46,000 reads sits in the same table beside a bin of\n   300, and the deep bin's separation comes out ARTIFICIALLY high. The cap puts\n   every row on the same statistical ground.\n   Why 3000: the great majority of bins are below that number already, so little\n   data is lost, and the measurement the membership was derived from used the\n   same cap, which keeps the membership and the separation on one footing.\n\n2) THE MAIN CRITERION: at most 1 mismatch plus an EXACT match on the last 2 bases\n   at the 3' end.\n   That is the panel's design criterion and the primers were chosen under that\n   assumption. The verdict is taken from this column.\n\n3) THE SIDE CRITERION: at most 3 mismatches plus an EXACT match on the last 2\n   bases at the 3' end.\n   It IS NOT the verdict column but an indicator of ROBUSTNESS. Loose binding\n   happens in a real PCR, and a pair that passes at mm<=1 and collapses at mm<=3\n   is fragile and that has to be visible. Measured example: a pair whose forward\n   primer is NL1 goes from 8.47x to 0.67x.\n\n4) MIXED BINS FOLLOW ONE RULE: a mixed bin counts as %(karisik)s.\n   A mixed bin is one measured to carry the target organism IN PART. Counting it\n   as a member raises the separation artificially; excluding it entirely hides a\n   real cross signal. Counting it as a COMPETITOR measures the worst case, and for\n   an ordering decision that is the right side. It can be changed with\n   --mixed, and the choice is written at the head of every output.\n\n5) THE THRESHOLD: dCq %(esik_dcq).1f, that is %(esik).2f fold, taken over THE\n   WORST SINGLE COMPETITOR BIN with at least %(enkotu_asgari_okuma)d reads. It is\n   a criterion from the literature and NOT this tool's own threshold.\n   EFFICIENCY WAS ASSUMED TO BE 100 PER CENT; at 90 per cent the same dCq comes\n   to 6.86 fold.\n   The pool fold is reported too, but the verdict goes by the worst bin: a pool\n   fold dissolves one bad bin among thousands of clean reads.\n\n6) COVERAGE IS A SEPARATE AXIS: a member bin counts as covered when it gives a\n   product in %%%(kapsam_yuzde)d per cent or more.\n   When the separation is high and the coverage low, the pair is specific but\n   does not see the whole target, and the two problems must not be confused.\n\n7) MEMBERSHIP comes from the measured identity and NOT from the Kraken label.\n   When a mislabelled bin is written into the competitor column, the metric\n   compares the target against itself and even a perfect primer comes out below\n   1. Measured example: 0.71x against 8.47x, for the same primer.\n" % dict(PROTOKOL, kapsam_yuzde=int(PROTOKOL['kapsam_esigi'] * 100))
 
 
 def sure_metni(sn):
@@ -201,7 +159,7 @@ def uyelik_dosyasi(kok):
 
 
 def uyelik_oku(yol):
-    """target -> dict(uye=[...], karisik=[...], rakip=[...], sinif=...)"""
+    'target -> dict(uye=[...], karisik=[...], rakip=[...], sinif=...)'
     out = {}
     with open(yol, encoding='utf-8') as fh:
         for r in csv.DictReader(fh, delimiter='\t'):
@@ -215,10 +173,9 @@ def uyelik_oku(yol):
 
 
 def ek_ciftler_oku(kok):
-    """protocol/extra_pairs.tsv - pairs that are NOT IN the panel TSV.
-        The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp, not
-
-    """
+    'protocol/extra_pairs.tsv holds pairs that are NOT IN the panel table. '
+    'The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp, '
+    'not.'
     yol = os.path.join(kok, 'protocol', 'extra_pairs.tsv')
     if not os.path.exists(yol):
         return []
@@ -327,12 +284,12 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     # --- uyelik --------------------------------------------------------
     uy_yol = uyelik_dosyasi(kok)
     if not uy_yol:
-        sys.exit(u'ERROR: uyelik_yeniden_turetme_uyelik_*.tsv was not found.\n      verification/full_chain.py -> option U has to be run first.')
+        sys.exit('ERROR: the rederived membership table was not found.\n      The membership stage has to be run first.')
     uyelik = uyelik_oku(uy_yol)
     yaz(u'  membership source : %s' % os.path.basename(uy_yol))
     yaz(u'  pairs             : %d  (panel %d + extra %d)' % (len(ciftler), len(panel), len(ek)))
     yaz(u'  main criterion    : <=%d mismatches and an EXACT match at the last two 3\' bases' % PROTOKOL['olcut_asil'])
-    yaz('  yan olcut      : <=%d uyumsuzluk + 3\' son 2 baz TAM' % PROTOKOL['olcut_yan'])
+    yaz("  side criterion : <=%d mismatches plus the last 2 bases at the 3' end EXACT" % PROTOKOL['olcut_yan'])
     yaz(u'  depth             : at most %d reads per bin (NO PER-ROW EXCEPTIONS)' % okuma_tavani)
     yaz(u'  mixed bins        : counted as %s' % karisik_kural.upper())
     yaz(u'  threshold         : %s, judged on the single worst competitor bin'
@@ -467,7 +424,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                 if _e.get('dizi') != _bek['dizi']:
                     yaz(u'  %s: the checkpoint\'s SEQUENCE seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('dizi') or 'yok', _bek['dizi']))
-                    raise ValueError('dizi muhru tutmadi')
+                    raise ValueError('the sequence seal did not hold')
                 # The MEMBERSHIP CONTENT seal works like the sequence seal: if it is
                 # absent or does not match, the checkpoint is INVALID. "The shared keys
                 # matched" is not a reason to accept it; the missing key is precisely the
@@ -478,7 +435,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                     yaz(u'  %s: the checkpoint\'s MEMBERSHIP seal does not match (recorded %s, now %s); re-measuring.'
                         % (c['hedef'][:40], _e.get('uyelik_icerik') or 'yok',
                            _bek['uyelik_icerik']))
-                    raise ValueError('uyelik muhru tutmadi')
+                    raise ValueError('the membership seal did not hold')
                 _ortak = {k: _e.get(k) for k in _bek if k in _e}
                 _uyar = (_e != _bek and _ortak == {k: _bek[k] for k in _ortak})
                 if _e == _bek or _uyar:
@@ -544,9 +501,7 @@ def _o(r, mm):
 # row the 10x stands exactly as it was.
 # -------------------------------------------------------------------------
 def evrensel_mi(hedef, duzey=''):
-    """O-6: evrensel/alan hedeflerinde ayrim katinin PAYDASI tanimsizdir
-    (rakip kumesi yoktur). Bu satirlar sayisal verdikt almamalidir; dogru olcu
-    KAPSAMA + ALAN DISI'dir ve K asamasinda uygulanir."""
+    'On a universal or domain target the DENOMINATOR of the separation fold is\n    undefined, because there is no competitor set. Those rows must not be given a\n    numeric verdict; the right measure is COVERAGE plus OUTSIDE, and the recovery\n    stage applies it.'
     ad = (hedef or '').lower()
     return ('universal' in ad or 'evrensel' in ad
             or (duzey or '').strip().lower() == 'alan')
@@ -578,16 +533,15 @@ def karar(o, hedef='', duzey=''):
         return ('OLCULEMEDI', None, 'olcum yok')
     if evrensel_mi(hedef, duzey):
         return ('OLCULEMEDI', None,
-                'EVRENSEL HEDEF - ayrim katinin paydasi tanimsiz. Dogru olcu '
-                'KAPSAMA + ALAN DISI; K asamasinda uygulanir.')
+                'A UNIVERSAL TARGET: the denominator of the separation fold is undefined. The right measure is COVERAGE plus OUTSIDE, applied at the recovery stage.')
     g = o.get('kat_enkotu')
     if g is not None:
-        return ('ESIK USTU' if g >= PROTOKOL['esik'] else 'ESIK ALTI', g, 'en kotu tek kutu')
+        return ('ESIK USTU' if g >= PROTOKOL['esik'] else 'ESIK ALTI', g, 'the worst single bin')
     h = o.get('kat_havuz')
     if h is not None:
         return ('ESIK USTU' if h >= PROTOKOL['esik'] else 'ESIK ALTI', h,
-                'HAVUZ (yeterli derinlikte rakip kutu yok - en kotu kutu olcusu uretilemedi)')
-    return ('OLCULEMEDI', None, 'rakip kutu yok')
+                'THE POOL (no competitor bin is deep enough, so the worst bin measure could not be produced)')
+    return ('OLCULEMEDI', None, 'there is no competitor bin')
 
 
 # -------------------------------------------------------------------------
@@ -614,15 +568,7 @@ def karar(o, hedef='', duzey=''):
 # -------------------------------------------------------------------------
 def raporla(CIKTI, sonuc, meta, yaz):
     E = PROTOKOL['esik']; A = PROTOKOL['olcut_asil']; Y = PROTOKOL['olcut_yan']
-    basli = (u'# Bu dosya TEK PROTOKOLLE uretildi - butun satirlar ayni kural ve ayni derinlik.\n'
-             u'# uyelik kaynagi : %(uyelik)s   (Kraken etiketi KULLANILMADI)\n'
-             u'# derinlik       : kutu basina en cok %(okuma)d okuma, satir bazinda istisna YOK\n'
-             u'# asil olcut     : <=1 uyumsuzluk + 3\' son 2 baz TAM  (karar bu sutuna gore)\n'
-             u'# yan olcut      : <=3 uyumsuzluk + 3\' son 2 baz TAM  (dayaniklilik gostergesi)\n'
-             u'# karisik kutu   : %(karisik)s sayildi\n'
-             u'# esik           : %(esik)s, EN KOTU TEK RAKIP KUTU uzerinden\n'
-             u'# esik kokeni    : %(koken)s\n'
-             u'# VERIM UYARISI  : %(verim)s\n') % dict(
+    basli = ("# This file was produced with ONE PROTOCOL: every row under the same rule and\n# the same depth.\n# membership source : %(uyelik)s   (the Kraken label WAS NOT USED)\n# depth             : at most %(okuma)d reads per bin, with NO per row exception\n# main criterion    : <=1 mismatch plus the last 2 bases at the 3' end EXACT\n#                     (the verdict comes from this column)\n# side criterion    : <=3 mismatches plus the last 2 bases at the 3' end EXACT\n#                     (an indicator of robustness)\n# mixed bins        : counted as %(karisik)s\n# threshold         : %(esik)s, over THE WORST SINGLE COMPETITOR BIN\n# where it comes from : %(koken)s\n# EFFICIENCY WARNING  : %(verim)s\n") % dict(
                  meta, esik=_C.esik_metni(E), koken=_C.ESIK_KOKENI,
                  verim=_C.ESIK_VERIM_NOTU)
 
@@ -651,11 +597,11 @@ def raporla(CIKTI, sonuc, meta, yaz):
             kismi = 'hayir'
             if ro is not None and rt:
                 if ro == 0:
-                    kismi = 'EVET - hicbir rakip kutu 150 okumayi gecmedi'
+                    kismi = 'YES, no competitor bin passed 150 reads'
                 elif ro < rt / 2.0:
-                    kismi = 'EVET - rakiplerin %d/%d si olcume girdi' % (ro, rt)
+                    kismi = 'YES, %d of %d competitors entered the measurement' % (ro, rt)
             if kismi.startswith('EVET') and d1 == 'ESIK USTU':
-                d1 = 'ESIK USTU (KISMI OLCUM)'
+                d1 = u'ESIK USTU (KISMI OLCUM)'
             gecti = d1
             duyarli = 'EVET' if (d1 == 'ESIK USTU' and d3 == 'ESIK ALTI') else 'hayir'
             w.writerow([r['hedef']] + _S.kimlik_sutunlari(_kimp, r['hedef'])
@@ -723,7 +669,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'# A row that fails the threshold is NEVER DELETED SILENTLY; the decision is yours.\n')
         fh.write(u'# (tool counts: above threshold %d, below threshold %d, not measurable %d)\n'
                  % (len(gecen), len(kalan), len(olculemeyen)))
-        fh.write(u'# Rows marked "OLCUTE DUYARLI" pass at mm<=1 but collapse at mm<=3, so they are fragile.\n')
+        fh.write('# The rows marked SENSITIVE TO THE CRITERION pass at mm<=1 and collapse at mm<=3, so they are fragile.\n')
         fh.write(u'#\n')
         fh.write(u'# THRESHOLD: %s\n' % _C.esik_metni())
         fh.write(u'# ESIGIN KOKENI: %s\n' % ESIK_KOKENI)
@@ -750,9 +696,9 @@ def raporla(CIKTI, sonuc, meta, yaz):
                       'karar_veren_kutu', 'karar_kutusu_k', 'karar_kutusu_n',
                       'uye_kutu_sayisi', 'damgalar'])
         n = 0
-        for etiket, kume in (('ESIK USTU - SIPARIS EDILEBILIR', gecen),
-                             ('ESIK ALTI - SIPARIS EDILMEZ', kalan),
-                             ('OLCULEMEDI - KARAR YOK', olculemeyen)):
+        for etiket, kume in ((u'ESIK USTU - SIPARIS EDILEBILIR', gecen),
+                             (u'ESIK ALTI - SIPARIS EDILMEZ', kalan),
+                             (u'OLCULEMEDI - KARAR YOK', olculemeyen)):
             for r in kume:
                 n += 1
                 o1, o3 = _o(r, A), _o(r, Y)
@@ -771,9 +717,9 @@ def raporla(CIKTI, sonuc, meta, yaz):
                 # --- madde 4 + 3 + 7a: damgalar ve siparis sarti
                 damga = []
                 if d1 == 'ESIK USTU' and d3 == 'ESIK ALTI':
-                    damga.append(u'OLCUTE DUYARLI (mm<=3 te cokuyor)')
+                    damga.append('SENSITIVE TO THE CRITERION (it collapses at mm<=3)')
                 if kn and int(kn) < 300:
-                    damga.append(u'SIG KARAR KUTUSU (n=%s)' % kn)
+                    damga.append('A SHALLOW DECIDING BIN (n=%s)' % kn)
                 if (r.get('uye_n') or 0) and int(r['uye_n']) <= 2:
                     damga.append(u'ONE OR TWO MEMBER BINS, the within target variability WAS NOT TESTED')
                 if kismi.startswith('EVET'):
