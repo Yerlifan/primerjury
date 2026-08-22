@@ -1,12 +1,16 @@
-# TEK PROTOKOL - panel TSV'sinde OLMAYAN ek ciftler. Bu dosya ELLE DUZENLENEBILIR.
-# Sutunlar SEKME ile ayrilir. Satir eklemek icin asagidaki bicimi izleyin.
+# THE SINGLE PROTOCOL: extra pairs that are NOT in the panel table. THIS FILE CAN
+# BE EDITED BY HAND. The columns are TAB separated. To add a row, follow the
+# format below.
 #
-#   hedef          : ciktilarda gorunecek ad (serbest)
-#   uyelik_hedefi  : uyelik tablosundaki hangi hedefin uye/rakip kutulari kullanilsin
-#                    (bos birakilirsa 'hedef' adi aranir)
-#   sinif          : A1 / A2 / B / F1 / F2
-#   F, R           : primer dizileri 5'->3'
-#   urun_bp        : beklenen urun boyu
+#   hedef          the name that will appear in the outputs (free text)
+#   uyelik_hedefi  whose member and competitor bins in the membership table should
+#                  be used; when it is left empty the 'hedef' name is looked up
+#   sinif          A1 / A2 / B / F1 / F2
+#   duzey          the level this pair claims
+#   ta             the annealing temperature
+#   F, R           the primer sequences, 5' to 3'
+#   urun_bp        the expected product length
+#   not            a free note
 #
 hedef	uyelik_hedefi	sinif	duzey	ta	F	R	urun_bp	not
 Petriella_cinsi	Petriella_musispora	F2	cins (Petriella) - LSU D1-D2	55.3	AAATCTGGCTGCCTGTGC	CTCTCACCCTCTATGGCGTC	101	YENI LSU D1-D2 cifti (petriella_lsu_tasarim_20260803.md). Paneldeki 116 bp Petriella cifti ve 118 bp Microascaceae cifti ile AYNI dokuz kutuyu hedefler.

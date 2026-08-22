@@ -1,21 +1,27 @@
-# Numunede karsilanamayan hedefler icin REFERANS veritabanindan tasarim.
-# Bu ciftler numuneyle DOGRULANMAZ; yalnizca numunede destek olup olmadigi olculur.
+# Design from a REFERENCE database, for targets the sample cannot meet.
+# These pairs ARE NOT confirmed against the sample; only whether the sample
+# supports them at all is measured.
 #
-# 2026-08-01 genisletmesi. Gerekcesi check_taxonomic_level.py'nin olcumu:
-#   Bacteroidaceae_ailesi     -> 65 Bacteroides turunun 0'ini cogaltiyor
-#   Alistipes_cinsi           -> 22 Alistipes turunun 0'ini cogaltiyor
-#   Podospora_pseudopauciseta -> hedef turde urun yok, kardes turleri cogaltiyor
-#   Microascaceae/Trichoderma -> hedef turde cogaltilan Petriella musispora
+# The list was widened on 2026-08-01. The reason is what the level check
+# measured:
+#   Bacteroidaceae_ailesi     amplifies 0 of 65 Bacteroides species
+#   Alistipes_cinsi           amplifies 0 of 22 Alistipes species
+#   Podospora_pseudopauciseta gives no product in the target species and
+#                             amplifies its sibling species instead
+#   Microascaceae/Trichoderma what it amplifies in the target species is
+#                             Petriella musispora
 #
-# veritabani sutunu artik virgulle birden cok dosya alir. Rakip kumesi elle
-# yazilanla sinirli degil: hedefin cinsindeki oteki turler VERIDEN bulunup
-# eklenir (15'in --kardes-rakip secenegi, varsayilan acik). Onceki surumde
-# Podospora tasarimi 29 rakip diziyle yapilmis, 27'nin dogrulama paneli ise
-# 242 kayit / 50 tur cikmisti; basarisizligin sebebi tam olarak bu farkti.
-# Bu yuzden elle yazilan kardes tur adlari (Podospora anserina, comata gibi)
-# listeden CIKARILDI: artik veriden bulunuyorlar ve elle liste eksik
-# kalabilecegi icin yanlis guven veriyordu. Elle kalanlar yalniz BASKA
-# cinslerden rakipler.
+# The database column now takes more than one file, comma separated. The
+# competitor set is not limited to what is written by hand: the other species of
+# the target's genus are found FROM THE DATA and added (the
+# --sibling-competitors option of design_from_reference.py, on by default). In
+# the earlier version the Podospora design was made with 29 competitor sequences
+# while the level check's verification panel held 242 records across 50 species,
+# and that difference was exactly the cause of the failure. So the hand written
+# sibling species names, Podospora anserina and comata among them, were TAKEN OUT
+# of the list: they are found from the data now, and a hand written list can be
+# incomplete and therefore gives false confidence. What stays by hand is only the
+# competitors from OTHER genera.
 ad	sinif	veritabani	ic	dis	taxid
 Methanosarcina_barkeri_referans	A1	archaea.16S.fna	Methanosarcina barkeri	Methanothrix soehngenii,Methanoculleus,Methanocorpusculum,Methanobrevibacter,Methanofollis,Nitrosocosmicus	2208
 Proteiniphilum_cinsi_referans	B	bacteria.16S.fna	Proteiniphilum saccharofermentans,Proteiniphilum acetatigenes	Petrimonas,Bacteroides,Alistipes,Sphaerochaeta,Cloacibacillus,Dysgonomonas,Parabacteroides,Fermentimonas	2829812,1642647
