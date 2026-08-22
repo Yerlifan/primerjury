@@ -19,9 +19,9 @@ import os, sys, io, json, time, shutil, argparse, subprocess, tempfile
 BU = os.path.dirname(os.path.abspath(__file__))
 TEK_TUS = os.path.join(BU, 'one_key.py')
 
-# Sahte betik sablonu. Cikis kodunu ve urettigi dosyalari disaridan aliyoruz;
-# boylece "asama dustu", "cikti bos", "cikti hic uretilmedi" gibi durumlarin
-# hepsi gercek bir alt surecle sinanabiliyor.
+# The fake script template. The exit code and the files it produces come from
+# outside, so "the stage failed", "the output is empty" and "no output was
+# produced at all" can each be arranged without touching this file.
 SAHTE = u'''# -*- coding: utf-8 -*-
 import os, sys, time
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -56,8 +56,8 @@ print('[sahte %%s] bitti, cikis kodu %%s' %% (ad, d.get('rc', 0)))
 sys.exit(int(d.get('rc', 0)))
 '''
 
-# (gercek yol, sahte betik adi) - one_key.py'nin ASAMALAR cizelgesindeki
-# 'betik' alanlariyla BIREBIR ayni olmali.
+# (the real path, the fake script name). These must be EXACTLY the same as the
+# 'betik' fields in one_key.py's stage schedule.
 BETIKLER = [
     ('screening/__main__.py', 'sina'),
     ('verification/quick_consistency_test.py', 'H'),
@@ -68,16 +68,17 @@ BETIKLER = [
     ('verification/specificity_round.py', 'D'),
     ('verification/identity_verification.py', 'I'),
     ('verification/all_bin_identities.py', 'G'),
-    # OLCULDU: N asamasi (verification/audit_all.py) 2026-08-10'da eklendi ama
-    # bu listeye yazilmadi. On kontrol o betigi ZORUNLU saydigi icin golge
-    # kokte hep eksik cikiyor, kosu hic baslamiyor ve senaryo sinamalarinin
-    # tamami sessizce bos donuyordu.
+    # MEASURED: stage N (verification/audit_all.py) was added on 2026-08-10 but was
+    # never written into this list. The pre-check treats that script as REQUIRED, so
+    # it always came out missing in the shadow root, the run never started, and every
+    # scenario test silently returned nothing.
     ('verification/audit_all.py', 'N'),
 ]
 
-# On kontrolun ZORUNLU saydigi klasorler. Golge kokte hepsi bos da olsa
-# VAR olmali; yoksa on kontrol dogru sekilde durur ve asil sinamaya
-# giremeyiz. (On kontrolun DURDUGUNU ayrica S4 senaryosu sinar.)
+# The directories the pre-check treats as REQUIRED. All of them must EXIST in the
+# shadow root even if empty; otherwise the pre-check stops, correctly, and we
+# never reach the test we came for. (That the pre-check DOES stop is tested
+# separately by scenario S4.)
 KLASORLER = ['fastq files', 'consensus sequences', 'primer_final', 'REFERANS_DB',
              'screening', 'protocol', 'engine', 'steps',
              'konsensus_kanonik', 'tools', 'verification']
@@ -96,12 +97,12 @@ def golge_kur(taban):
     os.makedirs(taban)
     for k in KLASORLER:
         os.makedirs(os.path.join(taban, k), exist_ok=True)
-        # klasorler BOS olmamali (on kontrol oge sayisi yaziyor, bos da gecer
-        # ama gercege yakin olsun)
+        # the directories must not be EMPTY (the pre-check prints an item count; empty
+        # passes too, but let it look like the real thing)
         with io.open(os.path.join(taban, k, '_yer_tutucu.txt'), 'w',
                      encoding='utf-8') as fh:
             fh.write(u'sinama\n')
-    # screening bir PAKET olarak cagriliyor (python3 -m screening)
+    # screening is called AS A PACKAGE (python3 -m screening)
     with io.open(os.path.join(taban, 'screening', '__init__.py'), 'w',
                  encoding='utf-8') as fh:
         fh.write(u'')
@@ -131,10 +132,10 @@ def golge_kur(taban):
         os.makedirs(os.path.dirname(t), exist_ok=True)
         with io.open(t, 'w', encoding='utf-8') as fh:
             fh.write(SAHTE % dict(ad=ad))
-    # Nihai hukum tablosu (ozetteki siparis tablosu bunu okur).
-    # Gercekteki bicimin aynisi: yorum satirlari + YENI_HUKUM sutunu.
-    # Uc satir siparise girer (SIPARIS EDILEBILIR x2 + KOSULLU x1), iki satir
-    # girmez (ESIK ALTI + ONERILMEZ). Beklenen sayi: 3.
+    # The final verdict table (the order table in the summary reads this).
+    # The same shape as the real one: comment lines plus a YENI_HUKUM column.
+    # Three rows go into the order (SIPARIS EDILEBILIR x2 + KOSULLU x1) and two
+    # do not (ESIK ALTI + ONERILMEZ). The expected count is 3.
     with io.open(os.path.join(taban, 'ESIK_VE_OLCUT_2026-08-08.tsv'), 'w',
                  encoding='utf-8') as fh:
         fh.write(u'# test file\n')
@@ -252,11 +253,11 @@ def s1_sifirdan(ana):
     sina(u'S1 the summary says NO STAGE FAILED', u'NO STAGE FAILED' in m)
     sina(u'S1 the summary holds the order table',
          u'ORDERABLE' in m and u'| X |' in m)
-    # OLCULDU: bu iki beklenti BAYATTI. one_key.py'nin siparis kaynagi
-    # listesinde kosunun KENDI urettigi TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv
-    # basa alinmisti (bilerek: ondan onceki sira bayat bir dosyayi okuyup
-    # sabahin ilk bakilan tablosunu yaniltiyordu). Sahte P asamasi o dosyaya
-    # TEK bir KESIN satiri yazar, dolayisiyla dogru sayi 1 girer / 0 girmez.
+    # MEASURED: these two expectations WENT STALE. In one_key.py's order source
+    # list the run's own TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv was moved to the
+    # front (deliberately: the order before it read a stale file and misled the
+    # first table anyone looks at in the morning). The fake P stage writes ONE
+    # KESIN row to that file, so the right count is 1 in and 0 out.
     sina(u'S1 the order count is right (1 in, 0 out)',
          u'ORDERABLE: 1 pairs = 2 oligos' in m,
          u'in the summary: %s' % (u' | '.join(
@@ -288,9 +289,9 @@ def s2_devam(ana, s1_taban):
 
 def s3_bayat(ana, taban):
     print(u'\n--- S3: A STALE CHECKPOINT - when the input is newer than the output ---')
-    # D'nin bir girdisine dokunuyoruz: hedef_klad.tsv. Bu, 2026-08-07'de
-    # yasanan D-9 hatasinin ta kendisi: indeks yenilendi, kontrol noktasi
-    # eski sifirlari geri okudu.
+    # We touch one of D's inputs: hedef_klad.tsv. This is the D-9 fault of
+    # 2026-08-07 itself: the index was refreshed and the checkpoint read the old
+    # zeros back.
     hk = os.path.join(taban, 'screening', 'hedef_klad.tsv')
     with io.open(hk, 'w', encoding='utf-8') as fh:
         fh.write(u'hedef\tklad\nX\tBacteria\n')
@@ -333,7 +334,7 @@ def s5_asama_dustu(ana):
     print(u'\n--- S5: A STAGE FAILED (rc != 0) - the dependents MUST NOT RUN ---')
     t = golge_kur(os.path.join(ana, 's5'))
     a = basarili_ayar()
-    a['P'] = dict(rc=3, yaz={  # cikti URETILIYOR ama cikis kodu SIFIR DEGIL.
+    a['P'] = dict(rc=3, yaz={  # the output IS PRODUCED but the exit code IS NOT ZERO.
         'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv': u'hedef\tayrim\nX\t9\n',
         'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv': u'hedef\tSINIF\tF\tR\nX\tKESIN\tA\tT\n'})
     ayar_yaz(t, a)
@@ -395,7 +396,7 @@ def s7_kesinti(ana):
          u', '.join(u'%s=%s' % (k, d.get(k, {}).get('durum')) for k in 'HEUPK'))
     sina(u'S7 the morning summary was written on an interruption too',
          os.path.exists(os.path.join(t, 'TEK_TUS_SONUC', '00_SABAH_OZETI.md')))
-    # DEVAM: ayni komut yeniden kosuluyor
+    # RESUME: the same command is run again
     a['D'] = dict(rc=0, bekle=0, yaz={'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv':
                                       u'hedef\tKARAR\nX\tKOSULLU\n'})
     ayar_yaz(t, a)
@@ -414,8 +415,9 @@ def s7_kesinti(ana):
 
 def s8_belirlenimci_imza(ana, taban):
     print(u'\n--- S8: IS THE CHECKPOINT KEY DETERMINISTIC (md5) ---')
-    # Ayni girdilerle iki ayri surecte hesaplanan imza AYNI olmali. Python'un
-    # hash() fonksiyonu kullanilsaydi PYTHONHASHSEED yuzunden farkli cikardi.
+    # The signature computed in two separate processes from the same inputs must be
+    # THE SAME. Had Python's hash() been used it would have differed under
+    # PYTHONHASHSEED.
     kod = (u'import sys,os,json;sys.path.insert(0,%r);'
            u'import one_key as T;'
            u'a=[x for x in T.ASAMALAR(dict(ncbi="yok",karac=None)) if x["kod"]=="D"][0];'
@@ -493,8 +495,8 @@ def main():
     gecti = [x for x in SONUC if x[1]]
     dustu = [x for x in SONUC if not x[1]]
     print(u'\n' + u'=' * 78)
-    # OLCULDU: cumle Ingilizceye cevrilirken sira degisti ama argumanlar
-    # degismedi, dolayisiyla "gecen / toplam" yerine "toplam / gecen" basiliyordu.
+    # MEASURED: the sentence was reordered into English but its arguments were
+    # not, so it printed "total / passed" where "passed / total" belonged.
     print(u'  RESULT: %d of %d tests PASSED, %d FAILED  (%.0f s)'
           % (len(gecti), len(SONUC), len(dustu), time.time() - t0))
     if dustu:
