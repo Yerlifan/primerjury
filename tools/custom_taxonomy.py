@@ -134,17 +134,17 @@ def selftest():
         ok = bul == bek
         if not ok:
             hata += 1
-        print(f"  {'GECTI' if ok else 'KALDI'}  {ad:<58} {bul} / {bek}")
+        print(f"  {'PASS' if ok else 'FAIL'}  {ad:<58} {bul} / {bek}")
 
     k, d = soy_ayikla(">AB000389.1.1487 Bacteria;Pseudomonadota;Gammaproteobacteria")
-    K("SILVA basligi, kimlik", k, "AB000389.1.1487")
+    K(u'a SILVA header, the identity', k, "AB000389.1.1487")
     K("SILVA basligi, soy", d, ["Bacteria", "Pseudomonadota", "Gammaproteobacteria"])
     k2, d2 = soy_ayikla(">Petriella|KY123456|SH1234567.08FU|reps|k__Fungi;p__Ascomycota;g__Petriella")
-    K("UNITE basligi, SH kimligi secilir", k2, "SH1234567.08FU")
+    K(u'a UNITE header, the SH identity is chosen', k2, "SH1234567.08FU")
     K("UNITE rank onekleri atilir", d2, ["Fungi", "Ascomycota", "Petriella"])
     k3, d3 = soy_ayikla(">X1 Eukaryota;TSAR;Alveolata;unidentified;Genus x")
-    K("bos ve anlamsiz duzeyler atlanir", d3, ["Eukaryota", "TSAR", "Alveolata", "Genus x"])
-    K("soysuz baslik bos liste doner", soy_ayikla(">SADECE_KIMLIK")[1], [])
+    K(u'empty and meaningless levels are skipped', d3, ["Eukaryota", "TSAR", "Alveolata", "Genus x"])
+    K(u'a header with no lineage returns an empty list', soy_ayikla(">SADECE_KIMLIK")[1], [])
     K("bos baslik cokmez", soy_ayikla(">")[1], [])
 
     t = Taksonomi()
@@ -152,9 +152,9 @@ def selftest():
     b = t.ekle(["Bacteria", "Firmicutes", "Clostridia"])
     K("ortak soy paylasilir, iki kez yaratilmaz", t.ebeveyn[a], t.ebeveyn[b])
     K("kok 1'dir", t.ebeveyn[t.ebeveyn[t.ebeveyn[a]]], 1)
-    K("rank derinlige gore atanir", t.rank[a], "class")
+    K(u'the rank is assigned by depth', t.rank[a], "class")
     c = t.ekle(["Archaea", "Firmicutes"])
-    K("ayni ad farkli soyda AYRI dugumdur", t.ebeveyn[c] != t.ebeveyn[t.ebeveyn[a]], True)
+    K(u'the same name in a different lineage is a SEPARATE node', t.ebeveyn[c] != t.ebeveyn[t.ebeveyn[a]], True)
 
     import tempfile
     with tempfile.TemporaryDirectory() as dizin:
@@ -166,22 +166,22 @@ def selftest():
         cy = os.path.join(dizin, "lib.fna")
         with open(cy, "w") as fh:
             ok, yz, sz = kume_isle(fa, t2, fh)
-        K("butun basliklar okunur", ok, 3)
-        K("soysuz dizi atlanir", sz, 1)
-        K("soylu diziler yazilir", yz, 2)
+        K(u'every header is read', ok, 3)
+        K(u'a sequence with no lineage is skipped', sz, 1)
+        K(u'the sequences with a lineage are written', yz, 2)
         icerik = open(cy).read()
         K("baslik kraken:taxid tasir", "|kraken:taxid|" in icerik, True)
         K("RNA'daki U, DNA'da T olur", "ATGCATGC" in icerik, True)
-        K("soysuz dizinin dizisi de yazilmaz", "AAAA" in icerik, False)
+        K(u'the sequence of a record with no lineage is not written either', "AAAA" in icerik, False)
         n = t2.yaz(os.path.join(dizin, "taxonomy"))
-        K("nodes.dmp yazilir", os.path.exists(os.path.join(dizin, "taxonomy", "nodes.dmp")), True)
+        K(u'nodes.dmp is written', os.path.exists(os.path.join(dizin, "taxonomy", "nodes.dmp")), True)
         satir = open(os.path.join(dizin, "taxonomy", "nodes.dmp")).readline()
         K("nodes.dmp bicimi kraken2'nin bekledigi gibi", satir.startswith("1\t|\t1\t|\t"), True)
         # kok + Bacteria + Firmicutes + Bacilli + Clostridia = 5
-        K("dugum sayisi kok dahil", n, 5)
+        K(u'the node count including the root', n, 5)
 
     print("=" * 72)
-    print("SINAV GECTI" if hata == 0 else f"SINAV KALDI, {hata} madde")
+    print("THE TEST PASSED" if hata == 0 else f"THE TEST FAILED, {hata} items")
     print("=" * 72)
     return 0 if hata == 0 else 1
 
@@ -199,7 +199,7 @@ def main():
     import io, contextlib
     with contextlib.redirect_stdout(io.StringIO()):
         if selftest() != 0:
-            print("SINAV BASARISIZ, durduruldu (proje kurali 2)")
+            print("THE TEST FAILED, stopped (project rule 2)")
             sys.exit(2)
     if not a.kume:
         ap.error("en az bir --kume gerekli")
