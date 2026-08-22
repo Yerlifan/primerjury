@@ -29,28 +29,31 @@
 # This tool does not rewrite them, it calls them and builds on top.
 #
 # THE KEYS
-#   bash kraken_tool.sh bellek-ayari  suggests a .wslconfig (THE FREEZE FIX, DO THIS
-#                                     FIRST)
-#   bash kraken_tool.sh dogrula-ornek does the sample represent the full data
-#   bash kraken_tool.sh kraken-yol    prints kraken2's resolved full path (machine
-#                                     readable)
-#   bash kraken_tool.sh durum         the environment and database check; it runs
-#                                     nothing
-#   bash kraken_tool.sh vt-ara        searches the disk for a kraken2 database and
-#                                     lists what it finds
-#   bash kraken_tool.sh vt-kimlik     which version the database is, a deep detection
-#   bash kraken_tool.sh ozgun-vt      which database the original run used, inferred
-#                                     from evidence
-#   bash kraken_tool.sh sinav         every self test
-#   bash kraken_tool.sh sure          a REAL speed measurement from a small trial,
-#                                     plus a time estimate
-#   bash kraken_tool.sh esik-a        the confidence threshold scan, on VT_A
-#   bash kraken_tool.sh esik-b        the confidence threshold scan, on VT_B
-#   bash kraken_tool.sh esik          both, then the curves side by side
-#   bash kraken_tool.sh tablo         the four column comparison table
-#   bash kraken_tool.sh hepsi         the tests plus the threshold plus the table
-#   bash kraken_tool.sh ozelvt-kur    building a custom database (THE LAST RESORT)
-#   bash kraken_tool.sh ozelvt-kos    a run with the custom database
+#   bash kraken_tool.sh memory-config     suggests a .wslconfig (THE FREEZE FIX,
+#                                         DO THIS FIRST)
+#   bash kraken_tool.sh verify-sample     does the sample represent the full data
+#   bash kraken_tool.sh kraken-path       prints kraken2's resolved full path
+#                                         (machine readable)
+#   bash kraken_tool.sh status            the environment and database check; it
+#                                         runs nothing
+#   bash kraken_tool.sh find-db           searches the disk for a kraken2 database
+#                                         and lists what it finds
+#   bash kraken_tool.sh db-identity       which version the database is, a deep
+#                                         detection
+#   bash kraken_tool.sh original-db       which database the original run used,
+#                                         inferred from evidence
+#   bash kraken_tool.sh selftest          every self test
+#   bash kraken_tool.sh time              a REAL speed measurement from a small
+#                                         trial, plus a time estimate
+#   bash kraken_tool.sh threshold-a       the confidence threshold scan, on VT_A
+#   bash kraken_tool.sh threshold-b       the confidence threshold scan, on VT_B
+#   bash kraken_tool.sh threshold         both, then the curves side by side
+#   bash kraken_tool.sh table             the four column comparison table
+#   bash kraken_tool.sh all               the tests plus the threshold plus the
+#                                         table
+#   bash kraken_tool.sh custom-db-build   building a custom database (THE LAST
+#                                         RESORT)
+#   bash kraken_tool.sh custom-db-run     a run with the custom database
 #
 # THE VARIABLES
 #   VT_A=~/k2db       the first database (the default; PlusPFP is expected here)
@@ -296,9 +299,9 @@ tus_kraken_yol() {
     echo
     echo "IF IT IS ALREADY INSTALLED the environment may have a different name:"
     echo "    micromamba env list        (or: conda env list)"
-    echo "    ORTAM=<environment_name> bash $0 kraken-yol"
+    echo "    ORTAM=<environment_name> bash $0 kraken-path"
     echo "If you know the full path of the binary:"
-    echo "    KRAKEN2_BIN=/full/path/kraken2 bash $0 kraken-yol"
+    echo "    KRAKEN2_BIN=/full/path/kraken2 bash $0 kraken-path"
   } >&2
   return 1
 }
@@ -375,7 +378,7 @@ vt_hazir_mi() {
       [ -n "$t" ] && echo "        tar -xzvf $(basename "$t")"
     done <<< "$ars"
     echo "    First measure the free space:  df -h $d"
-    echo "    After unpacking:     bash $0 vt-kimlik"
+    echo "    After unpacking:     bash $0 db-identity"
     return 1
   fi
   echo "    NO INDEX and no archive either: $d"
@@ -553,7 +556,7 @@ eski_kosu_tespit() {
   echo "  But plants NOT APPEARING proves nothing: if no plant read was assigned in"
   echo "  a digester sample, no line is written even when the database holds plants."
   echo "  ABSENCE IS NOT EVIDENCE. PlusPF and PlusPFP are separated only by"
-  echo "  kraken2-inspect:  bash $0 vt-kimlik"
+  echo "  kraken2-inspect:  bash $0 db-identity"
 }
 
 # =========================================================================
@@ -635,14 +638,14 @@ vt_ara() {
   done
   if [ "${#benzersiz[@]}" -eq 1 ]; then
     echo "  One database was found. To use it:"
-    echo "      VT_A=${benzersiz[0]} bash $0 esik"
+    echo "      VT_A=${benzersiz[0]} bash $0 threshold"
   else
     echo "  THERE IS MORE THAN ONE DATABASE. The script does NOT CHOOSE which one to run,"
     echo "  because running the wrong version means reading the result wrongly."
     echo "  Look at the version lines above, choose, and give the path:"
-    for y in "${benzersiz[@]}"; do echo "      VT_A=$y bash $0 esik"; done
+    for y in "${benzersiz[@]}"; do echo "      VT_A=$y bash $0 threshold"; done
     echo "  If you want to compare two databases:"
-    echo "      VT_A=<wide> VT_B=<narrow> bash $0 esik"
+    echo "      VT_A=<wide> VT_B=<narrow> bash $0 threshold"
   fi
   return 0
 }
@@ -1022,7 +1025,7 @@ tus_durum() {
   else
     echo
     echo "VT_B = (not given). Work will proceed with a single database."
-    echo "  To compare two databases:  VT_B=/path/old_db bash $0 esik"
+    echo "  To compare two databases:  VT_B=/path/old_db bash $0 threshold"
   fi
   echo
   local n; n=$(ls "$KAYNAK"/*/*reads_*.fastq 2>/dev/null | wc -l || echo 0)
@@ -1033,7 +1036,7 @@ tus_durum() {
   echo
   eski_kosu_tespit
   echo
-  echo "Next step:  bash $0 vt-kimlik    (which version the database is)"
+  echo "Next step:  bash $0 db-identity    (which version the database is)"
 }
 
 tus_vt_kimlik() {
@@ -1100,7 +1103,7 @@ esik_tara() {
   local GIRDI="$is/tum.fastq"
   if [ "${ORNEK:-0}" -gt 0 ]; then
     echo
-    echo "SAMPLING IS ON (ORNEK=$ORNEK). For the full data: ORNEK=0 bash $0 esik"
+    echo "SAMPLING IS ON (ORNEK=$ORNEK). For the full data: ORNEK=0 bash $0 threshold"
     ornekle "$is/tum.fastq" "$is/ornek.fastq" "$ORNEK"
     GIRDI="$is/ornek.fastq"
   fi
@@ -1139,7 +1142,7 @@ tus_esik() {
   if [ -n "$VT_B" ] && [ "$ikili" -eq 0 ]; then
     echo "WARNING: VT_A and VT_B are the same directory. Drawing two curves is"
     echo "meaningless, so a single scan will be made. If you really want to compare"
-    echo "two different databases, give the path of the second: VT_B=/path/other bash $0 esik"
+    echo "two different databases, give the path of the second: VT_B=/path/other bash $0 threshold"
   fi
   esik_tara "$VT_A" "$IS_A" "VT_A"
   if [ "$ikili" -eq 1 ]; then
@@ -1214,7 +1217,7 @@ tus_ozelvt_kur() {
   echo "PlusPFP cannot be installed at all, or where a second opinion at marker"
   echo "gene level (16S/ITS) is wanted. The build takes hours."
   echo
-  echo "Check:  bash $0 vt-kimlik    (if PlusPFP is installed, do not come here at all)"
+  echo "Check:  bash $0 db-identity    (if PlusPFP is installed, do not come here at all)"
   echo
   local toplam=0 var=0
   for k in ${KUMELER:-silva_ssu unite pr2}; do
@@ -1282,7 +1285,7 @@ tus_ozelvt_kos() {
   kraken_sart
   [ -f "$OZELVT/hash.k2d" ] || {
     echo "ERROR: the custom database is not built ($OZELVT/hash.k2d is missing)."
-    echo "  First:  bash $0 ozelvt-kur"; exit 1; }
+    echo "  First:  bash $0 custom-db-build"; exit 1; }
   mkdir -p "$OZEL_IS"
   birlestir "$OZEL_IS/tum.fastq"
   local BAYRAK; BAYRAK=$(bellek_bayragi "$OZELVT")
@@ -1444,7 +1447,7 @@ tus_dogrula_ornek() {
       print "  SONUC: ORNEK TEMSILIDIR. Sapma 2 puanin altinda, esik egrisi gecerli."
     } else {
       print "  SONUC: SAPMA BUYUK. Ornek temsili degil.";
-      print "  ORNEK degerini buyutup tekrarlayin, orn: ORNEK=300000 bash kraken_tool.sh esik"
+      print "  ORNEK degerini buyutup tekrarlayin, orn: ORNEK=300000 bash kraken_tool.sh threshold"
     }
   }'
   printf 'esik\t%s\nen_buyuk_sapma_puan\t%s\n' "$C" "$sapma_max" \
@@ -1455,29 +1458,29 @@ tus_dogrula_ornek() {
 
 # =========================================================================
 case "$TUS" in
-  bellek-ayari) tus_bellek_ayari ;;
-  dogrula-ornek) tus_dogrula_ornek ;;
-  kraken-yol)  tus_kraken_yol ;;
-  durum)       tus_durum ;;
-  vt-ara)      ortam_ac; vt_ara || true ;;
-  ozgun-vt)      tus_ali_vt ;;
-  vt-kimlik)   tus_vt_kimlik ;;
-  sinav)       tus_sinav ;;
-  sure)        tus_sure "${2:-$VT_A}" ;;
-  esik-a)      tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
+  memory-config) tus_bellek_ayari ;;
+  verify-sample) tus_dogrula_ornek ;;
+  kraken-path)  tus_kraken_yol ;;
+  status)       tus_durum ;;
+  find-db)      ortam_ac; vt_ara || true ;;
+  original-db)      tus_ali_vt ;;
+  db-identity)   tus_vt_kimlik ;;
+  selftest)       tus_sinav ;;
+  time)        tus_sure "${2:-$VT_A}" ;;
+  threshold-a)      tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 selftest"; exit 2; }
                log_ac esik_a; kraken_sart; esik_tara "$VT_A" "$IS_A" "VT_A"
                python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" --job "$IS_A" --name "$(basename "$VT_A")" ;;
-  esik-b)      [ -n "$VT_B" ] || { echo "ERROR: VT_B was not given.  VT_B=/path bash $0 esik-b"; exit 1; }
+  threshold-b)      [ -n "$VT_B" ] || { echo "ERROR: VT_B was not given.  VT_B=/path bash $0 threshold-b"; exit 1; }
                tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
                log_ac esik_b; kraken_sart; esik_tara "$VT_B" "$IS_B" "VT_B"
                python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" --job "$IS_B" --name "$(basename "$VT_B")" ;;
-  esik)        tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 sinav"; exit 2; }
+  threshold)        tus_sinav >/dev/null || { echo "A SELF TEST FAILED. Detail: bash $0 selftest"; exit 2; }
                tus_esik ;;
-  tablo)       tus_tablo ;;
-  hepsi)       tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
+  table)       tus_tablo ;;
+  all)       tus_sinav >/dev/null || { echo "SINAV KALDI"; exit 2; }
                tus_esik; tus_tablo ;;
-  ozelvt-kur)  tus_ozelvt_kur ;;
-  ozelvt-kos)  tus_ozelvt_kos ;;
+  custom-db-build)  tus_ozelvt_kur ;;
+  custom-db-run)  tus_ozelvt_kos ;;
   *)           sed -n '3,48p' "$0" | sed 's/^# \{0,1\}//'
                echo; echo "For detail: $PROJE/docs/GUIDE.md" ;;
 esac

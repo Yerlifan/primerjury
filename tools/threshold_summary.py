@@ -424,7 +424,7 @@ def main():
     s1, k1 = tarama_oku(a.is1)
     if not s1:
         print(f"ERROR: {a.is1} holds no esik_<C>.report file.")
-        print(u'  The scan has to be run first:  bash kraken_tool.sh esik-eski')
+        print(u'  The scan has to be run first:  bash kraken_tool.sh threshold-old')
         sys.exit(1)
 
     metin = egri_metni(s1, f"THE CONFIDENCE THRESHOLD CURVE, {a.ad}")
@@ -438,7 +438,7 @@ def main():
     s2, k2 = tarama_oku(a.is2)
     if not s2:
         print(f"\nWARNING: {a.is2} holds no scan, so the two databases were not compared.")
-        print(u'  To run it:  bash kraken_tool.sh esik-yeni')
+        print(u'  To run it:  bash kraken_tool.sh threshold-new')
         return
     m2 = egri_metni(s2, f"THE CONFIDENCE THRESHOLD CURVE, {a.ad2}")
     print("\n" + m2)

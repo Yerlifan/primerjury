@@ -97,7 +97,7 @@ UNITE's URL is not hard-coded at all; the installer points you to the current
 release page and verifies whatever you give it:
 
 ```bash
-bash install.sh veritabani --only unite --url <URL-you-copied>
+bash install.sh databases --only unite --url <URL-you-copied>
 ```
 
 ### Building indexes
@@ -121,7 +121,7 @@ in words like "Unknown", and a blind `sed 's/U/T/g'` would corrupt the taxonomy)
 Prebuilt Kraken2 databases are fixed at `k=35, l=31`. To choose your own:
 
 ```bash
-bash install.sh kraken-kur --kmer 31 --db ~/k2db_k31
+bash install.sh kraken-build --kmer 31 --db ~/k2db_k31
 ```
 
 Shorter *k* raises sensitivity on error-prone long reads (nanopore) but pushes
@@ -417,7 +417,7 @@ they were measured from. If you changed a pair, the reference is stale, and the
 run reports "reference invalid, pair changed" instead of failing the chain.
 
 **Everything is `BILINMIYOR`.**
-Usually missing databases. Run `bash install.sh durum`, it reports how many of
+Usually missing databases. Run `bash install.sh status`, it reports how many of
 the independent sources are present and what that does to the verdicts.
 
 **A rerun reports "taken from previous run" and nothing changed after I fixed
@@ -427,7 +427,7 @@ scan *parameters*, the signature changes and the scan re-runs. If a checkpoint
 predates this separation the run says so explicitly and rescans.
 
 **The computer locks up during a long run.**
-WSL memory. See `install.sh durum` output and lower thread counts; the Kraken
+WSL memory. See `install.sh status` output and lower thread counts; the Kraken
 tooling picks `nproc - 2` by default.
 
 ---

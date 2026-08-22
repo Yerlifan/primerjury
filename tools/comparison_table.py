@@ -338,7 +338,7 @@ def yorum(satirlar, bilgi):
     g = ["", "## Sonuc", ""]
     if not bilgi["a_var"]:
         g.append(u'There is NO PlusPFP run. The table is incomplete and cannot be interpreted.')
-        g.append(u'To run it: `bash kraken_tool.sh esik-a`')
+        g.append(u'To run it: `bash kraken_tool.sh threshold-a`')
         return "\n".join(g)
     g.append(f"- Bins decided: {karar_verilen}")
     g.append(f"- PlusPFP confirms our identity: **{dogrulayan}** "
@@ -496,7 +496,7 @@ def main():
                                 a.is_b if a.ad_b else "", a.ad_b, a.threshold)
     if not satirlar:
         print(u'ERROR: there is no data to compare.')
-        print(u'  The scan has to be run first:  bash kraken_tool.sh esik')
+        print(u'  The scan has to be run first:  bash kraken_tool.sh threshold')
         sys.exit(1)
 
     eksikler = []
