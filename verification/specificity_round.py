@@ -38,16 +38,16 @@ THREE STATES, NOT TWO
 # the recovery round and tests them side by side against four independent layers of
 # evidence, before any of them is ordered.
 #
-# INPUT  : KURTARMA_SONUC/kurtarma_satirlari.tsv (which pairs to verify),
-#          TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the primer sequences),
+# INPUT  : RECOVERY_RESULT/kurtarma_satirlari.tsv (which pairs to verify),
+#          ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the primer sequences),
 #          the KUMELER list under REFERANS_DB/, the tools/mfeprimer indexes,
 #          NCBI Primer-BLAST (over the network) or a hand filled
 #          NCBI_SONUC_SABLONU.tsv.
-# OUTPUT : DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv (the main table),
-#          DOGRULAMA_SONUC/CELISKILER.md (read this one first),
-#          DOGRULAMA_SONUC/yerel_vuruslar.tsv, DOGRULAMA_RAPORU.md,
+# OUTPUT : VERIFICATION_RESULT/dogrulama_uc_sutun.tsv (the main table),
+#          VERIFICATION_RESULT/CELISKILER.md (read this one first),
+#          VERIFICATION_RESULT/yerel_vuruslar.tsv, DOGRULAMA_RAPORU.md,
 #          NCBI_PRIMER_BLAST_GIRDI.tsv + NCBI_SONUC_SABLONU.tsv (the manual route),
-#          DOGRULAMA_SONUC/kontrol/ (a checkpoint per set).
+#          VERIFICATION_RESULT/kontrol/ (a checkpoint per set).
 # CALLED BY: verification/full_chain.py -> key D
 #          (python3 verification/specificity_round.py --root . ...)
 #
@@ -186,7 +186,7 @@ def siparistekiler(kok, hepsi=False):
     hepsi=True ise KOSULLU ve ONERILMEZ satirlar da alinir - kullanici onlari
     da sinatmak isterse. Varsayilan: yalniz siparise gidecekler.
     """
-    yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
+    yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
     if not os.path.exists(yol):
         yol = os.path.join(kok, 'SIPARIS_LISTESI.tsv')
     if not os.path.exists(yol):
@@ -219,14 +219,14 @@ def siparistekiler(kok, hepsi=False):
 
 
 def kurtarilanlar(kok):
-    """KURTARMA_SONUC/kurtarma_satirlari.tsv -> esigi gecen YENI/DEGISMIS ciftler."""
-    yol = os.path.join(kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv')
+    """RECOVERY_RESULT/kurtarma_satirlari.tsv -> esigi gecen YENI/DEGISMIS ciftler."""
+    yol = os.path.join(kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv')
     if not os.path.exists(yol):
         sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (K) has to be run first.' % yol)
     with open(yol, encoding='utf-8') as fh:
         satirlar = list(csv.DictReader((s for s in fh if not s.startswith('#')), delimiter='\t'))
 
-    tp = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+    tp = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     ciftler = {}
     if os.path.exists(tp):
         with open(tp, encoding='utf-8') as fh:
@@ -930,7 +930,7 @@ def katman2_elle_girdi(ciftler, cikti, yaz, organizma=''):
     with open(s, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# Write the NCBI results HERE, then:\n')
         fh.write(u'#   verification/full_chain.py -> (D) -> "load manual results", or\n')
-        fh.write(u'#   python3 verification/specificity_round.py --root . --ncbi-load DOGRULAMA_SONUC/NCBI_SONUC_SABLONU.tsv\n')
+        fh.write(u'#   python3 verification/specificity_round.py --root . --ncbi-load VERIFICATION_RESULT/NCBI_SONUC_SABLONU.tsv\n')
         fh.write(u'# hedef_disi_urun_sayisi: how many products Primer-BLAST counts under "Products on potentially unintended templates".\n')
         fh.write(u'# Write 0 if there are none. Leave it empty if you did not look; that row counts as "NCBI not done".\n')
         w = csv.writer(fh, delimiter='\t')
@@ -1598,7 +1598,7 @@ def main():
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.exit(u'ERROR: there is no screening directory inside %s.' % kok)
-    CIKTI = os.path.join(kok, 'DOGRULAMA_SONUC')
+    CIKTI = os.path.join(kok, 'VERIFICATION_RESULT')
     KONTROL = os.path.join(CIKTI, 'kontrol')
     os.makedirs(KONTROL, exist_ok=True)
     if a.sifirla:
@@ -1617,7 +1617,7 @@ def main():
     yaz(u'  version %s   %s' % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 78)
 
-    kyol_ = os.path.join(kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv')
+    kyol_ = os.path.join(kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv')
     if not os.path.exists(kyol_) or sum(
             1 for x in open(kyol_, encoding='utf-8') if x.strip() and not x.startswith('#')) <= 1:
         yaz('')

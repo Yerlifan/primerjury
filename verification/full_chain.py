@@ -30,9 +30,9 @@ THREE DESIGN DECISIONS
 #
 # INPUT  : the stage scripts in the project root (the screening package, the four
 #          scripts under verification) and tools/kraken_tool.sh;
-#          plus TAM_ZINCIR_SONUC/durum.json (where the previous run stopped).
-# OUTPUT : TAM_ZINCIR_SONUC/00_TAM_ZINCIR_OZET.md (one combined summary),
-#          TAM_ZINCIR_SONUC/durum.json, TAM_ZINCIR_SONUC/kosu_gunlugu.txt.
+#          plus FULL_CHAIN_RESULT/durum.json (where the previous run stopped).
+# OUTPUT : FULL_CHAIN_RESULT/00_TAM_ZINCIR_OZET.md (one combined summary),
+#          FULL_CHAIN_RESULT/durum.json, FULL_CHAIN_RESULT/kosu_gunlugu.txt.
 # CALLED BY: verification/full_chain.py -> key A
 #          (python3 verification/full_chain.py --root . --confirm)
 #
@@ -72,7 +72,7 @@ import sys
 import time
 
 VERSIYON = u'1.0 (2026-08-04)'
-CIKTI_ADI = 'TAM_ZINCIR_SONUC'
+CIKTI_ADI = 'FULL_CHAIN_RESULT'
 
 
 # -------------------------------------------------------------------------
@@ -164,13 +164,13 @@ def d_hizli_test(kok, ayar):
         inconsistent chain produces a number that will be thrown away at the end.
 
     """
-    y = os.path.join(kok, 'HIZLI_TEST', 'HIZLI_TEST_RAPORU.md')
+    y = os.path.join(kok, 'QUICK_TEST', 'QUICK_TEST_REPORT.md')
     if not os.path.exists(y):
-        return False, u'HIZLI_TEST/HIZLI_TEST_RAPORU.md uretilmedi'
+        return False, u'QUICK_TEST/QUICK_TEST_REPORT.md uretilmedi'
     m = io.open(y, encoding='utf-8', errors='ignore').read()
     if u'ZINCIR TUTARSIZ' in m:
         return False, (u'rapor ZINCIR TUTARSIZ diyor. Tam kosuya GIRILMEZ; '
-                       u'HIZLI_TEST/HIZLI_TEST_RAPORU.md dosyasina bakin.')
+                       u'QUICK_TEST/QUICK_TEST_REPORT.md dosyasina bakin.')
     if u'ZINCIR TUTARLI' in m:
         return True, u'rapor ZINCIR TUTARLI diyor'
     return False, u'raporda ne TUTARLI ne TUTARSIZ karari var - bicim beklenmedik'
@@ -240,7 +240,7 @@ def d_tablo(kok, ayar):
 
 
 def d_ozet(kok, ayar):
-    y = os.path.join(kok, 'KAPSAMLI_ARAMA_SONUC', '00_OZET_HEPSI.md')
+    y = os.path.join(kok, 'SCREENING_RESULT', '00_OZET_HEPSI.md')
     if not os.path.exists(y):
         return False, u'00_OZET_HEPSI.md uretilmedi'
     yas = time.time() - os.path.getmtime(y)
@@ -298,20 +298,20 @@ ASAMALAR = [
      (180, 260), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'identity_verification.py'),
                          '--root', '.')],
-     d_dosya_dolu([os.path.join('KIMLIK_SONUC', 'kimlik_iddialari.tsv')])),
+     d_dosya_dolu([os.path.join('IDENTITY_RESULT', 'kimlik_iddialari.tsv')])),
 
     # MEASURED on the clean run of 2026-08-05: 4 h 43 min. The estimate was pulled to the measured value.
     ('G', u'ALL BIN IDENTITIES - every bin entering the panel is verified', u'Group 2',
      (260, 350), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'all_bin_identities.py'),
                          '--root', '.')],
-     d_dosya_dolu([os.path.join('TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')])),
+     d_dosya_dolu([os.path.join('ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv')])),
 
     # Measured: P 36 s, K 5 min, D 6 min. The previous estimate (6-16 hours) was far too wide.
     ('T', u'FULL MEASUREMENT - P, K, D and I in dependency order', u'Group 1',
      (30, 90), False,
      lambda kok, a: [_py(kok, os.path.join('verification', 'run_all_stages.py'), '--root', '.')],
-     d_dosya_dolu([os.path.join('TUM_KOSU_SONUC', '00_BIRLESIK_OZET.md')])),
+     d_dosya_dolu([os.path.join('ALL_STAGES_RESULT', '00_BIRLESIK_OZET.md')])),
 
     # MEASURED on the clean run of 2026-08-05: 1 h 55 min (6 thresholds x ~19 min). The
     # old estimate was 10-40 min and was out BY A FACTOR OF THREE: the sampling was set
@@ -456,7 +456,7 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
     return {
         'arac': arac,
         'karac': karac,
-        'kraken_is': os.path.join(kok, 'SONUCLAR', 'kraken_esik_A'),
+        'kraken_is': os.path.join(kok, 'RESULTS', 'kraken_esik_A'),
         'kraken_var': not sebep,
         'kraken_sebep': u'; '.join(sebep),
         'kraken2_bin': kbin,
@@ -703,16 +703,16 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
     A(u'| Question | File |')
     A(u'|---|---|')
     bakilacak = [
-        (u'Was the chain consistent', 'HIZLI_TEST/HIZLI_TEST_RAPORU.md'),
+        (u'Was the chain consistent', 'QUICK_TEST/QUICK_TEST_REPORT.md'),
         (u'What became of the identity claims',
-         'KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md'),
+         'IDENTITY_RESULT/KIMLIK_DOGRULAMA_RAPORU.md'),
         (u'The identity of every bin',
-         'TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md'),
+         'ALL_IDENTITIES_RESULT/TUM_KUTU_KIMLIK_RAPORU.md'),
         (u'The measurement and recovery result',
-         'TUM_KOSU_SONUC/00_BIRLESIK_OZET.md'),
+         'ALL_STAGES_RESULT/00_BIRLESIK_OZET.md'),
         (u'What should I order', 'SIPARIS_LISTESI.tsv'),
         (u'The Kraken threshold curve',
-         '../tools/SONUCLAR/kraken_esik_A/esik_egrisi.txt'),
+         '../tools/RESULTS/kraken_esik_A/esik_egrisi.txt'),
         (u'Rapora gidecek Kraken tablosu', '../tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md'),
     ]
     for soru, dy in bakilacak:
@@ -799,24 +799,24 @@ def main():
         # timestamp.
         import datetime as _dt
         damga = _dt.datetime.now().strftime('%Y%m%d_%H%M%S')
-        hedefler = ['TEK_PROTOKOL_SONUC', 'KURTARMA_SONUC', 'DOGRULAMA_SONUC',
-                    'KIMLIK_SONUC', 'TUM_KIMLIK_SONUC', 'TUM_KOSU_SONUC',
-                    'HIZLI_TEST', 'ERISIM_SONUC', CIKTI_ADI]
+        hedefler = ['ONE_PROTOCOL_RESULT', 'RECOVERY_RESULT', 'VERIFICATION_RESULT',
+                    'IDENTITY_RESULT', 'ALL_IDENTITIES_RESULT', 'ALL_STAGES_RESULT',
+                    'QUICK_TEST', 'ACCESS_RESULT', CIKTI_ADI]
         tasinan = []
         for h in hedefler:
             y = os.path.join(kok, h)
             if os.path.isdir(y):
-                yeni_ad = os.path.join(kok, '%s_ONCEKI_%s' % (h, damga))
+                yeni_ad = os.path.join(kok, '%s_PREVIOUS_%s' % (h, damga))
                 try:
                     os.rename(y, yeni_ad)
                     tasinan.append(h)
                 except OSError as e:
                     print(u'  WARNING: could not move %s (%s). This stage may resume from its own checkpoint.' % (h, e))
-        ali_is = os.path.join(kok, '..', 'tools', 'SONUCLAR', 'kraken_esik_A')
+        ali_is = os.path.join(kok, '..', 'tools', 'RESULTS', 'kraken_esik_A')
         if os.path.isdir(ali_is):
             try:
-                os.rename(ali_is, ali_is + '_ONCEKI_' + damga)
-                tasinan.append('tools/SONUCLAR/kraken_esik_A')
+                os.rename(ali_is, ali_is + '_PREVIOUS_' + damga)
+                tasinan.append('tools/RESULTS/kraken_esik_A')
             except OSError:
                 pass
         print(u'\nCLEAN RUN: %d result directories were moved aside. Nothing was deleted.' % len(tasinan))

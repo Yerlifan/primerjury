@@ -283,10 +283,10 @@ imported, it loads its engine from disk, and those files had not been copied.
 
 | File | Contents |
 |---|---|
-| `KIMLIK_SONUC/kimlik_iddialari.tsv` | identity claims, verdicts, five nearest organisms |
-| `DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv` | the four layers side by side, per pair |
-| `DOGRULAMA_SONUC/CELISKILER.md` | contradictions, the most valuable output |
-| `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv` | the order list |
+| `IDENTITY_RESULT/kimlik_iddialari.tsv` | identity claims, verdicts, five nearest organisms |
+| `VERIFICATION_RESULT/dogrulama_uc_sutun.tsv` | the four layers side by side, per pair |
+| `VERIFICATION_RESULT/CELISKILER.md` | contradictions, the most valuable output |
+| `ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv` | the order list |
 | `GUNCEL_DURUM.md` | current panel state, regenerated every run |
 
 ### The five nearest organisms

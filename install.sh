@@ -48,7 +48,7 @@ set -o pipefail
 
 KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REFDB="$KOK/REFERANS_DB"
-LOG_KLASOR="$KOK/kurulum_loglari"
+LOG_KLASOR="$KOK/install_logs"
 mkdir -p "$LOG_KLASOR" "$REFDB"
 LOG="$LOG_KLASOR/KUR_$(date '+%Y%m%d_%H%M%S').log"
 exec > >(tee -a "$LOG") 2>&1
@@ -122,7 +122,7 @@ declare -A HEDEF=(
   [refseq_28s]="fungi.28SrRNA.fna"
 )
 # the minimum record count expected; below this the file is SUSPECT
-# (measured values, KONTROL_SONUC/CAPRAZ_KONTROL_2026-08-09_2216.md)
+# (measured values, CROSSCHECK_RESULT/CAPRAZ_KONTROL_2026-08-09_2216.md)
 declare -A ASGARI_KAYIT=(
   [silva_ssu]=400000  [silva_lsu]=80000  [silva_lsu_parc]=1000000
   [pr2]=200000        [refseq_bak16s]=20000  [refseq_ark16s]=800

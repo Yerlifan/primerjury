@@ -13,7 +13,7 @@ Reading the code takes you only so far; this script looks at THE OUTPUT. It runs
 the chain's four stages on a SMALL subset with a KNOWN answer and compares the
 result against a reference run.
 
-The reference: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (full depth, 3000 reads).
+The reference: ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (full depth, 3000 reads).
 
 WHAT IS TESTED
   1) Do the above-threshold ones still come out above and the below-threshold ones
@@ -34,14 +34,14 @@ REASONING.
 # known answer and tests that the code reproduces itself (a regression test).
 #
 # INPUT  : the four scripts in the project root and the measurement sources; those
-#          are linked symbolically under HIZLI_TEST/ (screening, protocol,
+#          are linked symbolically under QUICK_TEST/ (screening, protocol,
 #          verification, REFERANS_DB, konsensus_kanonik, primer_final,
 #          "fastq files", engine and uyelik_yeniden_turetme_uyelik_*.tsv). The
 #          expected values come from the BEKLENEN_UST / BEKLENEN_ALT /
 #          BEKLENEN_YENI constants in this file, whose source is a full depth
 #          reference run.
-# OUTPUT : HIZLI_TEST/HIZLI_TEST_RAPORU.md and HIZLI_TEST/test_gunlugu.txt; the
-#          stages' own outputs also stay separately under HIZLI_TEST/, and the real
+# OUTPUT : QUICK_TEST/QUICK_TEST_REPORT.md and QUICK_TEST/test_gunlugu.txt; the
+#          stages' own outputs also stay separately under QUICK_TEST/, and the real
 #          result directories ARE NOT TOUCHED.
 # CALLED BY: verification/full_chain.py -> key H
 #          (python3 verification/quick_consistency_test.py --root .)
@@ -83,7 +83,7 @@ ESIK = _C.AYRIM_ESIK
 # compared the old pair's 0.74x against the new pair's 14.23x and said "THE CHAIN IS
 # INCONSISTENT". The chain WAS NOT inconsistent; the reference was stale.
 #
-# The references are now read from HIZLI_TEST/referans_degerler.tsv, and every row
+# The references are now read from QUICK_TEST/referans_degerler.tsv, and every row
 # carries the F/R SEQUENCE that measurement was made with. If the pair has changed
 # by the time of the test, NO COMPARISON IS MADE; it says "the reference is invalid,
 # the pair changed" and the chain is not stopped. It is not silently counted correct
@@ -92,7 +92,7 @@ ESIK = _C.AYRIM_ESIK
 # If the file is missing, the old constants below are used, and the report says so
 # openly.
 REFERANS_DOSYASI = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                os.pardir, 'HIZLI_TEST', 'referans_degerler.tsv')
+                                os.pardir, 'QUICK_TEST', 'referans_degerler.tsv')
 CIKIS_TUTARSIZ = 6      # gercek gerileme - uzun kosuya GIRILMEZ
 CIKIS_REFERANS_BAYAT = 7  # referans karsilastirilamaz - zincir devam edebilir
 
@@ -249,7 +249,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
                 [py, os.path.join(kok, 'protocol', 'single_protocol_measure.py'),
                  '--root', hizli_kok, '--reads', str(OKUMA), '--only', sec],
                 tavan_dk * 60)
-    P = tsv_oku(os.path.join(hizli_kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
+    P = tsv_oku(os.path.join(hizli_kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
     sonuc['asama']['P'] = dict(rc=rc, satir=len(P))
     if not P:
         sonuc['hata'].append(u'stage P produced no rows at all, so the chain breaks here.')
@@ -297,7 +297,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
                 _cr = (v.get('R') or '').upper()
                 if _rf[1] and _rf[2] and (_cf, _cr) != (_rf[1], _rf[2]):
                     sonuc.setdefault('referans_bayat', []).append(
-                        u'%s: the primer pair CHANGED since the reference measurement (the reference F %s / R %s, now F %s / R %s). The old %sx and the new measurement (%sx) cannot be compared, so this IS NOT a regression. Refresh the reference: HIZLI_TEST/referans_degerler.tsv'
+                        u'%s: the primer pair CHANGED since the reference measurement (the reference F %s / R %s, now F %s / R %s). The old %sx and the new measurement (%sx) cannot be compared, so this IS NOT a regression. Refresh the reference: QUICK_TEST/referans_degerler.tsv'
                         % (ad, _rf[1][:12], _rf[2][:12], _cf[:12], _cr[:12],
                            vir(ref), vir(v['kat']) if v['kat'] is not None else '-'))
                     continue
@@ -370,7 +370,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                  '--scan-max', '40', '--candidate-max', '5', '--arms-max', '0',
                  '--skip-if-no-panel'],
                 tavan_dk * 60)
-    K = tsv_oku(os.path.join(hizli_kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'))
+    K = tsv_oku(os.path.join(hizli_kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv'))
     sonuc['asama']['K'] = dict(rc=rc, satir=len(K))
     if len(K) < 1:
         sonuc['hata'].append(u'stage K produced NO rows at all (an empty output does not count as passing).')
@@ -382,7 +382,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                 [py, os.path.join(kok, 'verification', 'specificity_round.py'),
                  '--root', hizli_kok, '--ncbi', 'elle'],
                 tavan_dk * 60)
-    Dd = tsv_oku(os.path.join(hizli_kok, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))
+    Dd = tsv_oku(os.path.join(hizli_kok, 'VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'))
     sonuc['asama']['D'] = dict(rc=rc, satir=len(Dd))
     if len(Dd) < 1 and len(K) >= 1 and not [r for r in K
                                             if (r.get('esigi_gecti_mi') or '').startswith('EVET')]:
@@ -391,9 +391,9 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         # separate root with a synthetic single row input.
         yaz(u'    D: empty because no pair was recovered, testing it ON ITS OWN...')
         oz = os.path.join(hizli_kok, 'D_KENDI_SINAMASI')
-        os.makedirs(os.path.join(oz, 'KURTARMA_SONUC'), exist_ok=True)
+        os.makedirs(os.path.join(oz, 'RECOVERY_RESULT'), exist_ok=True)
         for ad in ('screening', 'verification', 'protocol', 'REFERANS_DB',
-                   'konsensus_kanonik', 'TEK_PROTOKOL_SONUC', 'primer_final',
+                   'konsensus_kanonik', 'ONE_PROTOCOL_RESULT', 'primer_final',
                    'engine', 'engine', 'engine',
                    'steps', 'engine', 'fastq files'):
             h = os.path.join(oz, ad)
@@ -403,7 +403,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                     os.symlink(os.path.realpath(kaynak), h)
                 except OSError:
                     pass
-        with open(os.path.join(oz, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'),
+        with open(os.path.join(oz, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv'),
                   'w', encoding='utf-8', newline='') as fh:
             fh.write(u'# D SELF-TEST - synthetic input\n')
             ww = csv.writer(fh, delimiter='\t')
@@ -416,7 +416,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                      [py, os.path.join(kok, 'verification', 'specificity_round.py'),
                       '--root', oz, '--ncbi', 'elle', '--no-mfe',
                       '--cluster-max', '1'], tavan_dk * 60)
-        D2 = tsv_oku(os.path.join(oz, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))
+        D2 = tsv_oku(os.path.join(oz, 'VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'))
         sonuc['asama']['D'] = dict(rc=rc2, satir=len(D2), kendi_sinamasi=True)
         if len(D2) >= 1:
             sonuc['uyari'].append(
@@ -449,7 +449,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                 [py, os.path.join(kok, 'verification', 'identity_verification.py'),
                  '--root', hizli_kok, '--only', '10', '--nt', 'yok', '--db-max', '2'],
                 tavan_dk * 60)
-    I = tsv_oku(os.path.join(hizli_kok, 'KIMLIK_SONUC', 'kimlik_iddialari.tsv'))
+    I = tsv_oku(os.path.join(hizli_kok, 'IDENTITY_RESULT', 'kimlik_iddialari.tsv'))
     sonuc['asama']['I'] = dict(rc=rc, satir=len(I))
     if len(I) < 1:
         sonuc['hata'].append(u'stage I produced NO claim results at all.')
@@ -465,7 +465,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 # THE SYMPTOM : stage H was failing with exit code 6 and saying
 #           "the REQUIRED layers were not filled in stage D: source 1
 #            (the sample measurement)".
-# THE MEASUREMENT: HIZLI_TEST/D_KENDI_SINAMASI/DOGRULAMA_SONUC/
+# THE MEASUREMENT: QUICK_TEST/D_KENDI_SINAMASI/VERIFICATION_RESULT/
 #           dogrulama_uc_sutun.tsv was read. The layer IS NOT EMPTY; the column's
 #           value is 'TEMIZ'. But the column is not named '1_NUMUNE', it is named
 #           '1_NUMUNE_oy_vermez'. Stage D renamed the column in the D-2 fix of
@@ -562,7 +562,7 @@ def katman_denetimi(Dd, sonuc):
 # Exit code 6 = THE CHAIN IS INCONSISTENT; it must be resolved before a full run.
 def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     guvenilir = not sonuc['hata']
-    yol = os.path.join(hizli_kok, 'HIZLI_TEST_RAPORU.md')
+    yol = os.path.join(hizli_kok, 'QUICK_TEST_REPORT.md')
     with open(yol, 'w', encoding='utf-8') as fh:
         fh.write(u'# Quick consistency test (regression)\n\nGenerated: %s, script %s, time: %s\n\n'
                  % (time.strftime('%Y-%m-%d %H:%M'), VERSIYON, sure_metni(gecen_sure)))
@@ -648,7 +648,7 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
     return CIKIS_REFERANS_BAYAT if sonuc.get('referans_bayat') else 0
 
 
-# HIZLI_TEST/ is a temporary root: the source directories are linked
+# QUICK_TEST/ is a temporary root: the source directories are linked
 # symbolically and the outputs stay separate. That way the test DOES NOT
 # OVERWRITE the long run results in the real output directories.
 def main():
@@ -659,7 +659,7 @@ def main():
                    help='asama basina zaman tavani (dakika)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
-    hizli = os.path.join(kok, 'HIZLI_TEST')
+    hizli = os.path.join(kok, 'QUICK_TEST')
     os.makedirs(hizli, exist_ok=True)
     # gecici kok: kaynaklar baglanti, ciktilar ayri
     for ad in ('screening', 'protocol', 'verification', 'REFERANS_DB',
@@ -690,7 +690,7 @@ def main():
         % (VERSIYON, time.strftime('%Y-%m-%d %H:%M')))
     yaz('=' * 74)
     yaz(u'  Target time: about 30 minutes. Measurement depth %d reads (a full run uses 3000).' % OKUMA)
-    yaz(u'  Rows tested: %d. Output directory: HIZLI_TEST/'
+    yaz(u'  Rows tested: %d. Output directory: QUICK_TEST/'
         % (len(BEKLENEN_UST) + len(BEKLENEN_ALT) + len(BEKLENEN_YENI)))
     yaz(u'  NOTE: the numbers will NOT match the reference exactly; the depth was reduced.')
     yaz(u'  What is being checked is that the CLASS and the RANKING are preserved.')

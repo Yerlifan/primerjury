@@ -16,7 +16,7 @@ extracted again. After an interruption it continues from the cache.
 #          by the amplicon class); the member and competitor genus names are derived
 #          from hedefler.taxid_adlari() plus the hedef_baglami output through
 #          uye_ve_rakip_anahtar().
-# OUTPUT : the KAPSAMLI_ARAMA_SONUC/onbellek/havuz_*.pkl cache files.
+# OUTPUT : the SCREENING_RESULT/onbellek/havuz_*.pkl cache files.
 #          havuz_cikar() returns a (header, sequence) list and kapsam() a dictionary
 #          of giving/total/length/headers.
 # CALLED BY: __main__.aramayi_kos (the bulk pool extraction) and stage D of

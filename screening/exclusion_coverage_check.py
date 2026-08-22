@@ -244,7 +244,7 @@ def main():
             if len(p) >= 2 and p[1].strip().isdigit():
                 ESD[p[0].strip()] = p[1].strip()
     KUT = oku_uye_kutular(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_20260803.tsv'))
-    OLC = oku_olculen_kimlik(os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv'))
+    OLC = oku_olculen_kimlik(os.path.join(kok, 'ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv'))
     yaz(u'  member bin table : %d targets' % len(KUT))
     yaz(u'  measured identity: %d bins' % len(OLC))
     olculen_yol = bool(KUT and OLC)

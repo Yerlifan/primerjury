@@ -47,7 +47,7 @@ import verification.mfeprimer_layer as MK                        # noqa: E402
 KUCUK = ['archaea.16S.fna', 'fungi.18SrRNA.fna', 'fungi.28SrRNA.fna',
          'fungi.ITS.fna', 'bacteria.16S.fna']
 
-KAYNAK = os.path.join(KOK, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv')
+KAYNAK = os.path.join(KOK, 'VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv')
 URUN_ALT, URUN_UST, BOY_TOL = 70, 400, 10
 
 
@@ -123,7 +123,7 @@ def main():
     # The checkpoint key carries the candidate SEQUENCES too: sealed by name alone, an
     # old scan comes back silently when a sequence changes (that fault was measured in
     # dogrulama_turu on 2026-08-10).
-    kn_dizin = os.path.join(KOK, 'KAPSAMLI_ARAMA_SONUC', 'kontrol', 'A2_olcum')
+    kn_dizin = os.path.join(KOK, 'SCREENING_RESULT', 'kontrol', 'A2_olcum')
     try:
         os.makedirs(kn_dizin)
     except OSError:

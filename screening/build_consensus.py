@@ -38,8 +38,8 @@ KNOWN TRAPS (all of them handled deliberately)
 #          MAX_OKUMA reads per bin, with a fixed seed); as the template, the
 #          canonical consensus hedefler.konsensusler() gives, and failing that the
 #          best read; orientation normalisation through orientation.py.
-# OUTPUT : one fasta per bin under KAPSAMLI_ARAMA_SONUC/konsensus_yeni/;
-#          KAPSAMLI_ARAMA_SONUC/KONSENSUS_YENIDEN_URETIM.md and
+# OUTPUT : one fasta per bin under SCREENING_RESULT/konsensus_yeni/;
+#          SCREENING_RESULT/KONSENSUS_YENIDEN_URETIM.md and
 #          konsensus_yeniden_uretim.tsv (calistir returns those two paths); plus a
 #          checkpoint per bin. The files produced are NOT USED DIRECTLY; run_all.py
 #          first takes them into the canonical directory through

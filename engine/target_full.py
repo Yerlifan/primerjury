@@ -26,7 +26,7 @@ import os, sys, json, time, math, argparse
 KOK = os.environ.get('_FL_KOK') or os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
-os.environ['_KURTARMA_KOK'] = KOK
+os.environ['_RECOVERY_ROOT'] = KOK
 
 from screening import targets as H, engine_gateway, generator as U, sample as N
 import importlib.util as _iu
@@ -90,13 +90,13 @@ def main():
     # every restart, so a scan that had run for hours vanished without a trace. It
     # now sits inside the project, a half finished scan carries on the next day from
     # where it stopped, and the result file can also be read by hand.
-    dur = a.durum or os.path.join(KOK, 'FARKLI_LOKUS_SONUC', 'durum_%s.json' % ''.join(
+    dur = a.durum or os.path.join(KOK, 'OTHER_LOCUS_RESULT', 'durum_%s.json' % ''.join(
         ch if ch.isalnum() else '_' for ch in a.hedef)[:40])
     # 2026-08-11: when the DIRECTORY of the state file was missing, the scan crashed
     # with FileNotFoundError the moment it finished the first window and tried to
     # write the result, that is, AFTER the most expensive work (a window's worth of
     # scanning) had been done. The directory is opened up front; if it cannot be
-    # opened the state file is taken under TEK_TUS_SONUC and that is printed to the
+    # opened the state file is taken under ONE_KEY_RESULT and that is printed to the
     # screen. The scan does not crash because of the state file.
     # Writability is asked of the OS, no trial file IS OPENED. (The first version
     # wrote a trial file and deleted it; because deleting is forbidden on the mounted
@@ -108,7 +108,7 @@ def main():
         if not os.access(_d, os.W_OK):
             raise IOError('klasore yazma izni yok')
     except Exception as _e:
-        _yedek = os.path.join(KOK, 'TEK_TUS_SONUC', os.path.basename(dur))
+        _yedek = os.path.join(KOK, 'ONE_KEY_RESULT', os.path.basename(dur))
         print(u'  NOTE: the state file %s could not be written (%s).\n       The state will be written to this file instead: %s' % (dur, _e, _yedek))
         try:
             os.makedirs(os.path.dirname(_yedek))
@@ -122,7 +122,7 @@ def main():
     kmap = {d['kutu']: d['dizi'] for d in kons}
     import csv
     panel = {r['hedef']: r for r in csv.DictReader(
-        (l for l in open(os.path.join(KOK, 'TEK_PROTOKOL_SONUC',
+        (l for l in open(os.path.join(KOK, 'ONE_PROTOCOL_RESULT',
          'panel_tek_protokol.tsv'), encoding='utf-8') if not l.startswith('#')),
         delimiter='\t')}
     # SUPPORT FOR A NEW TARGET (one with no row in the panel).

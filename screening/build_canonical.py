@@ -9,7 +9,7 @@ then on every script reads HERE; no script has an orientation patch of its own.
 The input directories (in order of precedence; if the same bin is in more than one
 directory the one with precedence wins and the other is written to the manifest as
 atlandi):
-    1. KAPSAMLI_ARAMA_SONUC/konsensus_yeni   (if present, the newest production)
+    1. SCREENING_RESULT/konsensus_yeni   (if present, the newest production)
     2. referans_konsensus/konsensus          (the set normalised overnight)
     3. consensus sequences                   (the original output)
 
@@ -31,7 +31,7 @@ Usage:
 #
 # INPUT  : the three source directories under --root, in the order chosen with
 #          --priority: consensus sequences (the original set the panel was built
-#          on), KAPSAMLI_ARAMA_SONUC/konsensus_yeni (the new production) and
+#          on), SCREENING_RESULT/konsensus_yeni (the new production) and
 #          referans_konsensus/konsensus. The orientation decision is made with
 #          orientation.dosya_kanonik().
 # OUTPUT : <bin>.kanonik.fa per bin under konsensus_kanonik/; besides that
@@ -70,17 +70,17 @@ import orientation
 # both sources.
 ONCELIK = {
  'referans': [('referans_konsensus', 'referans_konsensus/konsensus'),
-              ('konsensus_yeni', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni'),
+              ('konsensus_yeni', 'SCREENING_RESULT/konsensus_yeni'),
               ('ozgun', 'consensus sequences')],
  # yeni: used once the night's production is finished. THE FALLBACK ORDER MATTERS:
  # if konsensus_yeni could not produce a bin, ozgun (the panel's baseline) comes
  # FIRST; referans_konsensus was put last because it is a different rebuild (see the
  # note above).
- 'yeni':     [('konsensus_yeni', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni'),
+ 'yeni':     [('konsensus_yeni', 'SCREENING_RESULT/konsensus_yeni'),
               ('ozgun', 'consensus sequences'),
               ('referans_konsensus', 'referans_konsensus/konsensus')],
  'ozgun':    [('ozgun', 'consensus sequences'),
-              ('konsensus_yeni', 'KAPSAMLI_ARAMA_SONUC/konsensus_yeni'),
+              ('konsensus_yeni', 'SCREENING_RESULT/konsensus_yeni'),
               ('referans_konsensus', 'referans_konsensus/konsensus')],
 }
 

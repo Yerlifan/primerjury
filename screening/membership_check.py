@@ -46,7 +46,7 @@ The module tests BOTH and writes down which it is.
 #          hedefler.acik_uyelik(); steps/hedefler.tsv through hedefler.uyelik_oku();
 #          screening/ciftler.tsv (or eski/ciftler.tsv);
 #          primer_final/hedef_kimlik.tsv. numune.Numune does the measuring.
-# OUTPUT : KAPSAMLI_ARAMA_SONUC/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
+# OUTPUT : SCREENING_RESULT/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
 #          (calistir returns those two paths as a list); plus a
 #          kontrol/uyelik_*.json checkpoint per target.
 # CALLED BY: verification/full_chain.py key 5 (--mode uyelik), key 7 -> choice "3"

@@ -7,7 +7,7 @@ Decision 5 the additions derived from the measurement and put up for approval). 
 script puts that list side by side with the panel's output AS IT IS TODAY.
 
 Not one state is written by hand. Every row's state is read from these files:
-    TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv     (the verdict, dCq, the coverage)
+    ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv     (the verdict, dCq, the coverage)
 
 """
 from __future__ import print_function
@@ -109,9 +109,9 @@ def main():
         sys.exit(u'ERROR: %s is missing.' % ky)
     K = kararlar(ky)
     SL = {(r.get('hedef') or '').strip(): r
-          for r in _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))}
+          for r in _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))}
     DG = {(r.get('hedef') or '').strip(): r
-          for r in _tsv(os.path.join(kok, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))}
+          for r in _tsv(os.path.join(kok, 'VERIFICATION_RESULT', 'dogrulama_uc_sutun.tsv'))}
 
     satirlar = []
     for no, ad, duzey in K:
@@ -177,7 +177,7 @@ def main():
     with io.open(my, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# What was requested, and what was achieved\n\n')
         fh.write(u'Generated: %s\n\n' % time.strftime('%Y-%m-%d %H:%M'))
-        fh.write(u'Source: `steps/hedefler.tsv` (the requested targets themselves) beside `TEK_PROTOKOL_SONUC/SIPARIS_LISTES')
+        fh.write(u'Source: `steps/hedefler.tsv` (the requested targets themselves) beside `ONE_PROTOCOL_RESULT/SIPARIS_LISTES')
         fh.write(u'| status | how many requests |\n|---|---|\n')
         for k in sorted(sayim, key=lambda x: -sayim[x]):
             fh.write(u'| %s | %d |\n' % (k, sayim[k]))

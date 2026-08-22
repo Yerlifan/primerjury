@@ -11,7 +11,7 @@ global scan has a checkpoint of its own as well (per piece).
 # checks.py, resilience against interruption: it writes each target's result to
 #              disk and skips the finished targets when the run restarts.
 #
-# INPUT  : the KAPSAMLI_ARAMA_SONUC/kontrol/hedef_*.json files; the run's settings
+# INPUT  : the SCREENING_RESULT/kontrol/hedef_*.json files; the run's settings
 #          fingerprint is filled in by __main__.main() through ayar_kur() (the read
 #          count, the light mode, the candidate ceiling).
 # OUTPUT : kontrol/hedef_<target>.json files (written as .gecici first and put in

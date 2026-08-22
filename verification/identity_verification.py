@@ -46,7 +46,7 @@ UNNAMED RECORDS CANNOT BECOME A NAME
     rather than by record, so the list shows what else is close instead of the
     same species repeated from five databases.
 
-    Writes to KIMLIK_SONUC/ only. Never touches panel files.
+    Writes to IDENTITY_RESULT/ only. Never touches panel files.
 
 """
 
@@ -58,12 +58,12 @@ UNNAMED RECORDS CANNOT BECOME A NAME
 #          subsets have been taken out of the vote),
 #          konsensus_kanonik/ (through screening.targets.konsensusler),
 #          NCBI nt (a separate layer, over the network) and the hand filled
-#          KIMLIK_SONUC/nt_elle/NT_SONUC_SABLONU.tsv.
-# OUTPUT : KIMLIK_SONUC/kimlik_iddialari.tsv (the main table),
-#          KIMLIK_SONUC/KIMLIK_DOGRULAMA_RAPORU.md,
-#          KIMLIK_SONUC/VERITABANI_ENVANTERI.md,
-#          KIMLIK_SONUC/LITERATUR_ELLE_KONTROL.tsv,
-#          KIMLIK_SONUC/nt_ham/, nt_elle/, kontrol/ .
+#          IDENTITY_RESULT/nt_elle/NT_SONUC_SABLONU.tsv.
+# OUTPUT : IDENTITY_RESULT/kimlik_iddialari.tsv (the main table),
+#          IDENTITY_RESULT/KIMLIK_DOGRULAMA_RAPORU.md,
+#          IDENTITY_RESULT/VERITABANI_ENVANTERI.md,
+#          IDENTITY_RESULT/LITERATUR_ELLE_KONTROL.tsv,
+#          IDENTITY_RESULT/nt_ham/, nt_elle/, kontrol/ .
 #          It WRITES NOTHING into the panel files.
 # CALLED BY: verification/full_chain.py -> key I
 #          (python3 verification/identity_verification.py --root .)
@@ -926,7 +926,7 @@ def elle_nt_girdi(kutu, q, CIKTI, yaz):
     if not os.path.exists(sab):
         with open(sab, 'w', encoding='utf-8', newline='') as fh:
             fh.write(u'# Write the NCBI nt results HERE, then:\n')
-            fh.write(u'#   python3 verification/identity_verification.py --root . --nt-load KIMLIK_SONUC/nt_elle/NT_SONUC_SABLONU.tsv\n')
+            fh.write(u'#   python3 verification/identity_verification.py --root . --nt-load IDENTITY_RESULT/nt_elle/NT_SONUC_SABLONU.tsv\n')
             fh.write(u'# Address: https://blast.ncbi.nlm.nih.gov/Blast.cgi (Nucleotide BLAST, database = nt)\n')
             fh.write(u'# The query files are in the same directory: <bin>.fasta\n')
             w = csv.writer(fh, delimiter='\t')
@@ -983,7 +983,7 @@ AYRIM_PAYI = 0.5     # if the gap between the best and the second is under this,
 # Because the identity was 99%, savunulabilir_duzey() counted that as a name at
 # SPECIES level and the claim was stamped VERIFIED. In other words THE ABSENCE OF
 # AN ANSWER was being reported as a confirmed identity. There were four instances
-# of it in KIMLIK_SONUC/kimlik_iddialari.tsv ("Uncultured prokaryote", "Uncultured
+# of it in IDENTITY_RESULT/kimlik_iddialari.tsv ("Uncultured prokaryote", "Uncultured
 # bacterium" twice, and "Bacterium enrichment").
 #
 # This trap was ALREADY KNOWN in the project and was filtered in two other places:
@@ -1499,7 +1499,7 @@ def hukum_ver(idd, bulgular, kons):
 def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
              lit_kip='oto', kl_ust=KISA_LISTE):
     sys.path.insert(0, kok)
-    CIKTI = os.path.join(kok, 'KIMLIK_SONUC')
+    CIKTI = os.path.join(kok, 'IDENTITY_RESULT')
     KONTROL = os.path.join(CIKTI, 'kontrol')
     os.makedirs(KONTROL, exist_ok=True)
     if sifirla:
@@ -1676,7 +1676,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
             h = 'DOGRULANAMADI'
             kanit = (kanit + u'  ||  NCBI nt KATMANI TAMAMLANMADI (%s) - iddia bu '
                      u'yuzden dogrulanamadi sayildi, sessizce atlanmadi. Elle '
-                     u'tamamlamak icin: KIMLIK_SONUC/nt_elle/ altindaki sorgu '
+                     u'tamamlamak icin: IDENTITY_RESULT/nt_elle/ altindaki sorgu '
                      u'dosyasini BLAST edip NT_SONUC_SABLONU.tsv icine yazin, '
                      u'sonra --nt-load ile geri verin.'
                      % ((nt or {}).get('durum', 'kosulmadi')))

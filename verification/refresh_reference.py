@@ -11,8 +11,8 @@ not inconsistent, the reference was stale. Updating the constants by eye would l
 the same thing happen again, so the reference is now produced FROM THE OUTPUT OF A
 FULL RUN and every row carries the F and R sequences that measurement was made with.
 
-The source: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (a full depth run)
-The output: HIZLI_TEST/referans_degerler.tsv
+The source: ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (a full depth run)
+The output: QUICK_TEST/referans_degerler.tsv
 
 To run:
     python verification/refresh_reference.py --root .
@@ -32,10 +32,10 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--source', dest='kaynak', default=None,
-                   help='default: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv')
+                   help='default: ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
-    kaynak = a.kaynak or os.path.join(kok, 'TEK_PROTOKOL_SONUC',
+    kaynak = a.kaynak or os.path.join(kok, 'ONE_PROTOCOL_RESULT',
                                       'panel_tek_protokol.tsv')
     if not os.path.exists(kaynak):
         sys.exit(u'ERROR: there is no source: %s\n      the full run (stage P) has to be finished first.' % kaynak)
@@ -46,7 +46,7 @@ def main():
     if not satirlar:
         sys.exit(u'ERROR: the source is empty: %s' % kaynak)
 
-    hedef_dizin = os.path.join(kok, 'HIZLI_TEST')
+    hedef_dizin = os.path.join(kok, 'QUICK_TEST')
     if not os.path.isdir(hedef_dizin):
         os.makedirs(hedef_dizin)
     cikti = os.path.join(hedef_dizin, 'referans_degerler.tsv')

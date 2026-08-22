@@ -33,7 +33,7 @@ def _tsv(yol):
 
 
 def sayilar(kok):
-    sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
+    sl = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
     kesin = [r for r in sl if (r.get('SINIF') or '').strip().upper() == 'KESIN']
     evr = [r for r in sl if (r.get('SINIF') or '').strip().upper() == 'EVRENSEL']
     disi = [r for r in sl if (r.get('SINIF') or '').strip().upper()
@@ -48,12 +48,12 @@ def main():
     kok = os.path.abspath(a.kok)
     sl, kesin, evr, disi = sayilar(kok)
     if not sl:
-        sys.exit(u'ERROR: TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv could not be read.')
+        sys.exit(u'ERROR: ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv could not be read.')
 
     y = os.path.join(kok, 'GUNCEL_DURUM.md')
     with io.open(y, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'# The panel as it stands today\n\n')
-        fh.write(u'Generated: %s, source `TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv`\n\n'
+        fh.write(u'Generated: %s, source `ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv`\n\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'> This file is **never written by hand**. It is regenerated from the panel\'s own output on every run. If another document contradicts it')
         fh.write(u'| | pairs | oligos |\n|---|---|---|\n')

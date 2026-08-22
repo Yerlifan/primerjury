@@ -615,7 +615,7 @@ class Kaynaklar(object):
         # that file carried stale sequences, which is why it was archived.
         self.panel_xlsx = _ad[-1] if _ad else None
         # --- measurement outputs
-        self.tek_protokol = y('TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+        self.tek_protokol = y('ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
         self.uyelik_turetme = y('uyelik_yeniden_turetme_uyelik_20260803.tsv')
         self.uyelik_ciftler = y('uyelik_yeniden_turetme_ciftler_20260803.tsv')
         # --- literatur ve toplanti
@@ -3426,7 +3426,7 @@ def main():
     p = argparse.ArgumentParser(
         description=u'The PrimerJury panel: an independent, read only cross-check')
     p.add_argument('--root', dest='kok', default='.', help=u'project root directory')
-    p.add_argument('--output', dest='cikti', default=None, help=u'report directory (default KONTROL_SONUC)')
+    p.add_argument('--output', dest='cikti', default=None, help=u'report directory (default CROSSCHECK_RESULT)')
     p.add_argument('--modules', dest='moduller', default='hepsi',
                    help=u'modules to run, comma-separated: 1,2,3 ... or "all"')
     p.add_argument('--m1-mode', dest='m1_kip', default='hizli',
@@ -3446,7 +3446,7 @@ def main():
     a = _ing_deger(a)
 
     kok = os.path.abspath(a.kok)
-    cikti = a.cikti or os.path.join(kok, u'KONTROL_SONUC')
+    cikti = a.cikti or os.path.join(kok, u'CROSSCHECK_RESULT')
     kay = Kaynaklar(kok)
 
     yaz(u'CROSS-CHECK %s' % VERSIYON)

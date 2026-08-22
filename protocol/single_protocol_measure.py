@@ -19,11 +19,11 @@ must clear.
 #          screening.targets.panel_oku), protocol/ek_ciftler.tsv (pairs that are
 #          not in the panel), uyelik_yeniden_turetme_uyelik_*.tsv (stage U's
 #          MEASURED membership), the raw reads under "fastq files".
-# OUTPUT : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the full table),
-#          TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv (the order decision),
-#          TEK_PROTOKOL_SONUC/kutu_bazli_ham_sayilar.tsv (k and n; every verdict
+# OUTPUT : ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the full table),
+#          ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv (the order decision),
+#          ONE_PROTOCOL_RESULT/kutu_bazli_ham_sayilar.tsv (k and n; every verdict
 #          can be recomputed from those two columns),
-#          TEK_PROTOKOL_SONUC/PROTOKOL_VE_RAPOR.md, kontrol/ .
+#          ONE_PROTOCOL_RESULT/PROTOKOL_VE_RAPOR.md, kontrol/ .
 # CALLED BY: verification/full_chain.py -> key P
 #          (python3 protocol/single_protocol_measure.py --root .)
 #
@@ -181,7 +181,7 @@ def uyelik_dosyasi(kok):
     """Finds the newest membership file - BY TIME, not BY NAME.
 
         The 2026-08-10 fix. The old code concatenated two globs and took a[-1]; that
-        DID NOT MEAN "the newest". The ordering was alphabetical and engine_SONUC
+        DID NOT MEAN "the newest". The ordering was alphabetical and engine_RESULT
         entries always came AFTER the ones in the root. So a file dated 1 August in a
         subdirectory would beat one dated 3 August in the root. There is only one
         candidate at the moment, so the behaviour does not change; but if the next run
@@ -192,7 +192,7 @@ def uyelik_dosyasi(kok):
     """
     import glob
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_RESULT', '*uyelik*.tsv'))
     if not a:
         return None
     # time first, then the name on a tie - both criteria written OPENLY
@@ -274,7 +274,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
     sys.path.insert(0, kok)
     from screening import config as C, motor, numune as N, hedefler as H
 
-    CIKTI = os.path.join(kok, 'TEK_PROTOKOL_SONUC')
+    CIKTI = os.path.join(kok, 'ONE_PROTOCOL_RESULT')
     KONTROL = os.path.join(CIKTI, 'kontrol')
     os.makedirs(KONTROL, exist_ok=True)
     if sifirla:

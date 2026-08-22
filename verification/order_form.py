@@ -82,7 +82,7 @@ def main():
     # yerine gecmez: 2026-08-10'da Petriella_cinsi siparis listesinde KESIN
     # yaziliyken panel kaynaginda SATIRI YOKTU - panel kaynagindan uretilen
     # bir form o cifti sessizce dusururdu.
-    sl_yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
+    sl_yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
     sl = _tsv(sl_yol)
     if not sl:
         sys.exit(u'ERROR: %s could not be read.' % sl_yol)
@@ -149,7 +149,7 @@ def main():
             for c in girmez:
                 fh.write(u'| %s | %s | %s |\n' % (c['hedef'], c['sinif'], c['urun']))
         fh.write(u'\n## What this form does not tell you\n\n')
-        fh.write(u'This form tells you **which sequences to order**. It does not tell you that these pairs passed the geometry gate, that the in-plate gel separation is clean, or which threshold rule was applied. Those live in `TEK_TUS_SONUC/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`, and both should be read before an order is placed.\n')
+        fh.write(u'This form tells you **which sequences to order**. It does not tell you that these pairs passed the geometry gate, that the in-plate gel separation is clean, or which threshold rule was applied. Those live in `ONE_KEY_RESULT/DENETIM_RAPORU.md` and `GECE_BULGULARI.md`, and both should be read before an order is placed.\n')
 
     print(u'written: %s' % ty)
     print(u'written: %s' % my)

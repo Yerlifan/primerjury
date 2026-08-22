@@ -63,7 +63,7 @@ the batch AT THE SAME TIME (a seed -> query inverted index). The short list it
 produces is EXACTLY THE SAME as the single query kisa_liste(), and that is proven
 by a test.
 
-It WRITES NOTHING into the panel files; it writes under TUM_KIMLIK_SONUC/.
+It WRITES NOTHING into the panel files; it writes under ALL_IDENTITIES_RESULT/.
 
 """
 
@@ -74,11 +74,11 @@ It WRITES NOTHING into the panel files; it writes under TUM_KIMLIK_SONUC/.
 #
 # INPUT  : the 12 local FASTA sets under REFERANS_DB/ (all of them, with NO domain
 #          filter), konsensus_kanonik/ and the panel plus membership tables
-#          (screening.targets), KIMLIK_SONUC/kontrol/ (a cache SHARED with stage I),
+#          (screening.targets), IDENTITY_RESULT/kontrol/ (a cache SHARED with stage I),
 #          optionally NCBI nt.
-# OUTPUT : TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (ONE row per bin),
-#          TUM_KIMLIK_SONUC/TUM_KUTU_KIMLIK_RAPORU.md,
-#          TUM_KIMLIK_SONUC/kutu_*.json, kosu_gunlugu.txt.
+# OUTPUT : ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv (ONE row per bin),
+#          ALL_IDENTITIES_RESULT/TUM_KUTU_KIMLIK_RAPORU.md,
+#          ALL_IDENTITIES_RESULT/kutu_*.json, kosu_gunlugu.txt.
 #          It WRITES NOTHING into the panel files.
 # CALLED BY: verification/full_chain.py -> key G
 #          (python3 verification/all_bin_identities.py --root .)
@@ -99,7 +99,7 @@ import os, sys, csv, json, time, re, argparse, heapq, collections
 VERSIYON = '1.0 (2026-08-04)'
 
 # The REAL record counts taken from the access verification
-# (ERISIM_SONUC/erisim_dogrulama.tsv, the 'TAMAMI' run). If fewer than these were
+# (ACCESS_RESULT/erisim_dogrulama.tsv, the 'TAMAMI' run). If fewer than these were
 # scanned, the coverage is INCOMPLETE.
 BEKLENEN_KAYIT = {
     'SILVA SSU NR99': 510495, 'SILVA LSU NR99': 95279, 'SILVA LSU Parc': 1312521,
@@ -393,15 +393,15 @@ def ayni_mi(kayitli, dogrulanan_cins, adl):
 # UNITE ITS were effectively being scanned truncated. There is no cap in the
 # streamer here, and incomplete coverage does not stay quiet, it prints a warning.
 #
-# THE CACHE IS SHARED WITH I: the checkpoints live under KIMLIK_SONUC/kontrol under
+# THE CACHE IS SHARED WITH I: the checkpoints live under IDENTITY_RESULT/kontrol under
 # the same key, so the same bin is never scanned twice across the two stages.
 # -------------------------------------------------------------------------
 def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kutu):
     K = _K(kok)
-    CIKTI = os.path.join(kok, 'TUM_KIMLIK_SONUC')
+    CIKTI = os.path.join(kok, 'ALL_IDENTITIES_RESULT')
     # CACHE SHARING: the checkpoints live in THE SAME directory as `I` and under
     # THE SAME key. The same bin is never scanned twice across the two stages.
-    KONTROL = os.path.join(kok, 'KIMLIK_SONUC', 'kontrol')
+    KONTROL = os.path.join(kok, 'IDENTITY_RESULT', 'kontrol')
     os.makedirs(CIKTI, exist_ok=True)
     os.makedirs(KONTROL, exist_ok=True)
     if sifirla:

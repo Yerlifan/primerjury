@@ -98,15 +98,15 @@ KAP="${KAP:-3000}"
 ESIKLER="${ESIKLER:-0 0.02 0.05 0.1 0.2 0.5}"
 TABLO_ESIK="${TABLO_ESIK:-0.1}"
 OZELVT="${OZELVT:-$HOME/k2_ozel}"
-KAYNAK="$PROJE/SONUCLAR/fastq files"
-IS_A="$PROJE/SONUCLAR/kraken_esik_A"
-IS_B="$PROJE/SONUCLAR/kraken_esik_B"
-OZEL_IS="$PROJE/SONUCLAR/kraken_ozelvt"
+KAYNAK="$PROJE/RESULTS/fastq files"
+IS_A="$PROJE/RESULTS/kraken_esik_A"
+IS_B="$PROJE/RESULTS/kraken_esik_B"
+OZEL_IS="$PROJE/RESULTS/kraken_ozelvt"
 
 log_ac() {
   local ad="$1"
-  mkdir -p "$PROJE/kurulum_loglari"
-  LOG="$PROJE/kurulum_loglari/kraken_${ad}_$(date '+%Y%m%d_%H%M%S').log"
+  mkdir -p "$PROJE/install_logs"
+  LOG="$PROJE/install_logs/kraken_${ad}_$(date '+%Y%m%d_%H%M%S').log"
   exec > >(tee -a "$LOG") 2>&1
   echo "=============================================================="
   echo "kraken_tool  key: $ad  start $(date '+%Y-%m-%d %H:%M:%S %Z')"
@@ -421,7 +421,7 @@ vt_surum() {
 
   # --- measurement 1: inspect ---
   local o1="not measured"
-  local ins="$PROJE/SONUCLAR/vt_inspect_$(basename "$d").txt"
+  local ins="$PROJE/RESULTS/vt_inspect_$(basename "$d").txt"
   if command -v kraken2-inspect >/dev/null 2>&1; then
     # ONBELLEK, AMA KAYNAK DAMGASIYLA (2026-08-04 duzeltmesi)
     # It used to look only at "is the file there" and, if it was, it did not run
@@ -496,7 +496,7 @@ vt_surum() {
   VT_SURUM_SONUC="$o1 / $o2"
 
   # --- the fingerprint. Which database an old run used is traced from here. ---
-  local pi="$PROJE/SONUCLAR/vt_parmak_izi.tsv"
+  local pi="$PROJE/RESULTS/vt_parmak_izi.tsv"
   mkdir -p "$(dirname "$pi")"
   [ -f "$pi" ] || printf 'tarih\tyol\thash_bayt\thash_tarih\ticerik\tboyut\n' > "$pi"
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$d" "$hb" \
@@ -514,7 +514,7 @@ eski_kosu_tespit() {
   echo
   echo "  a) A direct record from the logs:"
   local bulundu=0
-  for l in "$PROJE"/kurulum_loglari/*.log; do
+  for l in "$PROJE"/install_logs/*.log; do
     [ -f "$l" ] || continue
     local yol boy
     # This grep reads OUR OWN logs. The screen text was translated into English,
@@ -530,8 +530,8 @@ eski_kosu_tespit() {
   [ "$bulundu" -eq 1 ] || echo "     no log record was found"
   echo
   echo "  b) Indirect evidence from the outputs (which domains appear in the reports):"
-  for r in "$PROJE/SONUCLAR/kraken_yeniden/tum.report" \
-           "$PROJE/SONUCLAR/kraken results"/*/*_kraken2.report; do
+  for r in "$PROJE/RESULTS/kraken_yeniden/tum.report" \
+           "$PROJE/RESULTS/kraken results"/*/*_kraken2.report; do
     [ -f "$r" ] || continue
     local m p b
     m=$(awk -F'\t' '$5=="4751"{print "mantar VAR"}' "$r" | head -1)
@@ -541,7 +541,7 @@ eski_kosu_tespit() {
            "${m:-mantar yok}" "${p:-protozoa yok}" "${b:-bitki yok}"
     break
   done
-  local ilk="$PROJE/SONUCLAR/kraken_yeniden/tum.report"
+  local ilk="$PROJE/RESULTS/kraken_yeniden/tum.report"
   if [ -f "$ilk" ]; then
     local m p b
     m=$(awk -F'\t' '$5=="4751"{print "VAR"}' "$ilk" | head -1)
@@ -691,7 +691,7 @@ tus_ali_vt() {
   echo
   echo "EVIDENCE 2: the run logs"
   local k2=0
-  for l in "$PROJE"/kurulum_loglari/*.log; do
+  for l in "$PROJE"/install_logs/*.log; do
     [ -f "$l" ] || continue
     local yol boy
     # This grep reads OUR OWN logs. The screen text was translated into English,
@@ -705,7 +705,7 @@ tus_ali_vt() {
 
   echo
   echo "EVIDENCE 3: report content (which domains WERE in the database)"
-  local r="$PROJE/SONUCLAR/kraken results/A1/edited_barcode01_kraken2.report"
+  local r="$PROJE/RESULTS/kraken results/A1/edited_barcode01_kraken2.report"
   if [ -f "$r" ]; then
     local m p b v
     m=$(awk -F'\t' '$5=="4751"{print "VAR"}' "$r" | head -1)
@@ -728,7 +728,7 @@ tus_ali_vt() {
 
   echo
   echo "EVIDENCE 4: did our re-run reproduce the source study's result"
-  local oz="$PROJE/SONUCLAR/kraken_yeniden/kraken_ozet.csv"
+  local oz="$PROJE/RESULTS/kraken_yeniden/kraken_ozet.csv"
   if [ -f "$oz" ]; then
     local top uy ay
     top=$(awk -F',' 'NR>1{n++} END{print n+0}' "$oz")
@@ -810,7 +810,7 @@ bellek_bayragi() {
 # --- okumalari tek dosyada birlestir (rerun_kraken.sh'ten aynen) --------
 birlestir() {
   local hedef="$1"
-  local eski="$PROJE/SONUCLAR/kraken_yeniden/tum.fastq"
+  local eski="$PROJE/RESULTS/kraken_yeniden/tum.fastq"
   if [ -s "$hedef" ]; then
     echo "the merged file already exists: $(awk 'END{print int(NR/4)}' "$hedef") reads"
     return
@@ -820,7 +820,7 @@ birlestir() {
     echo "the tum.fastq produced by rerun_kraken.sh was found, so THE SAME read set is used."
     echo "  (That is the condition that makes thresholds and databases comparable.)"
     cp "$eski" "$hedef"
-    cp "$PROJE/SONUCLAR/kraken_yeniden/kaynak_sayim.tsv" "$(dirname "$hedef")/" 2>/dev/null || true
+    cp "$PROJE/RESULTS/kraken_yeniden/kaynak_sayim.tsv" "$(dirname "$hedef")/" 2>/dev/null || true
     echo "  $(awk 'END{print int(NR/4)}' "$hedef") reads"
     return
   fi

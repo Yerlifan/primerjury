@@ -90,7 +90,7 @@ def _harita(yol):
 
 # --- 1 ------------------------------------------------------------------
 def d1_harita_anahtarlari(kok, yaz):
-    sl = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
+    sl = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
     hy = os.path.join(kok, 'screening', 'hedef_taxid.tsv')
     if not os.path.exists(sl) or not os.path.exists(hy):
         ATLANAN.append(u'1 map keys (no such file)')
@@ -147,11 +147,11 @@ def d2_kapsama(kok, yaz, agsiz):
 
 # --- 3 ------------------------------------------------------------------
 def d3_referans_bayat(kok, yaz):
-    ry = os.path.join(kok, 'HIZLI_TEST', 'referans_degerler.tsv')
-    py_ = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+    ry = os.path.join(kok, 'QUICK_TEST', 'referans_degerler.tsv')
+    py_ = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     if not os.path.exists(ry):
         bulgu(u'The quick test reference file IS MISSING',
-              u'HIZLI_TEST/referans_degerler.tsv was not produced. The reference is then read from constants embedded in the code and which pair it was measured from is unknown. To produce it: python verification/refresh_reference.py --root .')
+              u'QUICK_TEST/referans_degerler.tsv was not produced. The reference is then read from constants embedded in the code and which pair it was measured from is unknown. To produce it: python verification/refresh_reference.py --root .')
         return
     if not os.path.exists(py_):
         ATLANAN.append(u'3 reference freshness (there is no panel_tek_protokol.tsv)')
@@ -178,7 +178,7 @@ def d3_referans_bayat(kok, yaz):
 # --- 4 ------------------------------------------------------------------
 def d4_kaynak_tutarliligi(kok, yaz):
     """Do the panel's sequence source and the order list say the same sequence?"""
-    sl = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv')
+    sl = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
     pk = os.path.join(kok, 'primer_final',
                       'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(sl) or not os.path.exists(pk):
@@ -277,13 +277,13 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
     """
     ciftler = [
         ('primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv',
-         'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv'),
-        ('TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv',
-         'HIZLI_TEST/referans_degerler.tsv'),
-        ('TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv',
-         'DOGRULAMA_SONUC/dogrulama_uc_sutun.tsv'),
+         'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'),
+        ('ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
+         'QUICK_TEST/referans_degerler.tsv'),
+        ('ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv',
+         'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'),
         ('screening/hedef_taxid.tsv',
-         'DOGRULAMA_SONUC/ncbi_katman4.tsv'),
+         'VERIFICATION_RESULT/ncbi_katman4.tsv'),
         # 2026-08-11: when the membership table changes, stage G's table goes stale.
         # The identity columns in the order list (olculen_kimlik, ad_farkli_mi, the member
         # count) come straight from that table's UYESI_OLDUGU_HEDEFLER column. If the
@@ -292,7 +292,7 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
         # counted Microascus, Lomentospora and Graphium, when the measurement had been made
         # with 9 bins.
         ('screening/hedef_uyelik.tsv',
-         'TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv'),
+         'ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv'),
     ]
     def _diziler(y2, ad_h='hedef', ad_f='F', ad_r='R'):
         out = {}
@@ -480,7 +480,7 @@ YOL_GOSTERICI = ('OKU_ONCE.md', 'NASIL_DEVAM_EDILIR.md', 'CALISTIRMA_KILAVUZU.md
 
 def d9_belgelerde_bayat_sayi(kok, yaz):
     import re as _re
-    sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
+    sl = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
     if not sl:
         ATLANAN.append(u'9 document counts (there is no SIPARIS_LISTESI)')
         return
@@ -625,7 +625,7 @@ def d11_siparis_dizileri(kok, yaz):
     # The MISSING comparison is made only over THE ONES GOING TO ORDER. The order sheet
     # does not hold ONERILMEZ pairs at all; comparing against all of them produces a false
     # alarm such as "Proteiniphilum is missing" (2026-08-11, on the first attempt).
-    _sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
+    _sl = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
     _sip = set((r.get('hedef') or '').strip() for r in _sl
                if (r.get('SINIF') or '').strip().upper() in ('KESIN', 'EVRENSEL'))
     eksik = sorted((set(tsv) & _sip) - set(xls)) if _sip else sorted(set(tsv) - set(xls))
@@ -682,7 +682,7 @@ def d12_kanitsiz_kosulsuz(kok, yaz):
         a report as "there is nothing to discuss here"; there is.
 
     """
-    sl = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))
+    sl = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
     if not sl:
         ATLANAN.append(u'12 unconditional without evidence (there is no SIPARIS_LISTESI)')
         return
@@ -1069,9 +1069,9 @@ def d18_evrensel_kapsam(kok, yaz):
     """
     import csv as _csv
     import re as _re
-    p = _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
+    p = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
     sl = {(r.get('hedef') or '').strip(): r
-          for r in _tsv(os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'SIPARIS_LISTESI.tsv'))}
+          for r in _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))}
     if not p or not sl:
         ATLANAN.append(u'18 universal coverage (there is no table)')
         return
@@ -1141,7 +1141,7 @@ def d19_uyelik_icerigi(kok, yaz):
         # measured all four of them (Zoopagomycota / Nucletmycea). An audit looking at one
         # table said "not measured" and assigned the wrong severity.
         'kim=set()\n'
-        'y=os.path.join(%r,"TUM_KIMLIK_SONUC","tum_kutu_kimlikleri.tsv")\n'
+        'y=os.path.join(%r,"ALL_IDENTITIES_RESULT","tum_kutu_kimlikleri.tsv")\n'
         'if os.path.exists(y):\n'
         '    s2=[l.rstrip("\\n").split("\\t") for l in io.open(y,encoding="utf-8")]\n'
         '    bi=[i for i,r in enumerate(s2) if r and r[0].strip()=="kutu"][0]\n'
@@ -1249,7 +1249,7 @@ def main():
         yaz(u'  Checks skipped: %s' % '; '.join(ATLANAN))
     yaz(u'=' * 78)
 
-    rapor = os.path.join(kok, 'TEK_TUS_SONUC')
+    rapor = os.path.join(kok, 'ONE_KEY_RESULT')
     if os.path.isdir(rapor):
         with io.open(os.path.join(rapor, 'DENETIM_RAPORU.md'), 'w',
                      encoding='utf-8', newline='') as fh:

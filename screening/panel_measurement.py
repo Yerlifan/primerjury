@@ -33,7 +33,7 @@ output row says PLAINLY which criterion was used.
 #          are read through numune.Numune(otorite=True), that is read_engine.py,
 #          and also through numune.KutuEski (an exact reproduction of the panel's
 #          old 13 base seeded engine) for the comparison.
-# OUTPUT : KAPSAMLI_ARAMA_SONUC/PANEL_YENIDEN_OLCUM.md,
+# OUTPUT : SCREENING_RESULT/PANEL_YENIDEN_OLCUM.md,
 #          panel_yeniden_olcum.tsv and panel_kutu_duzeyi.tsv (calistir returns those
 #          three paths); a kontrol/panel_olcum_*.json per target.
 # CALLED BY: verification/full_chain.py key 4 (--mode panel-olc --full-depth),

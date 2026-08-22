@@ -333,7 +333,7 @@ fi
 
 # --- C: ISLEVSEL sinama. Bolgeye uygun primer SIFIRDAN BUYUK baglanma vermeli.
 yaz "C) Islevsel sinama: $SINA_AD primeri $AD'ye karsi kosuluyor..."
-SINA_DIR="$KOK/DOGRULAMA_SONUC/indeks_sinama"
+SINA_DIR="$KOK/VERIFICATION_RESULT/indeks_sinama"
 mkdir -p "$SINA_DIR"
 ETIKET="$(printf '%s' "$AD" | tr -c 'A-Za-z0-9' '_')"
 printf '%s\t%s\t%s\n' "$SINA_AD" "$SINA_F" "$SINA_R" > "$SINA_DIR/sina_$ETIKET.tsv"

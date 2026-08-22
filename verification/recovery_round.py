@@ -25,7 +25,7 @@ THINGS; this script does only the first, and it writes on every row which measur
 was used and why.
 
 It WRITES NOTHING into the panel files. It only reads, and writes under
-KURTARMA_SONUC/.
+RECOVERY_RESULT/.
 
 """
 
@@ -34,14 +34,14 @@ KURTARMA_SONUC/.
 # threshold and tries to recover them by five separate routes. THE THRESHOLD IS
 # NEVER LOWERED.
 #
-# INPUT  : TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (the below-threshold rows),
+# INPUT  : ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the below-threshold rows),
 #          uyelik_yeniden_turetme_uyelik_*.tsv (stage U's measured membership),
 #          protocol/ek_ciftler.tsv (target name aliases),
 #          konsensus_kanonik/ and "fastq files"/ (the measurement sources).
-# OUTPUT : KURTARMA_SONUC/kurtarma_satirlari.tsv (ONE row per target),
-#          KURTARMA_SONUC/yeni_adaylar.tsv (the candidates from the route 3 and
+# OUTPUT : RECOVERY_RESULT/kurtarma_satirlari.tsv (ONE row per target),
+#          RECOVERY_RESULT/yeni_adaylar.tsv (the candidates from the route 3 and
 #          route 5 scans),
-#          KURTARMA_SONUC/KURTARMA_RAPORU.md, kontrol/ (one JSON per target).
+#          RECOVERY_RESULT/KURTARMA_RAPORU.md, kontrol/ (one JSON per target).
 #          It WRITES NOTHING into the panel files.
 # CALLED BY: verification/full_chain.py -> key K
 #          (python3 verification/recovery_round.py --root .)
@@ -207,8 +207,8 @@ def wilson(k, n, z=1.96):
 # the run does not start: finishing silently with "there is no row to recover"
 # would give the impression that the job was done when in fact nothing was tried.
 def tek_protokol_oku(kok):
-    """TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]"""
-    yol = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
+    """ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]"""
+    yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     if not os.path.exists(yol):
         sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (P) has to be run first.' % yol)
     with open(yol, encoding='utf-8') as fh:
@@ -228,13 +228,13 @@ def _f(s):
 def uyelik_dosyasi(kok):
     import glob
     # 2026-08-10: "a[-1]" DID NOT MEAN THE NEWEST. Two globs were sorted
-    # alphabetically and concatenated, so engine_SONUC entries beat the ones in the
+    # alphabetically and concatenated, so engine_RESULT entries beat the ones in the
     # root regardless of date. single_protocol_measure.py carried the same trap; had
     # the two picked different files, K and P would have measured with different
     # memberships and their dCq values would not have been comparable. Both now select
     # BY TIME and find the same file.
     a = glob.glob(os.path.join(kok, 'uyelik_yeniden_turetme_uyelik_*.tsv'))
-    a += glob.glob(os.path.join(kok, 'engine_SONUC', '*uyelik*.tsv'))
+    a += glob.glob(os.path.join(kok, 'engine_RESULT', '*uyelik*.tsv'))
     if not a:
         return None
     a.sort(key=lambda p: (os.path.getmtime(p), os.path.basename(p)))
@@ -891,11 +891,11 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
 # -------------------------------------------------------------------------
 def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI,
              arms_ust=5, panelsiz_atla=False):
-    os.environ['_KURTARMA_KOK'] = kok
+    os.environ['_RECOVERY_ROOT'] = kok
     sys.path.insert(0, kok)
     from screening import sample as N, hedefler as H
 
-    CIKTI = os.path.join(kok, 'KURTARMA_SONUC')
+    CIKTI = os.path.join(kok, 'RECOVERY_RESULT')
     KONTROL = os.path.join(CIKTI, 'kontrol')
     os.makedirs(KONTROL, exist_ok=True)
     if sifirla:
@@ -918,7 +918,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
     yaz('')
 
     rc = girdi_denetle(yaz, 'K (verification)', [
-        (os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'),
+        (os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'),
          'P asamasinin panel tablosu', 'P')])
     if rc:
         return rc

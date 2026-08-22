@@ -44,7 +44,7 @@ import os, sys, json, time, argparse
 KOK = os.environ.get('_FL_KOK') or os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
-os.environ['_KURTARMA_KOK'] = KOK
+os.environ['_RECOVERY_ROOT'] = KOK
 
 from screening import targets as H, engine_gateway, generator as U, sample as N
 import importlib.util as _iu
@@ -107,7 +107,7 @@ def baglanir(primer, diziler, geri=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--duration', dest='sure', type=float, default=34.0)
-    ap.add_argument('--status', dest='durum', default=os.path.join(KOK, 'SONUCLAR', 'cok_lokus_durum.json'))
+    ap.add_argument('--status', dest='durum', default=os.path.join(KOK, 'RESULTS', 'cok_lokus_durum.json'))
     ap.add_argument('--sig', type=int, default=900)
     ap.add_argument('--pre-candidate', dest='on_aday', type=int, default=8)
     ap.add_argument('--primer-max', dest='primer_ust', type=int, default=1100)
@@ -124,7 +124,7 @@ def main():
     kmap = {d['kutu']: d['dizi'] for d in kons}
     import csv
     panel = {r['hedef']: r for r in csv.DictReader(
-        (l for l in open(os.path.join(KOK, 'TEK_PROTOKOL_SONUC',
+        (l for l in open(os.path.join(KOK, 'ONE_PROTOCOL_RESULT',
                                       'panel_tek_protokol.tsv'), encoding='utf-8')
          if not l.startswith('#')), delimiter='\t')}
 

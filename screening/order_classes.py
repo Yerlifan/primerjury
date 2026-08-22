@@ -82,12 +82,12 @@ def sinifla(kat, olculemedi=False):
 def kimlik_tablosu(kok):
     """target -> dict(kraken, olculen, duzey, farkli_mi, uye_sayisi, ayrinti)
 
-    The source: TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv (stage G).
+    The source: ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv (stage G).
     If the file is missing it returns EMPTY and the caller writes '-' in the columns; a
     wrong name IS NOT INVENTED silently.
 
     """
-    yol = os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')
+    yol = os.path.join(kok, 'ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv')
     if not os.path.exists(yol):
         return {}
     with open(yol, encoding='utf-8', errors='ignore') as fh:
@@ -261,7 +261,7 @@ def kaynak_sutunlari_kutu(d):
 
 def kaynak_tablosu(kok):
     """target -> the source columns (from the row giving the BEST identity among the member bins)."""
-    yol = os.path.join(kok, 'TUM_KIMLIK_SONUC', 'tum_kutu_kimlikleri.tsv')
+    yol = os.path.join(kok, 'ALL_IDENTITIES_RESULT', 'tum_kutu_kimlikleri.tsv')
     if not os.path.exists(yol):
         return {}
     with open(yol, encoding='utf-8', errors='ignore') as fh:

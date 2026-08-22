@@ -36,7 +36,7 @@ import time
 
 # Kod taramasinda GORMEZDEN gelinecek klasorler (arsivin kendisi, gecmis
 # kopyalar). Bunlarin icindeki bir gecis, dosyayi "kullaniliyor" yapmaz.
-YOKSAY = ('_SILINECEKLER', '_ONCEKI', 'HIZLI_TEST', '__pycache__', 'eski')
+YOKSAY = ('_SILINECEKLER', '_PREVIOUS', 'QUICK_TEST', '__pycache__', 'eski')
 
 
 def kod_dosyalari(kok):

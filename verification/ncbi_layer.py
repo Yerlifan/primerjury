@@ -34,8 +34,8 @@ Yeni kural: hukum BASLIGA bakar.
 Kosum:
     python verification/ncbi_layer.py --root .
 Cikti:
-    DOGRULAMA_SONUC/ncbi_katman4.tsv
-    DOGRULAMA_SONUC/NCBI_KATMAN4_RAPORU.md
+    VERIFICATION_RESULT/ncbi_katman4.tsv
+    VERIFICATION_RESULT/NCBI_KATMAN4_RAPORU.md
 """
 from __future__ import print_function
 
@@ -64,7 +64,7 @@ def main():
     a = p.parse_args()
 
     kok = os.path.abspath(a.kok)
-    cikti = os.path.join(kok, 'DOGRULAMA_SONUC')
+    cikti = os.path.join(kok, 'VERIFICATION_RESULT')
     os.makedirs(cikti, exist_ok=True)
     gun = io.open(os.path.join(cikti, 'ncbi_katman4_gunluk.txt'), 'a',
                   encoding='utf-8')
