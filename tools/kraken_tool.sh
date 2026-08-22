@@ -323,19 +323,20 @@ kraken_sart() {
     exit 1
   fi
   echo "kraken2: ${KRAKEN2_BIN:-$(command -v kraken2)}   $(kraken2 --version 2>&1 | head -1)"
-  [ -n "${KRAKEN_YONTEM:-}" ] && echo "  bulunma yontemi: $KRAKEN_YONTEM"
+  [ -n "${KRAKEN_YONTEM:-}" ] && echo "  how it was found: $KRAKEN_YONTEM"
   for _a in kraken2-inspect bracken; do
     if command -v "$_a" >/dev/null 2>&1; then echo "  $_a: $(command -v $_a)"
-    else echo "  $_a: YOK"; fi
+    else echo "  $_a: MISSING"; fi
   done
 }
 
 # =========================================================================
-# VERITABANI HAZIRLIK DENETIMI
-# Varsaymaz. Uc dosya da aranir, boyut ve tarih yazilir. Yalnizca .tar.gz
-# duruyorsa acma komutu ekrana yazilir ama KENDILIGINDEN ACILMAZ; gigabaytlarca
-# dosyayi kullanicinin haberi olmadan acmak kabul edilebilir degil.
-# Doner: 0 hazir, 1 sadece arsiv var, 2 hicbir sey yok
+# THE DATABASE READINESS CHECK
+# It assumes nothing. All three files are looked for and their size and date are
+# written down. If only a .tar.gz is there, the unpack command is printed but
+# NOTHING IS UNPACKED BY ITSELF; unpacking tens of gigabytes without the user
+# knowing is not acceptable.
+# Returns: 0 ready, 1 only the archive is there, 2 nothing at all
 # =========================================================================
 vt_hazir_mi() {
   local d="$1"
@@ -382,19 +383,19 @@ vt_hazir_mi() {
 }
 
 # =========================================================================
-# VERITABANI SURUM TESPITI
-# Bu tespit onemli: butun argumanimiz veritabaninin KAPSAMI uzerine kurulu.
-# Yanlis surumle kosarsak sonucu yanlis yorumlariz.
+# DATABASE VERSION DETECTION
+# This detection matters: our whole argument rests on the database's COVERAGE. Run
+# with the wrong version, we would read the result wrongly.
 #
-# IKI BAGIMSIZ OLCUM (proje kurali 1)
-#   olcum 1: kraken2-inspect ile veritabaninin ICINDEKI taksonlar. Kesindir.
-#   olcum 2: hash.k2d boyutu. Kaba ama bagimsizdir.
-# Ikisi ayrilirsa AYRILIK yazilir ve tek bir olcume gecilmez.
+# TWO INDEPENDENT MEASUREMENTS (project rule 1)
+#   measurement 1: the taxa INSIDE the database, through kraken2-inspect. Definite.
+#   measurement 2: the size of hash.k2d. Rough, but independent.
+# If the two disagree, a DISAGREEMENT is written and it does not fall back on one.
 #
-# Ayirt edici: bitki (Viridiplantae, taxid 33090).
-#   Standard = arke, bakteri, virus, plazmit, insan, UniVec
-#   PlusPF   = Standard + protozoa + mantar
-#   PlusPFP  = PlusPF + BITKI
+# What tells them apart: plants (Viridiplantae, taxid 33090).
+#   Standard = archaea, bacteria, viruses, plasmids, human, UniVec
+#   PlusPF   = Standard + protozoa + fungi
+#   PlusPFP  = PlusPF + PLANTS
 # =========================================================================
 vt_surum() {
   local d="$1"
@@ -402,9 +403,9 @@ vt_surum() {
   local hb hgb
   hb=$(stat -c%s "$d/hash.k2d" 2>/dev/null || echo 0)
   hgb=$((hb / 1073741824))
-  echo "    hash.k2d boyutu: ${hgb} GB"
+  echo "    the size of hash.k2d: ${hgb} GB"
 
-  # --- olcum 2: boyut ---
+  # --- measurement 2: the size ---
   local o2
   if   [ "$hgb" -ge 125 ]; then o2="PlusPFP (full)"
   elif [ "$hgb" -ge 95  ]; then o2="PlusPF (full)"
@@ -415,20 +416,20 @@ vt_surum() {
   fi
   echo "    measurement 2 (size)    : $o2"
 
-  # --- olcum 1: inspect ---
+  # --- measurement 1: inspect ---
   local o1="not measured"
   local ins="$PROJE/SONUCLAR/vt_inspect_$(basename "$d").txt"
   if command -v kraken2-inspect >/dev/null 2>&1; then
     # ONBELLEK, AMA KAYNAK DAMGASIYLA (2026-08-04 duzeltmesi)
-    # Eskiden yalnizca "dosya var mi" diye bakiliyordu ve varsa yeniden
-    # kosulmuyordu. Bu, projenin klasik hata turunu davet eden bir tasarimdi:
+    # It used to look only at "is the file there" and, if it was, it did not run
+    # again. That invited this project's classic kind of fault:
     # baska bir veritabanina ait ya da bayat bir inspect ciktisi sessizce
-    # yeniden kullanilir, arac hata vermeden YANLIS surum bildirirdi.
-    # Artik ciktinin yaninda kaynagin boyut ve tarih damgasi tutulur; damga
-    # tutmuyorsa onbellek gecersiz sayilir ve inspect YENIDEN kosar.
+    # would be reused and the tool would report the WRONG version without any
+    # error. The source's size and date stamp is now kept beside the output; if the
+    # stamp does not hold, the cache counts as invalid and inspect RUNS AGAIN.
     local damga_dosya="$ins.kaynak"
     local damga_simdi
-    damga_simdi="$(stat -c '%s %Y' "$d/hash.k2d" 2>/dev/null || echo 'yok')"
+    damga_simdi="$(stat -c '%s %Y' "$d/hash.k2d" 2>/dev/null || echo 'none')"
     local damga_eski=""
     [ -f "$damga_dosya" ] && damga_eski="$(cat "$damga_dosya" 2>/dev/null)"
     if [ ! -s "$ins" ] || [ "$damga_simdi" != "$damga_eski" ]; then
@@ -491,7 +492,7 @@ vt_surum() {
   esac
   VT_SURUM_SONUC="$o1 / $o2"
 
-  # --- parmak izi. Eski kosunun hangi VT ile yapildigi buradan izlenir. -----
+  # --- the fingerprint. Which database an old run used is traced from here. ---
   local pi="$PROJE/SONUCLAR/vt_parmak_izi.tsv"
   mkdir -p "$(dirname "$pi")"
   [ -f "$pi" ] || printf 'tarih\tyol\thash_bayt\thash_tarih\ticerik\tboyut\n' > "$pi"
@@ -500,9 +501,10 @@ vt_surum() {
 }
 
 # =========================================================================
-# ESKI KOSU HANGI VERITABANIYLA YAPILDI
-# Bu soru kritik: eski kosu da ~/k2db ile yapildiysa "eski VT" ile "PlusPFP"
-# ayni sey olabilir ve karsilastirmanin anlami degisir.
+# WHICH DATABASE THE OLD RUN USED
+# The question is critical: if the old run was made with ~/k2db too, then "the old
+# database" and "PlusPFP" may be the same thing and the comparison means something
+# else.
 # =========================================================================
 eski_kosu_tespit() {
   echo "WHICH DATABASE THE OLD RUNS USED"
@@ -512,8 +514,9 @@ eski_kosu_tespit() {
   for l in "$PROJE"/kurulum_loglari/*.log; do
     [ -f "$l" ] || continue
     local yol boy
-    # Bu grep KENDI loglarimizi okur. Ekran metni Ingilizceye cevrildi, ama
-    # eski loglar hala Turkce; ikisi de tutsun diye desen iki kelimeyi de alir.
+    # This grep reads OUR OWN logs. The screen text was translated into English,
+    # but the old logs are still in Turkish; the pattern takes both words so that
+    # either matches.
     yol=$(grep -m1 -oE "(veritabani|database) *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
     boy=$(grep -m1 -oE "hash\.k2d *(var|present) *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
     if [ -n "$yol" ]; then
@@ -554,10 +557,11 @@ eski_kosu_tespit() {
 }
 
 # =========================================================================
-# TUS: vt-ara   VERITABANI ARAMA
-# Yol yanlissa pes etmez, arar. Butun disk taranmaz; belirli kok dizinler ve
-# sinirli derinlik kullanilir, sure olculur ve yazilir. Birden fazla bulursa
-# KENDI KAFASINA GORE SECMEZ, kullaniciya sectirir.
+# THE KEY: vt-ara   SEARCHING FOR A DATABASE
+# If the path is wrong it does not give up, it searches. The whole disk is not
+# scanned; particular root directories and a limited depth are used, and the time
+# taken is measured and written down. If it finds more than one it DOES NOT CHOOSE
+# ON ITS OWN, it lets the user choose.
 # =========================================================================
 vt_ara() {
   local derin="${DERINLIK:-5}"
@@ -578,7 +582,8 @@ vt_ara() {
               -name hash.k2d 2>/dev/null || true)
   done
   t1=$(date +%s)
-  # /mnt/c altinda Windows tarafi cok yavas olabilir, ayri ve daha sig aranir.
+  # under /mnt/c the Windows side can be very slow, so it is searched separately
+  # and less deeply.
   if [ -d /mnt/c/Users ] && [ "${WINDOWS_ARA:-1}" = "1" ]; then
     while IFS= read -r h; do
       [ -n "$h" ] && bulunanlar+=("$(dirname "$h")")
@@ -643,14 +648,15 @@ vt_ara() {
 }
 
 # =========================================================================
-# TUS: ozgun-vt   OZGUN KOSU HANGI VERITABANINI KULLANDI
-# Kullanici da bilmiyor, sorulacak kimse yok. Kanittan cikarilir.
-# Cikarilamazsa "belirlenemedi" yazilir, uydurulmaz.
+# THE KEY: ozgun-vt   WHICH DATABASE THE ORIGINAL RUN USED
+# The user does not know either and there is nobody to ask. It is inferred from
+# evidence. If it cannot be inferred, "belirlenemedi" is written; it is not
+# invented.
 # =========================================================================
 tus_ali_vt() {
-  # Bu tus yalnizca OKUR ve rapor yazar, hicbir sey degistirmez. Aranan dosyanin
-  # bulunmamasi normaldir; eksik kanit isi durdurmamali, "bulunamadi" diye
-  # yazilmali. Bu yuzden errexit burada kapatilir.
+  # This key only READS and writes a report, it changes nothing. A file it looks
+  # for being absent is normal; missing evidence must not stop the work, it has to
+  # be written down as "bulunamadi". That is why errexit is turned off here.
   set +e
   echo "======================================================================"
   echo "WHICH DATABASE THE ORIGINAL RUN USED"
@@ -685,8 +691,9 @@ tus_ali_vt() {
   for l in "$PROJE"/kurulum_loglari/*.log; do
     [ -f "$l" ] || continue
     local yol boy
-    # Bu grep KENDI loglarimizi okur. Ekran metni Ingilizceye cevrildi, ama
-    # eski loglar hala Turkce; ikisi de tutsun diye desen iki kelimeyi de alir.
+    # This grep reads OUR OWN logs. The screen text was translated into English,
+    # but the old logs are still in Turkish; the pattern takes both words so that
+    # either matches.
     yol=$(grep -m1 -oE "(veritabani|database) *: */[^ ]*" "$l" 2>/dev/null | sed 's/.*: *//' || true)
     boy=$(grep -m1 -oE "hash\.k2d *(var|present) *[0-9.]+[KMGT]" "$l" 2>/dev/null | grep -oE "[0-9.]+[KMGT]$" || true)
     [ -n "$yol" ] && { printf "    %-42s %-26s hash %s\n" "$(basename "$l")" "$yol" "${boy:-?}"; k2=1; }
@@ -773,7 +780,8 @@ tus_ali_vt() {
   set -e
 }
 
-# --- bellek. Kaynak Kraken/Bracken betigi ve rerun_kraken.sh'teki karar --------
+# --- memory. The decision from the source Kraken and Bracken script and from
+#     rerun_kraken.sh --------
 bellek_bayragi() {
   local d="$1"
   local hb rb
@@ -846,21 +854,22 @@ birlestir() {
 
 
 # ---------------------------------------------------------------------------
-# ornekle - esik taramasi icin TEMSILI alt kume kurar.
+# ornekle builds a REPRESENTATIVE subset for the threshold scan.
 #
-# NEDEN
-# Esik taramasinin amaci EGRININ SEKLINI gormektir: esik yukseldikce hangi
-# atamalar cokuyor. Bunun icin butun okumalari her esikte yeniden
-# siniflandirmak gereksizdir. Alti esik x 330 bin okuma, 110 GB'lik bir
-# veritabaniyla, WSL2'de sayfa onbellegi uzerinden Windows'u kilitliyordu.
+# WHY
+# The point of the threshold scan is to see THE SHAPE OF THE CURVE: which
+# assignments collapse as the threshold rises. Reclassifying every read at every
+# threshold is not needed for that. Six thresholds x 330 thousand reads, against a
+# 110 GB database, was locking Windows up through the page cache under WSL2.
 #
-# Alt kume KUTU BASINA ESIT alinir, bollugu buyuk taksonlar orantisiz
-# agirlik kazanmasin diye. Yuzdeler oranlardan cikar; oranlar temsili bir
-# ornekte de ayni kalir, mutlak sayilar kucululur.
+# The subset is taken EQUALLY PER BIN, so that abundant taxa do not gain a
+# disproportionate weight. The percentages come out of ratios; the ratios stay the
+# same in a representative sample and only the absolute numbers shrink.
 #
-# TEMSIL DOGRULAMASI ayri bir istir ve bu fonksiyonun isi degildir:
-# 'dogrula-ornek' tusu tek bir esikte tam veriyle ornegi karsilastirir.
-# Oranlar tutuyorsa egri gecerlidir. Tutmuyorsa ORNEK buyutulur.
+# CONFIRMING THE REPRESENTATIVENESS is a separate job and not this function's:
+# the 'dogrula-ornek' key compares the sample against the full data at a single
+# threshold. If the ratios hold, the curve is valid. If they do not, ORNEK is
+# raised.
 # ---------------------------------------------------------------------------
 ornekle() {
   local kaynak="$1" hedef="$2" toplam="$3"
@@ -876,10 +885,10 @@ ornekle() {
   fi
 
   # --- ONEK DENETIMI (guard) --------------------------------------------
-  # Kutu paylastirmasi, birlestir()'in okuma basliklarina koydugu 'tx<taxid>_'
-  # onekine dayanir. birlestir() eski bir tum.fastq'yu yeniden kullanmis ve o
-  # dosyada onek yoksa, BUTUN okumalar tek kutu sayilir ve ornek temsili olmaz.
-  # Bu sessiz bir basarisizlik olurdu; onun icin once olculur.
+  # Sharing out per bin rests on the 'tx<taxid>_' prefix birlestir() puts on the
+  # read headers. If birlestir() reused an old tum.fastq and that file has no
+  # prefix, then EVERY read counts as one bin and the sample is not
+  # representative. That would be a silent failure, so it is measured first.
   local onekli
   onekli=$(awk 'NR%4==1{n++; if ($1 ~ /^@tx[0-9]+_/) k++} NR>40000{exit} END{print (n>0? int(100*k/n) : 0)}' "$kaynak")
   if [ "${onekli:-0}" -lt 90 ]; then
@@ -897,24 +906,24 @@ ornekle() {
   [ "$pay" -lt 1 ] && pay=1
 
   # --- RASTGELE ORNEKLEME, SABIT TOHUMLA --------------------------------
-  # NEDEN ILK N DEGIL (2026-08-05 duzeltmesi)
-  # Onceki surum her kutudan ILK 'pay' okumayi aliyordu. Nanopore kosusunda
-  # gozenek verimi zamanla duser ve okuma kalitesi kosunun sonuna dogru
-  # sistematik olarak degisir; dosyanin basi sonundan farklidir. Ilk N almak,
-  # kosunun erken donemini asiri temsil eden YANLI bir ornek uretir ve bu
-  # yanlilik esik egrisini kaydirabilir.
-  # Artik her okuma, kutu icindeki sirasindan BAGIMSIZ bir karma degerle
-  # puanlanir ve en kucuk 'pay' tanesi secilir. Karma, okuma adindan ve sabit
-  # bir tohumdan uretilir; yani secim RASTGELE ama TEKRARLANABILIRDIR - ayni
-  # girdi ve ayni tohum her zaman ayni ornegi verir. ORNEK_TOHUM ile
-  # degistirilebilir.
+  # WHY NOT THE FIRST N (the 2026-08-05 fix)
+  # The previous version took the FIRST 'pay' reads of each bin. Over a nanopore
+  # run the pore yield falls with time and the read quality changes systematically
+  # towards the end; the head of the file differs from its tail. Taking the first N
+  # produces a BIASED sample that over-represents the early part of the run, and
+  # that bias can shift the threshold curve.
+  # Every read is now scored with a hash value INDEPENDENT of its position inside
+  # the bin, and the smallest 'pay' of them are chosen. The hash is produced from
+  # the read name and a fixed seed, so the choice is RANDOM but REPRODUCIBLE: the
+  # same input and the same seed always give the same sample. It can be changed
+  # with ORNEK_TOHUM.
   local TOHUM="${ORNEK_TOHUM:-20260805}"
   echo "  sampling: $kutu_sayisi bins x $pay reads = target ~$toplam"
   echo "  method  : RANDOM within a bin, fixed seed $TOHUM (reproducible)"
 
-  # Iki gecis: once her okumanin karmasi, sonra kutu basina esik.
-  # awk'in kendi rand()'i yerine ad tabanli karma kullanilir; boylece okuma
-  # sirasi degisse bile ayni okumalar secilir.
+  # Two passes: the hash of every read first, then a threshold per bin.
+  # A name based hash is used instead of awk's own rand(), so that the same reads
+  # are chosen even if the read order changes.
   awk -v tohum="$TOHUM" '
     function karma(s,   i,h,c) { h = tohum % 2147483647; for (i = length(s); i >= 1; i--) { c = index("_@0123456789abcdefghijklmnopqrstuvwxyzACGTN", substr(s,i,1)); h = (h * 16777619) % 2147483647; h = h + c * 2654435761; h = h % 2147483647; h = int(h / 7) + (h % 7) * 306783378 } return h % 1000003 }
     NR%4==1 { split(substr($1,2),a,"_"); print a[1] "\t" karma($1) }
@@ -939,11 +948,11 @@ ornekle() {
 }
 
 # =========================================================================
-# TUS: sure   GERCEK OLCUMLE SURE TAHMINI
-# Tahmin uydurulmaz. Kucuk bir ornek gercekten kosulur, sure olculur ve
-# tam kosuya oranlanir. --memory-mapping'te ilk okumalar en yavas olandir
-# (sayfalar diskten gelir), bu yuzden olcum bir UST sinir gibi davranir ve
-# bunun boyle oldugu ekrana yazilir.
+# THE KEY: sure   A TIME ESTIMATE FROM A REAL MEASUREMENT
+# No estimate is invented. A small sample is actually run, the time is measured and
+# scaled to the full run. Under --memory-mapping the first reads are the slowest
+# (the pages come from disk), so the measurement behaves like an UPPER bound, and
+# that this is so is written on the screen.
 # =========================================================================
 tus_sure() {
   kraken_sart
@@ -991,8 +1000,8 @@ tus_durum() {
   echo
   ortam_ac
   for a in kraken2 kraken2-build kraken2-inspect bracken; do
-    if command -v "$a" >/dev/null 2>&1; then printf "  %-16s var   %s\n" "$a" "$(command -v $a)"
-    else printf "  %-16s YOK\n" "$a"; fi
+    if command -v "$a" >/dev/null 2>&1; then printf "  %-16s present  %s\n" "$a" "$(command -v $a)"
+    else printf "  %-16s MISSING\n" "$a"; fi
   done
   echo
   echo "VT_A = $VT_A"
@@ -1019,7 +1028,7 @@ tus_durum() {
   local n; n=$(ls "$KAYNAK"/*/*reads_*.fastq 2>/dev/null | wc -l || echo 0)
   echo "reads: $n fastq files ($KAYNAK)"
   echo
-  free -g 2>/dev/null | awk '/Mem:/{print "RAM: "$2" GB toplam, "$7" GB kullanilabilir"}'
+  free -g 2>/dev/null | awk '/Mem:/{print "RAM: "$2" GB total, "$7" GB available"}'
   df -h "$VT_A" 2>/dev/null | tail -1 | awk '{print "disk: "$4" bos ("$6")"}'
   echo
   eski_kosu_tespit
@@ -1062,7 +1071,7 @@ tus_sinav() {
 }
 
 # =========================================================================
-# TUS: esik-a / esik-b   guven esigi taramasi
+# THE KEY: esik-a / esik-b   the confidence threshold scan
 # =========================================================================
 esik_tara() {
   local d="$1" is="$2" etiket="$3"
@@ -1086,8 +1095,8 @@ esik_tara() {
   local BAYRAK; BAYRAK=$(bellek_bayragi "$d")
   mkdir -p "$is"
   birlestir "$is/tum.fastq"
-  # ESIK TARAMASI ORNEK UZERINDE KOSAR. Gerekce ornekle() icinde yazili.
-  # Tam veriyle kosmak icin: ORNEK=0
+  # THE THRESHOLD SCAN RUNS ON THE SAMPLE. The reasoning is inside ornekle().
+  # To run it on the full data: ORNEK=0
   local GIRDI="$is/tum.fastq"
   if [ "${ORNEK:-0}" -gt 0 ]; then
     echo
@@ -1148,9 +1157,10 @@ tus_esik() {
   echo "done. Files: $IS_A"
   echo "  esik_<C>.report          the kraken report for each threshold"
   echo "  esik_egrisi.csv / .txt   assignment percentages per domain, against the threshold"
-  # NOT: son komut olarak "[ ... ] && echo" birakilmaz. Kosul yanlis oldugunda
-  # test 1 doner ve fonksiyonun cikis kodu olur; is basariyla bittigi halde
-  # betik HATA vermis gibi gorunur. Bu tuzaga bir kez dusuldu.
+  # NOTE: "[ ... ] && echo" is never left as the last command. When the condition
+  # is false the test returns 1 and that becomes the function's exit code; the work
+  # finished successfully and the script still looks as though it FAILED. That trap
+  # was fallen into once.
   if [ "$ikili" -eq 1 ]; then
     echo "  esik_iki_veritabani.txt  the two databases side by side, plus what survives"
   fi
@@ -1162,13 +1172,16 @@ tus_esik() {
 #
 # TABLO PARCA PARCA TAMAMLANABILIR (2026-08-04 notu)
 # comparison_table.py eksik girdiye dayaniklidir: PlusPFP kosusu yoksa 3.
-# sutunu, esik taramasi yoksa 2. sutunu, hizalama sonucu yoksa 4. sutunu bos
+# column empty when there is no PlusPFP run, the 2nd when there is no threshold
+# scan, and the 4th when there is no alignment result.
 # birakir ve hangilerinin eksik oldugunu basar. Bu yuzden Kraken olcumu
-# haftalar sonra yapilsa bile bu tus yeniden cagrilarak tablo TAMAMLANIR;
+# Even if the measurement is made weeks later, pressing this key again COMPLETES
+# the table;
 # bastan kosuya gerek yoktur.
 #
-# Ama bunun bir riski var: elde TAM bir tablo varken, veritabani gecici olarak
-# erisilemez oldugu bir anda bu tusa basmak tabloyu DAHA BOS bir surumle
+# But there is a risk in that: with a COMPLETE table in hand, pressing this key at
+# a moment when the database is temporarily unreachable would overwrite the table
+# with an EMPTIER version.
 # degistirebilirdi. Sessiz veri kaybi olurdu. Onlem: mevcut tablo her seferinde
 # once yedeklenir. Yedek adi zaman damgalidir, ustune yazilmaz.
 # ---------------------------------------------------------------------------
@@ -1188,7 +1201,7 @@ tus_tablo() {
 }
 
 # =========================================================================
-# TUS: ozelvt-kur   EN SON CARE
+# THE KEY: ozelvt-kur   THE LAST RESORT
 # =========================================================================
 tus_ozelvt_kur() {
   echo "======================================================================"
@@ -1232,7 +1245,7 @@ tus_ozelvt_kur() {
   echo
   if [ "${ONAY:-}" != "evet" ]; then
     read -r -p "Kuruluma baslansin mi? (evet yazin, baska her sey iptal): " c
-    [ "$c" = "evet" ] || { echo "iptal edildi. Hicbir sey yapilmadi."; exit 0; }
+    [ "$c" = "evet" ] || { echo "cancelled. Nothing was done."; exit 0; }
   fi
   log_ac ozelvt_kur
   kraken_sart
