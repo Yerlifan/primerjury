@@ -29,7 +29,11 @@
 # =====================================================================
 set -uo pipefail
 
-PT="${PT:-/mnt/c/Users/yerli/Masaüstü/PrimerTasarlama}"
+# The project directory. It used to default to one person's desktop path, so on
+# any other machine the defaults below pointed at nothing. It is derived from
+# this script's own location now; $PT still overrides it.
+_BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PT="${PT:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 KONS="${KONS:-$PT/referans_konsensus/baskin/konsensus}"
 ADAY="${ADAY:-$PT/primer_adaylari}"
