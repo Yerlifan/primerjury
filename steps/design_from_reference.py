@@ -102,24 +102,28 @@ def sec(veritabani, adlar, azami_kayit=6):
     return bulunan
 
 
-# TASARIM ANINDAKI RAKIP KUMESI, DOGRULAMA PANELINDEN DAR OLMAMALI.
-#   OLCULDU (2026-08-01): Podospora_pseudopauciseta_referans tasarimi 29
-#   rakip diziyle yapildi; rakipler yalnizca fungi.ITS.fna'dan ve ad basina
-#   en fazla 6 kayit alinarak toplanmisti (o dosyada toplam 14 Podospora
-#   kaydi var). 27'nin dogrulama paneli ise UNITE dahil 242 kayit ve 50
-#   turdu. Tasarim P. anserina ile P. comata'yi disladigini sanirken,
-#   genis panelde ikisini de cogaltiyordu. Yani basarisizligin sebebi
-#   tasarim motoru degil, tasarim aninda GORULMEYEN rakiplerdi.
+# THE COMPETITOR SET AT DESIGN TIME MUST NOT BE NARROWER THAN THE VERIFICATION
+# PANEL.
+#   MEASURED (2026-08-01): the Podospora_pseudopauciseta_referans design was made
+#   with 29 competitor sequences; the competitors had been collected from
+#   fungi.ITS.fna alone, taking at most 6 records per name (that file holds 14
+#   Podospora records in total). The verification panel of
+#   check_taxonomic_level.py, on the other hand, was 242 records and 50 species,
+#   UNITE included. The design believed it was excluding P. anserina and P. comata
+#   while, on the broad panel, it amplified both. So the reason for the failure was
+#   not the design engine but the competitors NOT SEEN at design time.
 #
-# Cozum iki parcali:
-#   1) veritabani sutunu virgulle birden cok dosya kabul eder.
-#   2) Rakip listesi elle yazilanla sinirli kalmaz: hedefin CINSINDEKI
-#      butun oteki turler veriden bulunup rakip kumesine eklenir. Elle
-#      yazilan liste, veriden turetilen kumeye EKtir, onun yerine gecmez.
+# The fix has two parts:
+#   1) the database column accepts more than one file, comma separated.
+#   2) the competitor list is not limited to what is written by hand: every other
+#      species IN THE TARGET'S GENUS is found from the data and added to the
+#      competitor set. The hand written list is an ADDITION to the set derived from
+#      the data, not a replacement for it.
 #
-# Tur adi tanimi 27'den alinir. Ayri bir kopya yazilsaydi, tasarim ile
-# dogrulama farkli tur tanimlariyla calisir ve tam da duzeltilen hata
-# baska bicimde geri gelirdi.
+# The species name definition is taken from check_taxonomic_level.py. Had a second
+# copy been written, the design and the verification would run under different
+# species definitions and the very fault being fixed would come back in another
+# shape.
 _s27 = importlib.util.spec_from_file_location(
     "_dz", os.path.join(HERE, "check_taxonomic_level.py"))
 DZ = importlib.util.module_from_spec(_s27)
@@ -217,7 +221,7 @@ def main():
     calisma = tempfile.mkdtemp(prefix="refdiz_")
     sonuc = []
     for h in hedefler:
-        # veritabani sutunu virgulle birden cok dosya alabilir
+        # the database column can take more than one file, comma separated
         vtler = [os.path.join(a.db, x.strip())
                  for x in h["veritabani"].split(",") if x.strip()]
         var_olan = [v for v in vtler if os.path.exists(v)]
@@ -248,7 +252,7 @@ def main():
             kardes, kirpilan_tur = kardes_turleri_bul(
                 var_olan, cinsler, hedef_turler, a.azami_kardes_tur,
                 a.azami_kardes_kayit)
-            # Elle yazilan rakipler KORUNUR, kardes turler UZERINE eklenir.
+            # The hand written competitors ARE KEPT, the sibling species are added on top.
             for tur, kayitlar in kardes.items():
                 if tur not in bul or not bul[tur]:
                     bul[tur] = kayitlar
@@ -293,9 +297,9 @@ def main():
         if not n or not os.path.exists(tsv):
             continue
 
-        # Numune destegi: tasarlanan cift, hedefin numunedeki okumalarinda
-        # urun veriyor mu. Bu bir OZGULLUK kaniti degil, yalnizca "numunede
-        # boyle bir kalip var mi" sorusunun cevabidir.
+        # Sample support: does the pair designed give a product in the target's reads in
+        # the sample. This is not evidence of SPECIFICITY, only the answer to "is there a
+        # pattern like this in the sample".
         taxidler = [x.strip() for x in h["taxid"].split(",") if x.strip()]
         uye_fq = [v for (s, g, t), v in fq.items()
                   if s == h["sinif"] and t in taxidler]
