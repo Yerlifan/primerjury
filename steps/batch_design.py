@@ -380,7 +380,7 @@ def main():
             for kad_ad, kad_bayrak in MERDIVEN:
                 r = subprocess.run(cmd + kad_bayrak, capture_output=True, text=True)
                 txt = r.stdout + r.stderr
-                m = re.search(r"gecerli cift sayisi\s*:\s*(\d+)", txt)
+                m = re.search(r"valid pairs\s*:\s*(\d+)", txt)
                 n = int(m.group(1)) if m else 0
                 kademe = kad_ad
                 if n > 0:
@@ -414,7 +414,7 @@ def main():
             if "gecerli cift bulunamadi" in txt and n == 0:
                 durum = "cift yok"
             eng = ""
-            me = re.search(r"en cok engelleyen uyeler:\s*(.+)", txt)
+            me = re.search(r"the members blocking most:\s*(.+)", txt)
             if me:
                 eng = me.group(1).strip()[:70]
             log(u'%-40s %-3s members=%2d competitors=%2d pairs=%-7d %-14s %5.1f s'

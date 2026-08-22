@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-export_excel.py
-Primer tasarımının bütün çıktılarını tek bir Excel dosyasında toplar.
+export_excel.py gathers every output of the primer design into one Excel file.
 
-Girdi klasörleri:
-  --candidates   08'in çıktısı (ozet.tsv, ayirt_edilemez.tsv, *.log)
-  --final  09'un çıktısı (primer_final.tsv)
-  --splits    05'in çıktısı (isteğe bağlı, *_bolme.json)
-  --names  taxid ad tablosu
+The input directories:
+  --candidates  the batch design output (ozet.tsv, ayirt_edilemez.tsv, *.log)
+  --final       the specificity output (primer_final.tsv)
+  --splits      the cluster split output, optional (*_bolme.json)
+  --names       the taxid name table
 """
 import argparse, csv, datetime, glob, json, os, re, sys
 from collections import OrderedDict
@@ -129,11 +128,11 @@ def main():
               % kyol)
 
     UYUM_METIN = {
-        "tur_uyusuyor": "tür düzeyinde doğrulandı",
-        "cins_uyusuyor_tur_farkli": "cins doğru, tür farklı",
-        "CINS_FARKLI": "CİNS FARKLI",
-        "YAKIN_AKRABA_YOK": "veritabanında yakın akrabası yok",
-        "vurus_yok": "veritabanında vuruş yok",
+        "tur_uyusuyor": "confirmed at species level",
+        "cins_uyusuyor_tur_farkli": "the genus is right, the species differs",
+        "CINS_FARKLI": "A DIFFERENT GENUS",
+        "YAKIN_AKRABA_YOK": "no close relative in the database",
+        "vurus_yok": "no hit in the database",
     }
 
     def kimlik_destek(hedef):
@@ -164,10 +163,10 @@ def main():
         if n:
             ad_metni = "%s (%d/%d kutu)" % (ad_metni, d, n)
         if not cog:
-            ad_metni += "  [belirgin çoğunluk yok]"
+            ad_metni += "  [no clear majority]"
             if r.get("diger"):
-                ad_metni += "  diğerleri: " + r["diger"][:70]
-            return ad_metni, "kutular tek kimlikte birleşmiyor", SARI
+                ad_metni += "  the others: " + r["diger"][:70]
+            return ad_metni, "the bins do not agree on one identity", SARI
         dolgu = (YESIL if u == "tur_uyusuyor" else
                  SARI if u == "cins_uyusuyor_tur_farkli" else KIRMIZI)
         return ad_metni, UYUM_METIN.get(u, u), dolgu
@@ -176,9 +175,9 @@ def main():
 
     # ---------------- 1. The cover and the method ----------------
     ws = wb.active
-    ws.title = "Kapak ve Yöntem"
+    ws.title = "Cover and method"
     genislik(ws, [42, 96])
-    ws["A1"] = "PrimerJury primer tasarımı, toplantı kararlarının uygulanması"
+    ws["A1"] = "PrimerJury primer design: the decisions, applied"
     ws["A1"].font = BUYUK
     ws.merge_cells("A1:B1")
     r = 3
@@ -212,55 +211,63 @@ def main():
         x["dis_ornek"] = ";".join(dis_detay.get(k, []))[:180]
     kapsanan = sorted(set(x["hedef"] for x in gecen))
     satirlar = [
-        ("Üretim zamanı", datetime.datetime.now().strftime("%d.%m.%Y %H:%M")),
-        ("Aday klasörü", a.candidates),
-        ("Doğrulama klasörü", a.final),
-        ("Toplam hedef", str(len(set(x["hedef"] for x in ozet)))),
-        ("Aday üreten hedef", str(len(set(x["hedef"] for x in ozet
+        ("Produced at", datetime.datetime.now().strftime("%d.%m.%Y %H:%M")),
+        ("The candidate directory", a.candidates),
+        ("The verification directory", a.final),
+        ("Targets in total", str(len(set(x["hedef"] for x in ozet)))),
+        ("Targets that produced a candidate", str(len(set(x["hedef"] for x in ozet
                                           if x.get("durum", "").startswith("TAMAM"))))),
-        ("Bütün kurallardan geçen hedef", str(len(kapsanan))),
-        ("Bütün kurallardan geçen primer çifti", str(len(gecen))),
+        ("Targets that passed every rule", str(len(kapsanan))),
+        ("Primer pairs that passed every rule", str(len(gecen))),
         ("", ""),
-        ("YÖNTEM", ""),
-        ("Oligo kuralı",
-         "Yalnız A, C, G, T. Uzunluk 18-25 baz. GC %40-60, sert sınır %35-65. "
-         "3' uç G ya da C. Son beş bazda en fazla üç G/C. En fazla dört aynı "
-         "ardışık baz."),
+        ("THE METHOD", ""),
+        ("The oligo rule",
+         'A, C, G and T only. A length of 18 to 25 bases. GC between 40 and '
+         "60 per cent with a hard bound of 35 to 65. A G or a C at the 3' "
+         'end. At most three G or C in the last five bases. At most four of '
+         'the same base in a row.'),
         ("Termodinamik",
-         "Tm 58-62 C, sert sınır 57-63. Hairpin dG en az -3000, self-dimer ve "
-         "hetero-dimer en az -6000. Tm iki bağımsız kütüphaneyle ölçülür "
-         "(primer3 ve Biopython); ikisi arasındaki sistematik kayma veriden "
-         "hesaplanır, kaymadan sapan oligo elenir."),
-        ("Ürün", "70-250 baz, üst sınır 300. 90-150 en yüksek puanı alır. "
-                 "Çift Tm farkı 1,5 C altında."),
-        ("Bağlanma kuralı",
-         "Son iki baz birebir uymalı, son beş bazda en fazla bir uyumsuzluk, "
-         "primerin tamamında en fazla üç uyumsuzluk. 5' tarafta sarkma "
-         "serbest. İki primer ters zincirlerde ve 3' uçları birbirine bakacak."),
-        ("Özgüllük",
-         "Ürün hedeflenen HER üyede oluşmalı, rakiplerin HİÇBİRİNDE "
-         "oluşmamalı. Primerlerden en az biri rakiplerde hiç bağlanma yeri "
-         "bulamamalı; iki primerin de zayıf bağlanmasıyla oluşan temizlik "
-         "kabul edilmez."),
-        ("Ham okuma doğrulaması",
-         "Konsensüste geçen her çift, taksonun ham okumalarında yeniden "
-         "sınanır. Rakip okumalarındaki ürün oranı Wilson alt sınırıyla "
-         "değerlendirilir; tek okumalık gürültü yüksek oran gibi görünmez."),
-        ("Kutu çapraz bulaşması",
-         "Kraken kutuları birbirine sızabildiği için, rakip kutusundaki "
-         "okumaların ne kadarının aslında hedefe ait olduğu ölçülür. Rakipte "
-         "görülen ürün oranı bu sızıntının Wilson üst sınırının altındaysa "
-         "rakibin çoğaldığına dair kanıt sayılmaz."),
-        ("Konsensüs",
-         "Tasarım, ham okumalardan pozisyon başına BASKIN ALEL çağrılarak "
-         "üretilen belirsizliksiz konsensüs üzerinde yapılır. IUPAC kodlu "
-         "konsensüs ikinci ve daha temkinli ölçüm olarak saklanır; kodların "
-         "küme kesişimiyle değerlendirilmesi gerçek farkları örtüyordu."),
-        ("Çift ölçüm ilkesi",
-         "Hiçbir karar tek bir kod yoluna bırakılmaz. Tm iki kütüphaneyle, "
-         "takson ayrımı hem hizalama hem k-mer ile, özgüllük hem konsensüs "
-         "hem ham okuma ile ölçülür. Ölçümler ayrışırsa aday reddedilir ve "
-         "ayrışma log'lanır."),
+         'Tm between 58 and 62 C with a hard bound of 57 to 63. A hairpin dG '
+         'of at least -3000, and a self dimer and hetero dimer of at least '
+         '-6000. Tm is measured with two independent libraries, primer3 and '
+         'Biopython; the systematic offset between them is computed from the '
+         'data and an oligo that departs from that offset is dropped.'),
+        ("The product",
+         '70 to 250 bases with an upper bound of 300. 90 to 150 scores '
+         'highest. Less than 1.5 C between the Tm of the two primers.'),
+        ("The binding rule",
+         'The last two bases have to match exactly, at most one mismatch in '
+         'the last five bases, and at most three across the whole primer. An '
+         "overhang on the 5' side is free. The two primers sit on opposite "
+         "strands with their 3' ends facing each other."),
+        ("Specificity",
+         'A product has to form in EVERY targeted member and in NONE of the '
+         'competitors. At least one of the primers has to find no binding '
+         'site at all in the competitors; a cleanliness that comes from both '
+         'primers binding weakly is not accepted.'),
+        ("Confirmation on the raw reads",
+         'Every pair that passes on the consensus is tested again on the '
+         "taxon's raw reads. The product rate in the competitor reads is "
+         'judged with a Wilson lower bound, so that single read noise does '
+         'not look like a high rate.'),
+        ("Cross contamination between bins",
+         'Because Kraken bins can leak into one another, how much of the '
+         'reads in a competitor bin really belong to the target is measured. '
+         'When the product rate seen in a competitor stays below the Wilson '
+         'upper bound of that leak, it does not count as evidence that the '
+         'competitor was amplified.'),
+        ("The consensus",
+         'The design is made on the unambiguous consensus produced by calling '
+         'the DOMINANT ALLELE at every position of the raw reads. The IUPAC '
+         'coded consensus is kept as a second and more cautious measurement; '
+         'judging the codes by set intersection was covering up real '
+         'differences.'),
+        ("The two measurement principle",
+         'No decision is left to a single code path. Tm is measured with two '
+         'libraries, taxon separation with both an alignment and a k-mer, and '
+         'specificity on both the consensus and the raw reads. When the '
+         'measurements diverge the candidate is rejected and the divergence '
+         'is logged.'),
     ]
     if a.note:
         satirlar.append(("Not", a.note))
@@ -279,12 +286,12 @@ def main():
            "urun_maks", "uye_dogrulanan", "uye_toplam", "rakip_wilson",
            "ileri_baglanma_min", "geri_baglanma_min", "sus_ici_fark",
            "yetim_primer", "heterodimer_dg", "dis_hedef_disi", "ceza"]
-    basliklar = ["Karar", "Hedef", "Sınıf", "İleri primer (5'-3')", "İleri Tm",
-                 "İleri GC", "Geri primer (5'-3')", "Geri Tm", "Geri GC",
-                 "Tm farkı", "Ürün en az", "Ürün en çok", "Doğrulanan üye",
-                 "Toplam üye", "Rakip Wilson", "İleri bağlanma", "Geri bağlanma",
-                 "Suş içi fark", "Yetim primer", "Hetero-dimer dG",
-                 "Dış VT hedef dışı ürün", "Ceza"]
+    basliklar = ["Karar", "Hedef", "Class", "Forward primer (5' to 3')", "Forward Tm",
+                 "Forward GC", "Reverse primer (5' to 3')", "Reverse Tm", "Reverse GC",
+                 "Tm difference", "Shortest product", "Longest product", "Members confirmed",
+                 "Members in total", "Rakip Wilson", "Forward binding", "Reverse binding",
+                 "Within strain difference", "Yetim primer", "Hetero-dimer dG",
+                 "Off target products, outside databases", "Ceza"]
     yaz_baslik(ws, basliklar)
     genislik(ws, [7, 34, 7, 30, 9, 9, 30, 9, 9, 9, 11, 11, 13, 11, 13, 13, 13,
                   11, 13, 15, 20, 8])
@@ -304,22 +311,23 @@ def main():
         ws.cell(row=i, column=2).fill = YESIL
         i += 1
     if i == 2:
-        ws.cell(row=2, column=1, value="Bütün kurallardan geçen aday yok").font = NORMAL
+        ws.cell(row=2, column=1, value="No candidate passed every rule").font = NORMAL
 
     # ---------------- 2b. The suggested pair ----------------
-    ws = wb.create_sheet("Önerilen Çiftler")
-    ws["A1"] = ("Hedef başına bir çift. Sıralama ölçütü sırasıyla: dış "
-                "veritabanında hedef dışı ürün sayısı, rakip Wilson alt "
-                "sınırı, tasarım cezası. Dış veritabanı ölçümü yapılmamışsa "
-                "o sütun boş kalır ve sıralama diğer iki ölçüte göre yapılır.")
+    ws = wb.create_sheet("Recommended pairs")
+    ws["A1"] = ('One pair per target. The ordering criteria, in order: the '
+                'number of off target products in the outside databases, the '
+                'competitor Wilson lower bound, and the design penalty. When '
+                'the outside database measurement was not made, that column '
+                'stays empty and the ordering rests on the other two.')
     ws["A1"].font = NORMAL
     ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
     ws.merge_cells("A1:L1")
     ws.row_dimensions[1].height = 45
-    basliklar = ["Karar", "Hedef (toplantı adı)", "Sınıf", "İleri primer (5'-3')",
-                 "İleri Tm", "Geri primer (5'-3')", "Geri Tm", "Ürün (bp)",
-                 "Doğrulanan üye", "Rakip Wilson", "Dış VT hedef dışı",
-                 "Yetim primer", "Ölçülen kimlik", "Ad ile veri uyumu"]
+    basliklar = ["Karar", "Target (the requested name)", "Class", "Forward primer (5' to 3')",
+                 "Forward Tm", "Reverse primer (5' to 3')", "Reverse Tm", "Product (bp)",
+                 "Members confirmed", "Rakip Wilson", "Off target, outside databases",
+                 "Yetim primer", "Measured identity", "Ad ile veri uyumu"]
     yaz_baslik(ws, basliklar, satir=3)
     genislik(ws, [7, 34, 7, 30, 9, 30, 9, 12, 14, 13, 18, 14, 30, 24])
 
@@ -374,7 +382,7 @@ def main():
                                                         vertical="top")
         i += 1
     if i == 4:
-        ws.cell(row=4, column=1, value="Önerilecek çift yok").font = NORMAL
+        ws.cell(row=4, column=1, value="There is no pair to recommend").font = NORMAL
     # More than one target with the same measured identity means they target THE SAME
     # organism at sequence level. That is something a reader of the table cannot see
     # by themselves, so it is written out plainly.
@@ -392,10 +400,11 @@ def main():
     if cakisan:
         i += 1
         c = ws.cell(row=i, column=1,
-                    value="DİKKAT: aşağıdaki hedefler dizi düzeyinde AYNI "
-                          "organizmayı hedefliyor. Ayrı satırlarda görünmeleri "
-                          "toplantı adlarının korunmasındandır, iki farklı "
-                          "organizma çoğaltıldığı anlamına gelmez.")
+                    value='CAREFUL: the targets below aim at THE SAME '
+                          'organism at sequence level. They appear on '
+                          'separate rows because the requested names are '
+                          'kept, not because two different organisms are '
+                          'amplified.')
         c.font = Font(name=YAZI, bold=True, size=10, color="9C0006")
         c.fill = KIRMIZI
         c.alignment = Alignment(wrap_text=True, vertical="center")
@@ -409,9 +418,9 @@ def main():
 
     # ---------------- 3. The target state ----------------
     ws = wb.create_sheet("Hedef Durumu")
-    basliklar = ["Karar", "Hedef", "Düzey", "Sınıf", "Üye", "Rakip",
-                 "Tasarımda çift", "Tasarım durumu", "Kademe",
-                 "Doğrulamada geçen", "Açıklama"]
+    basliklar = ["Karar", "Hedef", "Level", "Class", "Members", "Rakip",
+                 "Pairs at design", "The state of the design", "Kademe",
+                 "Passed verification", "Note"]
     yaz_baslik(ws, basliklar)
     genislik(ws, [7, 34, 9, 7, 7, 8, 14, 16, 13, 17, 60])
     gecen_say = {}
@@ -437,14 +446,14 @@ def main():
             SARI if str(x.get("durum", "")).startswith("TAMAM") else KIRMIZI)
         i += 1
     son = i - 1
-    ws.cell(row=i + 1, column=1, value="Toplam doğrulamadan geçen çift").font = KALIN
+    ws.cell(row=i + 1, column=1, value="Pairs that passed verification in total").font = KALIN
     ws.cell(row=i + 1, column=10, value="=SUM(J2:J%d)" % son).font = KALIN
 
     ch = BarChart()
     ch.type = "bar"
-    ch.title = "Hedef başına doğrulamadan geçen primer çifti"
-    ch.y_axis.title = "çift sayısı"
-    ch.x_axis.title = "hedef ve sınıf"
+    ch.title = "Primer pairs per target that passed verification"
+    ch.y_axis.title = "the number of pairs"
+    ch.x_axis.title = "target and class"
     ch.x_axis.delete = False
     ch.y_axis.delete = False
     veri = Reference(ws, min_col=10, min_row=1, max_row=son)
@@ -456,18 +465,19 @@ def main():
     ws.add_chart(ch, "M2")
 
     # ---------------- 4. The indistinguishable bins ----------------
-    ws = wb.create_sheet("Ayırt Edilemez Kutular")
-    ws["A1"] = ("Aynı amplikon sınıfı içinde farklı taksona atanmış ama dizi "
-                "düzeyinde ayrılamayan konsensüsler. Bunlar rakip listesinden "
-                "çıkarılır, çünkü hedefin kendi dizisi rakip sayılırsa "
-                "'rakipte ürün oluşmasın' kuralı mantıken sağlanamaz.")
+    ws = wb.create_sheet("Indistinguishable bins")
+    ws["A1"] = ('Consensuses assigned to different taxa inside the same '
+                'amplicon class that cannot be separated at sequence level. '
+                'They are taken out of the competitor list, because if the '
+                "target's own sequence counts as a competitor the rule that "
+                'no product may form in a competitor cannot be met at all.')
     ws["A1"].font = NORMAL
     ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
     ws.merge_cells("A1:I1")
     ws.row_dimensions[1].height = 45
-    basliklar = ["Sınıf", "Taxid 1", "Takson 1", "Taxid 2", "Takson 2",
-                 "Hizalanan bp", "Kesişimli özdeşlik %", "Katı özdeşlik %",
-                 "Gerekçe"]
+    basliklar = ["Class", "Taxid 1", "Takson 1", "Taxid 2", "Takson 2",
+                 "Hizalanan bp", "Identity over the overlap, per cent", "Strict identity, per cent",
+                 "The reason"]
     yaz_baslik(ws, basliklar, satir=3)
     genislik(ws, [7, 11, 34, 11, 34, 13, 20, 18, 20])
     i = 4
@@ -487,21 +497,21 @@ def main():
             c.border = KENAR
         i += 1
     if i == 4:
-        ws.cell(row=4, column=1, value="Ayırt edilemez çift bulunmadı").font = NORMAL
+        ws.cell(row=4, column=1, value="No indistinguishable pair was found").font = NORMAL
 
     # ---------------- 5. The subset split ----------------
     if a.splits and os.path.isdir(a.splits):
-        ws = wb.create_sheet("Alt Küme Bölmesi")
-        ws["A1"] = ("Tek primer çiftiyle kapsanamayan işlev grupları, "
-                    "tasarlanabilirliğe göre alt kümelere bölündü. Bölme dizi "
-                    "benzerliğine değil, hangi üyenin çift oluşumunu "
-                    "engellediğine bakılarak yapılır.")
+        ws = wb.create_sheet("Subset split")
+        ws["A1"] = ('Function groups that one primer pair cannot cover were '
+                    'split into subsets by designability. The split rests not '
+                    'on sequence similarity but on which member blocks a pair '
+                    'from forming.')
         ws["A1"].font = NORMAL
         ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
         ws.merge_cells("A1:E1")
         ws.row_dimensions[1].height = 45
-        yaz_baslik(ws, ["Grup", "Alt küme", "Üye sayısı", "Geçerli çift",
-                        "Üyeler"], satir=3)
+        yaz_baslik(ws, ["Grup", "Subset", "Members", "Valid pairs",
+                        "The members"], satir=3)
         genislik(ws, [34, 11, 12, 14, 80])
         i = 4
         for p in sorted(glob.glob(os.path.join(a.splits, "*_bolme.json"))):
@@ -526,19 +536,20 @@ def main():
 
     # ---------------- 5b. The external database ----------------
     if dis_ham:
-        ws = wb.create_sheet("Dış Veritabanı")
-        ws["A1"] = ("Her primer blastn (task blastn-short) ile referans "
-                    "veritabanına arandı. Aynı referans dizide ters "
-                    "zincirlerde ve 3' uçları birbirine bakan iki vuruş ürün "
-                    "aralığında buluşuyorsa hedef dışı ürün sayıldı. Her vuruş "
-                    "ayrıca toplantı kararındaki bağlanma kuralından geçirildi. "
-                    "Evrensel primerlerde yüksek sayı beklenen sonuçtur.")
+        ws = wb.create_sheet("Outside databases")
+        ws["A1"] = ('Every primer was searched against the reference '
+                    'databases with blastn, task blastn-short. When two hits '
+                    'on the same reference sequence sit on opposite strands '
+                    "with their 3' ends facing each other and meet inside the "
+                    'product range, it counts as an off target product. Every '
+                    'hit was also put through the binding rule. On a '
+                    'universal primer a high count is the expected result.')
         ws["A1"].font = NORMAL
         ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
         ws.merge_cells("A1:F1")
         ws.row_dimensions[1].height = 60
-        yaz_baslik(ws, ["Hedef", "Sınıf", "Veritabanı", "İleri primer",
-                        "Geri primer", "Hedef dışı ürün", "Örnekler"], satir=3)
+        yaz_baslik(ws, ["Hedef", "Class", "Database", "Forward primer",
+                        "Reverse primer", "Off target products", "Examples"], satir=3)
         genislik(ws, [34, 7, 22, 30, 30, 16, 70])
         i = 4
         for x in sorted(dis_ham, key=lambda z: (z["hedef"], z["sinif"],
@@ -555,14 +566,14 @@ def main():
             i += 1
 
     # ---------------- 5c. Warnings ----------------
-    ws = wb.create_sheet("Uyarılar")
-    ws["A1"] = ("Otomatik denetimler. Bu satırlar sonucu geçersiz kılmaz, ama "
-                "primerlerin nasıl yorumlanması gerektiğini belirler.")
+    ws = wb.create_sheet("Warnings")
+    ws["A1"] = ('Automatic checks. These rows do not invalidate the result, '
+                'but they set how the primers have to be read.')
     ws["A1"].font = NORMAL
     ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
     ws.merge_cells("A1:D1")
     ws.row_dimensions[1].height = 30
-    yaz_baslik(ws, ["Tür", "Konu", "Ayrıntı", "Yorum"], satir=3)
+    yaz_baslik(ws, ["Kind", "Konu", "Detail", "Yorum"], satir=3)
     genislik(ws, [26, 42, 70, 70])
     uyarilar = []
 
@@ -575,14 +586,14 @@ def main():
         if len(v) > 1:
             hedef_adlari = set(h.split(" (")[0] for h in v)
             if len(hedef_adlari) < 2:
-                yorum = ("Aynı hedefin farklı amplikon sınıflarında aynı çift "
-                         "seçilmiş. Sorun değil, çiftin iki sınıfta da "
-                         "çalıştığını gösterir.")
+                yorum = ('The same pair was chosen for one target in two '
+                         'different amplicon classes. That is not a problem; '
+                         'it shows the pair works in both.')
                 tur = "Bilgi"
             else:
-                yorum = ("Farklı hedefler aynı çiftle karşılanıyor. Bu çift o "
-                         "hedefleri birbirinden AYIRMAZ; hedef tanımları "
-                         "veride örtüşüyor demektir.")
+                yorum = ('Different targets are met by the same pair. That '
+                         'pair DOES NOT separate them; it means the target '
+                         'definitions overlap in the data.')
                 tur = "Dikkat"
             uyarilar.append((tur, u'The same primer pair on more than one target',
                              "%s / %s" % k, yorum + "  Hedefler: " + ", ".join(sorted(v))))
@@ -634,7 +645,7 @@ def main():
                              u'%s (%s), members=%s competitors=%s'
                              % (x["hedef"], x["sinif"], x.get("uye", ""),
                                 x.get("rakip", "")),
-                             u'The member that blocks it: %s. See the subset split sheet.' % (x.get("engelleyen", "") or "kayıt yok")))
+                             u'The member that blocks it: %s. See the subset split sheet.' % (x.get("engelleyen", "") or "no record")))
 
     # 4. Gevsetilmis kademeyle gecen hedefler
     for x in ozet:
@@ -666,24 +677,24 @@ def main():
                                          else SARI if t == "Dikkat" else YESIL)
         i += 1
     if i == 4:
-        ws.cell(row=4, column=1, value="Uyarı yok").font = NORMAL
+        ws.cell(row=4, column=1, value="No warning").font = NORMAL
 
     # ---------------- 5d. The reference design ----------------
     if ref_ham:
-        ws = wb.create_sheet("Referans Tasarım")
-        ws["A1"] = ("Numunede karşılanamayan hedefler için REFERANS "
-                    "veritabanı dizilerinden tasarlanan çiftler. Bu çiftler "
-                    "numuneyle DOĞRULANMAZ; sağdaki sütunlar yalnızca "
-                    "numunede böyle bir kalıbın bulunup bulunmadığını "
-                    "gösterir. Özgüllük iddiası referans veritabanı "
-                    "kapsamındadır.")
+        ws = wb.create_sheet("Reference design")
+        ws["A1"] = ('Pairs designed from REFERENCE database sequences, for '
+                    'targets the sample cannot meet. These pairs ARE NOT '
+                    'confirmed against the sample; the columns on the right '
+                    'only show whether such a template is present in the '
+                    'sample at all. The specificity claim holds within the '
+                    'coverage of the reference database.')
         ws["A1"].font = NORMAL
         ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
         ws.merge_cells("A1:K1")
         ws.row_dimensions[1].height = 60
-        yaz_baslik(ws, ["Hedef", "Sınıf", "Veritabanı", "İleri primer",
-                        "İleri Tm", "Geri primer", "Geri Tm", "Ürün (bp)",
-                        "Numunede ürün veren okuma", "Wilson alt", "Durum"],
+        yaz_baslik(ws, ["Hedef", "Class", "Database", "Forward primer",
+                        "Forward Tm", "Reverse primer", "Reverse Tm", "Product (bp)",
+                        "Reads giving a product in the sample", "Wilson alt", "Durum"],
                    satir=3)
         genislik(ws, [36, 7, 20, 28, 9, 28, 9, 11, 24, 12, 24])
         i = 4
@@ -711,19 +722,19 @@ def main():
             i += 1
 
     # ---------------- 5e. The laboratory protocol ----------------
-    ws = wb.create_sheet("Laboratuvar Protokolü")
-    ws["A1"] = ("Sipariş ve ilk PCR için hazırlık tablosu. Tavlama sıcaklığı "
-                "önerisi çiftin düşük Tm'inden 5 C aşağıdır; gradyan aralığı "
-                "bu değerin 4 C altı ve üstüdür. Değerler primer3 ile "
-                "hesaplanan Tm'e dayanır, ilk koşuda gradyanla "
-                "doğrulanmalıdır.")
+    ws = wb.create_sheet("Laboratory protocol")
+    ws["A1"] = ('A preparation table for ordering and for the first PCR. The '
+                'suggested annealing temperature is 5 C below the lower Tm of '
+                'the pair, and the gradient range is 4 C either side of it. '
+                'The values rest on the Tm computed with primer3 and have to '
+                'be confirmed with a gradient on the first run.')
     ws["A1"].font = NORMAL
     ws["A1"].alignment = Alignment(wrap_text=True, vertical="top")
     ws.merge_cells("A1:L1")
     ws.row_dimensions[1].height = 50
-    yaz_baslik(ws, ["Karar", "Hedef", "Sınıf", "Oligo adı", "Dizi (5'-3')",
-                    "Uzunluk", "GC %", "Tm (C)", "Beklenen ürün (bp)",
-                    "Önerilen tavlama (C)", "Gradyan aralığı (C)", "Kaynak"],
+    yaz_baslik(ws, ["Karar", "Hedef", "Class", "Oligo name", "Dizi (5'-3')",
+                    "Uzunluk", "GC %", "Tm (C)", "Expected product (bp)",
+                    "Suggested annealing (C)", "Gradient range (C)", "Kaynak"],
                satir=3)
     genislik(ws, [7, 34, 7, 26, 30, 9, 8, 9, 18, 20, 20, 20])
     i = 4
@@ -798,25 +809,28 @@ def main():
         i += 1
 
     # ---------------- 6. The elimination reasons ----------------
-    ws = wb.create_sheet("Eleme Gerekçeleri")
-    yaz_baslik(ws, ["Hedef ve sınıf", "Kompozisyon sonrası oligo",
-                    "Termodinamik sonrası", "Her üyeye bağlanan",
-                    "Rakipte hiç bağlanmayan", "Çift Tm farkı elemesi",
-                    "Bir üyede ürün yok", "Rakipte ürün", "Yetim primer yok",
-                    "Hetero-dimer", "Geçerli çift"])
+    ws = wb.create_sheet("Why candidates were dropped")
+    yaz_baslik(ws, ["Target and class", "Oligos after composition",
+                    "After the thermodynamics", "Binding every member",
+                    "Binding no competitor", "Dropped on the pair Tm difference",
+                    "No product in one member", "A product in a competitor", "No orphan primer",
+                    "Hetero-dimer", "Valid pairs"])
     genislik(ws, [40] + [18] * 10)
     i = 2
+    # These patterns read the log that design_group_primers.py writes. When a line
+    # there is reworded, the pattern here has to move with it, or the column
+    # silently comes out empty.
     kal = [
-        (r"kompozisyon(?: suzgeci)? sonrasi oligo:\s*(\d+)", 2),
-        (r"termodinamik sonrasi oligo:\s*(\d+)", 3),
-        (r"her hedef uyeye baglanan oligo:\s*(\d+)", 4),
-        (r"rakiplerde hic baglanmayan oligo:\s*(\d+)", 5),
-        (r"elenen, cift Tm farki\s*:\s*(\d+)", 6),
-        (r"elenen, bir uyede urun yok\s*:\s*(\d+)", 7),
-        (r"elenen, rakipte urun olusuyor\s*:\s*(\d+)", 8),
-        (r"elenen, yetim primer yok\s*:\s*(\d+)", 9),
-        (r"elenen, hetero-dimer dG\s*:\s*(\d+)", 10),
-        (r"gecerli cift sayisi\s*:\s*(\d+)", 11),
+        (r"oligos after composition filter:\s*(\d+)", 2),
+        (r"oligos after thermodynamics:\s*(\d+)", 3),
+        (r"oligos binding every target member:\s*(\d+)", 4),
+        (r"oligos that bind nowhere in the competitors:\s*(\d+)", 5),
+        (r"dropped, pair Tm difference\s*:\s*(\d+)", 6),
+        (r"dropped, no product in one member\s*:\s*(\d+)", 7),
+        (r"dropped, product forms in a competitor\s*:\s*(\d+)", 8),
+        (r"dropped, no orphan primer\s*:\s*(\d+)", 9),
+        (r"dropped, hetero-dimer dG\s*:\s*(\d+)", 10),
+        (r"valid pairs\s*:\s*(\d+)", 11),
     ]
     for p in sorted(glob.glob(os.path.join(a.candidates, "*__*.log"))):
         t = open(p, encoding="utf-8", errors="replace").read()

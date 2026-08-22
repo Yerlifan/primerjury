@@ -151,9 +151,12 @@ def main():
     print(u'   the product does not start with the forward primer : %d' % say["urun_basi"])
     print(u'   the product does not end with the rc of the reverse primer: %d' % say["urun_sonu"])
     print(u'   the reverse primer is not the rc of the template   : %d' % say["yon"])
-    print("   bildirilen uzunluk tutmuyor          : %d" % say["uzunluk"])
-    print("   ileri primerin 3' ucu belirsiz bazda : %d" % say["f_3p_belirsiz"])
-    print("   geri primerin 3' ucu belirsiz bazda  : %d" % say["r_3p_belirsiz"])
+    print(u'   the reported length does not hold                : %d'
+          % say["uzunluk"])
+    print(u'   the forward 3-prime end is an ambiguous base     : %d'
+          % say["f_3p_belirsiz"])
+    print(u'   the reverse 3-prime end is an ambiguous base     : %d'
+          % say["r_3p_belirsiz"])
     print(u'   rows running off the end of the template          : %d' % say["kalip_disi"])
     for r, urun, hata in ornek:
         print(u'\n   ERROR %s' % ", ".join(hata))

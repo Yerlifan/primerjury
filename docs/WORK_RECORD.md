@@ -127,7 +127,7 @@ of products formed in them.
 | `external_databases.py` | the outside database sweep with blastn, the coverage check, the taxon separation |
 | `design_from_reference.py` | design from a reference database |
 | `check_primer_geometry.py` | the geometry check |
-| `regression_test.py` | the regression suite, **137 tests** |
+| `regression_test.py` | the regression suite, **147 tests** |
 | `check_deliverables.py` | the independent delivery check |
 | `mfeprimer_layer.py` | a second independent specificity measurement |
 | `recover_bins.py` | consensus recovery without a reference |
@@ -681,7 +681,7 @@ window, has been done.
 
 ## 7. The regression suite
 
-`regression_test.py`, **137 tests, 137 of 137 passing.** The expected result of
+`regression_test.py`, **147 tests, 147 of 147 passing.** The expected result of
 every test is derived from the design decisions or from known mathematics; the
 code's own helper functions are not trusted.
 
@@ -701,6 +701,7 @@ code's own helper functions are not trusted.
 | 15 | the distance of a foreign hit, by lineage depth |
 | 16 | the decision level check, species and genus specificity |
 | 17 | the competitor set in reference design |
+| 18 | the log contract between the group engine and the four scripts that read its counters |
 
 ---
 
