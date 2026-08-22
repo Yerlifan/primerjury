@@ -40,13 +40,15 @@ ASAMALAR = [
     ('P', u'TEK PROTOKOL - panelin tamami tek kuralla olculur',
      ['protocol/single_protocol_measure.py'], 'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
      u'1-2 saat'),
-    ('K', u'verification - esik alti satirlar dort yolla kurtarilir',
+    ('K', 'RECOVERY: the rows below the threshold are recovered by four '
+          'routes',
      ['verification/recovery_round.py'], 'RECOVERY_RESULT/kurtarma_satirlari.tsv',
      u'1-3 saat'),
-    ('D', u'DOGRULAMA - kurtarilan ciftler uc katmanla sinanir',
+    ('D', 'VERIFICATION: the recovered pairs are tested with three layers',
      ['verification/specificity_round.py'], 'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv',
      u'1-4 saat'),
-    ('I', u'KIMLIK DOGRULAMA - rapora giren iddialar bagimsiz sinanir',
+    ('I', 'IDENTITY VERIFICATION: the claims that go into the report are '
+          'tested independently',
      ['verification/identity_verification.py'], 'IDENTITY_RESULT/kimlik_iddialari.tsv',
      u'3-7 saat'),
 ]
@@ -164,9 +166,9 @@ def calistir(kok, ncbi, yeniden, atla):
         if rc != 0:
             dd = 'hata (%d)' % rc
         elif satir < 0:
-            dd = 'CIKTI YOK (%s uretilmedi)' % ciktilar
+            dd = 'THERE IS NO OUTPUT (%s was not produced)' % ciktilar
         elif satir == 0:
-            dd = 'CIKTI BOS (%s icinde 0 veri satiri)' % ciktilar
+            dd = 'THE OUTPUT IS EMPTY (0 data rows in %s)' % ciktilar
         else:
             dd = 'bitti'
         durum[k] = dict(durum=dd, sure=round(time.time() - ta, 1),
@@ -208,7 +210,7 @@ def calistir(kok, ncbi, yeniden, atla):
 def ozet(kok, CIKTI, durum, yaz):
     d_bitti = durum.get('D', {}).get('durum') == 'bitti'
     k_bitti = durum.get('K', {}).get('durum') == 'bitti'
-    """Dort asamanin ciktisini TEK dosyada birlestirir."""
+    'Merges the output of the four stages into ONE file.'
     P = tsv_oku(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
     SIP = tsv_oku(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv'))
     K = tsv_oku(os.path.join(kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv'))

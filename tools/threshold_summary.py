@@ -173,7 +173,7 @@ def alan_outtan(sayac, ebeveyn, dugumler):
 
 # ------------------------------------------------------------------ tarama
 def esik_listesi(klasor):
-    """esik_<C>.report dosyalarini sayisal siraya dizer."""
+    'Sorts the threshold report files into numeric order.'
     out = []
     for y in glob.glob(os.path.join(klasor, "esik_*.report")):
         m = re.match(r"esik_(.+)\.report$", os.path.basename(y))
@@ -247,7 +247,8 @@ def egri_metni(satirlar, baslik):
     return "\n".join(g)
 
 def kutu_hakim(kutu_sayac):
-    """Bir kutunun en sik atamasi ve orani (siniflandirilamayanlar paydaya dahil)."""
+    "A bin's most frequent assignment and its fraction, with the unclassified "
+    'reads in the denominator.'
     toplam = sum(kutu_sayac.values())
     if not toplam:
         return "", 0.0
@@ -296,9 +297,9 @@ def ayakta_kalma(kutular_a, kutular_b, ad_a, ad_b):
         elif cb > ca:
             durum = "yenide daha dayanikli"
         elif cb < ca:
-            durum = "yenide daha kirilgan"
+            durum = 'more fragile in the new one'
         else:
-            durum = "ikisi de ayni esikte coktu"
+            durum = 'both collapsed at the same threshold'
         satirlar.append(dict(kaynak=kay, cokme_a=ca, cokme_b=cb, durum=durum))
     ozet = Counter(s["durum"] for s in satirlar)
     return satirlar, ozet

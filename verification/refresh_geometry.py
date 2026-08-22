@@ -56,12 +56,12 @@ def geo_yukle(kok):
             except ImportError as e:
                 # primer3 yoksa YIGIN IZI basip kullaniciyi korkutma; ne
                 # eksik oldugunu ve nasil kurulacagini soyle.
-                return None, (u'geometry_core.py bulundu (%s) ama yuklenemedi: %s\n'
-                              u'      Kurulum: pip3 install primer3-py '
-                              u'--break-system-packages'
+                return None, ('geometry_core.py was found (%s) but could not '
+                              'be loaded: %s       To install: pip3 install '
+                              'primer3-py --break-system-packages'
                               % (os.path.join(aday, 'geometry_core.py'), e))
             return geo, os.path.join(aday, 'geometry_core.py')
-    return None, u'geometry_core.py bulunamadi (engine ya da engine)'
+    return None, 'geometry_core.py was not found under engine'
 
 
 # --- THE PRODUCT LENGTH: measured, not written ------------------------------
@@ -163,7 +163,7 @@ def panel_oku(kok):
 
 
 def yalniz_urun_boyu(kok, yaz_mi):
-    """primer3 yokken bile kosabilen bolum: urun boyu olcumu."""
+    'The part that runs even without primer3: measuring the product length.'
     kons = konsensus_yukle(kok)
     if not kons:
         print(u'  konsensus_kanonik is empty or missing, so product length could not be measured either.')
@@ -179,7 +179,8 @@ def yalniz_urun_boyu(kok, yaz_mi):
             yazili = 0
         if bl and yazili and yazili not in bl:
             sapan.append((c, yazili, bl))
-            print(u'      %-44s tabloda %d bp, olculen %s'
+            print('      %-44s the table says %d bp and the measured value is '
+                  '%s'
                   % (c['hedef'][:44], yazili, bl[:5]))
     print(u'    %d pairs measured, %d deviations' % (len(ciftler), len(sapan)))
     if yaz_mi and sapan:
@@ -253,7 +254,8 @@ def main():
             except ValueError:
                 f = 99.0
             if f > 1.0:
-                uyusmaz.append(u'%s %s: tabloda %s, motor %.2f (fark %.2f)'
+                uyusmaz.append('%s %s: the table says %s and the engine %.2f, '
+                               'a difference of %.2f'
                                % (c['hedef'], et, yazili, yeni, f))
 
     print()
@@ -296,7 +298,8 @@ def main():
             except ValueError:
                 yazili = 0
             if bl and yazili and yazili not in bl:
-                urun_sapan.append(u'%s: tabloda %d bp, olculen %s'
+                urun_sapan.append('%s: the table says %d bp and the measured '
+                                  'value is %s'
                                   % (c['hedef'], yazili, bl[:5]))
                 c['yeni_urun'] = bl[0] if len(bl) == 1 else None
             else:

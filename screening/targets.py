@@ -129,9 +129,9 @@ def sorun_gerekceleri(d):
     dur = (d['durum'] or '').upper()
     sip = (d['siparis'] or '').upper()
     if 'ON KARAR' in dur or 'KOSULLU' in dur or 'KOSULLU' in sip:
-        g.append(('K', 'kosullu / on karar: ' + (d['durum'] or d['siparis'])[:90]))
+        g.append(('K', 'conditional or a provisional decision:' + (d['durum'] or d['siparis'])[:90]))
     if 'KAYITLI UYARI' in sip:
-        g.append(('K', 'sipariste kayitli uyari: ' + d['siparis'][:90]))
+        g.append(('K', 'a warning recorded against the order:' + d['siparis'][:90]))
     if sip.startswith('HAYIR'):
         g.append(('C', 'panelden cikarildi: ' + d['siparis'][:90]))
     a = d['ayrim_sayi']
@@ -144,15 +144,17 @@ def sorun_gerekceleri(d):
             g.append(('A', 'kapsam eksik: ' + d['ayrim'][:60]))
     bp = d['urun_bp']
     if bp > C.URUN_ONERILMEZ:
-        g.append(('U', 'urun %d bp > %d (QuantiNova icin onerilmez)' % (bp, C.URUN_ONERILMEZ)))
+        g.append(('U', 'the product is %d bp, above %d, which is not '
+                       'recommended for this chemistry' % (bp, C.URUN_ONERILMEZ)))
     elif bp > C.URUN_IDEAL[1]:
-        g.append(('U', 'urun %d bp ideal 60-150 disinda (30 sn ann/ext gerekir)' % bp))
+        g.append(('U', 'the product is %d bp, outside the ideal 60 to 150, so '
+                       'a 30 s annealing and extension step is needed' % bp))
     if 'AYRILMAZ' in (d['jel'] or '').upper():
         g.append(('P', 'plaka ici jel cakismasi: ' + d['jel'][:80]))
     # a bin missing from the panel's coverage text
     m = re.match(r'\s*(\d+)\s*/\s*(\d+)\s*kutu', d.get('uye', '') or '')
     if m and int(m.group(1)) < int(m.group(2)):
-        g.append(('A', 'uye kapsami %s' % d['uye'][:40]))
+        g.append(('A', 'member coverage %s' % d['uye'][:40]))
     return g
 
 
@@ -251,7 +253,7 @@ def taxid_adlari():
 
 # ---------------------------------------------------------------- kutular
 def kutular():
-    """(kutu_adi, sinif, taxid, fastq_yolu) listesi. kutu_adi ornek: 'B-1_1129264'."""
+    "A list of (bin_name, class, taxid, fastq_path). A bin name looks like 'B-1_1129264'."
     out = []
     for p in sorted(glob.glob(os.path.join(C.FASTQ, '*', '*.fastq*'))):
         d = os.path.basename(os.path.dirname(p))
@@ -279,10 +281,10 @@ def konsensusler():
     ix = getattr(C, 'KONSENSUS_INDEKS', None)
     if not ix or not os.path.exists(ix):
         raise RuntimeError(
-            'Kanonik konsensus indeksi yok: %s\n'
-            'Once uretin:  python screening/build_canonical.py --root .\n'
-            'Karisik yonlu "consensus sequences" klasorune DUSULMEZ - yon hatasi '
-            'sessizce 0 urun verir.' % ix)
+            'There is no canonical consensus index: %s Produce it first: '
+            'python screening/build_canonical.py --root . It DOES NOT fall '
+            'back on the mixed orientation directory, because an orientation '
+            'fault silently gives 0 products.' % ix)
     kok = os.path.dirname(ix)
     out = []
     for r in _csv.DictReader(open(ix, encoding='utf-8'), delimiter='\t'):

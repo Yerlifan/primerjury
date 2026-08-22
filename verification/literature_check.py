@@ -70,7 +70,7 @@ def _al(url, zaman=25):
 
 
 def erisim_no(baslik):
-    """Referans basligindan erisim numarasini cikar (NG_064074.1, NR_1234.1, AY882356)."""
+    'Pull the accession number out of a reference header (NG_064074.1, NR_1234.1, AY882356).'
     m = re.search(r'\b([A-Z]{1,2}_?[0-9]{5,9}(?:\.[0-9]+)?)\b', baslik or '')
     return m.group(1) if m else None
 
@@ -112,7 +112,7 @@ def taxonomy_cek(taxid):
 def revizyon_ara(cins, yil=8):
     """The genus plus nomenclature terms in PubMed. IT DOES NOT DECIDE, it produces a warning."""
     if not cins:
-        return dict(sayi=0, pmid=[], not_='cins adi yok')
+        return dict(sayi=0, pmid=[], not_='there is no genus name')
     terim = ('%s[Title/Abstract] AND ("comb. nov."[All Fields] OR "gen. nov."[All Fields] '
              'OR revision[Title] OR taxonomy[Title])' % cins)
     u = (EUTILS + 'esearch.fcgi?db=pubmed&term=%s&retmax=5&retmode=json&datetype=pdat'
@@ -121,7 +121,7 @@ def revizyon_ara(cins, yil=8):
     r = d.get('esearchresult', {})
     pm = r.get('idlist', []) or []
     return dict(sayi=int(r.get('count', 0) or 0), pmid=pm,
-                not_=(u'son %d yilda %s kayit' % (yil, r.get('count', '0'))))
+                not_=('%s records in the last %d years' % (yil, r.get('count', '0'))))
 
 
 # It decides which nomenclatural authority to go to (fungi, or bacteria and
@@ -166,7 +166,7 @@ def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
                                else sonuc['vtb_adi'], alan)
     sonuc['otorite_baglantilari'] = ' | '.join('%s: %s' % (o, u) for o, u in bag)
     if not ag or not acc:
-        sonuc['durum'] = ('AG YOK - literatur kontrolu YAPILAMADI' if not ag
+        sonuc['durum'] = ('THERE IS NO NETWORK, so the literature check COULD NOT BE MADE' if not ag
                           else 'erisim numarasi cikarilamadi')
         return sonuc
     try:
@@ -181,7 +181,7 @@ def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
                      es_anlamlilar=tx['es_anlamlilar'] or '-', soy=(tx['soy'] or '-')[:200])
         if sonuc['vtb_adi'] != '-' and tx['guncel_ad'] and \
                 sonuc['vtb_adi'].lower() != tx['guncel_ad'].lower():
-            sonuc['ad_farkli_mi'] = ('EVET - veritabani "%s" diyor, NCBI guncel adi "%s"'
+            sonuc['ad_farkli_mi'] = ('YES: the database says "%s" while the current NCBI name is "%s"'
                                      % (sonuc['vtb_adi'], tx['guncel_ad']))
         else:
             sonuc['ad_farkli_mi'] = 'hayir'
@@ -190,17 +190,18 @@ def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
         rv = revizyon_ara(cins)
         time.sleep(0.34)
         if rv['sayi']:
-            sonuc['revizyon_uyarisi'] = (u'UYARI - %s cinsi icin %s. Karar verdirmez, '
-                                         u'ELLE bakilmali.' % (cins, rv['not_']))
+            sonuc['revizyon_uyarisi'] = ('A WARNING: for the genus %s, %s. It '
+                                         'decides nothing and has to be '
+                                         'looked at BY HAND.' % (cins, rv['not_']))
             sonuc['revizyon_pmid'] = ','.join(rv['pmid'])
         else:
             sonuc['revizyon_uyarisi'] = 'yok'
         sonuc['durum'] = 'TAMAM (NCBI Taxonomy)'
         sonuc['otorite_kontrolu'] = (
-            u'GEREKLI - NCBI Taxonomy nomenklatur otoritesi DEGILDIR; '
-            u'%s icin %s' % (alan, ', '.join(o for o, _ in bag) or 'otorite yok'))
+            'REQUIRED: NCBI Taxonomy IS NOT a nomenclatural authority; for '
+            '%s, %s' % (alan, ', '.join(o for o, _ in bag) or 'otorite yok'))
     except Exception as e:
-        sonuc['durum'] = u'AG/SORGU HATASI: %s' % type(e).__name__
+        sonuc['durum'] = 'A NETWORK OR QUERY ERROR: %s' % type(e).__name__
     return sonuc
 
 

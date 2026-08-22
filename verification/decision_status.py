@@ -52,20 +52,24 @@ ESLEME = {
 # none is an opinion.
 YOK_SEBEBI = {
     'Methanosarcina_barkeri_turu':
-        u'Tur ozgul cift uretilemedi. M. barkeri ile M. mazei numunedeki '
-        u'kutularda ayrilamiyor; ayirt edici pencere bulunamadi. Cins duzeyi '
-        u'cift (Methanosarcina_cinsi) panelde VAR ve siparise giriyor.',
+        'No species specific pair could be produced. M. barkeri and M. mazei '
+        'do not separate in the bins of this sample and no discriminating '
+        'window was found. A genus level pair IS in the panel and goes into '
+        'the order.',
     'Podospora_pseudopauciseta':
-        u'Organizmanin KENDISI numunede yok. Kurtarma turu bes referans '
-        u'ciftinden ucunu denedi, 80 001 cift tarandi, ayirt edici aday 0. '
-        u'Olmayan bir hedefe primer yazilamaz.',
+        'The organism ITSELF is not in the sample. The recovery round tried '
+        'three of the five reference pairs and scanned 80,001 pairs, with 0 '
+        'discriminating candidates. No primer can be written for a target '
+        'that is not there.',
     'Zoopagomycota_mantari':
-        u'Kraken etiketi olcumle curutuldu. Kutunun olculen kimligi '
-        u'Zoopagomycota degil; hedef bu adla numunede yok.',
+        "The Kraken label was refuted by measurement. The bin's measured "
+        'identity is not Zoopagomycota, so the target is not in the sample '
+        'under that name.',
     'Alistipes_cinsi':
-        u'Olculen kimlik Alistipes degil Rikenellaceae (ust klad). Cins '
-        u'duzeyinde ayirt edilemedigi icin Alistipes ozgul cift yazilamadi; '
-        u'okumalari Bacteroidales_kumesi ciftinin kapsaminda.',
+        'The measured identity is not Alistipes but Rikenellaceae, a clade '
+        'above it. Because it cannot be told apart at genus level no '
+        'Alistipes specific pair could be written, and its reads are covered '
+        'by the Bacteroidales set pair.',
 }
 
 

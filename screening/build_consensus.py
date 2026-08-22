@@ -69,7 +69,7 @@ MAX_OKUMA = 600             # the most reads used per bin
 
 
 def fastq_oku(yol, n=MAX_OKUMA, tohum=C.NUMUNE_TOHUM):
-    """(dizi, kalite) ciftleri; uzunluk filtresi A2/F2'yi ELEMEZ."""
+    '(sequence, quality) pairs; the length filter DOES NOT drop the long amplicon classes.'
     ac = gzip.open if yol.endswith('.gz') else open
     out = []
     with ac(yol, 'rt', errors='ignore') as fh:
@@ -102,7 +102,7 @@ def _rc_kalite(s, q):
 
 
 def _capala(okuma, kal, idx):
-    """Okumayi sablona oturt. Donen: [(sablon_pos, okuma_pos, uzunluk)] segmentleri."""
+    'Fit the read onto the template. Returns segments of (template_pos, read_pos, length).'
     vur = []
     for i in range(0, len(okuma) - K + 1):
         t = idx.get(okuma[i:i + K])
@@ -122,7 +122,7 @@ def _capala(okuma, kal, idx):
 
 
 def kutu_konsensusu(reads, sablon):
-    """Sutun bazli oy tablosu -> iki yontem -> uzlasi dizisi."""
+    'A per column vote table, two methods, and the sequence they agree on.'
     # Every read is anchored to the template BOTH as itself AND as its reverse
     # complement, and the direction holding more anchors is chosen. That is required,
     # because nanopore reads come in both directions; anchored in one direction only,
@@ -194,14 +194,14 @@ def _sablon_sec(kutu, kons_haritasi, reads):
     k = kons_haritasi.get(kutu)
     if k:
         d, karar, cev = orientation.kanonik(k['dizi'], sn)
-        return d, 'mevcut konsensus (yon=%s%s)' % (karar, ', KANONIGE CEVRILDI' if cev else '')
+        return d, 'the existing consensus (orientation=%s%s)' % (karar, ', KANONIGE CEVRILDI' if cev else '')
     if not reads:
         return None, 'okuma yok'
     # a bin with no consensus (an orphan): the median of the longest reads becomes the template
     sirali = sorted(reads, key=lambda x: -len(x[0]))[:15]
     s = sirali[len(sirali) // 2][0]
     d, karar, cev = orientation.kanonik(engine_gateway.clean(s), orientation.sinifi(kutu))
-    return d, ('sablon yok - en uzun okumalarin ortancasi (yon=%s%s)'
+    return d, ('there is no template; the median of the longest reads was used (orientation=%s%s)'
                % (karar, ', KANONIGE CEVRILDI' if cev else ''))
 
 
@@ -215,7 +215,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
         yaz(u'   Run this first: python screening/build_canonical.py --root .')
         return None
     from .run_all import yon_kapisi
-    _ok, _m = yon_kapisi(yaz, 'konsensus yeniden uretim')
+    _ok, _m = yon_kapisi(yaz, 'the consensus regeneration')
     for _x in _m:
         yaz('  ' + _x)
     if not _ok:

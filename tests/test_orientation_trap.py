@@ -1,35 +1,5 @@
 # -*- coding: utf-8 -*-
-"""M5-D9 (karisik yonlu konsensus klasoru) kontrolunun KANITI.
-
-NE SINANIYOR
-------------
-`capraz_kontrol.d9_karisik_klasor_yollari()` sunu dogru cevaplamali:
-"bu dosya karisik yonlu 'consensus sequences' klasorunu KOD ICINDE okuyor mu?"
-
-Bu soru onemli cunku o klasor karisik yonludur (olculen: 71 antisense /
-27 sense) ve ters yonlu bir konsensuste in-silico PCR SESSIZCE 0 urun verir;
-olculen kayip %100 (screening/orientation_impact_test.py).
-
-NEDEN AYRI BIR SINAMA GEREKIYOR
--------------------------------
-Kontrol eskiden dosyanin TAMAMINDA duz metin aramasi yapiyordu. 2026-08-09
-kosusunda bes yanlis pozitif uretti: aciklamada klasor adini ANAN dosyalar da
-RISKLI isaretlendi. Bir denetleyicinin yanlis pozitifi zararsiz degildir -
-gercek bulgulari gurultuye gomer ve rapora guveni dusurur.
-
-2026-08-21 duzeltmesi uc suzgec ekledi:
-  1) docstring ve yorumlar atilir      -> aciklamada gecen ad kod sayilmaz
-  2) cikti cagrilarinin argumanlari atilir -> ekrana basilan mesaj kod degil
-  3) gorevi geregi okuyanlar muaf      -> D9_MESRU_OKUYUCULAR
-
-KOSMA
------
-    python3 tests/test_orientation_trap.py
-    python3 tests/test_orientation_trap.py --root /baska/yol
-
-Cikis kodu 0 = yedi sinamanin yedisi de beklendigi gibi.
-Yol GOMULU DEGILDIR: varsayilan olarak bu dosyanin bir ust dizini kok sayilir.
-"""
+"THE EVIDENCE for the mixed orientation directory check.\n\nWHAT IS TESTED\n--------------\nThe cross-check's mixed directory scan has to answer this correctly: does this\nfile read the mixed orientation consensus directory IN ITS CODE?\n\nThe question matters because that directory is mixed in orientation (measured:\n71 antisense against 27 sense), and on a reversed consensus an in-silico PCR\nSILENTLY gives 0 products, a measured loss of 100 per cent.\n\nWHY A SEPARATE TEST IS NEEDED\n-----------------------------\nThe check used to search the WHOLE file as plain text. In one run it produced\nfive false positives: files that merely MENTIONED the directory name in their\nprose were marked risky too. A false positive from an auditor is not harmless; it\nburies the real findings in noise and costs the report its credibility.\n\nThe fix added three filters:\n  1) docstrings and comments are stripped, so a name in prose is not code\n  2) the arguments of print calls are stripped, so a message on the screen is not\n     code\n  3) the readers whose job it is are exempt\n\nTO RUN IT\n---------\n    python3 tests/test_orientation_trap.py\n    python3 tests/test_orientation_trap.py --root /another/path\n\nExit code 0 means all seven tests came out as expected.\nTHE PATH IS NOT EMBEDDED: by default the directory above this file is the root.\n"
 from __future__ import print_function
 import argparse
 import importlib.util
@@ -49,27 +19,16 @@ def yukle(kok):
     return open(os.path.join(kok, "consensus sequences", "A1-1.fasta")).read()
 '''
 
-SADECE_ACIKLAMA = u'''
-"""Bu betik eskiden "consensus sequences" klasorunu okurdu."""
-# consensus sequences artik kullanilmiyor
-import os
-def yukle(kok):
-    return open(os.path.join(kok, "kanonik", "A1-1.fasta")).read()
-'''
+SADECE_ACIKLAMA = '\n"""This script used to read the "consensus sequences" directory."""\n# consensus sequences is no longer used\nimport os\ndef yukle(kok):\n    return open(os.path.join(kok, "kanonik", "A1-1.fasta")).read()\n'
 
-SADECE_MESAJ = u'''
-import os
-def kos(yaz, kok):
-    yaz("  Kaynak: \\"consensus sequences\\" (eski set).")
-    return open(os.path.join(kok, "kanonik", "A1-1.fasta")).read()
-'''
+SADECE_MESAJ = '\nimport os\ndef kos(yaz, kok):\n    yaz("  The source: \\"consensus sequences\\" (the old set).")\n    return open(os.path.join(kok, "kanonik", "A1-1.fasta")).read()\n'
 
 # --- gercek dosyalar: 2026-08-09'da yanlis pozitif verenler --------------
 GERCEK_DOSYALAR = [
     (os.path.join('screening', 'run_all.py'), False,
-     u'yalniz ekrana basilan mesaj dizesi'),
+     'a message string that is only printed to the screen'),
     (os.path.join('screening', 'orientation_audit.py'), False,
-     u'gorevi geregi okuyor (muaf liste)'),
+     'it reads the directory because that is its job, so it is exempt'),
     (os.path.join('steps', 'generate_primer_candidates.py'), False,
      u'yol CLI argumani, docstring ornegi'),
     (os.path.join('steps', 'design_group_primers.py'), False,
@@ -126,19 +85,19 @@ def main():
     print()
     for ad, metin, beklenen in [
             (u'sentetik: KODDA gercekten okuyor', GERCEK_RISK, True),
-            (u'sentetik: yalniz aciklamada aniyor', SADECE_ACIKLAMA, False),
-            (u'sentetik: yalniz ekrana basiyor', SADECE_MESAJ, False)]:
+            ('synthetic: it only mentions it in prose', SADECE_ACIKLAMA, False),
+            ('synthetic: it only prints it to the screen', SADECE_MESAJ, False)]:
         y = riskli(metin, u'<synthetic>')
         ok = (y == beklenen)
         gecti = gecti and ok
         print(u'%-42s | %-8s | %-8s | %-8s | %s'
-              % (ad, u'-', u'RISKLI' if y else u'temiz',
-                 u'RISKLI' if beklenen else u'temiz',
-                 u'DOGRU' if ok else u'YANLIS'))
+              % (ad, u'-', u'risky' if y else u'clean',
+                 u'risky' if beklenen else u'clean',
+                 u'RIGHT' if ok else u'WRONG'))
 
     print()
-    print(u'RESULT: ' + (u'YEDI SINAMANIN YEDISI DE BEKLENDIGI GIBI'
-                        if gecti else u'BASARISIZ'))
+    print(u'RESULT: ' + (u'ALL SEVEN TESTS CAME OUT AS EXPECTED'
+                        if gecti else u'FAILED'))
     return 0 if gecti else 1
 
 
