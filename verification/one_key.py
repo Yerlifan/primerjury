@@ -114,7 +114,7 @@ def dosya_parmak(kok, yol):
 
 
 def imzala(parcalar):
-    u"""md5 - belirlenimci. Python'un hash() fonksiyonu KULLANILMAZ (kural 3)."""
+    "md5, which is deterministic. Python's hash() function IS NOT USED (rule 3)."
     return hashlib.md5(u'\n'.join(parcalar).encode('utf-8')).hexdigest()[:16]
 
 
@@ -180,18 +180,17 @@ def d_tsv_dolu(yollar, en_az=1):
             else:
                 tamam.append(u'%s (%s)' % (y, boyut_metni(os.path.getsize(t))))
         if eksik:
-            return False, u'beklenen cikti URETILMEDI: %s' % u', '.join(eksik)
+            return False, 'the expected output WAS NOT PRODUCED: %s' % u', '.join(eksik)
         if bos:
-            return False, u'cikti BOS / veri satiri yok: %s' % u', '.join(bos)
-        return True, u'cikti dogrulandi: %s' % u', '.join(tamam)
+            return False, 'the output is EMPTY, with no data row: %s' % u', '.join(bos)
+        return True, 'the output was confirmed: %s' % u', '.join(tamam)
     return f
 
 
 def d_selftest(kok, ayar, cikti_metni):
     if u'TUM SINAMALAR GECTI' in (cikti_metni or u''):
-        return True, u'butun selftestler gecti'
-    return False, (u'"TUM SINAMALAR GECTI" satiri cikmadi. Kod kendini '
-                   u'dogrulayamadi; olcume girilmez.')
+        return True, 'every self test passed'
+    return False, ('The line saying every self test passed did not appear. The code could not confirm itself, so no measurement is started.')
 
 
 def d_hizli_test(kok, ayar, cikti_metni):
@@ -200,11 +199,10 @@ def d_hizli_test(kok, ayar, cikti_metni):
         return False, u'QUICK_TEST/QUICK_TEST_REPORT.md uretilmedi'
     m = io.open(y, encoding='utf-8', errors='ignore').read()
     if u'ZINCIR TUTARSIZ' in m:
-        return False, (u'rapor ZINCIR TUTARSIZ diyor. Uzun kosuya GIRILMEZ - '
-                       u'QUICK_TEST/QUICK_TEST_REPORT.md dosyasina bakin.')
+        return False, ('the report says THE CHAIN IS INCONSISTENT. The long run IS NOT STARTED; look at QUICK_TEST/QUICK_TEST_REPORT.md.')
     if u'ZINCIR TUTARLI' in m:
-        return True, u'rapor ZINCIR TUTARLI diyor'
-    return False, u'raporda ne TUTARLI ne TUTARSIZ karari var - bicim beklenmedik'
+        return True, 'the report says the chain is consistent'
+    return False, 'the report holds neither a consistent nor an inconsistent verdict; the format is not what was expected'
 
 
 def d_uyelik(kok, ayar, cikti_metni):
@@ -214,11 +212,11 @@ def d_uyelik(kok, ayar, cikti_metni):
     n = veri_satiri_say(g[-1])
     if n < 1:
         return False, u'%s BOS' % os.path.basename(g[-1])
-    return True, u'%s (%d satir)' % (os.path.basename(g[-1]), n)
+    return True, '%s (%d rows)' % (os.path.basename(g[-1]), n)
 
 
 def d_yok(kok, ayar, cikti_metni):
-    return True, u'bu asama dosya uretmez, yalniz ekrana yazar'
+    return True, 'this stage produces no file, it only writes to the screen'
 
 
 # =========================================================================
@@ -287,11 +285,11 @@ def ASAMALAR(ayar):
         return lambda kok, a: [['bash', a['karac'], k] for k in KRAKEN_KOMUTLARI[kod]]
 
     L = [
-        dict(kod='8', ad=u'KENDINI SINA - kod kendini dogrular, olcum yapmaz',
+        dict(kod='8', ad='SELF TEST: the code confirms itself and measures nothing',
              grup=u'Grup 4', betik='screening/__main__.py',
              argv=lambda kok, a: [_py('-m', 'screening', '--selftest')],
              girdi=['screening'], cikti=[], bagimli=[],
-             sure_sn=4.6, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 kosusu',
+             sure_sn=4.6, kaynak='FULL_CHAIN_RESULT/durum.json, the run of 2026-08-06',
              denet=d_selftest, hep_kos=True),
 
         # ADDED 2026-08-10. In this project most of the bugs were not in the measurement but
@@ -299,7 +297,7 @@ def ASAMALAR(ayar):
         # found only when somebody asked "is there another bug". An audit that depends on
         # being asked is not an audit. This stage asks that question itself ON EVERY RUN.
         # It measures nothing and changes no file, which is why hep_kos=True.
-        dict(kod='N', ad=u'DENETIM - tablolar, referanslar ve muhurler her kosuda bakilir',
+        dict(kod='N', ad='THE AUDIT: the tables, the references and the seals are looked at on every run',
              grup=u'Grup 4', betik='verification/audit_all.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'audit_all.py'),
                                       '--root', '.')],
@@ -307,7 +305,7 @@ def ASAMALAR(ayar):
                     'screening/target_taxids.tsv',
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
              cikti=['ONE_KEY_RESULT/DENETIM_RAPORU.md'], bagimli=[],
-             sure_sn=90.0, kaynak=u'olculdu 2026-08-10 (yerel 2 sn + NCBI kapsama ~85 sn)',
+             sure_sn=90.0, kaynak='measured on 2026-08-10: 2 s locally plus about 85 s for the NCBI coverage',
              # MEASURED: when this stage was added the 'denet' key was not written.
              # main() calls a['denet'] for every stage, so the chain died with
              # KeyError the moment N finished. The pre-check had been stopping the
@@ -317,27 +315,27 @@ def ASAMALAR(ayar):
              denet=d_tsv_dolu(['ONE_KEY_RESULT/DENETIM_RAPORU.md']),
              hep_kos=True, danisma=True),
 
-        dict(kod='H', ad=u'HIZLI TUTARLILIK TESTI - uzun kosudan ONCE gerileme kapisi',
+        dict(kod='H', ad='THE QUICK CONSISTENCY TEST: a regression gate BEFORE the long run',
              grup=u'Grup 4', betik='verification/quick_consistency_test.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'quick_consistency_test.py'),
                                       '--root', '.')],
              girdi=['verification/quick_consistency_test.py',
                     'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv'],
              cikti=['QUICK_TEST/QUICK_TEST_REPORT.md'], bagimli=[],
-             sure_sn=122.0, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 kosusu',
+             sure_sn=122.0, kaynak='FULL_CHAIN_RESULT/durum.json, the run of 2026-08-06',
              denet=d_hizli_test),
 
-        dict(kod='E', ad=u'VERITABANI ERISIM DOGRULAMASI - her VT gercekten okunuyor mu',
+        dict(kod='E', ad='CONFIRMING DATABASE ACCESS: is every database really readable',
              grup=u'Grup 2', betik='verification/access_check.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'access_check.py'),
                                       '--root', '.')],
              girdi=['verification/access_check.py'],
              cikti=['ACCESS_RESULT/erisim_dogrulama.tsv'], bagimli=[],
              sure_sn=None,
-             kaynak=u'OLCULMEDI - bu asama hic kosulmamis (ACCESS_RESULT klasoru yok)',
+             kaynak='NOT MEASURED: this stage has never run, since there is no ACCESS_RESULT directory',
              denet=d_tsv_dolu(['ACCESS_RESULT/erisim_dogrulama.tsv'])),
 
-        dict(kod='U', ad=u'UYELIGI OLCULEN KIMLIKTEN YENIDEN TURET',
+        dict(kod='U', ad='REDERIVE THE MEMBERSHIP FROM THE MEASURED IDENTITY',
              grup=u'Grup 4', betik='engine/rederive_membership.py',
              argv=lambda kok, a: [_py(os.path.join('engine',
                                                    'rederive_membership.py'),
@@ -345,7 +343,7 @@ def ASAMALAR(ayar):
              girdi=['engine/rederive_membership.py', 'consensus sequences'],
              cikti=['GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'], bagimli=[],
              sure_sn=None,
-             kaynak=u'OLCULMEDI - menudeki "1-3 saat" bir tahmindir, olcum degil',
+             kaynak='NOT MEASURED: the 1 to 3 hours in the menu is an estimate and not a measurement',
              denet=d_uyelik),
 
         dict(kod='P', ad=u'TEK PROTOKOL - panelin tamami TEK kuralla olculur',
@@ -360,12 +358,11 @@ def ASAMALAR(ayar):
                     'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'],
              bagimli=['U'],
              sure_sn=36.0,
-             kaynak=u'verification/full_chain.py yorumu ("Olculen: P 36 sn"); '
-                    u'ALL_STAGES_RESULT/durum.json sicak kosuda 9,2 sn',
+             kaynak='from the comment in verification/full_chain.py, where P was measured at 36 s; ALL_STAGES_RESULT/durum.json gives 9.2 s on a warm run',
              denet=d_tsv_dolu(['ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv',
                                'ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv'])),
 
-        dict(kod='K', ad=u'verification - esik alti satirlar dort yolla kurtarilir',
+        dict(kod='K', ad='RECOVERY: the rows below the threshold are recovered by four routes',
              grup=u'Grup 1', betik='verification/recovery_round.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'recovery_round.py'),
                                       '--root', '.')],
@@ -377,7 +374,7 @@ def ASAMALAR(ayar):
              sure_sn=300.0, kaynak=u'verification/full_chain.py yorumu ("K 5 dk")',
              denet=d_tsv_dolu(['RECOVERY_RESULT/kurtarma_satirlari.tsv'])),
 
-        dict(kod='D', ad=u'DOGRULAMA - paneldeki ciftler dort kanit katmaniyla sinanir',
+        dict(kod='D', ad='VERIFICATION: the pairs in the panel are tested with four evidence layers',
              grup=u'Grup 1', betik='verification/specificity_round.py',
              argv=d_argv,
              # THE 2026-08-09 FIX (input tracking): NONE of the stages counted
@@ -396,11 +393,10 @@ def ASAMALAR(ayar):
                     'REFERANS_DB/SILVA_138.2_SSURef_NR99.fasta.primerqc.bin'],
              cikti=['VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'], bagimli=['P', 'K'],
              sure_sn=6900.0,
-             kaynak=u'TUM_CIFTLER_DEVIR_2026-08-07: katman2 81 dk (soguk, 22 cift) '
-                    u'+ katman3 2,5 dk + katman4 NCBI 31 dk = ~1 sa 55 dk',
+             kaynak='from the run of 2026-08-07: layer 2 took 81 minutes cold over 22 pairs, layer 3 took 2.5 minutes and layer 4 at NCBI took 31 minutes, about 1 hour 55 in total',
              denet=d_tsv_dolu(['VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'])),
 
-        dict(kod='I', ad=u'KIMLIK DOGRULAMA - rapora giren iddialar bagimsiz sinanir',
+        dict(kod='I', ad='IDENTITY VERIFICATION: the claims that go into the report are tested independently',
              grup=u'Grup 2', betik='verification/identity_verification.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'identity_verification.py'),
                                       '--root', '.')],
@@ -410,7 +406,7 @@ def ASAMALAR(ayar):
              kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (3 sa 20 dk)',
              denet=d_tsv_dolu(['IDENTITY_RESULT/kimlik_iddialari.tsv'])),
 
-        dict(kod='G', ad=u'TUM KUTU KIMLIKLERI - panele giren HER kutu dogrulanir',
+        dict(kod='G', ad='EVERY BIN IDENTITY: EVERY bin that enters the panel is confirmed',
              grup=u'Grup 2', betik='verification/all_bin_identities.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'all_bin_identities.py'),
                                       '--root', '.', '--nt', 'yok')],
@@ -420,26 +416,26 @@ def ASAMALAR(ayar):
              kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (4 sa 44 dk)',
              denet=d_tsv_dolu(['ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv'])),
 
-        dict(kod='W', ad=u'KRAKEN2 ORTAM DENETIMI - kurulu mu, hangi veritabani',
+        dict(kod='W', ad='THE KRAKEN2 ENVIRONMENT CHECK: is it installed and against which database',
              grup=u'Grup 3', betik=None, argv=kraken_argv('W'),
              girdi=[], cikti=[], bagimli=[],
              sure_sn=81.0, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06',
              denet=d_yok, kraken=True, hep_kos=True),
 
-        dict(kod='X', ad=u'KRAKEN GUVEN ESIGI TARAMASI',
+        dict(kod='X', ad='THE KRAKEN CONFIDENCE THRESHOLD SCAN',
              grup=u'Grup 3', betik=None, argv=kraken_argv('X'),
              girdi=[], cikti=[], bagimli=['W'],
              sure_sn=6916.0,
              kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06 (1 sa 55 dk)',
              denet=d_yok, kraken=True),
 
-        dict(kod='Z', ad=u'DORT SUTUNLU KARSILASTIRMA TABLOSU',
+        dict(kod='Z', ad='THE FOUR COLUMN COMPARISON TABLE',
              grup=u'Grup 3', betik=None, argv=kraken_argv('Z'),
              girdi=[], cikti=[], bagimli=['X'],
              sure_sn=4.8, kaynak=u'FULL_CHAIN_RESULT/durum.json, 2026-08-06',
              denet=d_yok, kraken=True),
 
-        dict(kod='S', ad=u'OZETI YENILE - olcum yapmaz, mevcut dosyalari okur',
+        dict(kod='S', ad='REFRESH THE SUMMARY: it measures nothing and reads the existing files',
              grup=u'Grup 4', betik='screening/__main__.py',
              argv=lambda kok, a: [_py('-m', 'screening', '--mode', 'ozet')],
              girdi=[], cikti=['SCREENING_RESULT/00_OZET_HEPSI.md'], bagimli=[],
@@ -517,7 +513,7 @@ def on_kontrol(kok, ayar, yaz):
     mfe = None
     for aday in (os.path.join(kok, 'tools', 'mfeprimer'), 'mfeprimer'):
         if os.path.exists(aday):
-            mfe = aday + (u'' if os.access(aday, os.X_OK) else u'  (CALISTIRMA IZNI YOK)')
+            mfe = aday + (u'' if os.access(aday, os.X_OK) else '  (THERE IS NO EXECUTE PERMISSION)')
             if not os.access(aday, os.X_OK):
                 mfe = None
                 uyari.append(u'tools/mfeprimer is there but is not executable: chmod +x tools/mfeprimer')
@@ -540,7 +536,7 @@ def on_kontrol(kok, ayar, yaz):
         p = os.path.join(kok, 'REFERANS_DB', f + '.primerqc.bin')
         satir(u'MFE index: %s' % f, os.path.exists(p),
               boyut_metni(os.path.getsize(p)) if os.path.exists(p)
-              else u'MISSING, to install: mfeprimer index -i REFERANS_DB/%s' % f)
+              else 'MISSING, to build it: mfeprimer index -i REFERENCE_DB/%s' % f)
 
     # --- 5) Katman 2'nin taradigi 11 kume ----------------------------------
     KUMELER = ['SILVA_138.2_SSURef_NR99.fasta', 'SILVA_138.2_LSURef_NR99.fasta',
@@ -628,8 +624,7 @@ def on_kontrol(kok, ayar, yaz):
             os.remove(p)
             ek = u'yazilabiliyor'
         except Exception:
-            ek = u'yazilabiliyor (deneme dosyasi silinemedi - silme yetkisi yok, ' \
-                 u'zincir zaten hicbir sey silmiyor)'
+            ek = 'it can be written to; the trial file could not be deleted because there is no delete permission, and the chain deletes nothing anyway'
         satir(u'write permission on the mounted directory', True, u'%s/ %s' % (CIKTI_KLASOR, ek))
     except Exception as e:
         satir(u'write permission on the mounted directory', False, u'CANNOT BE WRITTEN: %s' % e)
@@ -711,7 +706,7 @@ def kontrol_noktasi_gecerli(kok, a, durum):
 
     """
     if a.get('hep_kos'):
-        return False, u'bu asama her kosuda yeniden kosar (hizli ve yan etkisiz)'
+        return False, 'this stage runs again on every run, because it is fast and has no side effects'
 
     d = durum.get(a['kod'], {})
     imza = girdi_imzasi(kok, a)
@@ -721,18 +716,16 @@ def kontrol_noktasi_gecerli(kok, a, durum):
 
     if d.get('durum') == 'bitti':
         if d.get('imza') != imza:
-            return False, (u'kontrol noktasi BAYAT - girdi imzasi degismis '
-                           u'(damga %s, simdi %s). Yeniden kosulacak.'
+            return False, ('the checkpoint is STALE: the input signature changed (the stamp says %s and it is now %s). It will run again.'
                            % (str(d.get('imza'))[:10], imza[:10]))
         if ciktilar:
             ok, mesaj = a['denet'](kok, {}, u'')
             if not ok:
-                return False, u'damga var ama cikti denetimi dustu: %s' % mesaj
+                return False, 'there is a stamp but the output check failed: %s' % mesaj
             if gy > cy:
-                return False, (u'kontrol noktasi BAYAT - girdi ciktidan YENI '
-                               u'(girdi %s > cikti %s). Yeniden kosulacak.'
+                return False, ('the checkpoint is STALE: the input is NEWER than the output (%s against %s). It will run again.'
                                % (zaman_metni(gy), zaman_metni(cy)))
-        return True, (u'onceki kosuda bitmisti (%s), girdi degismemis'
+        return True, ('it finished on the previous run (%s) and the input has not changed'
                       % sn_metni(d.get('sure', 0)))
 
     # There is no stamp. Is there a READY and FRESH output on disk?
@@ -743,12 +736,10 @@ def kontrol_noktasi_gecerli(kok, a, durum):
         ok, mesaj = a['denet'](kok, {}, u'')
         if ok:
             if cy >= gy and cy > 0:
-                return True, (u'damga yok ama cikti diskte TAZE (cikti %s >= en yeni '
-                              u'girdi %s). %s' % (zaman_metni(cy), zaman_metni(gy), mesaj))
-            return False, (u'diskte cikti var ama BAYAT - girdi %s, cikti %s. '
-                           u'Yeniden kosulacak.' % (zaman_metni(gy), zaman_metni(cy)))
-        return False, u'daha once kosulmamis (%s)' % mesaj
-    return False, u'daha once kosulmamis'
+                return True, ('there is no stamp but the output on disk is FRESH (%s against the newest input %s). %s' % (zaman_metni(cy), zaman_metni(gy), mesaj))
+            return False, ('there is an output on disk but it is STALE: the input is %s and the output %s. It will run again.' % (zaman_metni(gy), zaman_metni(cy)))
+        return False, 'it has not been run before (%s)' % mesaj
+    return False, 'it has not been run before'
 
 
 # ===========================================================================
@@ -792,7 +783,7 @@ def asama_kos(kok, a, ayar, yaz):
             p = subprocess.Popen(argv, cwd=calisma, env=cevre,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except Exception as e:
-            rc, son_cikti = 127, u'komut baslatilamadi: %s' % e
+            rc, son_cikti = 127, 'the command could not be started: %s' % e
             yaz(u'   ERROR: %s' % son_cikti)
             break
 
@@ -1061,7 +1052,7 @@ def ozet_yaz(kok, asamalar, durum, ayar, kesildi, on_uyari, baslangic, gunluk_yo
              u'`ONE_KEY_RESULT/DENETIM_RAPORU.md`'),
             (u'Why the threshold rule changed', u'`ESIK_VE_OLCUT_2026-08-08.md`'),
             (u'Where to copy the sequences from',
-             u'`PrimerJury_PANEL_*.xlsx` (the `1 Siparis` sheet)'),
+             '`PrimerJury_PANEL_*.xlsx`, the order sheet'),
             (u'Which pair is risky, and why', u'`SIPARIS_KARARI_2026-08-07.md`'),
             (u'Did a contradiction come up in this run',
              u'`VERIFICATION_RESULT/CELISKILER.md`'),
@@ -1248,7 +1239,7 @@ def main():
 
         if a['_atla']:
             if a.get('_kraken_atla'):
-                durum[kod] = dict(durum='atlandi (arac yok)', sebep=a['_sebep'], sure=0)
+                durum[kod] = dict(durum=u'atlandi (arac yok)', sebep=a['_sebep'], sure=0)
             elif durum.get(kod, {}).get('durum') != 'bitti':
                 durum[kod] = dict(durum='bitti', sure=0, cikis=0,
                                   imza=girdi_imzasi(kok, a), sebep=a['_sebep'],
@@ -1263,10 +1254,7 @@ def main():
                      ('DUSTU', 'atlandi (bagimli', 'kesildi'))]
         if engel:
             durum[kod] = dict(durum='atlandi (bagimli)', sure=0,
-                              sebep=u'%s asamasi bitmedigi icin kosulmadi. Bu asama '
-                                    u'onun ciktisini GIRDI olarak kullaniyor; bos '
-                                    u'girdiyle kosmak inandirici ama anlamsiz bir '
-                                    u'sonuc uretirdi.' % u', '.join(engel))
+                              sebep="it did not run because stage %s did not finish. This stage takes that stage's output as its INPUT, and running it on an empty input would have produced a convincing but meaningless result." % u', '.join(engel))
             yaz(u'\n>> %s  %s\n   SKIPPED (it depends on another stage) - %s'
                 % (kod, a['ad'], durum[kod]['sebep']))
             kaydet()
@@ -1289,9 +1277,7 @@ def main():
         except Kesildi:
             kesildi = True
             durum[kod] = dict(durum='kesildi', sure=0,
-                              sebep=u'kullanici kesti. Bu asama YARIM; kendi kontrol '
-                                    u'noktalari kayitli, ayni tusa basmak kaldigi '
-                                    u'yerden devam ettirir.')
+                              sebep='the user interrupted it. This stage is HALF DONE; its own checkpoints are on record and pressing the same key continues from where it stopped.')
             kaydet()
             yaz(u'   KESILDI - durum kaydedildi.')
             break
@@ -1304,7 +1290,7 @@ def main():
         # ignored (full_chain.py, stage T, 2026-08-06): T returned exit code 3 and
         # still got a "BITTI" stamp, and the summary came out misleading.
         if rc != 0:
-            mesaj = (u'CIKIS KODU %s (sifir degil). Cikti denetimi: %s' % (rc, mesaj))
+            mesaj = ('EXIT CODE %s, which is not zero. The output check: %s' % (rc, mesaj))
             tamam = False
         # AN ADVISORY STAGE: it reports findings but DOES NOT FAIL the chain.
         # N (THE AUDIT) is such a stage: its job is "to say what is broken right
@@ -1315,7 +1301,7 @@ def main():
         # tek_tus_sinama S1 scenario started failing; the gate's job is not to fail a
         # test.)
         if a.get('danisma') and rc != 0:
-            mesaj = u'UYARILI - %s (danisma asamasi, zincir durdurulmadi)' % mesaj
+            mesaj = 'WITH A WARNING: %s (an advisory stage, so the chain was not stopped)' % mesaj
             tamam = True
             uyarili = True
         else:
