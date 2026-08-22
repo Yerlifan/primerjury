@@ -272,7 +272,7 @@ def kurtarilanlar(kok):
 # two questions are not the same.
 # -------------------------------------------------------------------------
 def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
-    """MEVCUT kuresel tarama kodunu kullanir. Her kume icin ayri kontrol noktasi."""
+    """Uses the EXISTING global scan code. A separate checkpoint for each set."""
     sys.path.insert(0, kok)
     from screening import global_scan as KT, yapilandirma as C
 
