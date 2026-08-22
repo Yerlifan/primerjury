@@ -58,16 +58,17 @@ SUPHELI=()        # indirildi ama dogrulamayi gecemedi
 
 renk()  { printf '\n\033[1m== %s ==\033[0m\n' "$*"; }
 bilgi() { printf '   %s\n' "$*"; }
-uyar()  { printf '   \033[33mUYARI:\033[0m %s\n' "$*"; }
-hata()  { printf '   \033[31mHATA :\033[0m %s\n' "$*"; }
+uyar()  { printf '   \033[33mWARNING:\033[0m %s\n' "$*"; }
+hata()  { printf '   \033[31mERROR  :\033[0m %s\n' "$*"; }
 
 # ---------------------------------------------------------------------------
-# ORTAM DENETIMI: bu betik WSL/Linux icinde kosmalidir.
+# THE ENVIRONMENT CHECK: this script has to run inside WSL or Linux.
 #
-# Git Bash (MSYS) altinda da CALISIR ama YANILTIR: dosya sistemini gorur, yani
-# veritabanlarini dogru sayar; buna karsilik WSL'in $HOME'unu ve conda/micromamba
-# ortamini GORMEZ. Sonuc: kurulu araclar "YOK" gorunur, Kraken2 veritabani
-# bulunamaz. Bu sessiz bir yanlis rapordur - o yuzden basta soyleniyor.
+# Under Git Bash (MSYS) it RUNS but it MISLEADS: it sees the file system, so it
+# counts the databases correctly, while it DOES NOT SEE WSL's $HOME or the conda
+# and micromamba environments. The result: installed tools appear MISSING and the
+# Kraken2 database is not found. That is a silent false report, which is why it is
+# said up front.
 # ---------------------------------------------------------------------------
 ortam_denetimi() {
   case "$(uname -s 2>/dev/null)" in
@@ -82,16 +83,18 @@ ortam_denetimi() {
 }
 
 # ---------------------------------------------------------------------------
-# ADRESLER
+# THE ADDRESSES
 #
-# DIKKAT: SILVA ve UNITE surum yukseltince dosya adlarini DEGISTIRIR. Asagidaki
-# adresler yazildigi gunku surumlerdir. Betik indirdigi dosyayi dogruladigi icin
-# eskimis bir adres sessiz hataya donusmez: ya 404 alir ya dogrulamayi geceremez.
-# Baska bir surum istiyorsaniz --url ile verin, ornek:
-#     bash install.sh databases --only silva_ssu --url https://.../BASKA.fasta.gz
+# CAREFUL: SILVA and UNITE CHANGE their file names when they raise a version. The
+# addresses below are the versions of the day they were written. Because the script
+# verifies what it downloads, a stale address does not turn into a silent fault: it
+# either gets a 404 or fails verification. If you want another version, give it with
+# --url, for example:
+#     bash install.sh databases --only silva_ssu --url https://.../ANOTHER.fasta.gz
 #
-# Kraken2 veritabani adresi BILEREK gomulu degildir; guncel liste her surumde
-# degisir ve yanlis veritabani saatler harcatir. See kraken-download.
+# The Kraken2 database address is DELIBERATELY not embedded; the current list
+# changes with every release and the wrong database costs hours. See
+# kraken-download.
 # ---------------------------------------------------------------------------
 SILVA_TABAN="https://www.arb-silva.de/fileadmin/silva_databases/release_138.2/Exports"
 declare -A URL=(
@@ -105,7 +108,8 @@ declare -A URL=(
   [refseq_18s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.18SrRNA.fna.gz"
   [refseq_28s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.28SrRNA.fna.gz"
 )
-# hedef dosya adlari - kod bu adlari bekliyor (verification/identity_verification.py VTB listesi)
+# the target file names; the code expects these names (the database list in
+# verification/identity_verification.py)
 declare -A HEDEF=(
   [silva_ssu]="SILVA_138.2_SSURef_NR99.fasta"
   [silva_lsu]="SILVA_138.2_LSURef_NR99.fasta"
@@ -117,8 +121,8 @@ declare -A HEDEF=(
   [refseq_18s]="fungi.18SrRNA.fna"
   [refseq_28s]="fungi.28SrRNA.fna"
 )
-# asgari beklenen kayit sayisi - bunun altindaysa dosya SUPHELI
-# (olculen degerler, KONTROL_SONUC/CAPRAZ_KONTROL_2026-08-09_2216.md)
+# the minimum record count expected; below this the file is SUSPECT
+# (measured values, KONTROL_SONUC/CAPRAZ_KONTROL_2026-08-09_2216.md)
 declare -A ASGARI_KAYIT=(
   [silva_ssu]=400000  [silva_lsu]=80000  [silva_lsu_parc]=1000000
   [pr2]=200000        [refseq_bak16s]=20000  [refseq_ark16s]=800
@@ -127,7 +131,8 @@ declare -A ASGARI_KAYIT=(
 SIRA=(silva_ssu silva_lsu silva_lsu_parc pr2 refseq_bak16s refseq_ark16s
       refseq_its refseq_18s refseq_28s)
 
-# UNITE ve ROD ozel: UNITE adresi surum basina DOI ile degisir, ROD bir git deposudur.
+# UNITE and ROD are special: the UNITE address changes with a DOI per release, and
+# ROD is a git repository.
 UNITE_SAYFA="https://unite.ut.ee/repository.php"
 ROD_DEPO="https://github.com/krabberod/ROD"
 
@@ -146,9 +151,9 @@ mamba_hazirla() {
 }
 
 # ---------------------------------------------------------------------------
-# fasta_dogrula <dosya> <asgari_kayit>
-#   Dosyanin GERCEKTEN kullanilabilir bir FASTA oldugunu OLCER.
-#   0 = saglikli, 1 = supheli. Sebep ekrana yazilir.
+# fasta_dogrula <file> <minimum_records>
+#   It MEASURES that the file REALLY IS a usable FASTA.
+#   0 = sound, 1 = suspect. The reason is printed to the screen.
 # ---------------------------------------------------------------------------
 fasta_dogrula() {
   local f="$1" asgari="${2:-1}"
@@ -160,9 +165,10 @@ fasta_dogrula() {
     hata "$(basename "$f"): $n records, expected at least $asgari. The download may be INCOMPLETE"
     return 1
   fi
-  # RNA/DNA olcumu: SILVA dizileri U ile saklar. MFEprimer indeksi {A,C,G,T}
-  # alfabesi kurar; hic T yoksa alfabe {A,C,G}'ye duser ve indekse 4^9 yerine
-  # 3^9 k-mer girer. MFEprimer bu durumda HATA VERMEZ. (bkz. build_index.sh)
+  # The RNA against DNA measurement: SILVA stores its sequences with U. MFEprimer
+  # builds its index over the {A,C,G,T} alphabet; with no T at all the alphabet
+  # falls to {A,C,G} and 3^9 k-mers enter the index instead of 4^9. MFEprimer
+  # RAISES NO ERROR in that case. (see build_index.sh)
   local ornek u t
   ornek=$(grep -v '^>' "$f" 2>/dev/null | head -2000 | tr -d '\n')
   u=$(printf '%s' "$ornek" | tr -cd 'Uu' | wc -c)
@@ -216,8 +222,8 @@ indir_ve_dogrula() {
 # ===========================================================================
 
 # Arac surumu: BLAST ailesi '-version' ister, digerleri '--version'. Yanlis
-# bayrak kullanmak kullanim metnini basar ve "VAR  USAGE" gibi anlamsiz bir
-# satir uretir - olculdu. Bayrak araca gore secilir, tahmin edilmez.
+# using the wrong flag prints the usage text and produces a meaningless line like
+# "PRESENT  USAGE"; that was measured. The flag is chosen per tool, not guessed.
 surum_oku() {
   local t="$1" c
   case "$t" in
@@ -226,8 +232,9 @@ surum_oku() {
     bracken)                       c=$("$t" -v 2>&1 | grep -m1 -oE 'v?[0-9]+\.[0-9]+(\.[0-9]+)?') ;;
     *)                             c=$("$t" --version 2>&1 | head -1) ;;
   esac
-  # Surum okunamadiysa UYDURULMAZ. "installed (version not readable)" bir olcumdur;
-  # kullanim metnini ya da hata satirini surum diye basmak yanlis bilgidir.
+  # If the version cannot be read it IS NOT INVENTED. "installed (version not
+  # readable)" is a measurement; printing the usage text or an error line as a
+  # version is false information.
   case "$c" in
     ''|*USAGE*|*Usage*|*usage*|*unknown\ flag*|*Error*|/*) c='installed (version not readable)' ;;
   esac
@@ -235,9 +242,10 @@ surum_oku() {
 }
 
 # Araci once PATH'te, bulamazsa proje ortaminda (micromamba) arar.
-# Sebep: araclar '$PT_ORTAM' (varsayilan 'mikro') ortamina kuruluyor ve o ortam
-# etkin degilken PATH'te GORUNMEZ. Yalniz PATH'e bakan bir denetim, kurulu
-# araclari "YOK" diye raporlar - yani dogru kurulmus bir sistemi bozuk gosterir.
+# The reason: the tools are installed into the '$PT_ORTAM' environment ('mikro' by
+# default) and while that environment is not active they ARE NOT VISIBLE on PATH. A
+# check that looks only at PATH reports installed tools as MISSING, that is, it makes
+# a correctly installed system look broken.
 arac_yolu() {
   local t="$1"
   command -v "$t" 2>/dev/null && return 0
@@ -258,7 +266,7 @@ komut_durum() {
       printf '   %-14s \033[31mMISSING\033[0m\n' "$t"
     fi
   done
-  # mfeprimer proje icinde de olabilir
+  # mfeprimer can also be inside the project
   if ! command -v mfeprimer >/dev/null 2>&1; then
     # EXECUTABLE only, and never a source file. The loose pattern used to match
     # steps/mfeprimer_layer.py and report a Python module as the MFEprimer
@@ -338,7 +346,7 @@ komut_araclar() {
   python -m pip install --quiet --upgrade primer3-py biopython numpy openpyxl pysam matplotlib \
     || EKSIK+=("python packages")
 
-  # MFEprimer: conda'da yok, ikili olarak indirilir
+  # MFEprimer: it is not in conda, it is downloaded as a binary
   if ! command -v mfeprimer >/dev/null 2>&1 \
      && [ ! -x "$KOK/tools/mfeprimer" ]; then
     bilgi "For MFEprimer: bash tools/install_mfeprimer.sh"
@@ -390,7 +398,7 @@ komut_veritabani() {
     fi
   fi
 
-  # UNITE: adres surum basina DOI ile degisir, gomulemez
+  # UNITE: the address changes with a DOI per release, it cannot be embedded
   if [ -z "$yalniz" ] || [[ ",$yalniz," == *",unite,"* ]]; then
     if [ ! -s "$REFDB/UNITE_ITS.fasta" ]; then
       renk "UNITE (fungal ITS)"
@@ -404,7 +412,7 @@ komut_veritabani() {
 
   renk "MFEPRIMER INDEXES"
   bilgi "Every downloaded FASTA needs an index:"
-  bilgi "   bash build_index.sh --liste          # aday dosyalari gorun"
+  bilgi "   bash build_index.sh --liste          # see the candidate files"
   bilgi "   bash build_index.sh <file>          # build them one at a time"
   bilgi "U to T conversion is MANDATORY for SILVA. Without it the index is built SILENTLY broken."
 }
@@ -457,29 +465,31 @@ komut_kraken_kur() {
    K-MER SECIMI NE YAPAR
    ---------------------
    Kraken2 bir okumayi k uzunlugundaki parcalara boler ve her parcayi
-   taksonomi agacinda arar; karar bu parcalarin en kucuk ortak atasidir (LCA).
-     * k BUYUK  -> parca daha ozgul, yanlis atama azalir, ama duyarlilik duser
-                   (tek bir hata parcayi eslesmez kilar; uzun okuma / yuksek
-                   hata oranli ONT verisinde bu kayip buyuktur)
+   in the taxonomy tree; the decision is the lowest common ancestor (LCA) of those
+   pieces.
+     * a LARGER k -> the piece is more specific and wrong assignments fall, but the
+                     sensitivity drops (a single error makes a piece fail to match;
+                     on long read, high error rate ONT data that loss is large)
      * k KUCUK  -> duyarlilik artar, ama parca birden cok taksonda bulunur ve
                    LCA agacta YUKARI kayar: tur yerine cins, cins yerine aile.
-   Varsayilan k=35, l=31 kisa ve dusuk hatali Illumina okumasi icin secilmistir.
+   The default k=35, l=31 was chosen for short, low error Illumina reads.
    ONT verisinde k'yi dusurmek (ornegin 31) duyarliligi artirir.
 
    DIKKAT: k-mer secimi TEK BASINA kimlik sorununu cozmez. Bu projede olculdu -
-   Kraken2 etiketi ile hizalama tabanli kimlik bircok kutuda AYRISIYOR
-   (tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md). Sebep k-mer degil, LCA'nin
-   kendisi ve veritabani kapsamidir. Bu yuzden hangi k ile kurarsaniz kurun,
-   kimlik iddialari BAGIMSIZ olarak sinanmalidir:
+   The Kraken2 label and the alignment based identity DISAGREE on many bins
+   (tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md). The cause is not the k-mer but
+   the LCA itself and the database's coverage. So whatever k you build with, the
+   identity claims have to be tested INDEPENDENTLY:
        python3 verification/identity_verification.py --kok .
-   O betik taksonomi agacini HIC kullanmaz, 12 ayri referans veritabaninda
-   tohum + tam hizalama yapar ve EN AZ IKI kaynagin uyusmasini sart kosar.
+   That script uses the taxonomy tree NOT AT ALL; it does a seed plus full
+   alignment against 12 separate reference databases and requires AT LEAST TWO
+   sources to agree.
 
-   FARKLI k ILE IKI VERITABANI KURUP KARSILASTIRMAK
+   BUILDING TWO DATABASES WITH DIFFERENT k AND COMPARING THEM
    ------------------------------------------------
        bash install.sh kraken-build --kmer 35 --db ~/k2db_k35
        bash install.sh kraken-build --kmer 31 --db ~/k2db_k31
-       bash tools/kraken_tool.sh esik      # esik taramasi
+       bash tools/kraken_tool.sh esik      # the threshold scan
        bash tools/kraken_tool.sh tablo     # dort sutunlu karsilastirma
 EOF
   if ! command -v kraken2-build >/dev/null 2>&1; then
@@ -507,9 +517,10 @@ EOF
 
   if [ -f "$DB/hash.k2d" ]; then
     bilgi "TAMAM: $DB  ($(du -sh "$DB" 2>/dev/null | cut -f1))"
-    # Kurulan k-mer'i KAYDET: opts.k2d ikilidir, insan okuyamaz. Hangi k ile
-    # kuruldugu yazilmazsa alti ay sonra bilinmez ve karsilastirma anlamsizlasir.
-    printf 'kurulum: %s\nkmer: %s\nminimizer: %s\nbosluk: %s\nkutuphane: %s\n' \
+    # RECORD the k-mer used: opts.k2d is binary and a person cannot read it. If
+    # which k it was built with is not written down, in six months nobody will know
+    # and the comparison becomes meaningless.
+    printf 'built: %s\nkmer: %s\nminimizer: %s\nspaces: %s\nlibrary: %s\n' \
       "$(date '+%Y-%m-%d %H:%M')" "$KMER" "$MINI" "$BOSLUK" "$kutuphaneler" \
       > "$DB/KURULUM_BILGISI.txt"
     bilgi "build parameters written to: $DB/KURULUM_BILGISI.txt"
