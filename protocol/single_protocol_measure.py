@@ -67,10 +67,10 @@ _S = _sinif_yukle()
 # The single source: screening/config.py -> ESIK_DCQ.
 # The meeting's own criterion is still A DIFFERENT quantity and is reported in a
 # SEPARATE column:
-#   CALISMA_KAYDI section 1.7 - "a tolerance of 1-2 CROSS REACTING SPECIES; the
+#   WORK_RECORD section 1.7 - "a tolerance of 1-2 CROSS REACTING SPECIES; the
 #                         measure is the NUMBER OF cross reacting species, not the
 #                         number of products formed in them"
-#   CALISMA_KAYDI section 1.5 - "no product may form in any competitor" (zero tolerance)
+#   WORK_RECORD section 1.5 - "no product may form in any competitor" (zero tolerance)
 # Neither contains the other, nor is contained by 10x. So both are reported as
 # SEPARATE COLUMNS, with a note of who set which.
 ESIK_KOKENI = _C.ESIK_KOKENI
@@ -92,7 +92,7 @@ def dcq(kat, verim=1.0):
     return round(math.log(k) / math.log(1.0 + verim), 2)
 
 TOPLANTI_CAPRAZ_TABAN = 10.0   # a competitor bin counts as "cross reacting" at >=10% product
-TOPLANTI_CAPRAZ_HOSGORU = 2    # CALISMA_KAYDI §1.7: 1-2 capraz tur hosgoru
+TOPLANTI_CAPRAZ_HOSGORU = 2    # WORK_RECORD 1.7: a tolerance of 1 to 2 cross reacting species
 
 PROTOKOL = dict(
     olcut_asil=1,
@@ -601,7 +601,7 @@ def karar(o, hedef='', duzey=''):
 # THE TWO CRITERIA STAND IN SEPARATE COLUMNS and NEITHER STANDS IN for the other:
 #   ayrim_mm1_ARAC_OLCUTU        - 10x, this tool's criterion (NOT a meeting decision).
 #   TOPLANTI_OLCUTU_capraz_kutu  - the NUMBER OF competitor BINS giving over 10%
-#                                  product (CALISMA_KAYDI 1.7, a tolerance of 1-2
+#                                  product (WORK_RECORD 1.7, a tolerance of 1-2
 #                                  cross reacting species).
 # The dCq column is the same number in laboratory language (dCq = log2(fold), on the
 # assumption of 100% efficiency); it is not a new criterion but a translation of the
@@ -729,7 +729,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
         fh.write(u'# ESIGIN KOKENI: %s\n' % ESIK_KOKENI)
         fh.write(u'# EFFICIENCY WARNING: %s\n' % ESIK_VERIM_NOTU)
         fh.write(u'#   The agreed criterion is a DIFFERENT quantity: the NUMBER OF CROSS-REACTING SPECIES\n')
-        fh.write(u'#   (CALISMA_KAYDI 1.7, a tolerance of 1 to 2). So it goes in its own column:\n')
+        fh.write(u'#   (WORK_RECORD 1.7, a tolerance of 1 to 2). So it goes in its own column:\n')
         fh.write(u'#   TOPLANTI_OLCUTU_capraz_kutu = how many competitor bins give >=%%%d product.\n'
                  % int(TOPLANTI_CAPRAZ_TABAN))
         fh.write(u'#   The two criteria DO NOT STAND IN for one another.\n')
