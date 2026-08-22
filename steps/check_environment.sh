@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =====================================================================
 # check_environment.sh
-# Amaç: yeniden sınıflandırma öncesi ortamı ölçmek. Hiçbir şeyi
-# değiştirmez, yalnızca okur ve rapor eder.
-# Kullanım (WSL içinde):
+# The aim: to measure the environment before a reclassification. It changes
+# nothing, it only reads and reports.
+# Usage (inside WSL):
 #     bash check_environment.sh 2>&1 | tee ortam_raporu.txt
-# Çıktı: ortam_raporu.txt ve yardim_ciktilari/ klasörü.
+# The output: ortam_raporu.txt and the yardim_ciktilari/ directory.
 # =====================================================================
 set -uo pipefail
 OUT="yardim_ciktilari"; mkdir -p "$OUT"
@@ -20,7 +20,7 @@ fi
 echo "kernel         : $(uname -r)"
 grep -qi microsoft /proc/version && echo "environment    : WSL" || echo "environment    : not WSL"
 
-bar "2. Araç sürümleri"
+bar "2. Tool versions"
 for t in kraken2 kraken2-build bracken bracken-build est_abundance.py samtools minimap2 seqkit mash python3 blastn makeblastdb primer3_core; do
   p=$(command -v "$t" 2>/dev/null)
   if [ -n "$p" ]; then
@@ -35,7 +35,7 @@ echo
 echo "Biopython:"; python3 -c "import Bio,sys;print('  Bio',Bio.__version__)" 2>&1 | head -1
 echo "primer3-py:"; python3 -c "import primer3;print('  primer3-py',primer3.__version__)" 2>&1 | head -1
 
-bar "3. Yardım çıktıları dosyaya yazılıyor (bayrakları hafızadan varsaymamak için)"
+bar "3. Writing the help output to a file (so the flags are not assumed from memory)"
 for pair in "kraken2 --help" "bracken --help" "samtools --version" "minimap2 --help" "seqkit version" "blastn -help"; do
   set -- $pair; tool=$1; shift
   if command -v "$tool" >/dev/null 2>&1; then
@@ -53,8 +53,8 @@ if command -v est_abundance.py >/dev/null 2>&1; then
   echo "yazildi: $OUT/est_abundance_help.txt"
 fi
 
-bar "4. Kraken2 veritabanları (hash.k2d dosyasına göre otomatik aranır)"
-# Aramayı makul köklerle sınırlıyoruz, tüm diski taramıyoruz.
+bar "4. Kraken2 databases (searched for automatically by the hash.k2d file)"
+# The search is limited to sensible roots; the whole disk is not scanned.
 ROOTS=("$HOME" /mnt/c /mnt/d /mnt/e /mnt/f /opt /srv /data)
 FOUND=()
 for r in "${ROOTS[@]}"; do
@@ -84,18 +84,18 @@ else
   done
 fi
 
-bar "5. RAM ile veritabanı boyutu karşılaştırması"
+bar "5. RAM against the database size"
 python3 - <<'PY'
 import os,subprocess,shutil
 mem=0
 for l in open('/proc/meminfo'):
     if l.startswith('MemAvailable'): mem=int(l.split()[1])/1048576
 print("kullanilabilir RAM: %.1f GB"%mem)
-print("Karar kurali: veritabani boyutu kullanilabilir RAM'in yuzde 80'inden")
-print("kucukse --memory-mapping GEREKMEZ, buyukse GEREKIR ve sure diske baglidir.")
+print("The decision rule: if the database size is below 80 percent of the")
+print("available RAM, --memory-mapping IS NOT NEEDED; above it, it IS, and the")
 PY
 
-bar "6. HAM okuma dosyaları (en kritik nokta)"
+bar "6. The RAW read files (the most critical point)"
 cat <<'NOT'
 PrimerTasarlama\fastq files klasorundeki dosyalar HAM OKUMA DEGIL.
 kaynak calismanin sequence_extraction.sh betigi her ornekten yalnizca en bol ILK BES
@@ -119,7 +119,7 @@ for r in "$HOME" /mnt/c /mnt/d /mnt/e; do
 done | sort -u | while read -r f; do printf "  %10s  %s\n" "$(du -h "$f" | cut -f1)" "$f"; done
 echo "(no line here means no raw fastq was found)"
 
-bar "7. Okuma uzunlugu (Bracken kmer_distrib secimi icin veriden olculur)"
+bar "7. Read length (measured from the data, for the Bracken kmer_distrib choice)"
 # The data directory. It used to be two hardcoded paths on one person's
 # desktop, so on any other machine this section silently found nothing. It is
 # taken from $PT when that is set, and otherwise from the project root, which
@@ -142,12 +142,12 @@ for f in sorted(glob.glob(os.path.join(pt,"kraken results","*","*_output")))[:20
         if n>=20000: break
 if lens:
     lens.sort()
-    print("okunan okuma sayisi: %d"%len(lens))
+    print("reads read: %d"%len(lens))
     print("medyan uzunluk : %d bp"%statistics.median(lens))
     print("ortalama       : %d bp"%(sum(lens)/len(lens)))
     print("yuzde 10 / 90  : %d / %d bp"%(lens[len(lens)//10],lens[9*len(lens)//10]))
     print("NOTE: the source study used database300mers.kmer_distrib. The median is far")
-    print("     uzerindeyse Bracken icin uygun uzunlukta kmer_distrib")
+    print("     if it is above that, a kmer_distrib of a suitable length for Bracken")
     print("     uretilmeli (bracken-build -l <uzunluk>).")
 else:
     print("kraken _output dosyalari okunamadi")
@@ -159,6 +159,6 @@ fi
 bar "8. Disk boslugu"
 df -h "$HOME" /mnt/c 2>/dev/null | sed 's/^/  /'
 
-bar "BITTI"
+bar "FINISHED"
 echo "Share this file and the yardim_ciktilari/ directory; the scripts are adjusted"
 echo "to it. I will assume no flag from memory."
