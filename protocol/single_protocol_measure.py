@@ -775,12 +775,12 @@ def raporla(CIKTI, sonuc, meta, yaz):
                 if kn and int(kn) < 300:
                     damga.append(u'SIG KARAR KUTUSU (n=%s)' % kn)
                 if (r.get('uye_n') or 0) and int(r['uye_n']) <= 2:
-                    damga.append(u'TEK/IKI UYE KUTU - hedef ici degiskenlik SINANMADI')
+                    damga.append(u'ONE OR TWO MEMBER BINS, the within target variability WAS NOT TESTED')
                 if kismi.startswith('EVET'):
                     damga.append(kismi)
                 hv = o1.get('kat_havuz')
                 if d1 == 'ESIK USTU' and (hv is None or hv < E):
-                    damga.append(u'YALNIZ en kotu kutu gecti, HAVUZ gecmedi')
+                    damga.append(u'ONLY the worst bin passed, the POOL did not')
                 # an unconditional order: both criteria and both floors at once
                 if (d1 == 'ESIK USTU' and d3 == 'ESIK USTU'
                         and hv is not None and hv >= E and not damga):
@@ -844,15 +844,15 @@ def cikti_denetle(yaz, ad, dosyalar, asgari=1):
     sorun = []
     for yol, etiket in dosyalar:
         if not os.path.exists(yol):
-            sorun.append(u'%s URETILMEDI (%s)' % (etiket, yol)); continue
+            sorun.append(u'%s WAS NOT PRODUCED (%s)' % (etiket, yol)); continue
         try:
             with open(yol, encoding='utf-8') as fh:
                 n = sum(1 for s in fh if s.strip() and not s.startswith('#'))
             n = max(0, n - 1)          # baslik satiri
         except OSError as e:
-            sorun.append(u'%s OKUNAMADI (%s)' % (etiket, e)); continue
+            sorun.append(u'%s COULD NOT BE READ (%s)' % (etiket, e)); continue
         if n < asgari:
-            sorun.append(u'%s BOS - %d veri satiri (en az %d bekleniyordu)'
+            sorun.append(u'%s IS EMPTY, %d data rows (at least %d were expected)'
                          % (etiket, n, asgari))
     if not sorun:
         return 0
@@ -876,12 +876,12 @@ def girdi_denetle(yaz, ad, dosyalar):
     eksik = []
     for yol, etiket, uretici in dosyalar:
         if not os.path.exists(yol):
-            eksik.append(u'%s yok (%s) -> once %s asamasini kosun' % (etiket, yol, uretici))
+            eksik.append(u'there is no %s (%s) -> run stage %s first' % (etiket, yol, uretici))
             continue
         with open(yol, encoding='utf-8') as fh:
             n = sum(1 for s in fh if s.strip() and not s.startswith('#'))
         if n <= 1:
-            eksik.append(u'%s BOS (%s) -> %s asamasi sonuc uretmemis'
+            eksik.append(u'%s IS EMPTY (%s) -> stage %s produced no result'
                          % (etiket, yol, uretici))
     if not eksik:
         return 0
