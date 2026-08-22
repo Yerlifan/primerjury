@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-"""ASAMA 1b: eslestirme + geometri + KISA LISTE.  [duzeltilmis surum]
+"""STAGE 1b: matching plus geometry plus THE SHORT LIST.  [the corrected version]
 
-GERI PRIMER = rc(pencere).  Konsensus uzerinde bulunan pencere rc(R)'dir,
-cunku Numune.olc geri primeri rc(R) olarak arar. Geometri (hairpin/homodimer)
-GERCEK primer dizisi rc(pencere) uzerinde olculur - Tm ve GC ters tumleyende
-ayni kalir ama yapi olcumleri KALMAZ.
+THE REVERSE PRIMER = rc(window). The window found on the consensus IS rc(R), because
+Numune.olc searches for the reverse primer as rc(R). The geometry (hairpin and
+homodimer) is measured on the REAL primer sequence rc(window): Tm and GC stay the
+same in the reverse complement but the structural measurements DO NOT.
 
-ARMS: 3' son iki baz TAM eslesmek zorunda oldugu icin kasitli ikinci uyumsuzluk
-yalniz -3 ve -4 konumlarina konur (-1/-2'ye konursa uye de cogalmaz).
+ARMS: because the last two bases at the 3' end have to match EXACTLY, the deliberate
+second mismatch is put only at positions -3 and -4 (put at -1 or -2 the member would
+not amplify either).
+
 """
 import os, sys, json, argparse, bisect, time
 sys.path.insert(0, '/tmp/mrb')

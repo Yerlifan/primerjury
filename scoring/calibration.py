@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
-"""KALIBRASYON SINAMASI - ortak puanlayici panelin sayilarini yeniden uretiyor mu?
+"""THE CALIBRATION TEST: does the shared scorer reproduce the panel's numbers?
 
-Panelin KENDI kontrol noktalari (TEK_PROTOKOL_SONUC/kontrol/*.json) beklenen
-deger kaynagidir: her cift icin uye/rakip kutu listesi, kutu basina k ve n,
-ve kat_enkotu yazilidir. Bu dosyalar YALNIZ OKUNUR.
+The panel's OWN checkpoints (TEK_PROTOKOL_SONUC/kontrol/*.json) are the source of
+the expected values: for each pair they hold the member and competitor bin lists, k
+and n per bin, and kat_enkotu. Those files are READ ONLY.
 
-Karsilastirma UC KADEMELIDIR - yalnizca son sayiya bakmak yetmez:
-  1) uye kutu kumesi     (sira dahil)
-  2) rakip kutu kumesi   (sira dahil)
-  3) kutu basina k/n     (ham sayilar)
-  4) kat_enkotu          (karar sayisi)
-Ilk uc kademe tutmadan dorduncunun tutmasi TESADUFTUR ve guvenilmez.
+The comparison has FOUR STEPS; looking at the last number alone is not enough:
+  1) the member bin set     (order included)
+  2) the competitor bin set (order included)
+  3) k and n per bin        (the raw counts)
+  4) kat_enkotu             (the deciding number)
+The fourth matching without the first three matching is A COINCIDENCE and cannot be
+trusted.
 
-Parti parti kosar (45 sn bash tavani). Durum /tmp/mrb/kontrol/kalib.json.
+It runs batch by batch (a 45 s bash ceiling). The state is kept under SONUCLAR.
+
 """
 import os, sys, json, glob, argparse
 sys.path.insert(0, '/tmp/mrb')
