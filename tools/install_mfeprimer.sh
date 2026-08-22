@@ -1,37 +1,42 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
-# MFEPRIMER KURULUMU
+# INSTALLING MFEPRIMER
 #
-# NEDEN GEREKLI
-# tools/linux-x64 dosyasi MFEprimer DEGIL, "claude-science" adli baska bir program.
-# dogrulama asamasi onu MFEprimer sanip surumunu bile ekrana yaziyordu, cunku eski
-# kimlik kontrolu "cikis kodu 0 VEYA ciktida mfeprimer gecsin" diyordu ve sifir donen
-# her ikili bu testi geciyordu. Klasordeki tek gercek MFEprimer mfeprimer.exe, o da
-# Windows ikilisi. Yani WSL'de calisan bir MFEprimer YOK.
+# WHY IT IS NEEDED
+# The tools/linux-x64 file is NOT MFEprimer, it is another program called
+# "claude-science". The verification stage took it for MFEprimer and even printed
+# its version, because the old identity check said "exit code 0 OR the output
+# mentions mfeprimer" and every binary returning zero passed it. The only real
+# MFEprimer in the directory is mfeprimer.exe, and that is a Windows binary, so
+# there is NO MFEprimer that runs under WSL.
 #
-# MFEprimer, projenin IKINCI BAGIMSIZ OLCUMU. O olmadan 1 numarali degismez kural
-# ("iki bagimsiz olcum ayrilirsa aday elenir") islemez ve siparis verilemez.
+# MFEprimer is the project's SECOND INDEPENDENT MEASUREMENT. Without it, invariant
+# rule number 1 ("if two independent measurements disagree the candidate is
+# eliminated") does not work and no order can be placed.
 #
-# BU BETIK NE YAPAR
-# Dosya adini TAHMIN ETMEZ. GitHub surum API'sinden varliklarin gercek adlarini okur,
-# Linux amd64 olani secer, indirir, kurar ve KIMLIGINI DOGRULAR: --version ciktisinda
-# "mfeprimer" gecmiyorsa kurulumu basarisiz sayar. Bugun tam da bu dogrulamanin
-# eksikligi yuzunden yanlis bir ikili MFEprimer sanildi.
+# WHAT THIS SCRIPT DOES
+# It DOES NOT GUESS the file name. It reads the real asset names from the GitHub
+# release API, picks the Linux amd64 one, downloads it, installs it and CONFIRMS
+# ITS IDENTITY: if the --version output does not mention "mfeprimer" the install
+# counts as failed. It was exactly the absence of that check that made a wrong
+# binary be taken for MFEprimer today.
 #
-# Calistirma:
+# To run:
 #   bash install_mfeprimer.sh              # v4.4.0
-#   bash install_mfeprimer.sh v4.3.0       # baska surum
-#   LISTE=1 bash install_mfeprimer.sh      # yalnizca varliklari listele, indirme
+#   bash install_mfeprimer.sh v4.3.0       # another version
+#   LISTE=1 bash install_mfeprimer.sh      # list the assets only, no download
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-# PROJE KLASORU OTOMATIK BULUNUR, SABIT YAZILMAZ.
-# Bu betik PROJE/WSL icinde duruyor; bir ust klasor PROJE'dir. BASH_SOURCE
-# calisan dosyanin gercek yolu oldugu icin bu tahmin degil olcumdur.
-# Kurulum tasindiysa disaridan bastirilabilir:  PROJE=/tam/yol/proje bash <betik>
+# THE PROJECT DIRECTORY IS FOUND AUTOMATICALLY, IT IS NOT HARDCODED.
+# This script sits inside PROJECT/tools; one directory up is the PROJECT. Because
+# BASH_SOURCE is the real path of the running file, this is a measurement rather
+# than a guess. If the install was moved it can be overridden from outside:
+#   PROJE=/full/path/to/project bash <script>
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
-# OLCULDU: 0_TESLIM_RAPOR bu depoda YOK; betik ilk denetimde duruyordu.
+# MEASURED: 0_TESLIM_RAPOR IS NOT in this repository; the script used to stop at
+# its very first check.
 if [ ! -d "$PROJE/tools" ] || [ ! -d "$PROJE/verification" ]; then
   echo "ERROR: the project root could not be verified ('$PROJE' holds no tools/ and verification/)."
   echo "  Script location: $_BETIK_DIZIN"
@@ -60,31 +65,33 @@ if ! curl -fsSL --max-time 60 -H "Accept: application/vnd.github+json" "$API" -o
   exit 1
 fi
 
-# Varliklar listelenir ve Linux amd64 olan SECILIR. Ad tahmin edilmez, API'den okunur.
+# The assets are listed and the Linux amd64 one is CHOSEN. The name is not
+# guessed, it is read from the API.
 python3 - "$GECICI/surum.json" > "$GECICI/varliklar.tsv" <<'PY'
 import json, sys, re
 d = json.load(open(sys.argv[1]))
 varlik = d.get("assets", [])
-print(f"# surum: {d.get('tag_name')}  yayin: {d.get('published_at')}", file=sys.stderr)
+print(f"# version: {d.get('tag_name')}  published: {d.get('published_at')}", file=sys.stderr)
 if not varlik:
-    print("# bu surumde indirilebilir varlik yok", file=sys.stderr); sys.exit(2)
+    print("# this release has no downloadable asset", file=sys.stderr); sys.exit(2)
 for a in varlik:
     print(f"{a['name']}\t{a['size']}\t{a['browser_download_url']}")
 PY
 
 echo
-echo "surumdeki varliklar:"
+echo "the assets in this release:"
 awk -F'\t' '{printf "  %-46s %8.1f MB\n", $1, $2/1000000}' "$GECICI/varliklar.tsv"
 echo
 
-if [ "${LISTE:-0}" = "1" ]; then echo "LISTE=1 verildi, indirme yapilmadi."; exit 0; fi
+if [ "${LISTE:-0}" = "1" ]; then echo "LISTE=1 was given, nothing was downloaded."; exit 0; fi
 
-# SECIM OLCUTU. Mimari acikca aranir: amd64, x86_64 ya da x64. Ciplak "64" YETMEZ,
-# cunku "linux-arm64" de icinde 64 gecirir ve x86 makineye ARM ikilisi kurulurdu.
-# Bunu sahte bir varlik listesiyle denerken yakaladim, once tam olarak bu oluyordu.
-# arm, aarch, i386 ve 386 acikca DISLANIR.
+# THE SELECTION CRITERION. The architecture is searched for explicitly: amd64,
+# x86_64 or x64. A bare "64" IS NOT ENOUGH, because "linux-arm64" holds a 64 too
+# and an ARM binary would be installed on an x86 machine. I caught this while
+# trying it against a fake asset list; that is exactly what was happening at
+# first. arm, aarch, i386 and 386 are explicitly EXCLUDED.
 MIMARI="$(uname -m)"
-[ "$MIMARI" = "x86_64" ] || echo "UYARI: makine mimarisi $MIMARI, x86_64 varligi araniyor"
+[ "$MIMARI" = "x86_64" ] || echo "WARNING: the machine architecture is $MIMARI, an x86_64 asset is being looked for"
 SEC=$(awk -F'\t' 'BEGIN{IGNORECASE=1}
   tolower($1) ~ /linux/ \
   && tolower($1) ~ /amd64|x86_64|x64/ \
@@ -101,14 +108,16 @@ fi
 
 AD=$(printf '%s' "$SEC" | cut -f2)
 URL=$(printf '%s' "$SEC" | cut -f3)
-echo "secilen varlik: $AD"
-echo "indiriliyor   : $URL"
+echo "the asset chosen: $AD"
+echo "downloading    : $URL"
 curl -fsSL --max-time 600 "$URL" -o "$GECICI/$AD"
 ls -la "$GECICI/$AD"
 
-# ACMA. Duz .gz de olabilir, tar.gz de. Ilk surumde yalnizca tar.gz ve zip vardi;
-# gercek varlik "mfeprimer-4.4.0-linux-amd64.gz" cikti ve dosya SIKISTIRILMIS halde
-# kuruldu. Sira onemli: .tar.gz once denenmeli, yoksa .gz dali onu da yakalar.
+# UNPACKING. It can be a plain .gz as well as a tar.gz. The first version handled
+# only tar.gz and zip; the real asset turned out to be
+# "mfeprimer-4.4.0-linux-amd64.gz" and the file was installed STILL COMPRESSED.
+# The order matters: .tar.gz has to be tried first, otherwise the .gz branch
+# catches it too.
 cd "$GECICI"
 case "$AD" in
   *.tar.gz|*.tgz) tar xzf "$AD" ;;
@@ -121,16 +130,16 @@ case "$AD" in
   *.xz)           unxz -kf "$AD" ;;
 esac
 
-# KIMLIK ARAMASI, IKI KAPILI.
-# 1. Dosya once ELF calistirilabilir mi diye MAGIC BAYTLARINDAN bakilir. Sikistirilmis
-#    ya da metin dosyalari daha calistirilmadan elenir.
-# 2. Sonra --version calistirilir ve ciktida "mfeprimer" aranir, ama once DOSYA YOLU
-#    ciktidan silinir.
-# Ikinci kapinin sebebi somut: ilk surumde sikistirilmis dosya calistirilmaya
-# calisildi, kabuk "bash: .../MFEprimer-4.4.0-linux-amd64.gz: cannot execute binary
-# file" dedi, bu hata mesaji DOSYA ADINI iceriyordu ve grep "mfeprimer" ile esletti.
-# Yani kimlik kontrolu, dosyanin ADIYLA kendini kandirdi. Duzelttigim hatanin
-# aynisini kurulum betiginde tekrarlamisim.
+# THE IDENTITY CHECK, WITH TWO GATES.
+# 1. The file is first checked FROM ITS MAGIC BYTES for being an ELF executable.
+#    Compressed or text files are eliminated before ever being run.
+# 2. Then --version is run and "mfeprimer" is looked for in the output, but THE
+#    FILE PATH is stripped from the output first.
+# The reason for the second gate is concrete: in the first version the compressed
+# file was tried, the shell said "bash: .../MFEprimer-4.4.0-linux-amd64.gz: cannot
+# execute binary file", that error message HELD THE FILE NAME, and it matched
+# grep "mfeprimer". So the identity check fooled itself with the file's NAME. I
+# had repeated, in the install script, the very fault I was fixing.
 elf_mi() {
   [ -f "$1" ] || return 1
   head -c 4 "$1" 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n' | grep -qi '^7f454c46'
