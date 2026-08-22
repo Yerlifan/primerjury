@@ -297,21 +297,21 @@ def kisalt(s, n):
 
 def markdown(satirlar, bilgi, esik):
     g = []
-    g.append("# Kraken2 yeniden kosu, dort yontem yan yana")
+    g.append(u'# The Kraken2 rerun, four methods side by side')
     g.append("")
-    g.append("Her satir bir kutudur. Kutular ozgun Kraken ciktisina gore")
-    g.append("ayrilmis okuma yiginlaridir (`reads_<taxid>.fastq`).")
+    g.append(u'Every row is a bin. The bins are piles of reads separated')
+    g.append(u'according to the original Kraken output (`reads_<taxid>.fastq`).')
     g.append("")
-    g.append("| # | Sutun | Ne demek |")
+    g.append(u'| # | Column | What it means |')
     g.append("|---|---|---|")
-    g.append("| 1 | ozgun Kraken ciktisi | Kutunun etiketi. Okumalar zaten bu iddiaya gore ayrildi. |")
-    g.append(f"| 2 | {bilgi['esik_ad']} | Ayni veri, yuksek guven esigi. Zayif atamalar duser. |")
-    g.append(f"| 3 | {bilgi['genis_ad']} | Genis kapsamli veritabani, esik yok. |")
-    g.append("| 4 | Hizalama tabanli kimlik | Bizim olcumumuz (`kimlik_sonuc.csv`). |")
+    g.append(u'| 1 | the original Kraken output | The bin\'s label. The reads were already separated by that claim. |')
+    g.append(f"| 2 | {bilgi['esik_ad']} | The same data at a high confidence threshold. Weak assignments drop out. |")
+    g.append(f"| 3 | {bilgi['genis_ad']} | A database of broad coverage, with no threshold. |")
+    g.append(u'| 4 | Alignment based identity | Our own measurement (`kimlik_sonuc.csv`). |')
     g.append("")
-    g.append("Bos hucre: hicbir kimlik okumalarin %20'sine ulasmadi, yani karar yok.")
+    g.append(u'An empty cell: no identity reached %20 of the reads, so there is no decision.')
     g.append("")
-    g.append("| Kutu (kaynak calismanin Kraken'i) | Esik yukseltilmis | PlusPFP | Hizalama | Sonuc |")
+    g.append(u'| Bin (the source study\'s Kraken) | Threshold raised | PlusPFP | Alignment | Result |')
     g.append("|---|---|---|---|---|")
     for s in satirlar:
         e = f"{kisalt(s['esik_ad'],32)} ({s['esik_oran']:.0%})" if s["esik_ad"] else "_karar yok_"
@@ -337,55 +337,55 @@ def yorum(satirlar, bilgi):
 
     g = ["", "## Sonuc", ""]
     if not bilgi["a_var"]:
-        g.append("PlusPFP kosusu YOK. Tablo eksik, yorum yapilamaz.")
-        g.append("Kosmak icin: `bash kraken_tool.sh esik-a`")
+        g.append(u'There is NO PlusPFP run. The table is incomplete and cannot be interpreted.')
+        g.append(u'To run it: `bash kraken_tool.sh esik-a`')
         return "\n".join(g)
-    g.append(f"- Karar verilen kutu: {karar_verilen}")
-    g.append(f"- PlusPFP bizim kimligimizi dogruluyor: **{dogrulayan}** "
-             f"(ayrica {ayni} kutuda zaten uc yontem de ayni seyi soyluyor)")
-    g.append(f"- PlusPFP eski etiketi tekrarliyor: **{eski}**")
-    g.append(f"- PlusPFP ucuncu bir sey diyor: **{ucuncu}**")
-    g.append(f"- PlusPFP karar veremedi: {karar_yok}   karsilastirilamayan: {karsilastirilamaz}")
+    g.append(f"- Bins decided: {karar_verilen}")
+    g.append(f"- PlusPFP confirms our identity: **{dogrulayan}** "
+             f"(and in {ayni} bins all three methods already say the same thing)")
+    g.append(f"- PlusPFP repeats the old label: **{eski}**")
+    g.append(f"- PlusPFP says a third thing: **{ucuncu}**")
+    g.append(f"- PlusPFP could not decide: {karar_yok}   not comparable: {karsilastirilamaz}")
     g.append("")
     if karar_verilen == 0:
-        g.append("Karar verilen kutu yok. Bu tablodan sonuc cikarilamaz.")
+        g.append(u'No bin was decided. No conclusion can be drawn from this table.')
     elif dogrulayan >= max(eski, ucuncu) and dogrulayan > 0:
-        g.append("**Okuma:** en cok kutuda PlusPFP bizim hizalama tabanli kimligimizi")
-        g.append("dogruluyor. Bu, en guclu senaryodur: hem teshis (sorun veritabani")
-        g.append("kapsamiydi) hem de sonuc, Kraken'in kendi diliyle onaylanmis olur.")
+        g.append(u'**Reading:** in most bins PlusPFP confirms our alignment based')
+        g.append(u'identity. That is the strongest case: both the diagnosis (the problem was the')
+        g.append(u'database coverage) and the result are confirmed in Kraken\'s own language.')
     elif eski >= max(dogrulayan, ucuncu) and eski > 0:
-        g.append("**Okuma:** en cok kutuda PlusPFP eski etiketleri TEKRARLIYOR.")
-        g.append("Bu, teshisimizin YANLIS oldugu anlamina gelir. Sorun veritabani")
-        g.append("kapsami degildi; genis veritabani da ayni seyi soyluyor. Bunu")
-        g.append("yumusatmadan yaziyoruz: bu tablo bizim aleyhimize.")
-        g.append("Hizalama tabanli sonucumuz bu durumda ayrica savunulmalidir,")
-        g.append("cunku iki bagimsiz Kraken kosusu ona karsi duruyor.")
+        g.append(u'**Reading:** in most bins PlusPFP REPEATS the old labels.')
+        g.append(u'That means our diagnosis is WRONG. The problem was not the database')
+        g.append(u'coverage; the broad database says the same thing. We write this')
+        g.append(u'without softening it: this table is against us.')
+        g.append(u'Our alignment based result then has to be defended separately,')
+        g.append(u'because two independent Kraken runs stand against it.')
     elif ucuncu > 0:
-        g.append("**Okuma:** en cok kutuda PlusPFP UCUNCU bir sey soyluyor, yani ne")
-        g.append("eski etiketi ne bizim kimligimizi. Uc yontem ayrisiyor.")
-        g.append("Neye dayandiklari farkli: kaynak calismanin etiketi dar veritabaninda en")
-        g.append("yakin akrabaya dusen LCA, PlusPFP genis ama yine tam genom k-mer")
-        g.append("esitligi, bizim kimligimiz ise marker gen hizalamasinin yuzde")
-        g.append("benzerligi. Ayrisan kutularda karar tek basina hicbirine birakilamaz.")
+        g.append(u'**Reading:** in most bins PlusPFP says a THIRD thing, neither')
+        g.append("the old label nor our identity. The three methods disagree.")
+        g.append(u'What they rest on differs: the source study\'s label is an LCA falling on the nearest')
+        g.append("relative in a narrow database, PlusPFP is broad but still")
+        g.append(u'whole genome k-mer equality, while our identity is the percent similarity of a')
+        g.append(u'marker gene alignment. On the bins that disagree the decision cannot be left to any one of them alone.')
     else:
-        g.append("**Okuma:** belirgin bir egilim yok, kutu kutu bakilmali.")
+        g.append(u'**Reading:** there is no clear tendency; it has to be looked at bin by bin.')
     g.append("")
-    g.append("### Ayrisan kutular")
+    g.append(u'### The bins that disagree')
     ayr = [s for s in satirlar if s["senaryo"].startswith(("b)", "c)"))]
     if not ayr:
         g.append("Yok.")
     for s in ayr:
-        g.append(f"- **{s['kaynak']}**  esik: {s['esik_ad'] or 'karar yok'}  |  "
-                 f"PlusPFP: {s['genis_ad'] or 'karar yok'}  |  hizalama: {s['hiz_ad'] or 'yok'}"
-                 + (f"  ({s['hiz_baz']} baz, {s['hiz_sonuc']})" if s["hiz_baz"] else ""))
+        g.append(f"- **{s['kaynak']}**  threshold: {s['esik_ad'] or 'no decision'}  |  "
+                 f"PlusPFP: {s['genis_ad'] or 'no decision'}  |  alignment: {s['hiz_ad'] or 'none'}"
+                 + (f"  ({s['hiz_baz']} bases, {s['hiz_sonuc']})" if s["hiz_baz"] else ""))
     g.append("")
-    g.append("### Bu tablonun soylemedigi")
-    g.append("Kraken2 k-mer esitligine bakar, hizalamaya bakmaz. Veritabaninda")
-    g.append("temsil edilmeyen bir organizma en yakin akrabaya etiketlenir ve bu")
-    g.append("hata verilmeden olur. Hizalama tabanli kimlik ise yuzde benzerlik")
-    g.append("verir ama yalnizca marker gen penceresine bakar. Iki yontem ayni")
-    g.append("soruya farkli yerlerden cevap veriyor; ortusmeleri guclendirici,")
-    g.append("ayrismalari ise tek basina hicbirini curutucu degildir.")
+    g.append(u'### What this table does not say')
+    g.append(u'Kraken2 looks at k-mer equality, not at alignment. An organism that is not')
+    g.append(u'represented in the database is labelled with its nearest relative, and that')
+    g.append(u'happens without an error. Alignment based identity gives a percent similarity')
+    g.append(u'but looks only at the marker gene window. The two methods answer the same')
+    g.append(u'question from different places; where they overlap that strengthens both, and')
+    g.append(u'where they diverge that refutes neither one on its own.')
     return "\n".join(g)
 
 # ------------------------------------------------------------------ selftest
@@ -399,20 +399,20 @@ def selftest():
         ok = bul == bek
         if not ok:
             hata += 1
-        print(f"  {'GECTI' if ok else 'KALDI'}  {ad:<58} {bul} / {bek}")
+        print(f"  {'PASS' if ok else 'FAIL'}  {ad:<58} {bul} / {bek}")
 
     K("cins binomialden cikar", cins("Methanosarcina mazei (taxid 2209)"), "methanosarcina")
     K("aile duzeyi etiket cins vermez", cins("Microascaceae askomikot"), "")
     K("unclassified oneki atilir", cins("unclassified Proteiniphilum"), "proteiniphilum")
     K("bos ad bos doner", cins(""), "")
-    K("ayni cins uyusur", karsilastir("Sphaerochaeta associata", "Sphaerochaeta"), "uyusuyor")
-    K("farkli cins ayrisir", karsilastir("Trichoderma asperellum", "Petriella"), "ayrisiyor")
+    K(u'the same genus agrees', karsilastir("Sphaerochaeta associata", "Sphaerochaeta"), "uyusuyor")
+    K(u'a different genus disagrees', karsilastir("Trichoderma asperellum", "Petriella"), "ayrisiyor")
     # Aile duzeyi etiket ile cins, ayni cumleye sokulmamali.
     K("cins olmayan taraf karsilastirilamaz sayilir",
       karsilastir("Microascaceae askomikot", "Petriella"), "karsilastirilamaz")
     K("iki aile duzeyi etiket ortak belirtecle uyusur",
       karsilastir("Microascaceae askomikot", "Microascaceae sp."), "uyusuyor")
-    K("bos taraf karar verdirmez", karsilastir("", "Petriella"), "karsilastirilamaz")
+    K(u'an empty side does not settle it', karsilastir("", "Petriella"), "karsilastirilamaz")
 
     import tempfile
     with tempfile.TemporaryDirectory() as d:
@@ -427,13 +427,13 @@ def selftest():
                  + ["U\ttx101201_u%d\tunclassified (taxid 0)\t1\t\n" % i for i in range(90)])
         open(os.path.join(d, "esik_0.out"), "w").writelines(satir)
         k = kutulari_oku(os.path.join(d, "esik_0.out"), os.path.join(d, "esik_0.report"))
-        K("ayni turun suslari tek kalemde toplanir", k["2208"][0], "Methanosarcina barkeri")
+        K(u'the strains of the same species are gathered under one heading', k["2208"][0], "Methanosarcina barkeri")
         K("hakim oran paydaya sinifsizi katar", round(k["2208"][1], 2), 0.80)
-        K("zayif kutu dusuk oran verir", round(k["101201"][1], 2), 0.10)
+        K(u'a weak bin gives a low ratio', round(k["101201"][1], 2), 0.10)
         o, r, c = esik_dosyalari(d, 0.1)
-        K("en yakin esik dosyasi bulunur", c, 0.0)
+        K(u'the nearest threshold file is found', c, 0.0)
         o2, r2, c2 = esik_dosyalari(os.path.join(d, "yok"), 0.1)
-        K("olmayan klasor cokmez", c2, None)
+        K(u'a directory that does not exist does not crash it', c2, None)
 
     # Senaryo siniflandirmasi. Uc olasilik da ayri ayri sinanir.
     s_a = dict(genis_ad="Petriella musispora", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
@@ -446,11 +446,11 @@ def selftest():
     K("senaryo c: PlusPFP ucuncu bir sey diyor",
       _senaryo(s_c), "c) PlusPFP UCUNCU BIR SEY DIYOR")
     s_d = dict(genis_ad="", kaynak="Trichoderma asperellum", hiz_ad="Petriella")
-    K("karar vermeyen PlusPFP ayrisma sayilmaz",
-      _senaryo(s_d), "PlusPFP karar vermedi")
+    K(u'a PlusPFP that does not decide does not count as a disagreement',
+      _senaryo(s_d), u'PlusPFP karar vermedi')
 
     print("=" * 72)
-    print("SINAV GECTI" if hata == 0 else f"SINAV KALDI, {hata} madde")
+    print("THE TEST PASSED" if hata == 0 else f"THE TEST FAILED, {hata} items")
     print("=" * 72)
     return 0 if hata == 0 else 1
 
@@ -489,7 +489,7 @@ def main():
     if a.selftest:
         sys.exit(selftest())
     if selftest_sessiz() != 0:
-        print("SINAV BASARISIZ, durduruldu (proje kurali 2)")
+        print("THE TEST FAILED, stopped (project rule 2)")
         sys.exit(2)
 
     satirlar, bilgi = tablo_kur(a.kok, a.is_a, a.ad_a,
@@ -501,11 +501,11 @@ def main():
 
     eksikler = []
     if not bilgi["a_var"]:
-        eksikler.append("PlusPFP kosusu yok (sutun 3 bos)")
+        eksikler.append(u'there is no PlusPFP run (column 3 is empty)')
     if not bilgi["e_var"]:
-        eksikler.append("esik taramasi yok (sutun 2 bos)")
+        eksikler.append(u'there is no threshold scan (column 2 is empty)')
     if not bilgi["h_var"]:
-        eksikler.append("kimlik_sonuc.csv bulunamadi (sutun 4 bos)")
+        eksikler.append(u'kimlik_sonuc.csv was not found (column 4 is empty)')
     if eksikler:
         print(u'WARNING, the table is produced incomplete:')
         for e in eksikler:
@@ -524,7 +524,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(satirlar[0]))
         w.writeheader()
         w.writerows(satirlar)
-    print(f"\nyazildi:\n  {mdy}\n  {csvy}")
+    print(f"\nwritten:\n  {mdy}\n  {csvy}")
 
 if __name__ == "__main__":
     main()

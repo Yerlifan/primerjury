@@ -215,7 +215,7 @@ def tarama_oku(klasor):
         # out dosyasi varsa toplamlarin da esit olmasi beklenir.
         ayrilik = []
         if toplam2 and toplam and toplam2 != toplam:
-            ayrilik.append(f"okuma sayisi rapor {toplam} / out {toplam2}")
+            ayrilik.append(f"read count report {toplam} / out {toplam2}")
         if a2:
             for ad, _, _ in ALANLAR:
                 if a1.get(ad, 0) != a2.get(ad, 0):
@@ -242,15 +242,15 @@ def egri_metni(satirlar, baslik):
         g.append(f"{s['esik']:>6} {t:>8} {yuzde(s['sinifsiz'], t):>8.2f}% " +
                  " ".join(f"{yuzde(s['alanlar'].get(a,0), t):>8.2f}%" for a, _, _ in ALANLAR))
     g.append("")
-    g.append("mantar okaryotun ALTINDADIR, iki sutun ic icedir.")
+    g.append(u'fungi sit UNDER eukaryota, so the two columns are nested.')
     ayr = [s for s in satirlar if s["ayrilik"]]
     if ayr:
         g.append("")
-        g.append("AYRILIK VAR. Iki olcum ayni sayiyi vermedi, sayilara guvenmeyin:")
+        g.append(u'THERE IS A DISAGREEMENT. The two measurements did not give the same number, so do not trust them:')
         for s in ayr:
             g.append(f"  esik {s['esik']}: {s['ayrilik']}")
     else:
-        g.append("iki bagimsiz olcum butun esiklerde ayni sonucu verdi.")
+        g.append(u'the two independent measurements gave the same result at every threshold.')
     return "\n".join(g)
 
 def kutu_hakim(kutu_sayac):
@@ -317,7 +317,7 @@ def selftest():
         ok = bul == bek
         if not ok:
             hata += 1
-        print(f"  {'GECTI' if ok else 'KALDI'}  {ad:<58} {bul} / {bek}")
+        print(f"  {'PASS' if ok else 'FAIL'}  {ad:<58} {bul} / {bek}")
 
     import tempfile
     # Elle kurulmus, cevabi kagitta hesaplanmis bir rapor.
@@ -337,15 +337,15 @@ def selftest():
         ry = os.path.join(d, "esik_0.report")
         open(ry, "w").write(rap)
         dug, eb, top, sifsiz = rapor_oku(ry)
-        K("toplam okuma sinifsiz + kok kladdir", top, 1000)
-        K("siniflandirilamayan okunur", sifsiz, 100)
+        K(u'the total reads are the unclassified plus the root clade', top, 1000)
+        K(u'the unclassified are read', sifsiz, 100)
         K("agac girintiden kurulur, mantar okaryotun altinda", eb.get("4751"), "2759")
         K("tur, alanin altinda dogru baglanir", eb.get("2209"), "2157")
         a1 = alan_raporundan(dug, top)
-        K("arke klad sayisi", a1["arke"], 400)
-        K("bakteri klad sayisi", a1["bakteri"], 300)
-        K("okaryot klad sayisi", a1["okaryot"], 200)
-        K("mantar klad sayisi", a1["mantar"], 150)
+        K(u'the archaea clade count', a1["arke"], 400)
+        K(u'the bacteria clade count', a1["bakteri"], 300)
+        K(u'the eukaryota clade count', a1["okaryot"], 200)
+        K(u'the fungi clade count', a1["mantar"], 150)
         K("bulunmayan alan sifirdir, cokmez", a1["bitki"], 0)
         K("yuzde hesabi", round(yuzde(a1["arke"], top), 2), 40.0)
 
@@ -361,24 +361,24 @@ def selftest():
         satir += ["U\ttx101201_u%d\tunclassified (taxid 0)\t1500\t\n" % i for i in range(100)]
         open(oy, "w").writelines(satir)
         sayac, top2, sifsiz2, kutu = out_oku(oy)
-        K("out toplam okuma", top2, 1000)
+        K(u'out the total reads', top2, 1000)
         K("out siniflandirilamayan", sifsiz2, 100)
         a2 = alan_outtan(sayac, eb, dug)
-        K("olcum 2 arke, olcum 1 ile ayni", a2["arke"], 400)
-        K("olcum 2 bakteri, olcum 1 ile ayni", a2["bakteri"], 300)
-        K("olcum 2 mantar, olcum 1 ile ayni", a2["mantar"], 150)
-        K("olcum 2 okaryot mantari da icerir", a2["okaryot"], 200)
-        K("kutu okuma adindan cikarilir", sorted(kutu.keys())[0:2], ["101201", "1642647"])
+        K(u'measurement 2 archaea, the same as measurement 1', a2["arke"], 400)
+        K(u'measurement 2 bacteria, the same as measurement 1', a2["bakteri"], 300)
+        K(u'measurement 2 fungi, the same as measurement 1', a2["mantar"], 150)
+        K(u'measurement 2 eukaryota holds the fungi too', a2["okaryot"], 200)
+        K(u'the bin is taken from the read name', sorted(kutu.keys())[0:2], ["101201", "1642647"])
 
         satirlar, kutular = tarama_oku(d)
-        K("tarama tek esik okur", len(satirlar), 1)
-        K("ayrilik yok, iki olcum uyusuyor", satirlar[0]["ayrilik"], "")
+        K(u'the scan reads a single threshold', len(satirlar), 1)
+        K(u'no disagreement, the two measurements match', satirlar[0]["ayrilik"], "")
 
         # AYRILIK GERCEKTEN YAKALANIYOR MU. Bu madde, olcutun kor olmadigini
         # sinar: bilerek bozulmus bir out dosyasi AYRILIK vermeli.
         open(oy, "a").write("C\ttx2_x1\tBacteria (taxid 2)\t1500\t\n")
         s2, _ = tarama_oku(d)
-        K("bozulmus dosya AYRILIK olarak yakalanir", s2[0]["ayrilik"] != "", True)
+        K(u'a corrupted file is caught as a DISAGREEMENT', s2[0]["ayrilik"] != "", True)
 
     # Kutu cokmesi ve ayakta kalma.
     A = {"0":   {"K1": Counter({"9": 90, "U": 10})},
@@ -388,16 +388,16 @@ def selftest():
     K("hakim atama bulunur", kutu_hakim(A["0"]["K1"])[0], "9")
     K("hakim oran paydaya sinifsizi katar", round(kutu_hakim(A["0"]["K1"])[1], 2), 0.9)
     K("cokme esigi bulunur", cokme_esigi(A, "K1"), 0.1)
-    K("cokmeyen kutu None doner", cokme_esigi(B, "K1"), None)
+    K(u'a bin that does not collapse returns None', cokme_esigi(B, "K1"), None)
     sat, ozet = ayakta_kalma(A, B, "eski", "yeni")
     K("eskide coken, yenide ayakta kalan yakalanir",
       sat[0]["durum"], "ESKIDE COKTU, YENIDE AYAKTA")
 
     K("dongulu agac sonsuza gitmez", len(atalar("a", {"a": "b", "b": "a"})), 200)
-    K("bos rapor cokmez", rapor_oku("/yok/olan/dosya")[2], 0)
+    K(u'an empty report does not crash it', rapor_oku(u'/no/such/file')[2], 0)
 
     print("=" * 72)
-    print("SINAV GECTI" if hata == 0 else f"SINAV KALDI, {hata} madde")
+    print("THE TEST PASSED" if hata == 0 else f"THE TEST FAILED, {hata} items")
     print("=" * 72)
     return 0 if hata == 0 else 1
 
@@ -421,7 +421,7 @@ def main():
     if not a.is1:
         ap.error("--is gerekli")
     if selftest_sessiz() != 0:
-        print("SINAV BASARISIZ, durduruldu (proje kurali 2)")
+        print("THE TEST FAILED, stopped (project rule 2)")
         sys.exit(2)
 
     s1, k1 = tarama_oku(a.is1)
@@ -485,10 +485,11 @@ def yaz_csv(yol, satirlar, ad):
 
 def yan_yana(s1, s2, ad1, ad2):
     g = ["=" * 96,
-         f"IKI VERITABANI YAN YANA   ({ad1}  ve  {ad2})",
+         f"THE TWO DATABASES SIDE BY SIDE   ({ad1}  and  {ad2})",
          "=" * 96,
          f"{'esik':>6} | " + " | ".join(
-             f"{x:>10}" for x in ["sinifsiz", "arke", "bakteri", "mantar"]),
+             f"{x:>10}" for x in ["unclassified", "archaea", "bacteria",
+                                  "fungi"]),
          f"{'':>6} | " + " | ".join(
              f"{ad1[:4]:>4}/{ad2[:5]:>5}" for _ in range(4)),
          "-" * 96]
@@ -504,28 +505,30 @@ def yan_yana(s1, s2, ad1, ad2):
                       else yuzde(o["alanlar"].get(anahtar, 0), o["toplam"]))
                 hucre.append(f"{v1:>4.1f}/{v2:>5.1f}")
             else:
-                hucre.append(f"{v1:>4.1f}/{'yok':>5}")
+                hucre.append(f"{v1:>4.1f}/{'none':>5}")
         g.append(f"{s['esik']:>6} | " + " | ".join(f"{h:>10}" for h in hucre))
     eksik = [s["esik"] for s in s1 if s["esik"] not in h2]
     if eksik:
         g.append("")
-        g.append(f"UYARI: su esikler {ad2} tarafinda YOK, karsilastirilmadi: {eksik}")
-        g.append("  Eksik esik, karsilastirilmis esik gibi okunmamalidir.")
+        g.append(f"WARNING: these thresholds are MISSING on the {ad2} side, so they were "
+                 f"not compared: {eksik}")
+        g.append("  A missing threshold must not be read as a compared threshold.")
     return "\n".join(g)
 
 def kalma_metni(sat, ozet, ad1, ad2, kok):
     isimler = isimleri_oku(kok)
     g = ["=" * 96,
-         "ASIL SORU: eskide coken atamalar yenide ayakta kaliyor mu",
+         "THE REAL QUESTION: do the assignments that collapse on the old one stay standing on the new one",
          "=" * 96,
          "",
-         f"Bir kutunun 'coktugu' esik, hakim atamasinin ilk defa okumalarin %20'sinin",
-         f"altina dustugu esiktir. Sol sutun {ad1}, sag sutun {ad2}.",
+         f"The threshold at which a bin 'collapses' is the one where its dominant",
+         f"assignment first falls below %20 of the reads. The left column is "
+         f"{ad1}, the right {ad2}.",
          ""]
     for d, n in ozet.most_common():
-        g.append(f"  {n:>3} kutu   {d}")
+        g.append(f"  {n:>3} bins   {d}")
     g.append("")
-    g.append(f"{'kutu':<40}{ad1[:12]:>12}{ad2[:12]:>12}   durum")
+    g.append(f"{'bin':<40}{ad1[:12]:>12}{ad2[:12]:>12}   state")
     g.append("-" * 96)
     for s in sat:
         a = "cokmedi" if s["cokme_a"] is None else str(s["cokme_a"])
@@ -535,18 +538,22 @@ def kalma_metni(sat, ozet, ad1, ad2, kok):
     g.append("")
     n_dogrulayan = ozet.get("ESKIDE COKTU, YENIDE AYAKTA", 0) + ozet.get("yenide daha dayanikli", 0)
     n_toplam = sum(ozet.values())
-    g.append("YORUM")
+    g.append("READING")
     if n_toplam == 0:
-        g.append("  Karsilastirilacak kutu yok.")
+        g.append("  There is no bin to compare.")
     elif n_dogrulayan > n_toplam / 2:
-        g.append(f"  {n_dogrulayan}/{n_toplam} kutuda atamalar yeni veritabaninda daha dayanikli.")
-        g.append("  Bu, sorunun KAPSAM oldugu teshisini destekler: eski veritabani bu")
-        g.append("  organizmalari icermiyordu, Kraken en yakin akrabaya atiyordu ve o")
-        g.append("  atamalar zayifti. Yeni veritabani organizmayi icerdigi icin atama guclu.")
+        g.append(f"  In {n_dogrulayan} of {n_toplam} bins the assignments are more "
+                 f"resilient on the new database.")
+        g.append("  That supports the diagnosis that the problem was COVERAGE: the old")
+        g.append("  database did not hold these organisms, Kraken assigned them to the")
+        g.append("  nearest relative, and those assignments were weak. The new database")
+        g.append("  holds the organism, so the assignment is strong.")
     else:
-        g.append(f"  Yalnizca {n_dogrulayan}/{n_toplam} kutuda atamalar yenide daha dayanikli.")
-        g.append("  Bu, KAPSAM teshisini DESTEKLEMIYOR. Zayiflik veritabani kapsamindan")
-        g.append("  degil, okumalarin kendisinden geliyor olabilir. Teshis gozden gecirilmeli.")
+        g.append(f"  In only {n_dogrulayan} of {n_toplam} bins are the assignments more "
+                 f"resilient on the new one.")
+        g.append("  That DOES NOT SUPPORT the COVERAGE diagnosis. The weakness may come")
+        g.append("  from the reads themselves rather than from the database coverage. "
+                 "The diagnosis has to be reviewed.")
     return "\n".join(g)
 
 def isimleri_oku(kok):
