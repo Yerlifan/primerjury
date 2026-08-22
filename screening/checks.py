@@ -1,38 +1,40 @@
 # -*- coding: utf-8 -*-
-"""Kesinti dayanikliligi: her hedefin sonucu bitince diske yazilir.
+"""Resilience against interruption: each target's result is written to disk as it
+finishes.
 
-Program kapatilip yeniden acilinca bitmis hedefler ATLANIR, yarim kalan hedef
-bastan alinir (yarim sonuc rapora girmez). Kuresel taramanin kendi ic
-checkpoint'i ayrica vardir (parca bazinda).
+When the program is closed and opened again the finished targets are SKIPPED and a
+half finished target is started over (a half result does not enter the report). The
+global scan has a checkpoint of its own as well (per piece).
+
 """
-# ---------------------------------------------------------------------------
-# checks.py — kesinti dayanikliligi: her hedefin sonucunu diske yazar ve
-#              yeniden baslatildiginda bitmis hedefleri atlatir.
+# -------------------------------------------------------------------------
+# checks.py, resilience against interruption: it writes each target's result to
+#              disk and skips the finished targets when the run restarts.
 #
-# GIRDI  : KAPSAMLI_ARAMA_SONUC/kontrol/hedef_*.json dosyalari; kosunun ayar
-#          parmak izi __main__.main() tarafindan ayar_kur() ile doldurulur
-#          (okuma sayisi, hafif mod, aday ust siniri).
-# CIKTI  : kontrol/hedef_<hedef>.json dosyalari (once .gecici olarak yazilip
-#          os.replace ile atomik yerine konur). oku(), hepsi() ve bitti_mi()
-#          diskteki veriyi dondurur; sifirla() kontrol klasorunu bosaltir.
-# CAGRAN : __main__.py (her hedef bitince), run_all.py, panel_measurement.py ve
-#          membership_check.py kendi kontrol noktalarini bu modulun yollari ve
-#          ayar karsilastirmasi uzerinden yonetir. Yani tuslar 1, 2, 3, 4, 5,
-#          6, 7 ve 9.
+# INPUT  : the KAPSAMLI_ARAMA_SONUC/kontrol/hedef_*.json files; the run's settings
+#          fingerprint is filled in by __main__.main() through ayar_kur() (the read
+#          count, the light mode, the candidate ceiling).
+# OUTPUT : kontrol/hedef_<target>.json files (written as .gecici first and put in
+#          place atomically with os.replace). oku(), hepsi() and bitti_mi() return
+#          what is on disk; sifirla() empties the kontrol directory.
+# CALLED BY: __main__.py (as each target finishes), run_all.py, panel_measurement.py
+#          and membership_check.py manage their own checkpoints through this
+#          module's paths and its settings comparison. That is keys 1, 2, 3, 4, 5,
+#          6, 7 and 9.
 #
-# AYAR PARMAK IZI KRITIKTIR: ayni hedef 300 okumayla ve tam derinlikle
-# olculdugunde farkli sonuc verir. Ayar kaydi olmayan ya da uyusmayan bir
-# kontrol noktasi yeniden kullanilsaydi, kosu sessizce eski ayarin sonucunu
-# yeni ayarin sonucu gibi rapor ederdi. Bu yuzden ayar_uyuyor() eski dosyalara
-# guvenmez ve False dondurur.
-# ---------------------------------------------------------------------------
+# THE SETTINGS FINGERPRINT IS CRITICAL: the same target gives a different result at
+# 300 reads and at full depth. Had a checkpoint with no settings record, or one
+# that does not match, been reused, the run would silently have reported the result
+# of the old settings as the result of the new ones. That is why ayar_uyuyor() does
+# not trust old files and returns False.
+# -------------------------------------------------------------------------
 import os, json, time
 from . import config as C
 
-# Bir kontrol noktasi, YALNIZ ayni ayarlarla uretilmisse yeniden kullanilir.
-# Aksi halde (ornegin dusuk okuma sayisiyla yapilmis bir deneme kosusundan
-# kalmissa) sessizce yanlis sonuc dondurur. AYAR degiskeni her kosu basinda
-# main() tarafindan doldurulur.
+# A checkpoint is reused ONLY if it was produced under the same settings.
+# Otherwise (left over from a trial run made with a low read count, for instance)
+# it silently returns the wrong result. The AYAR variable is filled in by main() at
+# the start of every run.
 AYAR = {}
 
 
@@ -44,7 +46,7 @@ def ayar_kur(**kw):
 def ayar_uyuyor(veri):
     kayit = (veri or {}).get('_ayar')
     if kayit is None:
-        return False          # ayar kaydi olmayan eski dosya - guvenme
+        return False          # an old file with no settings record, do not trust it
     return kayit == AYAR
 
 
@@ -72,7 +74,7 @@ def yaz(hedef, veri):
     gec = _yol(hedef) + '.gecici'
     with open(gec, 'w', encoding='utf-8') as fh:
         json.dump(veri, fh, ensure_ascii=False, indent=1, default=str)
-    os.replace(gec, _yol(hedef))       # atomik: yarim dosya kalmaz
+    os.replace(gec, _yol(hedef))       # atomic: no half written file is left behind
 
 
 def oku(hedef):
@@ -82,7 +84,7 @@ def oku(hedef):
     try:
         return json.load(open(p, encoding='utf-8'))
     except Exception:
-        return None      # bozuk dosya: silmeye calisma (salt-okunur baglama olabilir)
+        return None      # a corrupted file: do not try to delete it (the mount may be read only)
 
 
 def hepsi():
@@ -103,4 +105,4 @@ def sifirla():
         try:
             os.remove(os.path.join(C.KONTROL, f))
         except OSError:
-            pass          # silinemiyorsa sorun degil: ayar parmak izi zaten yok sayar
+            pass          # if it cannot be deleted that is fine: the settings fingerprint ignores it anyway

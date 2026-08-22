@@ -21,35 +21,36 @@ Panelin bazi satirlari <=1, bazilari <=3 uyumsuzlukla olculmus. Bu modul
 HER SATIRI IKI OLCUTLE BIRDEN olcer ve iki ayri sutun verir; her cikti
 satirinda hangi olcutun kullanildigi ACIKCA yazar.
 """
-# ---------------------------------------------------------------------------
-# panel_measurement.py — paneldeki butun ciftleri tek ve ayni protokolle, tam okuma
-#                  derinliginde, iki uyumsuzluk olcutuyle yeniden olcer.
+# -------------------------------------------------------------------------
+# panel_measurement.py measures every pair in the panel again under one and the
+#                  same protocol, at full read depth, under two mismatch criteria.
 #
-# GIRDI  : hedefler.panel_oku() ile panel TSV'si; hedefler.uyelik_oku(),
-#          hedefler.konsensusler() ve hedefler.kutular(); her hedefin uye/rakip
-#          kutu kumesi hedefler.hedef_baglami() ile cozulur; okumalar
-#          numune.Numune(otorite=True) yani read_engine.py uzerinden, ayrica
-#          karsilastirma icin numune.KutuEski (panelin eski 13 bazlik tohumlu
-#          motorunun birebir yeniden uretimi) ile okunur.
-# CIKTI  : KAPSAMLI_ARAMA_SONUC/PANEL_YENIDEN_OLCUM.md,
-#          panel_yeniden_olcum.tsv ve panel_kutu_duzeyi.tsv (calistir bu uc
-#          yolu dondurur); hedef basina kontrol/panel_olcum_*.json.
-# CAGRAN : verification/full_chain.py tusu 4 (--mod panel-olc --tam-derinlik),
-#          tusu 7 -> "2" secimi (tek hedef, tam derinlik) ve tusu 9 icindeki
-#          5. asama (hepsi.calistir -> panel_olcum.calistir, okuma_sayisi=0).
+# INPUT  : the panel TSV through hedefler.panel_oku(); hedefler.uyelik_oku(),
+#          hedefler.konsensusler() and hedefler.kutular(); each target's member and
+#          competitor bin set is resolved with hedefler.hedef_baglami(); the reads
+#          are read through numune.Numune(otorite=True), that is read_engine.py,
+#          and also through numune.KutuEski (an exact reproduction of the panel's
+#          old 13 base seeded engine) for the comparison.
+# OUTPUT : KAPSAMLI_ARAMA_SONUC/PANEL_YENIDEN_OLCUM.md,
+#          panel_yeniden_olcum.tsv and panel_kutu_duzeyi.tsv (calistir returns those
+#          three paths); a kontrol/panel_olcum_*.json per target.
+# CALLED BY: verification/full_chain.py key 4 (--mod panel-olc --tam-derinlik),
+#          key 7 -> choice "2" (a single target at full depth) and the 5th stage
+#          inside key 9 (hepsi.calistir -> panel_olcum.calistir, okuma_sayisi=0).
 #
-# Iki olcut (<=1 ve <=3) ayni kosuda verilir cunku panelin eski satirlarinda
-# ikisi karistirilmisti; her cikti satirinda hangisinin kullanildigi yazili
-# olmadan sayilar karsilastirilamaz.
-# ---------------------------------------------------------------------------
+# The two criteria (<=1 and <=3) are given in the same run because they had been
+# confused in the panel's old rows; without which one was used written on every
+# output row, the numbers cannot be compared.
+# -------------------------------------------------------------------------
 import os, time, json, csv
 from . import config as C
 from . import engine_gateway, targets as H, sample as N, checks
 
 OLCUTLER = [1, 3]
-# ESIK TEK KAYNAKTAN GELIR: screening/config.py -> ESIK_DCQ = 3.0
-# Kat karsiligi 2 ** ESIK_DCQ = 8,00. Sabit sayi GOMULMEZ; dCq degisirse
-# tek yerden degisir. Gerekce ve verim uyarisi o dosyada yazili.
+# THE THRESHOLD COMES FROM ONE SOURCE: screening/config.py -> ESIK_DCQ = 3.0
+# Its fold equivalent is 2 ** ESIK_DCQ = 8.00. NO constant is EMBEDDED; if dCq
+# changes it changes in one place. The reasoning and the efficiency warning are
+# written in that file.
 ESIK = C.AYRIM_ESIK
 
 
@@ -64,11 +65,12 @@ def olcut_metni(mm):
 
 def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     """okuma_sayisi=0 -> kutudaki BUTUN okumalar (tam derinlik)."""
-    # YON KAPISI once kosar: konsensusler kanonik degilse bu asama BASLAMAZ.
-    # Sebep sessizligindedir - ters yonlu bir konsensuste in-silico PCR hicbir
-    # uyari vermeden 0 urun dondurur, yani saatler suren tam derinlikli olcum
-    # butun satirlari "urun yok" diye kaydeder ve sonuc dosyasi ilk bakista
-    # tutarli gorunur. Bu yuzden kapi kosunun basindadir, sonunda degil.
+    # THE ORIENTATION GATE runs first: if the consensuses are not canonical this stage
+    # DOES NOT START. The reason is in the silence: on a reversed consensus, in-silico
+    # PCR returns 0 products without any warning, so a full depth measurement that runs
+    # for hours records every row as "no product" and the result file looks consistent
+    # at first glance. That is why the gate is at the start of the run and not at the
+    # end.
     from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'panel yeniden olcum')
     for _x in _m:
@@ -122,7 +124,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     t0 = time.time()
     numune = N.Numune(list(gerekli.values()), n=(okuma_sayisi or 0),
                       ilerle=ilerK, otorite=True)
-    # ESKI (hatali) motor - yalniz karsilastirma icin; ayni okumalar
+    # The OLD (faulty) engine, for the comparison only; the same reads
     eski = {}
     for k in gerekli.values():
         eski[k['kutu']] = N.KutuEski(k['kutu'], k['yol'], n=(okuma_sayisi or 0))
@@ -158,7 +160,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
         for mm in OLCUTLER:
             o = numune.olc(d['F'], d['R'], b['uye_kutu'], b['rakip_kutu'],
                            lo=C.URUN_IDEAL[0], hi=C.URUN_MUTLAK_UST, mm=mm)
-            # ayni kutularda ESKI motorla da olc (duzeltmenin etkisi gorunsun)
+            # measure the same bins with the OLD engine too (so the effect of the fix shows)
             kutu_satir = []
             e_uye = e_rak = 0
             y_uye = y_rak = 0
@@ -217,7 +219,7 @@ def calistir(yaz, sure, okuma_sayisi=0, yalniz=None, yeniden=False):
     return yollar
 
 
-# ---------------------------------------------------------------- rapor
+# ---------------------------------------------------------------- the report
 SUT = ['hedef', 'olcut', 'sinif', 'plaka', 'Ta', 'ileri', 'geri', 'urun_panel',
        'uye_kutu', 'uye_min_%', 'uye_max_%', 'uye_kapsam', 'uye_wilson_alt_%',
        'rakip_havuz', 'rakip_havuz_ust_%', 'en_kotu_rakip_kutu',
@@ -272,7 +274,7 @@ def _satirlar(sonuclar):
 
 def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
     os.makedirs(C.CIKTI, exist_ok=True)
-    # kutu duzeyi TSV (eski/yeni motor, her cift x kutu)
+    # the bin level TSV (old and new engine, every pair x bin)
     ktsv = os.path.join(C.CIKTI, 'panel_kutu_duzeyi.tsv')
     with open(ktsv, 'w', encoding='utf-8', newline='') as fh:
         w = csv.writer(fh, delimiter='\t')

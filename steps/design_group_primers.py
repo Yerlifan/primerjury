@@ -74,7 +74,7 @@ IUPAC_SET = {"A": "A", "C": "C", "G": "G", "T": "T",
 def base_match(p, t):
     """Primer bazi p, kalip bazi t ile uyusuyor mu. IUPAC kumesi kesisimi."""
     if t == "N":
-        return False          # kalipta N varsa uyum sayilmaz, bilgi yok
+        return False          # an N in the template does not count as a match, there is no information
     return bool(set(IUPAC_SET.get(p, "")) & set(IUPAC_SET.get(t, "")))
 
 
@@ -245,7 +245,7 @@ def get_args():
     p.add_argument("--require-orphan-primer", type=int, default=1,
                    help="1 ise primerlerden biri rakiplerde HIC baglanma yeri "
                         "bulamamali (toplanti karari)")
-    # 03 ile ayni oligo, termodinamik ve urun kurallari
+    # the same oligo, thermodynamics and product rules as generate_primer_candidates.py
     p.add_argument("--len-min", type=int, default=18)
     p.add_argument("--len-max", type=int, default=25)
     p.add_argument("--gc-min", type=float, default=40.0)
@@ -289,9 +289,9 @@ def main():
     outg = load_set(a.out_group) if a.out_group else []
     if not ing:
         sys.exit(u'the target set is empty, check the --in-group patterns')
-    # Etiket cakismasi: seqs sozlugu tag ile anahtarlandigi icin ayni etikete
-    # dusen iki uye sessizce tek diziye cokerdi ve cikti yine iki uyeyi
-    # kapsadigini iddia ederdi.
+    # A label collision: because the seqs dictionary is keyed by tag, two members
+    # falling on the same label used to collapse silently into one sequence while the
+    # output still claimed to cover both.
     seen_tags = {}
     for tag, _, p_ in ing + outg:
         seen_tags.setdefault(tag, []).append(p_)
@@ -322,23 +322,25 @@ def main():
         anchor = min(ing, key=lambda x: (x[1].count("N"), -len(x[1])))
     print(u'anchor consensus  : %s' % anchor[0])
 
-    # --- yon normalizasyonu -------------------------------------------
-    # Konsensusler yon normalizasyonu yapilmadan uretilmis: consensus2.sh her
-    # takson icin bir cekirdek okuma seciyor ve konsensusu o okumanin yonunde
-    # kuruyor, dolayisiyla uyelerin bir kismi ters saklanmis olabilir. Ters bir
-    # uye, ileri primerin o uyede arti zincir yerine eksi zincire baglanmasina
-    # yol acar ve o uyede urun hic olusmaz. Capadan alinan korunmus problarla
-    # her dizinin yonu oylanir, ters olanlar ters tumleyene cevrilir.
+    # --- orientation normalisation ------------------------------------
+    # The consensuses were produced without orientation normalisation: consensus2.sh
+    # picks a seed read for each taxon and builds the consensus in that read's
+    # direction, so some of the members may be stored in reverse. A reversed member
+    # makes the forward primer bind the minus strand instead of the plus strand there,
+    # and no product forms in that member at all. Every sequence's direction is voted
+    # on with conserved probes taken from the anchor, and the reversed ones are turned
+    # into their reverse complement.
     K0 = a.tail_len
     probes = [anchor[1][i:i + 20] for i in range(0, len(anchor[1]) - 20, 40)
               if "N" not in anchor[1][i:i + 20]][:40]
     if not probes:
         sys.exit(u'no probe could be produced on the anchor, the consensus holds too many N')
 
-    # Ikinci, bagimsiz yon olcutu: butun canlilarda korunmus SSU motifleri.
-    # Capa problari uzak bir uyeye hic baglanmadiginda (arti=eksi=0) oylama
-    # karar veremez; o durumda bu motifler devreye girer. Ikisi de karar
-    # veremezse uye sessizce gecirilmez, ADI YAZILARAK bildirilir.
+    # A second, independent orientation criterion: SSU motifs conserved across all
+    # living things. When the anchor probes bind a distant member not at all
+    # (plus=minus=0) the vote cannot decide; that is when these motifs come in. If
+    # neither can decide, the member is not passed over silently, it is reported BY
+    # NAME.
     UNIV = ["GTGCCAGCMGCCGCGGTAA", "GGATTAGATACCC", "AAACTCAAAGGAATTGACGG",
             "GTGYCAGCMGCCGCGGTAA", "ATTAGATACCCBDGTAGTCC"]
 
@@ -406,9 +408,9 @@ def main():
 
     masked = set()
     if a.mask_dir:
-        # Etiket "A1-1-reads_2209" ya da "A1_1_reads_2223" bicimindedir; grup ve
-        # taxid ikisi birden kullanilir, boylece baska taksonlarin koordinatlari
-        # capaya bindirilmez.
+        # The label has the form "A1-1-reads_2209" or "A1_1_reads_2223"; the group and the
+        # taxid are used together, so the coordinates of other taxa are not laid over the
+        # anchor.
         m_ = re.search(r"reads[-_](\d+)", anchor[0])
         tid = m_.group(1) if m_ else None
         grp = re.split(r"[-_]reads", anchor[0])[0].replace("_", "-")
@@ -444,7 +446,7 @@ def main():
                 reasons["maskeli"] = reasons.get("maskeli", 0) + 1
                 continue
             win = seq[start:end]
-            # Zincir basina ayri denetim: R'nin 3' ucu pencerenin BASIDIR.
+            # A separate check per strand: R's 3' end is the START of the window.
             for strand in ("F", "R"):
                 varyant, why = E.iupac_varyantlar(win, a, uc=strand)
                 if varyant is None:
@@ -490,7 +492,7 @@ def main():
     if not kept:
         sys.exit(u'no oligo passed the thermodynamics filter')
 
-    # --- 3. her uye ve rakip icin baglanma taramasi -------------------
+    # --- 3. the binding scan for every member and competitor ----------
     K = a.tail_len
     seqs = {}
     for tag, s, _ in ing + outg:
@@ -535,10 +537,11 @@ def main():
             if en_iyi is None:
                 orphan.add(o); n_tam += 1
             elif a.yetim_min_uyumsuzluk and en_iyi >= a.yetim_min_uyumsuzluk:
-                # Katı kural sağlanamadığında kullanılan kademe: primerin
-                # rakiplerdeki EN IYI yerleşimi bile bu kadar uyumsuzluk
-                # taşıyorsa bağlanma tavlama sıcaklığı düştüğünde bile
-                # zayıf kalır. Bu kademe çıktıda ayrıca işaretlenir.
+                # The step used when the strict rule cannot be met: if even
+                # the BEST placement of the primer in the competitors carries
+                # this many mismatches, the binding stays weak even when the
+                # annealing temperature drops. This step is marked separately
+                # in the output.
                 orphan.add(o)
         print(u'oligos that bind nowhere in the competitors: %d' % n_tam)
         if a.yetim_min_uyumsuzluk:
@@ -589,7 +592,7 @@ def main():
                 kova[b] = k
         out = list(kova.values())
         secili = set(id(k) for k in out)
-        # kova sayisi n'den azsa kalanlari once ozgulluk sonra Tm ile doldur
+        # if the bucket count is below n, fill the rest by specificity first and Tm second
         if len(out) < n:
             kalan = [k for k in lst if id(k) not in secili]
             kalan.sort(key=anahtar)
@@ -615,7 +618,7 @@ def main():
             if abs(f["tm"] - r["tm"]) >= a.pair_tm_diff_max:
                 n_tmd += 1
                 continue
-            # her hedef uyede urun var mi
+            # is there a product in every target member
             prods = {}
             ok = True
             for t in ing_tags:
@@ -629,16 +632,16 @@ def main():
             if not ok:
                 n_noprod += 1
                 continue
-            # hicbir rakipte urun olmamali
+            # there must be no product in any competitor
             bad = False
             for t in out_tags:
-                # rakipte ANY bant reddedilir, yalnizca hedef uzunluk penceresi
-                # degil; 370 bp'lik bir bant da PCR'de olusur
+                # ANY band in a competitor is rejected, not only one inside the target length
+                # window; a 370 bp band forms in a PCR too
                 cpmax = a.competitor_prod_max if a.competitor_prod_max else 0
-                # Rakipte HERHANGI bir bant istenmiyor. Alt siniri burada
-                # uygulamak, 70 bp altindaki capraz bantlari "urun yok"
-                # saymak demekti; jelde gorunen kisa bir bant da capraz
-                # cogalmadir.
+                # NO band at all is wanted in a competitor. Applying the lower
+                # bound here meant counting cross bands under 70 bp as "no
+                # product"; a short band visible on a gel is cross amplification
+                # as well.
                 if product_len(bind[f["oligo"]][t], bind[r["oligo"]][t],
                                f["ln"], r["ln"], a, pmax=cpmax,
                                pmin=a.rakip_prod_min) is not None:
@@ -671,9 +674,10 @@ def main():
             # ise mutlak sinir. Eski surumde --prod-max hic okunmuyordu.
             if max(pl) > a.prod_max:
                 pen += (max(pl) - a.prod_max) * 0.05
-            # Her uyede o uyedeki EN IYI baglanmanin uyumsuzlugu alinir
-            # (primer orada baglanacaktir), sonra uyeler arasindaki EN KOTUSU
-            # raporlanir: yani "en zayif uyede kac uyumsuzlukla bagliyor".
+            # In each member the mismatch of the BEST binding in that member
+            # is taken (the primer will bind there), and then the WORST among
+            # the members is reported: that is, "with how many mismatches does
+            # it bind in the weakest member".
             mmF = max(min(m for _, m in (bind[f["oligo"]][t]["plus"] +
                                          bind[f["oligo"]][t]["minus"]))
                       for t in ing_tags)
@@ -724,10 +728,10 @@ def main():
     if not pairs:
         sys.exit(u'no valid pair was found')
     pairs.sort(key=lambda x: x["ceza"])
-    # Ayni lokusun IUPAC kardes varyantlari tek satira indirilir. Aksi halde
-    # ilk on aday tek bir bolgenin alel varyantlariyla dolar ve tablo
-    # cesitlilik yitirir. Tutulan, en dusuk cezali varyanttir; kac kardes
-    # oldugu ayri sutunda raporlanir.
+    # The IUPAC sibling variants of the same locus are reduced to a single row.
+    # Otherwise the first ten candidates fill up with the allele variants of one
+    # region and the table loses its diversity. What is kept is the variant with the
+    # lowest penalty; how many siblings there were is reported in its own column.
     if not a.varyantlari_tut:
         onceki = len(pairs)
         secili, gorulen = [], {}

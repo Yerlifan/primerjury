@@ -87,8 +87,9 @@ def main():
             q = l.rstrip("\n").split("\t")
             if len(q) > 1:
                 ad[q[0]] = q[1]
-    # Girdi eksikse sessizce bos ama gecerli gorunen bir Excel uretmek
-    # yerine acikca durulur; bos kitap "hicbir aday gecmedi" gibi okunuyordu.
+    # Rather than producing an Excel that looks valid but is silently empty when the
+    # input is missing, it stops plainly; an empty workbook was reading as "not one
+    # candidate passed".
     eksik = [y for y in (os.path.join(a.aday, "ozet.tsv"),
                          os.path.join(a.final, "primer_final.tsv"))
              if not os.path.exists(y)]
@@ -102,7 +103,7 @@ def main():
     ref_ham = tsv(a.referans) if a.referans else []
     dis_yolu = a.dis or os.path.join(a.final, "dis_veritabani.tsv")
     dis_ham = tsv(dis_yolu)
-    # (hedef, sinif, ileri, geri) -> toplam hedef disi urun
+    # (target, class, forward, reverse) -> total off target products
     dis = {}
     dis_detay = {}
     for x in dis_ham:
@@ -112,9 +113,10 @@ def main():
             dis_detay.setdefault(k, []).append("%s: %s"
                                                % (x["veritabani"], x["ornekler"]))
 
-    # Olculen kimlik: hedef adi Kraken2 atamasindan gelir, dizinin gercekte
-    # ne oldugu ayri bir olcumdur. Ikisi ayrilabilir; tabloda yan yana
-    # durmazsa okuyan, adin dizi kanitiyla dogrulandigini sanir.
+    # The measured identity: the target name comes from the Kraken2 assignment, while
+    # what the sequence really is is a separate measurement. The two can come apart;
+    # if they do not sit side by side in the table, the reader takes the name to be
+    # confirmed by sequence evidence.
     kimlik = {}
     kyol = a.kimlik or os.path.join(a.final, "hedef_kimlik.tsv")
     for r in tsv(kyol):
@@ -171,7 +173,7 @@ def main():
 
     wb = Workbook()
 
-    # ---------------- 1. Kapak ve yöntem ----------------
+    # ---------------- 1. The cover and the method ----------------
     ws = wb.active
     ws.title = "Kapak ve Yöntem"
     genislik(ws, [42, 96])
@@ -180,9 +182,10 @@ def main():
     ws.merge_cells("A1:B1")
     r = 3
     gecen = [x for x in final if x.get("ozgulluk_durum") == "GECTI"]
-    # ALAN TUTARLILIGI: hedefin ait olmadigi lokus kitapligindan tasarlanmis
-    # ciftler teslimden CIKARILIR. Kural ihlali degildirler, ama hedefi temsil
-    # etmezler; tabloda kalirlarsa o hedef kapsanmis gorunur, oysa kapsanmaz.
+    # DOMAIN CONSISTENCY: pairs designed from a locus library the target does not
+    # belong to ARE TAKEN OUT of the delivery. They break no rule, but they do not
+    # represent the target; if they stay in the table that target looks covered when
+    # it is not.
     _ta = field_audit.taxid_alanlari(a.kons)
     _ht = field_audit.hedef_taxidleri(a.hedefler)
     alan_disi = []
@@ -302,7 +305,7 @@ def main():
     if i == 2:
         ws.cell(row=2, column=1, value="Bütün kurallardan geçen aday yok").font = NORMAL
 
-    # ---------------- 2b. Önerilen çift ----------------
+    # ---------------- 2b. The suggested pair ----------------
     ws = wb.create_sheet("Önerilen Çiftler")
     ws["A1"] = ("Hedef başına bir çift. Sıralama ölçütü sırasıyla: dış "
                 "veritabanında hedef dışı ürün sayısı, rakip Wilson alt "
@@ -371,15 +374,15 @@ def main():
         i += 1
     if i == 4:
         ws.cell(row=4, column=1, value="Önerilecek çift yok").font = NORMAL
-    # Ayni olculen kimlige sahip birden cok hedef: dizi duzeyinde AYNI
-    # organizmayi hedefliyorlar demektir. Bu, tabloya bakan birinin
-    # kendiliginden goremeyecegi bir sey; acikca yazilir.
+    # More than one target with the same measured identity means they target THE SAME
+    # organism at sequence level. That is something a reader of the table cannot see
+    # by themselves, so it is written out plainly.
     ayni_kimlik = {}
     for k in en_iyi:
         r, d, n, cog = kimlik_destek(k[0])
-        # Yalnizca kutularin YARIDAN COGU ayni kimlige gidiyorsa "ayni
-        # organizma" denir. Coklukla yetinilirse, uyeleri farkli turlere
-        # dagilan grup hedefleri de birlesmis gorunur.
+        # It is called "the same organism" only if MORE THAN HALF of the bins go to the
+        # same identity. Settling for a plurality would make group targets whose members
+        # spread across different species look merged as well.
         if r and cog and r.get("olculen_kimlik") \
                 and "vurus yok" not in r["olculen_kimlik"] \
                 and "esik alti" not in r["olculen_kimlik"]:
@@ -403,7 +406,7 @@ def main():
             c.font = NORMAL
             ws.merge_cells(start_row=i, start_column=1, end_row=i, end_column=14)
 
-    # ---------------- 3. Hedef durumu ----------------
+    # ---------------- 3. The target state ----------------
     ws = wb.create_sheet("Hedef Durumu")
     basliklar = ["Karar", "Hedef", "Düzey", "Sınıf", "Üye", "Rakip",
                  "Tasarımda çift", "Tasarım durumu", "Kademe",
@@ -451,7 +454,7 @@ def main():
     ch.legend = None
     ws.add_chart(ch, "M2")
 
-    # ---------------- 4. Ayırt edilemez kutular ----------------
+    # ---------------- 4. The indistinguishable bins ----------------
     ws = wb.create_sheet("Ayırt Edilemez Kutular")
     ws["A1"] = ("Aynı amplikon sınıfı içinde farklı taksona atanmış ama dizi "
                 "düzeyinde ayrılamayan konsensüsler. Bunlar rakip listesinden "
@@ -485,7 +488,7 @@ def main():
     if i == 4:
         ws.cell(row=4, column=1, value="Ayırt edilemez çift bulunmadı").font = NORMAL
 
-    # ---------------- 5. Alt küme bölmesi ----------------
+    # ---------------- 5. The subset split ----------------
     if a.bol and os.path.isdir(a.bol):
         ws = wb.create_sheet("Alt Küme Bölmesi")
         ws["A1"] = ("Tek primer çiftiyle kapsanamayan işlev grupları, "
@@ -520,7 +523,7 @@ def main():
                 ws.cell(row=i, column=2).fill = SARI
                 i += 1
 
-    # ---------------- 5b. Dış veritabanı ----------------
+    # ---------------- 5b. The external database ----------------
     if dis_ham:
         ws = wb.create_sheet("Dış Veritabanı")
         ws["A1"] = ("Her primer blastn (task blastn-short) ile referans "
@@ -550,7 +553,7 @@ def main():
                 ws.cell(row=i, column=6).fill = YESIL
             i += 1
 
-    # ---------------- 5c. Uyarılar ----------------
+    # ---------------- 5c. Warnings ----------------
     ws = wb.create_sheet("Uyarılar")
     ws["A1"] = ("Otomatik denetimler. Bu satırlar sonucu geçersiz kılmaz, ama "
                 "primerlerin nasıl yorumlanması gerektiğini belirler.")
@@ -562,7 +565,7 @@ def main():
     genislik(ws, [26, 42, 70, 70])
     uyarilar = []
 
-    # 1. Ayni primer cifti birden cok hedefte gecerse hedefler ayrilmiyor
+    # 1. If the same primer pair appears on more than one target, the targets are not separated
     paylasim = {}
     for x in gecen:
         paylasim.setdefault((x["ileri_dizi"], x["geri_dizi"]), set()).add(
@@ -583,7 +586,7 @@ def main():
             uyarilar.append((tur, u'The same primer pair on more than one target',
                              "%s / %s" % k, yorum + "  Hedefler: " + ", ".join(sorted(v))))
 
-    # 1a. Hedef adi ile olculen kimlik uyusmazligi
+    # 1a. The target name and the measured identity disagree
     for x in sorted(set(z["hedef"] for z in gecen)):
         r = kimlik.get(x)
         if not r:
@@ -640,7 +643,7 @@ def main():
                                                      x["kademe"]),
                              u'The strict rule (the orphan primer must not bind anywhere in the competitors) could not be met; at its best placement in the competitors the orphan primer carries at least three mismatches.'))
 
-    # 5. Dis veritabaninda cok hedef disi urun veren ozgul hedefler
+    # 5. Specific targets giving many off target products in an external database
     for x in gecen:
         try:
             n = int(x.get("dis_hedef_disi", 0) or 0)
@@ -664,7 +667,7 @@ def main():
     if i == 4:
         ws.cell(row=4, column=1, value="Uyarı yok").font = NORMAL
 
-    # ---------------- 5d. Referans tasarım ----------------
+    # ---------------- 5d. The reference design ----------------
     if ref_ham:
         ws = wb.create_sheet("Referans Tasarım")
         ws["A1"] = ("Numunede karşılanamayan hedefler için REFERANS "
@@ -706,7 +709,7 @@ def main():
                 YESIL if x.get("durum") == "numunede_destekli" else SARI)
             i += 1
 
-    # ---------------- 5e. Laboratuvar protokolü ----------------
+    # ---------------- 5e. The laboratory protocol ----------------
     ws = wb.create_sheet("Laboratuvar Protokolü")
     ws["A1"] = ("Sipariş ve ilk PCR için hazırlık tablosu. Tavlama sıcaklığı "
                 "önerisi çiftin düşük Tm'inden 5 C aşağıdır; gradyan aralığı "
@@ -793,7 +796,7 @@ def main():
         ws.row_dimensions[i].height = max(15, 13 * (1 + len(metin) // 110))
         i += 1
 
-    # ---------------- 6. Eleme gerekçeleri ----------------
+    # ---------------- 6. The elimination reasons ----------------
     ws = wb.create_sheet("Eleme Gerekçeleri")
     yaz_baslik(ws, ["Hedef ve sınıf", "Kompozisyon sonrası oligo",
                     "Termodinamik sonrası", "Her üyeye bağlanan",
