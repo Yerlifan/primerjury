@@ -1,33 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-brute_force.py - BAGIMSIZ referans uygulama. Tohum YOK, kisayol YOK.
+brute_force.py, an INDEPENDENT reference implementation. NO seeding, NO shortcuts.
 
-Her baslangic pozisyonu tek tek denenir. Yavastir; amaci hizli olmak degil,
-`read_engine.py`'nin dogrulugunu sinayacak, ondan BAGIMSIZ bir dogru cevap
-uretmektir. Ortak kod paylasmaz - IUPAC tablosu ve ters tumleyen bile ayrica
-yazilmistir ki ikisinde ayni hata olmasin.
+Every start position is tried one at a time. It is slow; its purpose is not to be
+fast but to produce a right answer INDEPENDENT of `read_engine.py`, against which
+that engine's correctness can be tested. It shares no common code: even the IUPAC
+table and the reverse complement are written out again, so that the same fault
+cannot sit in both.
 
-Kullanim: engine_test.py tarafindan cagrilir.
+Usage: it is called by engine_test.py.
+
 """
-# ---------------------------------------------------------------------------
-# brute_force.py — read_engine.py'nin dogrulugunu sinamak icin yazilmis,
-#                  tohumsuz ve kisayolsuz referans uygulama.
+# -------------------------------------------------------------------------
+# brute_force.py, a reference implementation written to test read_engine.py for
+#                  correctness; no seeding and no shortcuts.
 #
-# GIRDI  : dogrudan dizi ve primer alir; dosya okumaz. Cagiran taraf okumalari
-#          verir (engine_test.py, self_test.py ya da independent_check.py).
-# CIKTI  : dosyaya yazmaz. yerler() [(baslangic, uyumsuzluk)] listesi,
-#          urun_boyu() urun boyu ya da None, kutu_pcr() (urun_veren, toplam)
-#          ikilisi dondurur.
-# CAGRAN : engine_test.py ve independent_check.py (elle calistirilan sinamalar)
-#          ile engine_gateway.py uzerinden self_test.py - yani verification/full_chain.py
-#          tusu 8 ve her olcum tusunun basindaki kendini sinama adimi.
+# INPUT  : it takes a sequence and a primer directly; it reads no file. The caller
+#          supplies the reads (engine_test.py, self_test.py or
+#          independent_check.py).
+# OUTPUT : it writes no file. yerler() returns a [(start, mismatches)] list,
+#          urun_boyu() a product length or None, and kutu_pcr() the pair
+#          (with_product, total).
+# CALLED BY: engine_test.py and independent_check.py (tests run by hand) and, through
+#          engine_gateway.py, self_test.py; that is verification/full_chain.py key 8
+#          and the self test step at the head of every measuring key.
 #
-# NEDEN AYRI YAZILDI: bu dosya, guvercin yuvasi tohumlamasinin KAYIPSIZ oldugu
-# iddiasinin kanitidir. Her baslangic pozisyonunu tek tek dener, yani hicbir
-# tohum varsayimina dayanmaz. IUPAC tablosu ve ters tumleyen bile ayrica
-# yazilmistir; ortak kod paylasilsaydi iki uygulamada AYNI hata bulunur ve
-# karsilastirma hicbir sey kanitlamazdi.
-# ---------------------------------------------------------------------------
+# WHY IT WAS WRITTEN SEPARATELY: this file is the evidence for the claim that the
+# pigeonhole seeding is LOSSLESS. It tries every start position one at a time, so it
+# rests on no seeding assumption. Even the IUPAC table and the reverse complement
+# are written out again; had common code been shared, THE SAME fault would sit in
+# both implementations and the comparison would prove nothing.
+# -------------------------------------------------------------------------
 
 IUP = {'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T', 'U': 'T',
        'R': 'AG', 'Y': 'CT', 'S': 'GC', 'W': 'AT', 'K': 'GT', 'M': 'AC',
@@ -88,7 +91,7 @@ def urun_boyu(seq, F, R, max_mm, lo=40, hi=600, son2=True):
 
 
 def kutu_pcr(okuma_listesi, F, R, lo=40, hi=600, max_mm=1, son2=True):
-    """Donus: (urun_veren, toplam)"""
+    """Returns: (with_product, total)"""
     pos = 0
     for s in okuma_listesi:
         for seq in (s, rc(s)):
