@@ -136,14 +136,14 @@ def main():
     }
 
     def kimlik_destek(hedef):
-        """Doner: (kimlik, destek, kutu, cogunluk_var_mi)
-
-        Grup hedeflerinde tek bir 'olculen kimlik' yaniltici olabilir: en
-        yaygin ad yalnizca COGUNLUK degil COKLUK olabilir. Olculdu:
-        Asetoklastik metanojenler hedefinin 19 kutusundan yalnizca 6'si
-        Methanothrix soehngenii'ye gidiyor, gerisi Methanosarcina turlerine
-        dagiliyor. Bu yuzden destek orani her zaman gosterilir ve yarinin
-        altindaysa 'belirgin cogunluk yok' denir."""
+        'Returns (identity, support, bins, is_there_a_majority)          On a '
+        'group target a single measured identity can mislead: the most '
+        'frequent name may be a PLURALITY rather than a MAJORITY. Measured: '
+        'of the         19 bins of the acetoclastic methanogen target only 6 '
+        'go to Methanothrix         soehngenii and the rest spread across '
+        'Methanosarcina species. That is why         the support fraction is '
+        'always shown, and why anything below half is         called "no '
+        'clear majority".'
         r = kimlik.get(hedef)
         if not r:
             return None, 0, 0, False
@@ -161,7 +161,7 @@ def main():
         u = r.get("uyum", "")
         ad_metni = r.get("olculen_kimlik", "")
         if n:
-            ad_metni = "%s (%d/%d kutu)" % (ad_metni, d, n)
+            ad_metni = '%s (%d of %d bins)' % (ad_metni, d, n)
         if not cog:
             ad_metni += "  [no clear majority]"
             if r.get("diger"):
@@ -327,7 +327,8 @@ def main():
     basliklar = ["Karar", "Target (the requested name)", "Class", "Forward primer (5' to 3')",
                  "Forward Tm", "Reverse primer (5' to 3')", "Reverse Tm", "Product (bp)",
                  "Members confirmed", "Rakip Wilson", "Off target, outside databases",
-                 "Yetim primer", "Measured identity", "Ad ile veri uyumu"]
+                 "Yetim primer", "Measured identity", 'Does the name agree with the '
+                                                      'data']
     yaz_baslik(ws, basliklar, satir=3)
     genislik(ws, [7, 34, 7, 30, 9, 30, 9, 12, 14, 13, 18, 14, 30, 24])
 
@@ -785,20 +786,25 @@ def main():
     for baslik, metin in [
         ("Reaksiyon", "25 uL: 12,5 uL 2x master mix, her primer 0,2-0,5 uM, "
                       "1-5 ng kalip DNA, kalan hacim nukleaz iceriksiz su."),
-        ("Dongu", "95 C 3 dk; 35 dongu (95 C 15 sn, tavlama 20 sn, 72 C 20 sn); "
-                  "72 C 5 dk. Urunler 300 bp altinda oldugu icin uzatma kisa "
-                  "tutulmustur."),
-        ("Ilk kosu", "Tavlama sicakligi gradyanla sinanmali. Gradyan araligi "
-                     "her cift icin yukaridaki sutunda verilmistir."),
-        ("Kontroller", "Pozitif kontrol: hedefin en yuksek okuma sayisina "
-                       "sahip oldugu ornek. Negatif kontrol: kalipsiz. "
-                       "Ozgulluk kontrolu: rakip taksonun baskin oldugu ornek."),
-        ("Jel", "%2 agaroz, 100 bp merdiven. Tek bant beklenir; ikinci bant "
-                "capraz cogalma isaretidir ve o cift elenmelidir."),
-        ("Kaynak sutunu", "numune: primer numunenin kendi okumalarindan "
-                          "tasarlandi ve ham okumalarla dogrulandi. "
-                          "referans: primer referans veritabanindan "
-                          "tasarlandi, numunede yalnizca destek olcumu var."),
+        ("Dongu", '95 C for 3 minutes; 35 cycles of 95 C for 15 s, annealing '
+                  'for 20 s and 72 C for 20 s; then 72 C for 5 minutes. The '
+                  'extension is kept short because the products are under 300 '
+                  'bp.'),
+        ("Ilk kosu", 'The annealing temperature has to be tested with a '
+                     'gradient. The gradient range for each pair is in the '
+                     'column above.'),
+        ("Kontroller", 'The positive control: the sample where the target has '
+                       'the highest read count. The negative control: no '
+                       'template. The specificity control: the sample where a '
+                       'competitor taxon dominates.'),
+        ("Jel", '2 per cent agarose with a 100 bp ladder. A single band is '
+                'expected; a second band is a sign of cross amplification and '
+                'that pair has to be dropped.'),
+        ("Kaynak sutunu", "sample: the primer was designed from the sample's "
+                          'own reads and confirmed against the raw reads. '
+                          'reference: the primer was designed from a '
+                          'reference database and the sample only carries a '
+                          'support measurement.'),
     ]:
         ws.cell(row=i, column=1, value=baslik).font = KALIN
         c = ws.cell(row=i, column=2, value=metin)

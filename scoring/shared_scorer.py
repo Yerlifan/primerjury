@@ -36,7 +36,7 @@ import os, sys, json, hashlib
 def _kur(kok):
     kok = os.path.abspath(kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        raise SystemExit('HATA: %s icinde screening yok.' % kok)
+        raise SystemExit('ERROR: there is no screening package under %s.' % kok)
     if kok not in sys.path:
         sys.path.insert(0, kok)
     tp_dir = os.path.join(kok, 'protocol')
@@ -80,7 +80,7 @@ class Puanlayici(object):
 
         self.uy_yol = self.TP.uyelik_dosyasi(self.kok)
         if not self.uy_yol:
-            raise SystemExit('HATA: uyelik tablosu bulunamadi.')
+            raise SystemExit('ERROR: the membership table was not found.')
         self.uyelik = self.TP.uyelik_oku(self.uy_yol)
         # THE EXTRA PAIRS: a pair that is not in the panel resolves its membership
         # not by its own name but through the 'uyelik_hedefi' column (the same as
@@ -164,7 +164,7 @@ class Puanlayici(object):
         return len(yeni)
 
     def anahtar(self, hedef, F, R, mm):
-        """ONBELLEK ANAHTARI - primer DIZISI dahildir."""
+        'THE CACHE KEY, which includes the primer SEQUENCE.'
         ham = u'%s|%s|%s|%d|%d|%s|%s|%d|%d|%s' % (
             hedef, F.upper(), R.upper(), mm, self.derinlik, self.karisik_kural,
             os.path.basename(self.uy_yol), self.lo, self.hi,
@@ -172,7 +172,7 @@ class Puanlayici(object):
         return hashlib.md5(ham.encode('utf-8')).hexdigest()
 
     def olc_ham(self, hedef, F, R, mm=None):
-        """Panelin Numune.olc CIKTISI - oldugu gibi."""
+        "The panel's own in-sample measurement OUTPUT, exactly as it stands."
         mm = self.mm_asil if mm is None else mm
         ana = self.anahtar(hedef, F, R, mm)
         if ana in self._ob:

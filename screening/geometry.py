@@ -45,8 +45,8 @@ KW = dict(C.P3)
 def _gerek():
     if primer3 is None:
         raise SystemExit(
-            'HATA: primer3 modulu yok. WSL icinde su komutu calistirin:\n'
-            '  pip3 install primer3-py --break-system-packages')
+            'ERROR: the primer3 module is missing. Run this inside WSL: '
+            'pip3 install primer3-py --break-system-packages')
 
 
 def tm(p):
@@ -82,7 +82,7 @@ def het_dg(a, b, t=C.TA_HEDEF):
 
 
 def uc_dg(a, b, t=C.TA_HEDEF):
-    """3' uc kaynakli dimer kararliligi (primer3 end_stability)."""
+    "The dimer stability that comes from the 3' end (primer3 end_stability)."
     _gerek()
     try:
         return round(primer3.calc_end_stability(a, b, temp_c=t, **KW).dg / 1000.0, 2)
@@ -159,7 +159,7 @@ def ihlaller(p, gc_ar=(40, 60), tm_ar=(58, 62), uc_gc_sart=True, son5_sart=True)
     if hd_tm(p) >= C.HOMODIMER_TM_UST:
         v.append('homodimer Tm %.1f' % hd_tm(p))
     if uc_gc_sart and p[-1] not in 'GC':
-        v.append("3' uc %s (G/C degil)" % p[-1])
+        v.append("the 3' end is %s, which is not G or C" % p[-1])
     n5 = son5_gc(p)
     if son5_sart and n5 > 3:
         v.append("3' son 5 bazda %d G/C" % n5)
@@ -170,7 +170,7 @@ def ihlaller(p, gc_ar=(40, 60), tm_ar=(58, 62), uc_gc_sart=True, son5_sart=True)
 
 # ---------------------------------------------------------------- cift olcumleri
 def cift_olc(mF, mR, urun_bp):
-    """Cift duzeyi buyukluklerin tamami (60 C degerlendirmesi dahil)."""
+    'Every pair level quantity, including the evaluation at 60 C.'
     F, R = mF['dizi'], mR['dizi']
     dtm = round(abs(mF['tm'] - mR['tm']), 2)
     ht = het_tm(F, R)
@@ -195,5 +195,5 @@ def urun_sinifi(bp):
     if C.URUN_IDEAL[0] <= bp <= C.URUN_IDEAL[1]:
         return 'ideal (60-150)'
     if bp <= C.URUN_ONERILMEZ:
-        return 'kabul edilebilir (150-250; protokolde 30 sn ann/ext)'
+        return 'acceptable (150 to 250, with a 30 s annealing and extension step)'
     return 'ONERILMEZ (>250)'

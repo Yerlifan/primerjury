@@ -28,7 +28,7 @@ MOTOR = os.path.join(HERE, "design_group_primers.py")
 
 
 def _ayirt_modulu():
-    """indistinguishable_targets.py'yi tek kaynak olarak yukler."""
+    'Loads indistinguishable_targets.py as its one source.'
     yol = os.path.join(HERE, "indistinguishable_targets.py")
     if not os.path.exists(yol):
         return None
@@ -85,7 +85,7 @@ def get_args():
 
 
 def _girdi_parmak_izi(a):
-    """Kosunun bagli oldugu her girdinin ozeti. Degisirse checkpoint duser."""
+    'A summary of every input the run depends on. When it changes the checkpoint drops.'
     h = hashlib.sha256()
     h.update(("kons=%s\n" % os.path.abspath(a.consensus)).encode())
     for f in sorted(glob.glob(os.path.join(a.consensus, "*_konsensus.fasta"))):
@@ -114,7 +114,7 @@ _LOG = [None]
 
 
 def log(msg):
-    """Her satir tarih ve saatle hem ekrana hem log dosyasina yazilir."""
+    'Every line is written with a date and time to both the screen and the log file.'
     line = "[%s] %s" % (TS(), msg)
     print(line, flush=True)
     if _LOG[0]:
@@ -448,12 +448,11 @@ def main():
 
 
 def yaz_ozet(out, ozet, kismi=False):
-    """Ozet her hedeften sonra yeniden yazilir; kosu yarida kesilse de
-    o ana kadarki sonuclar diskte kalir.
-
-    kismi=True (--only ya da --decision ile calisildiginda) mevcut ozet.tsv
-    okunup bu kosuda islenmeyen satirlar korunur; aksi halde kismi bir kosu
-    butun raporu tek hedefe indiriyordu."""
+    'The summary is rewritten after every target, so that even if the run is '
+    'interrupted the results up to that point stay on disk.      With '
+    'kismi=True, which is what --only and --decision produce, the existing '
+    'summary is read and the rows this run did not touch are kept; otherwise '
+    'a     partial run reduced the whole report to a single target.'
     cols = ["karar", "hedef", "duzey", "sinif", "uye", "rakip", "cift",
             "durum", "kademe", "en_iyi", "engelleyen", "sure", "zaman",
             "tsv", "note"]

@@ -45,7 +45,7 @@ SINIF_DB = {"A1": "archaea.16S.fna", "A2": "archaea.16S.fna",
 
 
 class Esik:
-    """04'un find_bindings'i ile ayni toplanti kurallari."""
+    "The same rules as the group engine's binding search."
     tail_len = 12
     tail_max_mm = 1
     exact_last = 2
@@ -71,8 +71,8 @@ def get_args():
 
 
 def urun_kes(oligo_f, oligo_r, dizi, a):
-    """Okumada urun varsa urun dizisini doner, yoksa None.
-    Kalip cift sarmal oldugu icin iki yon de denenir."""
+    'Returns the product sequence when the read gives one, otherwise None. '
+    'Because the template is double stranded, both orientations are tried.'
     rc = G.rc
     for s in (dizi, rc(dizi)):
         idx = G.build_index(s, Esik.tail_len)
@@ -102,10 +102,10 @@ def urun_kes(oligo_f, oligo_r, dizi, a):
 
 
 def baskin_konsensus(urunler):
-    """Esit uzunluktaki urunleri hizalamadan, en sik gorulen uzunluktaki
-    urunler uzerinden pozisyon basina baskin baz cagirir. Uzunluk
-    dagilimi dar oldugu icin (tek amplikon) bu yeterlidir; genis dagilim
-    varsa uyari basilir."""
+    'Without aligning products of equal length, it calls the dominant base '
+    'per     position over the products of the most frequent length. Because '
+    'the length     distribution is narrow, being a single amplicon, that is '
+    'enough; on a wide     distribution a warning is printed.'
     if not urunler:
         return None, 0, 0
     uz = collections.Counter(len(u) for u in urunler)
@@ -195,7 +195,7 @@ def main():
             sonuc.append(dict(hedef=hedef, sinif=sinif, ileri_dizi=F, geri_dizi=R,
                               urun_okuma=len(urunler), konsensus_uzunluk=0,
                               amaclanan=ic,
-                              olculen=("urun az (%d)" % len(urunler)),
+                              olculen=('there are few products (%d)' % len(urunler)),
                               ozdeslik="", hizalanan="", uyum="olculemedi"))
             print(u'   [%2d] %-34s product=%-6d the consensus could not be built'
                   % (i + 1, hedef[:33], len(urunler)))

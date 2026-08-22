@@ -1,31 +1,21 @@
 # -*- coding: utf-8 -*-
-"""A2 OLCUMU: boy tabanli ayrim ile taksonomik ayrim yan yana.
-
-NE SORUYOR
-----------
-Katman 2 (yerel veritabani) bir urunun hedefin ICINDEN mi DISINDAN mi geldigini
-eskiden yalniz BOYA bakarak ayiriyordu. A2 ile TAKSONOMIK ayrim eklendi.
-Bu betik ikisini AYNI tarama uzerinde olcer ve farki gosterir.
-
-Hicbir panel dosyasina YAZMAZ. Yalniz okur ve tablo basar.
-
-NEDEN ONEMLI
-------------
-D-12'de (katman 3, MFEprimer) olculmustu: "hedef disi" sayilan 1.605 amplikonun
-%95,7'si hedef kladin KENDI ICINDENdi, yalniz boyu farkliydi. Ayni yanilginin
-katman 2'de de olup olmadigi bu betikle olculur.
-
-KOSMA
------
-    python3 tests/measure_layer2_taxonomy.py --small
-    python3 tests/measure_layer2_taxonomy.py --db SILVA_138.2_SSURef_NR99.fasta
-    python3 tests/measure_layer2_taxonomy.py --target Bakteri_universal
-
---small : yalniz kucuk RefSeq kumeleri (~75 MB, dakikalar). Kapsam degil,
-          YONTEMIN CALISTIGININ kaniti ve ilk buyukluk mertebesi.
-Tam kapsam icin SILVA/UNITE gibi buyuk kumeler ayrica verilmelidir; suresi
-saatlerdir ve bu betik onu SESSIZCE yapmaz.
-"""
+'THE LAYER 2 MEASUREMENT: length based separation beside taxonomic '
+'separation.  WHAT IT ASKS ------------ Layer 2, the local databases, used to '
+'decide whether a product came from INSIDE or OUTSIDE the target by LENGTH '
+'alone. A taxonomic separation was added beside it. This script measures both '
+'ON THE SAME SCAN and shows the difference.  It WRITES to no panel file. It '
+'only reads and prints a table.  WHY IT MATTERS -------------- It was '
+'measured in layer 3, MFEprimer: of the 1,605 amplicons counted off target, '
+"95.7 per cent came from INSIDE the target's own clade and differed only in "
+'length. This script measures whether the same mistake is present in layer 2. '
+'TO RUN IT ---------     python3 tests/measure_layer2_taxonomy.py --small '
+'python3 tests/measure_layer2_taxonomy.py --db SILVA_138.2_SSURef_NR99.fasta '
+'python3 tests/measure_layer2_taxonomy.py --target Bakteri_universal  --small '
+'uses the small RefSeq sets alone, about 75 MB and a few minutes. That is not '
+'coverage but evidence THAT THE METHOD WORKS, plus a first order of '
+'magnitude. For full coverage the large sets such as SILVA and UNITE have to '
+'be given separately; that takes hours and this script DOES NOT do it '
+'SILENTLY.'
 from __future__ import print_function
 import argparse
 import csv
@@ -216,13 +206,13 @@ def main():
         print('-' * 100)
         for h, b, k in degisen:
             if b > 0 and k == 0:
-                etki = 'RISKLI -> TEMIZ  (boy olcutu YANLIS ALARM veriyordu)'
+                etki = 'risky becomes clean (the length criterion was raising A FALSE ALARM)'
             elif b == 0 and k > 0:
-                etki = 'TEMIZ -> RISKLI  (boy olcutu GERCEK caprazi KACIRIYORDU)'
+                etki = 'clean becomes risky (the length criterion was MISSING a REAL cross reaction)'
             elif k < b:
-                etki = 'capraz sayisi %d -> %d (azaldi)' % (b, k)
+                etki = 'the cross reaction count goes from %d to %d, a fall' % (b, k)
             else:
-                etki = 'capraz sayisi %d -> %d (artti)' % (b, k)
+                etki = 'the cross reaction count goes from %d to %d, a rise' % (b, k)
             print('%-40s %14d %14d  %s' % (h[:40], b, k, etki))
 
     print()

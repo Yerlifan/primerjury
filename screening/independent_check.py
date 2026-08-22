@@ -56,15 +56,17 @@ except Exception as e:
 # M. hadiensis competitor bins, where the fault was largest.
 TESTLER = [
     ('Methanosarcina_mazei_turu', 'GCCCTTGGGACCGGCATAA', 'TCGCTGGCTAGTAGGTACATTACA',
-     [('A1-4', '3078083', 'RAKIP M. hadiensis - hatanin merkezi'),
-      ('A2-4', '3078083', 'RAKIP M. hadiensis'),
+     [('A1-4', '3078083', 'COMPETITOR M. hadiensis, the centre of the fault'),
+      ('A2-4', '3078083', 'COMPETITOR M. hadiensis'),
       ('A2-2', '2209',    'UYE M. mazei'),
       ('A1-3', '2209',    'UYE M. mazei')]),
     ('Methanosarcina_cinsi', 'TCGCTAGGTGTCAGGCATG', 'GCGATTCAGGCAAGGTCTTC',
-     [('A1-2', '2209', 'UYE M. mazei - kapsam eksik olculmustu'),
-      ('A2-3', '2223', 'rakip M. soehngenii')]),
+     [('A1-2', '2209', 'MEMBER M. mazei, whose coverage had been measured '
+                       'short'),
+      ('A2-3', '2223', 'competitor M. soehngenii')]),
     ('Asetoklastik_metanojenler', 'CCGGGAGAGGTGAGAGGTAC', 'CGGGTATCTAATCCGGTTCGTG',
-     [('A1-2', '2209', 'UYE M. mazei - kapsam eksik olculmustu')]),
+     [('A1-2', '2209', 'MEMBER M. mazei, whose coverage had been measured '
+                       'short')]),
 ]
 
 
