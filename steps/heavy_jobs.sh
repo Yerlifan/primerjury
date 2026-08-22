@@ -1,31 +1,32 @@
 #!/usr/bin/env bash
 # =====================================================================
 # heavy_jobs.sh
-# Bulut kutusunda güvenle çalışmayan işleri sizin WSL'inizde sırayla
-# çalıştırır. Her adım kendi başına da çalıştırılabilir; sırayla
-# gitmesinin tek sebebi çıktıların birbirini beslemesidir.
+# It runs, in order, the jobs that do not run safely in a small container. Each
+# step can also be run on its own; the only reason they go in order is that the
+# outputs feed one another.
 #
-#   bash heavy_jobs.sh                # A, B, C, D, E adımları
-#   bash heavy_jobs.sh --kraken       # F adımını da ekler (dakikalar)
-#   SECILEN_ESIK=0.02 bash heavy_jobs.sh --kraken   # eşiği doğrudan uygula
-#   bash heavy_jobs.sh --yalniz C     # yalnız tek adım
+#   bash heavy_jobs.sh                # steps A, B, C, D, E
+#   bash heavy_jobs.sh --kraken       # adds step F as well (minutes)
+#   SECILEN_ESIK=0.02 bash heavy_jobs.sh --kraken   # apply the threshold directly
+#   bash heavy_jobs.sh --yalniz C     # one step only
 #
-# Adımlar:
-#   A  kutu kurtarma (20)        B-1_2233851 konsensüsünü okumalardan kurar
-#   B  hedef kimliği (22)        her hedefin adı ile dizinin gösterdiğini
-#                                yan yana koyar
-#   C  mfeprimer (19)            dış özgüllüğün ikinci bağımsız ölçümü
-#   D  topluluk trendi (21)      bolluk kitabını cins düzeyi esaslı kurar
-#   E  öz denetim (17, 18)       regresyon ve teslim denetimi
-#   F  Kraken2 güven eşiği        çıktı dosyalarından, veritabanı gerekmez
-#                                (önce eşik taraması, sonra seçilen eşik)
-#   G  Excel teslimatı (13)      ölçülen kimlik sütunlarıyla, B'den sonra
-#   H  geniş dış VT taraması     SILVA, UNITE, ROD, PR2; SAATLER sürer,
-#                                yalnız "--yalniz H" ile çalışır
+# The steps:
+#   A  bin recovery            builds the B-1_2233851 consensus from the reads
+#   B  target identity         puts each target's name and what the sequence
+#                              shows side by side
+#   C  mfeprimer               the second independent measurement of external
+#                              specificity
+#   D  community trend         builds the abundance workbook on a genus level base
+#   E  the self audit          the regression and delivery audits
+#   F  the Kraken2 confidence  from the output files; no database is needed
+#      threshold               (the threshold scan first, then the chosen threshold)
+#   G  the Excel delivery      with the measured identity columns, after B
+#   H  the broad external      SILVA, UNITE, ROD, PR2; it takes HOURS and runs
+#      database scan           only with "--yalniz H"
 #
-# Her adım kendi log'unu $PT/agir_log altına yazar; hiçbiri diğerinin
-# çıktısını silmez. Bir adım hata verirse betik DURMAZ, hatayı işaretler
-# ve devam eder; sonda hangi adımların başarısız olduğu listelenir.
+# Every step writes its own log under $PT/agir_log and none of them deletes
+# another's output. If a step fails the script DOES NOT STOP, it marks the failure
+# and carries on; at the end it lists which steps failed.
 # =====================================================================
 set -uo pipefail
 
@@ -51,7 +52,7 @@ while [ $# -gt 0 ]; do
     --kraken) KRAKEN=1; shift;;
     --yalniz) YALNIZ="$2"; shift 2;;
     --pt) PT="$2"; shift 2;;
-    *) echo "bilinmeyen secenek: $1" >&2; exit 2;;
+    *) echo "unknown option: $1" >&2; exit 2;;
   esac
 done
 
@@ -61,18 +62,18 @@ ts(){ date '+%Y-%m-%d %H:%M:%S'; }
 say(){ printf '[%s] %s\n' "$(ts)" "$*" | tee -a "$ANA"; }
 BASARISIZ=()
 
-calistir() {   # $1 = adim harfi, $2 = aciklama, gerisi komut
+calistir() {   # $1 = the step letter, $2 = a description, the rest is the command
   local h="$1" ac="$2"; shift 2
   if [ -n "$YALNIZ" ] && [ "$YALNIZ" != "$h" ]; then return 0; fi
   say "----------------------------------------------------------------"
-  say "ADIM $h  $ac"
+  say "STEP $h  $ac"
   local t0=$(date +%s)
   "$@" 2>&1 | tee -a "$LOGD/adim_$h.log" | tail -n 40
   local rc=${PIPESTATUS[0]}
-  say "ADIM $h bitti, cikis=$rc, sure=$(( ($(date +%s)-t0)/60 )) dakika"
+  say "STEP $h finished, exit=$rc, time=$(( ($(date +%s)-t0)/60 )) minutes"
   if [ "$rc" -ne 0 ]; then
     BASARISIZ+=("$h ($ac), cikis=$rc")
-    say "  DIKKAT: bu adim hata verdi, tam log: $LOGD/adim_$h.log"
+    say "  CAREFUL: this step failed, the full log: $LOGD/adim_$h.log"
   fi
 }
 
@@ -87,7 +88,7 @@ say "bagimlilik denetimi"
 EKSIK=()
 for k in blastn python3; do command -v "$k" >/dev/null 2>&1 || EKSIK+=("$k"); done
 [ -x "$MFE" ] || { chmod +x "$MFE" 2>/dev/null || true; }
-[ -x "$MFE" ] || EKSIK+=("mfeprimer (calistirilabilir degil: $MFE)")
+[ -x "$MFE" ] || EKSIK+=("mfeprimer (not executable: $MFE)")
 python3 - <<'PYX' 2>&1 | tee -a "$ANA"
 for m in ("primer3", "Bio", "mappy", "openpyxl"):
     try:
@@ -98,33 +99,33 @@ for m in ("primer3", "Bio", "mappy", "openpyxl"):
 PYX
 if [ ${#EKSIK[@]} -gt 0 ]; then
   say "EKSIK: ${EKSIK[*]}"
-  say "  blastn icin: sudo apt-get install -y ncbi-blast+"
+  say "  for blastn: sudo apt-get install -y ncbi-blast+"
 fi
 
-# --- A. kutu kurtarma -------------------------------------------------
-# B-1_2233851 self referansi %19 IUPAC oldugu icin minimap2 o diziden
-# yalnizca 2 minimizer cikarabiliyor ve konsensus sifir uzunlukta cikiyor.
-# Okumalar yerinde (5914 tane); kalip okumalarin kendisinden kurulur.
+# --- A. bin recovery --------------------------------------------------
+# Because the B-1_2233851 self reference is 19 percent IUPAC, minimap2 can pull only
+# 2 minimizers out of that sequence and the consensus comes out zero length. The
+# reads are there (5914 of them); the template is built from the reads themselves.
 KURT_FQ="$PT/fastq files/B-1/B-1-reads_2233851.fastq"
 if [ -f "$KURT_FQ" ] && [ ! -s "$KONS/B-1_2233851_baskin_konsensus.fasta" ]; then
-  calistir A "kutu kurtarma (20): B-1_2233851" \
+  calistir A "bin recovery: B-1_2233851" \
     python3 "$HERE/recover_bins.py" --fastq "$KURT_FQ" \
       --etiket B-1_2233851 --out "$KONS"
 else
-  say "ADIM A atlandi (fastq yok ya da konsensus zaten var)"
+  say "STEP A was skipped (there is no fastq, or the consensus is there already)"
 fi
 
-# --- B. hedef kimligi -------------------------------------------------
-calistir B "hedef kimligi (22): ad ile dizinin gosterdigi karsilastirmasi" \
+# --- B. target identity -----------------------------------------------
+calistir B "target identity: the name against what the sequence shows" \
   python3 "$HERE/target_identity.py" --kons "$KONS" --db "$PT/REFERANS_DB" \
     --hedefler "$HERE/hedefler.tsv" --adlar "$HERE/taxid_adlari.tsv" \
     --is-parcacigi "$IS" --out "$FINAL/hedef_kimlik.tsv"
 
 # --- C. mfeprimer -----------------------------------------------------
-# Bulut kutusunda bacteria.16S adiminda bellek yetmedi. Burada 16 GB var,
-# ama yine de veritabani basina zaman asimi konuyor ve asilan veritabani
-# "olculemedi" olarak isaretleniyor, sessizce temiz sayilmiyor.
-calistir C "mfeprimer (19): dis ozgullugun ikinci olcumu" \
+# In a small container the bacteria.16S step ran out of memory. There is 16 GB
+# here, but a timeout is still set per database and a database that goes over it is
+# marked "olculemedi" rather than being counted clean silently.
+calistir C "mfeprimer: the second measurement of external specificity" \
   python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" --db "$PT/REFERANS_DB" \
     --mfe "$MFE" --cpu "$IS" --zaman-asimi 7200 \
     --out "$FINAL/mfeprimer.tsv"
@@ -136,96 +137,97 @@ for f in "$PT"/t_kimlik/kimlik_*.tsv "$HERE"/kimlik_*.tsv \
   [ -f "$f" ] && KIMLIK+=("$f")
 done
 if [ ${#KIMLIK[@]} -eq 0 ]; then
-  say "UYARI: kimlik_*.tsv bulunamadi. Tur duzeyi guvenilirlik isareti"
-  say "  yalnizca ayirt_edilemez.tsv'den turetilecek, kutu kimligi olcumu"
-  say "  devre disi kalacak. Beklenen konum: $HERE/kimlik/"
+  say "WARNING: no kimlik_*.tsv was found. The species level reliability mark"
+  say "  will be derived from ayirt_edilemez.tsv alone, and the bin identity"
+  say "  measurement will be off. The expected location: $HERE/kimlik/"
 fi
-# Once rutbe kapsamasi olculur: bolluk hangi rutbede okunabilir. Bracken
-# CALISTIRILMAZ; gerekcesi 25'in basinda ve bolluk_rutbe_kaniti.md'de.
+# The rank coverage is measured first: at which rank can the abundance be read.
+# Bracken IS NOT RUN; the reasoning is at the head of abundance_rank.py and in
+# bolluk_rutbe_kaniti.md.
 RUTBEARG=""
 if [ -d "$PT/kraken_c${SECILEN_ESIK:-0.02}" ]; then
-  calistir D0 "rutbe kapsamasi (25): bolluk hangi rutbede okunabilir" \
+  calistir D0 "rank coverage: at which rank can the abundance be read" \
     python3 "$HERE/abundance_rank.py" \
       --kraken "$PT/kraken_c${SECILEN_ESIK:-0.02}" \
       --out "$PT/bolluk_rutbe"
   [ -s "$PT/bolluk_rutbe/ozet.tsv" ] && RUTBEARG="--rutbe $PT/bolluk_rutbe"
 else
-  say "  NOT: kraken_c${SECILEN_ESIK:-0.02} yok, rutbe kapsamasi atlandi."
-  say "       Once: SECILEN_ESIK=0.02 bash heavy_jobs.sh --yalniz F"
+  say "  NOTE: there is no kraken_c${SECILEN_ESIK:-0.02}, the rank coverage was skipped."
+  say "       First: SECILEN_ESIK=0.02 bash heavy_jobs.sh --yalniz F"
 fi
-calistir D "topluluk trendi (21): rutbe farkindali bolluk kitabi" \
+calistir D "the community trend: a rank aware abundance workbook" \
   python3 "$HERE/community_trends.py" --bracken "$PT/bracken results" \
     --ayirt "$ADAY/ayirt_edilemez.tsv" \
     ${KIMLIK[@]+--kimlik "${KIMLIK[@]}"} \
     --adlar "$HERE/taxid_adlari.tsv" $RUTBEARG \
-    --out "$PT/Microbooster_Topluluk_Trend_Analizi.xlsx"
+    --out "$PT/PrimerJury_Community_Trends.xlsx"
 
-# --- E. oz denetim ----------------------------------------------------
-calistir E "oz denetim (17): regresyon takimi" \
+# --- E. the self audit ------------------------------------------------
+calistir E "the self audit: the regression suite" \
   python3 "$HERE/regression_test.py" --gercek-veri --aday "$ADAY" --kons "$KONS"
-# 18 KRITIK bulgu bulunca cikis kodu 1 doner. Bu bir COKME DEGIL, bir
-# BULGUDUR: ham primer_final.tsv'de alan karisimi satirlari duruyor ve
-# Excel bunlari zaten disariya aliyor. Ikisini ayirmazsak her kosuda
-# "basarisiz adim" yazar ve gercek cokmeler gozden kacar.
+# check_deliverables.py returns exit code 1 when it finds a CRITICAL item. That IS
+# NOT A CRASH, it is A FINDING: the raw primer_final.tsv holds mixed domain rows and
+# the Excel already leaves them out. Without separating the two, every run says "a
+# failed step" and the real crashes go unnoticed.
 say "----------------------------------------------------------------"
-say "ADIM E2  oz denetim (18): teslim denetimi"
+say "STEP E2  the self audit: the delivery audit"
 T0E2=$(date +%s)
 python3 "$HERE/check_deliverables.py" --final "$FINAL" --kons "$KONS" \
   --hedefler "$HERE/hedefler.tsv" --out "$FINAL/teslim_denetimi.tsv" \
   2>&1 | tee -a "$LOGD/adim_E2.log" | tail -n 40
 RCE2=${PIPESTATUS[0]}
-say "ADIM E2 bitti, cikis=$RCE2, sure=$(( ($(date +%s)-T0E2)/60 )) dakika"
+say "STEP E2 finished, exit=$RCE2, time=$(( ($(date +%s)-T0E2)/60 )) minutes"
 if [ "$RCE2" = 1 ]; then
-  say "  E2: KRITIK bulgu var (cokme degil). Bulgular:"
+  say "  E2: there is a CRITICAL finding (not a crash). The findings:"
   awk -F'\t' 'NR>1 && $1=="KRITIK"{say[$4]++} END{for(k in say) printf "     %-24s %d\n", k, say[k]}' \
     "$FINAL/teslim_denetimi.tsv" 2>/dev/null | tee -a "$ANA"
-  say "  Bu bulgular calisma kitabindan zaten cikariliyor; ham tabloda kaliyor."
+  say "  These findings are already left out of the workbook; they stay in the raw table."
 elif [ "$RCE2" -ne 0 ]; then
   BASARISIZ+=("E2 (teslim denetimi cokmesi), cikis=$RCE2")
-  say "  DIKKAT: bu adim COKTU, tam log: $LOGD/adim_E2.log"
+  say "  CAREFUL: this step CRASHED, the full log: $LOGD/adim_E2.log"
 fi
 
-# --- F. Kraken2 guven esigi ------------------------------------------
-# ONEMLI: yeniden siniflandirmaya GEREK YOK. Kraken2'nin --output dosyalari
-# her okumanin k-mer LCA dizisini zaten tasiyor; guven puani tam olarak
-# o diziden hesaplanir. 106 GB veritabani da, ham barkod fastq dosyalari
-# da gerekmez. Olculdu: vurus taksonlarinin %99,84'u rapor dosyalarindan
-# kurulan agacta yer aliyor.
+# --- F. the Kraken2 confidence threshold -----------------------------
+# IMPORTANT: reclassifying IS NOT NEEDED. Kraken2's --output files already carry the
+# k-mer LCA sequence of every read, and the confidence score is computed from
+# exactly that sequence. Neither the 106 GB database nor the raw barcode fastq files
+# are required. Measured: 99.84 percent of the hit taxa are in the tree built from
+# the report files.
 #
-# Esik EZBERDEN SECILMEZ. Kisa okuma verisi icin sik onerilen 0,1 degeri
-# bu ONT verisinde okumalarin %69'unu siniflandirilmamis birakiyor, cunku
-# ONT okumalarinin k-mer'lerinin cogu veritabaninda karsilik bulmuyor ve
-# bu k-mer'ler puanin paydasina giriyor. Once tarama calisir, esik
-# tablodan secilir.
+# THE THRESHOLD IS NOT CHOSEN FROM MEMORY. The 0.1 value often recommended for short
+# read data leaves 69 percent of the reads unclassified on this ONT data, because
+# most of the k-mers of an ONT read find no counterpart in the database and those
+# k-mers enter the denominator of the score. The scan runs first and the threshold is
+# chosen from the table.
 if [ "$KRAKEN" = 1 ] || [ "$YALNIZ" = "F" ]; then
   if [ ! -d "$PT/kraken results" ]; then
-    say "ADIM F atlandi: 'kraken results' klasoru yok"
+    say "STEP F was skipped: there is no 'kraken results' directory"
   else
-    calistir F "Kraken2 guven esigi taramasi (24)" \
+    calistir F "the Kraken2 confidence threshold scan" \
       python3 "$HERE/reassign_confidence.py" --kraken "$PT/kraken results" \
         --tarama 0,0.002,0.005,0.01,0.02,0.05,0.1 --tarama-okuma 20000 \
         --out "$PT/kraken_guven"
-    say "  Tarama tablosu: $PT/kraken_guven/esik_taramasi.tsv"
-    say "  Esigi secip su komutu calistirin:"
+    say "  The scan table: $PT/kraken_guven/esik_taramasi.tsv"
+    say "  Choose a threshold and run this command:"
     say "    python3 $HERE/reassign_confidence.py \\"
     say "        --kraken '$PT/kraken results' --confidence <ESIK> \\"
     say "        --out '$PT/kraken_c<ESIK>'"
     if [ -n "${SECILEN_ESIK:-}" ]; then
-      calistir F2 "Kraken2 guven esigi uygulamasi (24), esik=$SECILEN_ESIK" \
+      calistir F2 "applying the Kraken2 confidence threshold, threshold=$SECILEN_ESIK" \
         python3 "$HERE/reassign_confidence.py" --kraken "$PT/kraken results" \
           --confidence "$SECILEN_ESIK" --out "$PT/kraken_c$SECILEN_ESIK"
     fi
   fi
 fi
 
-# --- G. Excel teslimatini yenile --------------------------------------
-# B adiminda uretilen hedef_kimlik.tsv, calisma kitabina "olculen kimlik"
-# sutunu olarak girer. Bu yuzden Excel B'den SONRA yeniden uretilir.
+# --- G. refresh the Excel delivery ------------------------------------
+# The hedef_kimlik.tsv produced in step B enters the workbook as the "olculen
+# kimlik" column. That is why the Excel is reproduced AFTER B.
 if [ -z "$YALNIZ" ] || [ "$YALNIZ" = "G" ]; then
   REFC="$PT/primer_referans"
   REFARG=""
   [ -s "$REFC/primer_referans.tsv" ] && REFARG="--referans $REFC/primer_referans.tsv"
-  calistir G "Excel teslimati (13), olculen kimlik sutunlariyla" \
+  calistir G "the Excel delivery, with the measured identity columns" \
     python3 "$HERE/export_excel.py" \
       --aday "$ADAY" --final "$FINAL" --bol "$ADAY/kume_setleri" \
       --adlar "$HERE/taxid_adlari.tsv" --hedefler "$HERE/hedefler.tsv" \
@@ -233,45 +235,45 @@ if [ -z "$YALNIZ" ] || [ "$YALNIZ" = "G" ]; then
       --out "$PT/PrimerJury_Primer_Tasarimi.xlsx"
 fi
 
-# --- H. genis dis veritabani taramasi ---------------------------------
-# Dar kume (NCBI RefSeq 16S ve ITS) yalnizca tip susu ve temsilci dizileri
-# icerir; kulturlenmemis cevresel soylar orada YOKTUR. Bu numunede
-# bakteri hedeflerinin ucunun RefSeq'te %90 uzeri akrabasi bile
-# bulunamadi, yani topluluğun buyuk kismi dar kumede temsil edilmiyor.
-# SILVA SSU NR99, UNITE, ROD ve PR2 cevresel dizileri de tasir.
-# UZUN SURER (saatler); bu yuzden ayri adim ve elle baslatilir.
+# --- H. the broad external database scan ------------------------------
+# The narrow set (NCBI RefSeq 16S and ITS) holds only type strain and representative
+# sequences; uncultured environmental lineages ARE NOT THERE. In this sample not
+# even a relative above 90 percent could be found in RefSeq for three of the
+# bacterial targets, so much of the community is not represented in the narrow set.
+# SILVA SSU NR99, UNITE, ROD and PR2 carry environmental sequences too.
+# IT TAKES A LONG TIME (hours), which is why it is a separate step started by hand.
 if [ "$YALNIZ" = "H" ]; then
-  calistir H "genis dis veritabani taramasi (14 --genis)" \
+  calistir H "the broad external database scan (external_databases.py --genis)" \
     python3 "$HERE/external_databases.py" --final "$FINAL" \
       --db "$PT/REFERANS_DB" --genis --is-parcacigi "$IS" --kons "$KONS" \
       --hedefler "$HERE/hedefler.tsv" --adlar "$HERE/taxid_adlari.tsv" \
       --kimlik "$FINAL/hedef_kimlik.tsv" \
       --zaman-asimi 21600 --out "$FINAL/dis_veritabani_genis.tsv"
-  calistir H2 "genis kume, ikinci olcum (19 --genis)" \
+  calistir H2 "the broad set, the second measurement (mfeprimer_layer.py --genis)" \
     python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" \
       --db "$PT/REFERANS_DB" --mfe "$MFE" --genis --cpu "$IS" \
       --zaman-asimi 21600 --blast "$FINAL/dis_veritabani_genis.tsv" \
       --out "$FINAL/mfeprimer_genis.tsv"
 fi
 
-# --- ozet -------------------------------------------------------------
+# --- the summary ------------------------------------------------------
 say "----------------------------------------------------------------"
-say "OZET"
+say "SUMMARY"
 for f in "$FINAL/hedef_kimlik.tsv" "$FINAL/mfeprimer.tsv" \
          "$FINAL/teslim_denetimi.tsv" \
-         "$PT/Microbooster_Topluluk_Trend_Analizi.xlsx" \
+         "$PT/PrimerJury_Community_Trends.xlsx" \
          "$KONS/B-1_2233851_baskin_konsensus.fasta"; do
   if [ -s "$f" ]; then
-    say "  VAR    $(basename "$f")  ($(stat -c%s "$f") bayt)"
+    say "  PRESENT  $(basename "$f")  ($(stat -c%s "$f") bytes)"
   else
-    say "  YOK    $(basename "$f")"
+    say "  MISSING  $(basename "$f")"
   fi
 done
 if [ ${#BASARISIZ[@]} -gt 0 ]; then
-  say "BASARISIZ ADIMLAR:"
+  say "THE STEPS THAT FAILED:"
   for x in "${BASARISIZ[@]}"; do say "   $x"; done
-  say "Tam loglar: $LOGD"
+  say "The full logs: $LOGD"
   exit 1
 fi
-say "butun adimlar tamamlandi"
-say "Loglar: $LOGD"
+say "every step finished"
+say "The logs: $LOGD"

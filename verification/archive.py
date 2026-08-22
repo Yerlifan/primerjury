@@ -106,7 +106,7 @@ def adaylar(kok):
             continue
         # ONLY the files that CARRY A PRIMER SEQUENCE and whose sequences are OLD are
         # candidates. Saying "every xlsx" drags along an analysis file that has nothing to
-        # do with primers (Topluluk_Trend_Analizi); that is a delivery product and holds not
+        # do with primers (the community trend workbook); that is a delivery product and holds
         # one primer.
         n_dizi, n_guncel = _xlsx_dizi_sayimi(f, _guncel_diziler(kok))
         if n_dizi == 0:
