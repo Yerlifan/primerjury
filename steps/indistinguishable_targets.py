@@ -2,25 +2,26 @@
 # -*- coding: utf-8 -*-
 """
 indistinguishable_targets.py
-Aynı amplikon sınıfı içinde, FARKLI taksonlara atanmış ama dizi düzeyinde
-birbirinden ayırt edilemeyen konsensüsleri bulur.
+Finds consensuses inside the same amplicon class that are assigned to DIFFERENT
+taxa but cannot be told apart at sequence level.
 
-Neden gerekli: Kraken2 tek bir popülasyonun okumalarını kardeş tür
-düğümlerine dağıtabiliyor. Bu durumda iki ayrı "takson" kutusu aynı diziyi
-üretir. Böyle bir kutu rakip listesine girerse "rakipte ürün oluşmasın"
-kuralı mantıken sağlanamaz hale gelir ve hedef sessizce sıfır aday verir.
-Bu betik o çiftleri açıkça listeler; 08 aynı ölçümü kullanarak rakip
-kümesini temizler ve her çıkarmayı log'lar.
+Why it is needed: Kraken2 can spread the reads of a single population across
+sibling species nodes. Two separate "taxon" bins then produce the same sequence. If
+such a bin goes into the competitor list, the rule "no product in a competitor"
+cannot logically be met and the target silently gives zero candidates. This script
+lists those pairs plainly; batch_design.py uses the same measurement to clean the
+competitor set and logs every removal.
 
-Ölçüm iki bağımsız yoldan yapılır:
-  1. minimap2 (mappy) hizalaması, iki yönde ayrı ayrı
-  2. hizalamadan bağımsız kanonik k-mer kapsaması
-İki ölçüm ayrışırsa çift "ayrisan_olcum" olarak işaretlenir ve karar
-temkinli tarafta verilir (ayırt edilemez sayılır).
+The measurement is made two independent ways:
+  1. a minimap2 (mappy) alignment, in each direction separately
+  2. canonical k-mer coverage, independent of any alignment
+If the two measurements diverge the pair is marked "ayrisan_olcum" and the decision
+is made on the cautious side (it counts as indistinguishable).
 
-Kullanım:
-  python3 indistinguishable_targets.py --kons <klasor> [--out ayirt_edilemez.tsv]
-  python3 indistinguishable_targets.py --kons <klasor> --adlar taxid_adlari.tsv
+Usage:
+  python3 indistinguishable_targets.py --kons <directory> [--out ayirt_edilemez.tsv]
+  python3 indistinguishable_targets.py --kons <directory> --adlar taxid_adlari.tsv
+
 """
 import argparse, csv, glob, os, re, sys
 
@@ -32,9 +33,9 @@ MAPPY = alignment.ARKA_UC is not None
 
 TAMLAYICI = str.maketrans("ACGTRYSWKMBDHVN", "TGCAYRSWMKVHDBN")
 
-# IUPAC kodunun temsil ettigi baz kumesi. Hizalayici bu kodlari sessizce
-# eslesme sayabilir; o zaman iki konsensus "ayni" gorunur ama aslinda biri
-# W (A ya da T), oteki T'dir. Bu yuzden ozdeslik ASAGIDA kendimiz sayilir.
+# The base set an IUPAC code stands for. An aligner can count these codes silently
+# as a match; then two consensuses look "the same" while one of them is W (A or T)
+# and the other T. That is why the identity is counted BELOW, by us.
 IUPAC_KUME = {"A": "A", "C": "C", "G": "G", "T": "T",
               "R": "AG", "Y": "CT", "S": "CG", "W": "AT", "K": "GT",
               "M": "AC", "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG",
@@ -42,21 +43,25 @@ IUPAC_KUME = {"A": "A", "C": "C", "G": "G", "T": "T",
 
 
 def baz_kesisir(x, y):
-    """Iki konumun alel kumeleri kesisiyor mu.
+    """Do the allele sets of two positions intersect.
 
-    N EŞLEŞME SAYILMAZ. N "her baz olabilir" degil, "veri yok" demektir;
-    her bazla kesistirilirse N orani yuksek dosyalarda kesisimli ozdeslik
-    yapay olarak yukselir ve iki takson gercekte ayrilabilirken ayirt
-    edilemez sayilir. Ayni kural baglanma tarafinda da gecerlidir
-    (04'teki base_match kalipta N'i uyumsuz sayar)."""
+    AN N DOES NOT COUNT AS A MATCH. N does not mean "any base could be here", it means
+    "there is no data"; intersected with every base it raises the intersecting identity
+    artificially on files with a high N ratio, and two taxa that really can be separated
+    count as indistinguishable. The same rule holds on the binding side
+    (base_match in design_group_primers.py counts an N in the template as a mismatch).
+
+    """
     if x == "N" or y == "N":
         return False
     return bool(set(IUPAC_KUME.get(x, "")) & set(IUPAC_KUME.get(y, "")))
 
-# Eşikler. Veriden değil kuraldan gelir ve burada tek yerde tanımlıdır:
-#   OZDESLIK_ESIK : bu özdeşliğin üstünde iki kutu ayırt edilemez sayılır
-#   UZUNLUK_ESIK  : bu kadar bazdan kısa hizalama karar için yetersizdir
-#   KAPSAMA_ESIK  : mappy yokken kullanılan kaba ölçüt
+# The thresholds. They come from the rule rather than from the data and are defined
+# here in one place:
+#   OZDESLIK_ESIK : above this identity two bins count as indistinguishable
+#   UZUNLUK_ESIK  : an alignment shorter than this many bases is not enough to
+#                   decide on
+#   KAPSAMA_ESIK  : the rough criterion used when mappy is absent
 OZDESLIK_ESIK = 99.5
 UZUNLUK_ESIK = 500
 KAPSAM_ESIK = 0.60      # hizalama, kisa dizinin en az bu kadarini ortmeli
@@ -82,16 +87,18 @@ def kanonik_kmer(s, k=21):
 
 
 def hizala(s1, s2):
-    """(hizalanan_uzunluk, kesisimli_ozdeslik, kati_ozdeslik) doner.
+    """Returns (aligned_length, intersecting_identity, strict_identity).
 
-    kesisimli_ozdeslik : alel kumeleri kesisen konumlar eslesme sayilir.
-        Primer tasarimini ilgilendiren olcut budur; kumeler kesisiyorsa o
-        konumda hicbir primer bazi iki kalibi ayiramaz.
-    kati_ozdeslik      : karakterler birebir ayni mi. W ile T farkli sayilir.
+    intersecting_identity : positions whose allele sets intersect count as a match.
+        That is the criterion primer design cares about; if the sets intersect, no
+        primer base at that position can separate the two templates.
+    strict_identity       : are the characters exactly the same. W and T count as
+        different.
 
-    Hizalayicinin kendi mlen degeri kullanilmaz, cunku IUPAC kodlarini
-    sessizce eslesme sayabilir ve iki konsensus oldugundan daha benzer
-    gorunur."""
+    The aligner's own mlen value is not used, because it can count IUPAC codes silently
+    as matches and make two consensuses look more alike than they are.
+
+    """
     if not MAPPY:
         return (0, 0.0, 0.0)
     try:
@@ -171,28 +178,29 @@ def ayirt_edilemezler(temsil, ozdeslik_esik=OZDESLIK_ESIK,
             s1 = temsil[(sn, t1)][2]
             for t2 in txs[i + 1:]:
                 s2 = temsil[(sn, t2)][2]
-                # 1. olcum: iki yonde hizalama
-                # Uzunluk, kapsam ve ozdeslik AYNI hizalamadan alinir;
-                # farkli yonlerden karistirilirsa olcutler birbirini
-                # tutmayan hizalamalara ait olur.
+                # Measurement 1: alignment in both directions
+                # The length, the coverage and the identity are taken from the
+                # SAME alignment; mixed across different directions the criteria
+                # would belong to alignments that do not agree with one another.
                 u12, o12, k12 = hizala(s1, s2)
                 u21, o21, k21 = hizala(s2, s1)
                 if u12 >= u21:
                     u, o, kati = u12, o12, k12
                 else:
                     u, o, kati = u21, o21, k21
-                # Yerel hizalama yalnizca korunmus omurgayi ortebilir ve
-                # ozdeslik boylece yukari sapar. Bu yuzden hizalamanin KISA
-                # dizinin ne kadarini ortugu de kosula alinir.
-                # Pay ve payda ayni birimde olmali: hizalamanin ortugu
-                # KOLON sayisi (toplam) ile kisa dizinin ham uzunlugu.
-                # Eski surumde pay hizalama blok uzunlugu, payda N'siz
-                # uzunluktu; N orani yuksek dosyalarda kapsam 1'i asabiliyordu.
+                # A local alignment can cover the conserved backbone alone and the
+                # identity then drifts upward. So how much of the SHORT sequence the
+                # alignment covers is put into the condition as well.
+                # The numerator and the denominator have to be in the same unit: the
+                # number of COLUMNS the alignment covers (the total) against the raw
+                # length of the short sequence. In the old version the numerator was
+                # the alignment block length and the denominator the length without
+                # N; on files with a high N ratio the coverage could go above 1.
                 kisa = min(len(s1), len(s2))
                 kapsam = min(1.0, u / max(1, kisa))
                 hiz_der = (u >= uzunluk_esik and kapsam >= KAPSAM_ESIK and
                            o >= ozdeslik_esik)
-                # 2. olcum: hizalamadan bagimsiz k-mer kapsamasi
+                # Measurement 2: k-mer coverage, independent of the alignment
                 K1, K2 = kmer[t1], kmer[t2]
                 kap = len(K1 & K2) / max(1, min(len(K1), len(K2)))
                 kap_der = kap >= kapsama_esik
