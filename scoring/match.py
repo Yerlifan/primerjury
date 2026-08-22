@@ -137,7 +137,7 @@ def main():
     print('  ARMS: %d   [%.1f sn]' % (len(arms), time.time() - t0))
 
     # ON ELEME BAGLAYICILIK KONTROLU: siralamanin GERI KALANINDAN rastgele ornek.
-    # Kisa listede olmayan adaylardan alinir; ayni derinlikte olculur.
+    # Taken from the candidates not in the short list; measured at the same depth.
     import random as _r
     kalan = [c for c in sirali if c not in kisa]
     _r.Random(20260810).shuffle(kalan)

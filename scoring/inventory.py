@@ -36,7 +36,7 @@ HEDEFLER = [
     'Bakteri_universal',
 ]
 
-# Korunmus rRNA capalari. Ad -> (dizi, hangi operon parcasi)
+# The conserved rRNA anchors. Name -> (sequence, which part of the operon)
 CAPALAR = [
     ('27F',     'AGAGTTTGATCMTGGCTCAG', 'SSU 5\' ucu (bakteri/arke)'),
     ('515F',    'GTGYCAGCMGCCGCGGTAA',  'SSU V4 (evrensel)'),
@@ -101,7 +101,7 @@ def main():
                 kseq = ''.join(l.strip() for l in open(ku['yol'], encoding='utf-8',
                                                        errors='ignore')
                                if not l.startswith('>')).upper()
-            # capa taramasi: konsensus + ilk 300 okuma (iki yonde)
+            # the anchor scan: the consensus plus the first 300 reads (in both directions)
             capa = {}
             ac = gzip.open if k['yol'].endswith('.gz') else open
             ornek = []

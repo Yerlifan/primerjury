@@ -82,10 +82,10 @@ class Puanlayici(object):
         if not self.uy_yol:
             raise SystemExit('HATA: uyelik tablosu bulunamadi.')
         self.uyelik = self.TP.uyelik_oku(self.uy_yol)
-        # EK CIFTLER: panelde olmayan ciftler uyeligi kendi adiyla degil
-        # 'uyelik_hedefi' sutunuyla cozer (tek_protokol_olc.calistir ile ayni).
-        # Bu satir olmadan Petriella_cinsi uyeliksiz kaliyor ve OLCULEMEDI
-        # dusuyordu - kalibrasyonda yakalandi.
+        # THE EXTRA PAIRS: a pair that is not in the panel resolves its membership
+        # not by its own name but through the 'uyelik_hedefi' column (the same as
+        # tek_protokol_olc.calistir). Without this line Petriella_cinsi was left with
+        # no membership and fell to OLCULEMEDI; it was caught in the calibration.
         self.ek_uyelik = {}
         for e in self.TP.ek_ciftler_oku(self.kok):
             if e.get('uyelik_hedefi'):
