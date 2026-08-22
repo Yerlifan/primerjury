@@ -508,8 +508,10 @@ def kontrol_bicim(bulgu):
 # path in a public repository. engine/inventory.py, engine/multi_locus.py and
 # engine/target_full.py all defaulted their project root to /tmp/fl/kok and
 # died at import on any other machine.
-_MUTLAK = re.compile(r"""['"](/tmp/fl\b|/home/[a-z]|/mnt/[a-z]/Users/|"""
-                     r"""[A-Z]:[\\/]Users[\\/])""")
+# The leading quote is NOT required: the path can also sit inside a shell default
+# such as ${PT:-/mnt/c/Users/...}, and requiring a quote let exactly that through.
+_MUTLAK = re.compile(r"""(/tmp/fl|/home/[a-z]|/mnt/[a-z]/Users/|"""
+                     r"""[A-Z]:[\/]Users[\/])""")
 
 
 def kontrol_mutlak_yol(bulgu):

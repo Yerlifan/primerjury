@@ -266,7 +266,7 @@ tus_kraken_yol() {
     printf '%s\n' "$BAKILAN_YERLER" | sed '/^$/d'
     echo
     echo "The place this project expects:  \$HOME/micromamba/envs/${ORTAM:-mikro}/bin/kraken2"
-    echo "  (for a WSL user named alice that is: /home/alice/micromamba/envs/mikro/bin/kraken2)"
+    echo "  (with \$HOME expanded that is: $HOME/micromamba/envs/${ORTAM:-mikro}/bin/kraken2)"
     echo
     echo "INSTALL - the route this project uses:"
     echo "    bash install.sh tools"
