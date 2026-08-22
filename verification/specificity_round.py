@@ -40,7 +40,7 @@ THREE STATES, NOT TWO
 #
 # INPUT  : RECOVERY_RESULT/kurtarma_satirlari.tsv (which pairs to verify),
 #          ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the primer sequences),
-#          the KUMELER list under REFERANS_DB/, the tools/mfeprimer indexes,
+#          the KUMELER list under REFERENCE_DB/, the tools/mfeprimer indexes,
 #          NCBI Primer-BLAST (over the network) or a hand filled
 #          NCBI_SONUC_SABLONU.tsv.
 # OUTPUT : VERIFICATION_RESULT/dogrulama_uc_sutun.tsv (the main table),
@@ -312,13 +312,13 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
     if kume_ust:
         # only the N smallest sets (for a quick test; this is evidence that it RUNS, not coverage)
         var = [(e, d, a) for e, d, a in kumeler
-               if os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]
-        var.sort(key=lambda t: os.path.getsize(os.path.join(kok, 'REFERANS_DB', t[1])))
+               if os.path.exists(os.path.join(kok, 'REFERENCE_DB', d))]
+        var.sort(key=lambda t: os.path.getsize(os.path.join(kok, 'REFERENCE_DB', t[1])))
         kumeler = var[:kume_ust]
         yaz(u'  (cluster-max=%d: scanning only %s. This is evidence that it RUNS, not coverage)'
             % (kume_ust, ', '.join(e for e, _, _ in kumeler)))
     for etiket, dosya, aciklama in kumeler:
-        db = os.path.join(kok, 'REFERANS_DB', dosya)
+        db = os.path.join(kok, 'REFERENCE_DB', dosya)
         if not os.path.exists(db):
             yaz(u'  [%s] SKIPPED, file missing: %s' % (etiket, dosya))
             for h in toplam:
@@ -1604,7 +1604,7 @@ def main():
             % ', '.join(_ATLANAN))
     for c in ciftler:
         yaz(u'     - %-42s %s' % (c['hedef'][:42], c['tur']))
-    n_kume = sum(1 for _, d, _ in KUMELER if os.path.exists(os.path.join(kok, 'REFERANS_DB', d)))
+    n_kume = sum(1 for _, d, _ in KUMELER if os.path.exists(os.path.join(kok, 'REFERENCE_DB', d)))
     yaz('')
     # THE TIME STATEMENT (2026-08-07): the old line ESTIMATED 240 s per set and printed
     # "11.7 hours". MEASUREMENT did not bear that out: with the checkpoints ready, the

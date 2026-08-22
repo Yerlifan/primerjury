@@ -30,7 +30,7 @@ identity result should be trusted.
 # access_check.py proves whether each reference database is REALLY BEING USED BY THE
 # SEARCH, by measuring recall.
 #
-# INPUT  : the FASTA sets under REFERANS_DB/ (which of them to ask is read from the
+# INPUT  : the FASTA sets under REFERENCE_DB/ (which of them to ask is read from the
 #          VTB list inside identity_verification.py) and those sets' OWN records; the
 #          query does not come from outside, it is chosen from inside the database.
 # OUTPUT : ACCESS_RESULT/erisim_dogrulama.tsv (GECTI / KISMEN / DUSTU per database,
@@ -89,18 +89,18 @@ def main():
         _eksik.append('verification klasoru')
     elif not os.path.exists(_kd_yolu):
         _eksik.append('verification/identity_verification.py')
-    if not os.path.isdir(os.path.join(kok, 'REFERANS_DB')):
-        _eksik.append('REFERANS_DB klasoru')
+    if not os.path.isdir(os.path.join(kok, 'REFERENCE_DB')):
+        _eksik.append('REFERENCE_DB klasoru')
     if _eksik:
         sys.stderr.write(
-            u'ERROR: %s does not contain %s.\n  This script runs from the project root. The root is the same directory as\n  verification/full_chain.py, and it holds verification/ and REFERANS_DB/.\n  Correct use:  python3 verification/access_check.py --root <project directory>\n  If you come from the menu the root is supplied correctly on its own (key E).\n'
+            u'ERROR: %s does not contain %s.\n  This script runs from the project root. The root is the same directory as\n  verification/full_chain.py, and it holds verification/ and REFERENCE_DB/.\n  Correct use:  python3 verification/access_check.py --root <project directory>\n  If you come from the menu the root is supplied correctly on its own (key E).\n'
             % (kok, u' and '.join(_eksik)))
         return 1
-    if not [f for f in os.listdir(os.path.join(kok, 'REFERANS_DB'))
+    if not [f for f in os.listdir(os.path.join(kok, 'REFERENCE_DB'))
             if f.endswith(('.fasta', '.fna'))]:
         sys.stderr.write(
-            u'ERROR: there is no FASTA file in the REFERANS_DB directory (%s).\n  The access check reads the databases\' OWN rec'
-            % os.path.join(kok, 'REFERANS_DB'))
+            u'ERROR: there is no FASTA file in the REFERENCE_DB directory (%s).\n  The access check reads the databases\' OWN rec'
+            % os.path.join(kok, 'REFERENCE_DB'))
         return 1
 
     sys.path.insert(0, os.path.join(kok, 'verification'))
@@ -120,13 +120,13 @@ def main():
     CIKTI = os.path.join(kok, 'ACCESS_RESULT')
     os.makedirs(CIKTI, exist_ok=True)
     vtb = [(e, d, t) for e, d, t, kullan, _n in kd.VTB
-           if kullan and os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]
+           if kullan and os.path.exists(os.path.join(kok, 'REFERENCE_DB', d))]
     if a.vtb:
         vtb = [v for v in vtb if a.vtb.lower() in v[1].lower()]
 
     satirlar = []
     for etiket, dosya, lokus in vtb:
-        yol = os.path.join(kok, 'REFERANS_DB', dosya)
+        yol = os.path.join(kok, 'REFERENCE_DB', dosya)
         boyut = os.path.getsize(yol)
         print('\n=== %s (%s, %.0f MB) ===' % (etiket, dosya, boyut / 1e6), flush=True)
         # 1) yayilmis kayitlari topla

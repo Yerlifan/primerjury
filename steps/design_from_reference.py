@@ -341,7 +341,7 @@ def main():
         log(u'      sample support measured: %d candidates' % min(len(rows), a.top))
 
     if sonuc:
-        yol = os.path.join(a.out, "primer_referans.tsv")
+        yol = os.path.join(a.out, "reference_primers.tsv")
         with open(yol, "w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=list(sonuc[0].keys()),
                                delimiter="\t", lineterminator="\n")

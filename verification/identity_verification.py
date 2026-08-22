@@ -54,9 +54,9 @@ UNNAMED RECORDS CANNOT BECOME A NAME
 # identity_verification.py tests the reported identity claims independently
 # against external reference databases, with SEEDING plus ALIGNMENT.
 #
-# INPUT  : the local FASTA sets under REFERANS_DB/ (the VTB list; twins and
+# INPUT  : the local FASTA sets under REFERENCE_DB/ (the VTB list; twins and
 #          subsets have been taken out of the vote),
-#          konsensus_kanonik/ (through screening.targets.konsensusler),
+#          canonical_consensus/ (through screening.targets.konsensusler),
 #          NCBI nt (a separate layer, over the network) and the hand filled
 #          IDENTITY_RESULT/nt_elle/NT_SONUC_SABLONU.tsv.
 # OUTPUT : IDENTITY_RESULT/kimlik_iddialari.tsv (the main table),
@@ -750,7 +750,7 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
         the evidence for whether the cut off is binding.
 
     """
-    yol = os.path.join(kok, 'REFERANS_DB', dosya)
+    yol = os.path.join(kok, 'REFERENCE_DB', dosya)
     if not os.path.exists(yol):
         return dict(durum='dosya yok')
     # A STABLE key: Python's hash() gives a different value in every PROCESS
@@ -811,7 +811,7 @@ def cins_cek(baslik):
 
 # --------------------------------------------------------------- envanter
 def envanter_yaz(kok, CIKTI, yaz):
-    """Counts EVERY set under REFERANS_DB and writes down where each one is used.
+    """Counts EVERY set under REFERENCE_DB and writes down where each one is used.
         For every set that is not used, A REASON IS REQUIRED.
 
     """
@@ -819,11 +819,11 @@ def envanter_yaz(kok, CIKTI, yaz):
     yol = os.path.join(CIKTI, 'VERITABANI_ENVANTERI.md')
     bilinen = {d: (e, kullan, n) for e, d, _t, kullan, n in VTB}
     diskte = sorted(os.path.basename(x) for x in
-                    glob.glob(os.path.join(kok, 'REFERANS_DB', '*.fasta')) +
-                    glob.glob(os.path.join(kok, 'REFERANS_DB', '*.fna')))
+                    glob.glob(os.path.join(kok, 'REFERENCE_DB', '*.fasta')) +
+                    glob.glob(os.path.join(kok, 'REFERENCE_DB', '*.fna')))
     satir = []
     for d in diskte:
-        tam = os.path.join(kok, 'REFERANS_DB', d)
+        tam = os.path.join(kok, 'REFERENCE_DB', d)
         try:
             boyut = os.path.getsize(tam)
         except OSError:
@@ -836,7 +836,7 @@ def envanter_yaz(kok, CIKTI, yaz):
                                       'the database list inside '
                                       'identity_verification.py.')))
     with open(yol, 'w', encoding='utf-8') as fh:
-        fh.write(u'# REFERANS_DB inventory: which set is used where\n\n')
+        fh.write(u'# REFERENCE_DB inventory: which set is used where\n\n')
         fh.write(u'Generated: %s (rebuilt on every run; do not edit by hand)\n\n'
                  % time.strftime('%Y-%m-%d %H:%M'))
         fh.write(u'| file | MB | label | used at the IDENTITY stage | reason / note |\n')
@@ -1552,7 +1552,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     from screening import targets as H
     kons = {d['kutu']: d['dizi'] for d in H.konsensusler()}
     var = [(e, d, t) for e, d, t, kullan, _n in VTB
-           if kullan and os.path.exists(os.path.join(kok, 'REFERANS_DB', d))][:vtb_ust]
+           if kullan and os.path.exists(os.path.join(kok, 'REFERENCE_DB', d))][:vtb_ust]
     envanter_yaz(kok, CIKTI, yaz)
     yaz(u'  usable databases          : %d  (%s)' % (len(var), ', '.join(e for e, _, _ in var)))
     if len(var) < 2:

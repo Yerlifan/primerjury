@@ -47,7 +47,7 @@
 set -o pipefail
 
 KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REFDB="$KOK/REFERANS_DB"
+REFDB="$KOK/REFERENCE_DB"
 LOG_KLASOR="$KOK/install_logs"
 mkdir -p "$LOG_KLASOR" "$REFDB"
 LOG="$LOG_KLASOR/KUR_$(date '+%Y%m%d_%H%M%S').log"
@@ -390,7 +390,7 @@ komut_veritabani() {
       renk "ROD (rRNA operon database)"
       if command -v git >/dev/null 2>&1; then
         git clone --depth 1 "$ROD_DEPO" "$REFDB/ROD_depo" 2>/dev/null \
-          && bilgi "downloaded -> REFERANS_DB/ROD_depo (copy the operon FASTA from there)" \
+          && bilgi "downloaded -> REFERENCE_DB/ROD_depo (copy the operon FASTA from there)" \
           || { hata "could not download ROD"; EKSIK+=("rod"); }
       else
         EKSIK+=("rod (git not installed)")

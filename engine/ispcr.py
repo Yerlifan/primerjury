@@ -210,7 +210,7 @@ def find_sites(enc, primer, max_mm, need_tail=True, tail_pos=(-1, -2)):
 # sequence this function loses EVERY product and RAISES NO ERROR, it quietly
 # returns 0. So:
 #   - on the consensus side the orientation is read FROM THE CANONICAL SOURCE
-#     (screening/hedefler.konsensusler -> konsensus_kanonik/INDEKS.tsv, all SENSE).
+#     (screening/hedefler.konsensusler -> canonical_consensus/INDEX.tsv, all SENSE).
 #     The old "consensus sequences" directory was MIXED orientation
 #     (71 antisense / 27 sense) and falling back to it silently is forbidden.
 #   - on the raw read side the caller tries every read in both directions

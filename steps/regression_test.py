@@ -480,7 +480,7 @@ def testler(a):
         Fp, Rp = kalip[300:322], kalip[500:522]
         os.makedirs(os.path.join(gec2, "kons"))
         os.makedirs(os.path.join(gec2, "final"))
-        os.makedirs(os.path.join(gec2, "REFERANS_DB"))
+        os.makedirs(os.path.join(gec2, "REFERENCE_DB"))
         open(os.path.join(gec2, "kons", "A1-1_2223_baskin_konsensus.fasta"),
              "w").write(">A1-1_2223\n%s\n" % kalip)
 
@@ -492,7 +492,7 @@ def testler(a):
             return "".join(l)
 
         # for the same pair, 3 records of ITS OWN taxon and 3 of a FOREIGN taxon
-        dbyol = os.path.join(gec2, "REFERANS_DB", "archaea.16S.fna")
+        dbyol = os.path.join(gec2, "REFERENCE_DB", "archaea.16S.fna")
         with open(dbyol, "w") as fh:
             for i in range(3):
                 fh.write(">KENDI%d.1 Archaea;Methanosarcinales;Methanosaetaceae;"
@@ -503,7 +503,7 @@ def testler(a):
                          "uncultured archaeon\n%s\n" % (i, _m(kalip, 0.01)))
         subprocess.run(["makeblastdb", "-in", dbyol, "-dbtype", "nucl"],
                        capture_output=True, text=True)
-        with open(os.path.join(gec2, "final", "primer_final.tsv"), "w") as fh:
+        with open(os.path.join(gec2, "final", "final_primers.tsv"), "w") as fh:
             fh.write("karar\thedef\tsinif\tozgulluk_durum\tileri_dizi\tgeri_dizi\n")
             fh.write("ONERILIR\tMethanothrix_soehngenii_turu\tA1\tGECTI\t%s\t%s\n"
                      % (Fp, ref_rc(Rp)))
@@ -519,7 +519,7 @@ def testler(a):
         subprocess.run(
             [sys.executable, os.path.join(HERE, "external_databases.py"),
              "--final", os.path.join(gec2, "final"),
-             "--db", os.path.join(gec2, "REFERANS_DB"),
+             "--db", os.path.join(gec2, "REFERENCE_DB"),
              "--consensus", os.path.join(gec2, "kons"),
              "--targets", os.path.join(gec2, "targets.tsv"),
              "--names", os.path.join(gec2, "adlar.tsv"),
@@ -726,7 +726,7 @@ def testler(a):
     if shutil.which("blastn") and shutil.which("makeblastdb"):
         g3 = tempfile.mkdtemp(prefix="duzey_")
         random.seed(5)
-        os.makedirs(os.path.join(g3, "REFERANS_DB"))
+        os.makedirs(os.path.join(g3, "REFERENCE_DB"))
         os.makedirs(os.path.join(g3, "final"))
         hedef = "".join(random.choice("ACGT") for _ in range(1400))
         Fp, Rp = hedef[300:322], ref_rc(hedef[500:522])
@@ -746,7 +746,7 @@ def testler(a):
         kardes = "".join(kardes)
         # ayrim yapmayan cift: kardes turde de bozulmamis bir bolgeden
         Fp2, Rp2 = hedef[700:722], ref_rc(hedef[900:922])
-        dbyol = os.path.join(g3, "REFERANS_DB", "archaea.16S.fna")
+        dbyol = os.path.join(g3, "REFERENCE_DB", "archaea.16S.fna")
         with open(dbyol, "w") as fh:
             for i in range(3):
                 fh.write(">NR_10%d.1 Methanothrix soehngenii GP%d 16S "
@@ -761,7 +761,7 @@ def testler(a):
                          % (i, t, i, _m2(kardes, 0.001)))
             fh.write(">NR_999.1 Methanothrix sp. uncultured archaeon 16S "
                      "ribosomal RNA\n%s\n" % _m2(hedef, 0.001))
-        with open(os.path.join(g3, "final", "primer_final.tsv"), "w") as fh:
+        with open(os.path.join(g3, "final", "final_primers.tsv"), "w") as fh:
             fh.write("karar\thedef\tsinif\tozgulluk_durum\tileri_dizi\t"
                      "geri_dizi\n")
             fh.write("1\tMethanothrix_soehngenii_turu\tA1\tGECTI\t%s\t%s\n"
@@ -779,7 +779,7 @@ def testler(a):
              "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
-             "--db", os.path.join(g3, "REFERANS_DB"),
+             "--db", os.path.join(g3, "REFERENCE_DB"),
              "--out", cik3], capture_output=True, text=True)
         sat = []
         if os.path.exists(cik3):
@@ -812,7 +812,7 @@ def testler(a):
              "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
-             "--db", os.path.join(g3, "REFERANS_DB"),
+             "--db", os.path.join(g3, "REFERENCE_DB"),
              "--cross-species-tolerance", "3",
              "--out", cik5], capture_output=True, text=True)
         sat5 = {}
@@ -840,7 +840,7 @@ def testler(a):
              "--targets", os.path.join(g3, "targets.tsv"),
              "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
-             "--db", os.path.join(g3, "REFERANS_DB"),
+             "--db", os.path.join(g3, "REFERENCE_DB"),
              "--out", cik4], capture_output=True, text=True)
         sat4 = []
         if os.path.exists(cik4):
@@ -853,7 +853,7 @@ def testler(a):
         # the widest covering pair.
         g4 = tempfile.mkdtemp(prefix="cins_")
         random.seed(9)
-        os.makedirs(os.path.join(g4, "REFERANS_DB"))
+        os.makedirs(os.path.join(g4, "REFERENCE_DB"))
         os.makedirs(os.path.join(g4, "final"))
         hb = "".join(random.choice("ACGT") for _ in range(1400))
         Fc, Rc = hb[300:322], ref_rc(hb[500:522])
@@ -870,7 +870,7 @@ def testler(a):
                     l[i] = random.choice("ACGT")
             return "".join(l)
 
-        with open(os.path.join(g4, "REFERANS_DB", "bacteria.16S.fna"),
+        with open(os.path.join(g4, "REFERENCE_DB", "bacteria.16S.fna"),
                   "w") as fh:
             for i, t in enumerate(("propionicum", "saccharofermentans",
                                    "acetatigenes")):
@@ -879,7 +879,7 @@ def testler(a):
                          % (i, t, i, _m4(hb, 0.001)))
             fh.write(">NR_9.1 Fermentimonas caenicola DSM9 16S ribosomal "
                      "RNA, complete sequence\n%s\n" % _m4(disi, 0.001))
-        with open(os.path.join(g4, "final", "primer_final.tsv"), "w") as fh:
+        with open(os.path.join(g4, "final", "final_primers.tsv"), "w") as fh:
             fh.write("karar\thedef\tsinif\tozgulluk_durum\tileri_dizi\t"
                      "geri_dizi\n")
             fh.write("2\tProteiniphilum_cinsi\tB\tGECTI\t%s\t%s\n" % (Fc, Rc))
@@ -900,7 +900,7 @@ def testler(a):
              "--targets", os.path.join(g4, "targets.tsv"),
              "--names", os.path.join(g4, "adlar.tsv"),
              "--final", os.path.join(g4, "final"),
-             "--db", os.path.join(g4, "REFERANS_DB"),
+             "--db", os.path.join(g4, "REFERENCE_DB"),
              "--identity", os.path.join(g4, "kimlik.tsv"),
              "--out", cik6], capture_output=True, text=True)
         sat6 = {}

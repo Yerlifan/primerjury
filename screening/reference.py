@@ -12,7 +12,7 @@ extracted again. After an interruption it continues from the cache.
 #               and competitor genera, and measures in how many records of those
 #               pools a pair gives a product.
 #
-# INPUT  : the SILVA SSU / LSU and UNITE ITS fasta files under REFERANS_DB (chosen
+# INPUT  : the SILVA SSU / LSU and UNITE ITS fasta files under REFERENCE_DB (chosen
 #          by the amplicon class); the member and competitor genus names are derived
 #          from hedefler.taxid_adlari() plus the hedef_baglami output through
 #          uye_ve_rakip_anahtar().

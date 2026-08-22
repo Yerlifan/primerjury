@@ -35,7 +35,7 @@ REASONING.
 #
 # INPUT  : the four scripts in the project root and the measurement sources; those
 #          are linked symbolically under QUICK_TEST/ (screening, protocol,
-#          verification, REFERANS_DB, konsensus_kanonik, primer_final,
+#          verification, REFERENCE_DB, canonical_consensus, final_primers,
 #          "fastq files", engine and uyelik_yeniden_turetme_uyelik_*.tsv). The
 #          expected values come from the BEKLENEN_UST / BEKLENEN_ALT /
 #          BEKLENEN_YENI constants in this file, whose source is a full depth
@@ -368,8 +368,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         yaz(u'    D: empty because no pair was recovered, testing it ON ITS OWN...')
         oz = os.path.join(hizli_kok, 'D_KENDI_SINAMASI')
         os.makedirs(os.path.join(oz, 'RECOVERY_RESULT'), exist_ok=True)
-        for ad in ('screening', 'verification', 'protocol', 'REFERANS_DB',
-                   'konsensus_kanonik', 'ONE_PROTOCOL_RESULT', 'primer_final',
+        for ad in ('screening', 'verification', 'protocol', 'REFERENCE_DB',
+                   'canonical_consensus', 'ONE_PROTOCOL_RESULT', 'final_primers',
                    'engine', 'engine', 'engine',
                    'steps', 'engine', 'fastq files'):
             h = os.path.join(oz, ad)
@@ -638,8 +638,8 @@ def main():
     hizli = os.path.join(kok, 'QUICK_TEST')
     os.makedirs(hizli, exist_ok=True)
     # gecici kok: kaynaklar baglanti, ciktilar ayri
-    for ad in ('screening', 'protocol', 'verification', 'REFERANS_DB',
-               'konsensus_kanonik', 'primer_final', 'fastq files',
+    for ad in ('screening', 'protocol', 'verification', 'REFERENCE_DB',
+               'canonical_consensus', 'final_primers', 'fastq files',
                'engine', 'engine', 'engine',
                'steps', 'engine'):
         h = os.path.join(hizli, ad)

@@ -8,7 +8,7 @@
 # INPUT  : the delivery panel given with --xlsx; the per file orientation table
 #          orientation_audit.py produces, given with --orientation; the code route
 #          classification orientation_code_scan.py produces, given with --code; and
-#          konsensus_kanonik/INDEKS.tsv given with --index. The notes on how each
+#          canonical_consensus/INDEX.tsv given with --index. The notes on how each
 #          file was corrected (KOD_NOT) are fixed inside this file.
 # OUTPUT : it adds a new sheet to the given xlsx and saves it (wb.save); it prints
 #          the sheet name written and the row count to the screen.
@@ -211,8 +211,8 @@ def main():
               'files were converted from ANTISENSE to SENSE and none were '
               'left undecided.'
               % (len(ix), sum(1 for r in ix if r['cevrildi'] == 'EVET')),
-              'EVERY SCRIPT READS THIS PLACE: targets.py -> konsensusler() now reads INDEKS.tsv and RAISES AN ERROR when the index is missing; it does NOT fall back SILENTLY to the mixed directory. No script carries its own orientation patch any more.',
-              'CAUTION - files CANNOT BE DELETED on a mounted drive. konsensus_kanonik/ still holds the misnamed "*_kanonik.fasta" leftovers of the first run. The valid files match the pattern "*.kanonik.fa" and are listed in INDEKS.tsv. Consumers read the INDEX, NOT a glob. The README.txt in the directory repeats this.']:
+              'EVERY SCRIPT READS THIS PLACE: targets.py -> konsensusler() now reads INDEX.tsv and RAISES AN ERROR when the index is missing; it does NOT fall back SILENTLY to the mixed directory. No script carries its own orientation patch any more.',
+              'CAUTION - files CANNOT BE DELETED on a mounted drive. canonical_consensus/ still holds the misnamed "*_kanonik.fasta" leftovers of the first run. The valid files match the pattern "*.canonical.fa" and are listed in INDEX.tsv. Consumers read the INDEX, NOT a glob. The README.txt in the directory repeats this.']:
         yaz(ws, n, 1, s, fill=SARI if s.startswith('DIKKAT') else None)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 52; n += 1
@@ -255,7 +255,7 @@ def main():
     n += 1
 
     yaz(ws, n, 1, '8. ACIK KALAN', bold=True, fill=SARI); n += 1
-    for s in ['konsensus_kanonik currently comes from referans_konsensus/konsensus (99 bins) plus 1 orphan bin (A1-1_2209, from the original directory, which was ANTISENSE and was converted). konsensus_yeni was NOT taken into the canonical set because it is INCOMPLETE (35/99); mixing a half set with a full one creates a heterogeneous base. Once the overnight generation finishes it should be re-run with --priority yeni.',
+    for s in ['canonical_consensus currently comes from referans_konsensus/konsensus (99 bins) plus 1 orphan bin (A1-1_2209, from the original directory, which was ANTISENSE and was converted). konsensus_yeni was NOT taken into the canonical set because it is INCOMPLETE (35/99); mixing a half set with a full one creates a heterogeneous base. Once the overnight generation finishes it should be re-run with --priority yeni.',
               "steps/split_clusters.py reads the mixed directory assuming a single orientation. It does not produce the panel's CURRENT numbers (it is a disabled line), but if it is re-run it gives a wrong answer. It should either be converted to canonical or archived.",
               'The scripts flagged KAYNAK_BELIRSIZ in yon_kod_taramasi (most of them under steps and engine) take the consensus path from the command line and leave the orientation to the caller. Those are the old line. If they are to be re-run, the canonical directory must be given.',
               'The orientation measurement on this page applies to the consensus files. RAW READ measurements are unaffected by orientation (reads are scanned in both directions anyway), so the numbers on the "16 Okuma Motoru Duzeltmesi" sheet are NOT AFFECTED by this finding.']:

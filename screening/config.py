@@ -56,8 +56,8 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def y(*p):
     return os.path.join(KOK, *p)
 
-PANEL_TSV   = y('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
-PANEL_TSV_YEDEK = y('primer_final', 'devir_ciftleri_20260802_sonrotus.tsv')
+PANEL_TSV   = y('final_primers', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
+PANEL_TSV_YEDEK = y('final_primers', 'devir_ciftleri_20260802_sonrotus.tsv')
 HEDEFLER_TSV= y('steps', 'targets.tsv')
 TAXID_ADLARI= y('steps', 'taxid_names.tsv')
 # ORIENTATION NORMALISATION (2026-08-02): consensuses are now read from ONE
@@ -67,12 +67,12 @@ TAXID_ADLARI= y('steps', 'taxid_names.tsv')
 # screening/orientation_impact_test.py).
 # The canonical directory is produced by screening/build_canonical.py. The
 # definition: orientation.py
-KONSENSUS_KANONIK = y('konsensus_kanonik')
-KONSENSUS_INDEKS  = os.path.join(KONSENSUS_KANONIK, 'INDEKS.tsv')
+KONSENSUS_KANONIK = y('canonical_consensus')
+KONSENSUS_INDEKS  = os.path.join(KONSENSUS_KANONIK, 'INDEX.tsv')
 KONSENSUS_HAM     = y('consensus sequences')      # for canonical generation ONLY
 KONSENSUS         = KONSENSUS_KANONIK
 FASTQ       = y('fastq files')
-REFDB       = y('REFERANS_DB')
+REFDB       = y('REFERENCE_DB')
 SILVA_SSU   = os.path.join(REFDB, 'SILVA_138.2_SSURef_NR99.fasta')
 SILVA_LSU   = os.path.join(REFDB, 'SILVA_138.2_LSURef_NR99.fasta')
 UNITE_ITS   = os.path.join(REFDB, 'UNITE_ITS.fasta')

@@ -49,7 +49,7 @@ THE VERDICT
               external_databases.py's job and is not repeated here.
 
 Usage:
-  python3 check_taxonomic_level.py --targets targets.tsv       --names taxid_names.tsv --final primer_final --db REFERANS_DB       --identity primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
+  python3 check_taxonomic_level.py --targets targets.tsv       --names taxid_names.tsv --final final_primers --db REFERENCE_DB       --identity final_primers/hedef_kimlik.tsv       --out final_primers/duzey_denetimi.tsv
 
 """
 import argparse, collections, csv, os, re, shutil, subprocess, sys, tempfile
@@ -156,7 +156,7 @@ def ad_parcala(ad):
 
 
 def referans_esle(ref_hedef, hedef_adlari):
-    """Links the target name in primer_referans.tsv to the name in targets.tsv.
+    """Links the target name in reference_primers.tsv to the name in targets.tsv.
 
         STRIPPING THE '_referans' SUFFIX ALONE IS NOT ENOUGH.
           MEASURED (2026-08-01): 'Methanosarcina_barkeri_referans' strips to
@@ -372,8 +372,8 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--targets", required=True)
     p.add_argument("--names", required=True)
-    p.add_argument("--final", required=True, help="primer_final directory")
-    p.add_argument("--reference", default=None, help="primer_referans.tsv")
+    p.add_argument("--final", required=True, help="final_primers directory")
+    p.add_argument("--reference", default=None, help="reference_primers.tsv")
     p.add_argument("--db", required=True, help='the reference database '
                                                'directory')
     p.add_argument("--identity", default=None, help='the identity table produced by '
@@ -409,7 +409,7 @@ def main():
 
     # ciftleri topla
     ciftler = collections.defaultdict(list)
-    tsv = os.path.join(a.final, "primer_final.tsv")
+    tsv = os.path.join(a.final, "final_primers.tsv")
     for r in csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t"):
         if r.get("ozgulluk_durum") == "GECTI":
             ciftler[r["hedef"]].append((r["ileri_dizi"], r["geri_dizi"],

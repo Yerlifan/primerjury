@@ -40,7 +40,7 @@ Usage: python orientation_code_scan.py --root .. --out ../yon_kod_taramasi.tsv
 import os, re, ast, csv, glob, argparse
 
 KARISIK = ['consensus sequences', 'SCREENING_RESULT/konsensus_yeni', 'konsensus_yeni']
-NORMAL = ['referans_konsensus', 'konsN', 'konsensus_kanonik', 'KANONIK']
+NORMAL = ['referans_konsensus', 'konsN', 'canonical_consensus', 'KANONIK']
 
 IKI_YON = [r'for\s+\w+\s+in\s*\(\s*\w+\s*,\s*(?:ispcr\.)?rc\(', r'rc\(seq\)', r'rc\(s\)\s*\)',
            r'both|iki yon|her iki yon', r'\(s,\s*rc\(s\)\)', r'\(seq,\s*rc\(seq\)\)']

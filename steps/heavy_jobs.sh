@@ -37,8 +37,8 @@ _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PT="${PT:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 KONS="${KONS:-$PT/referans_konsensus/baskin/konsensus}"
-ADAY="${ADAY:-$PT/primer_adaylari}"
-FINAL="${FINAL:-$PT/primer_final}"
+ADAY="${ADAY:-$PT/primer_candidates}"
+FINAL="${FINAL:-$PT/final_primers}"
 LOGD="$PT/agir_log"
 MFE="${MFE:-$PT/tools/mfeprimer}"
 K2DB="${K2DB:-$HOME/k2db}"
@@ -117,7 +117,7 @@ fi
 
 # --- B. target identity -----------------------------------------------
 calistir B "target identity: the name against what the sequence shows" \
-  python3 "$HERE/target_identity.py" --consensus "$KONS" --db "$PT/REFERANS_DB" \
+  python3 "$HERE/target_identity.py" --consensus "$KONS" --db "$PT/REFERENCE_DB" \
     --targets "$HERE/targets.tsv" --names "$HERE/taxid_names.tsv" \
     --threads "$IS" --out "$FINAL/hedef_kimlik.tsv"
 
@@ -126,7 +126,7 @@ calistir B "target identity: the name against what the sequence shows" \
 # here, but a timeout is still set per database and a database that goes over it is
 # marked "olculemedi" rather than being counted clean silently.
 calistir C "mfeprimer: the second measurement of external specificity" \
-  python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" --db "$PT/REFERANS_DB" \
+  python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" --db "$PT/REFERENCE_DB" \
     --mfe "$MFE" --cpu "$IS" --timeout 7200 \
     --out "$FINAL/mfeprimer.tsv"
 
@@ -166,7 +166,7 @@ calistir D "the community trend: a rank aware abundance workbook" \
 calistir E "the self audit: the regression suite" \
   python3 "$HERE/regression_test.py" --real-data --candidates "$ADAY" --consensus "$KONS"
 # check_deliverables.py returns exit code 1 when it finds a CRITICAL item. That IS
-# NOT A CRASH, it is A FINDING: the raw primer_final.tsv holds mixed domain rows and
+# NOT A CRASH, it is A FINDING: the raw final_primers.tsv holds mixed domain rows and
 # the Excel already leaves them out. Without separating the two, every run says "a
 # failed step" and the real crashes go unnoticed.
 say "----------------------------------------------------------------"
@@ -224,9 +224,9 @@ fi
 # The hedef_kimlik.tsv produced in step B enters the workbook as the "olculen
 # kimlik" column. That is why the Excel is reproduced AFTER B.
 if [ -z "$YALNIZ" ] || [ "$YALNIZ" = "G" ]; then
-  REFC="$PT/primer_referans"
+  REFC="$PT/reference_primers"
   REFARG=""
-  [ -s "$REFC/primer_referans.tsv" ] && REFARG="--reference $REFC/primer_referans.tsv"
+  [ -s "$REFC/reference_primers.tsv" ] && REFARG="--reference $REFC/reference_primers.tsv"
   calistir G "the Excel delivery, with the measured identity columns" \
     python3 "$HERE/export_excel.py" \
       --candidates "$ADAY" --final "$FINAL" --splits "$ADAY/kume_setleri" \
@@ -245,13 +245,13 @@ fi
 if [ "$YALNIZ" = "H" ]; then
   calistir H "the broad external database scan (external_databases.py --wide)" \
     python3 "$HERE/external_databases.py" --final "$FINAL" \
-      --db "$PT/REFERANS_DB" --wide --threads "$IS" --consensus "$KONS" \
+      --db "$PT/REFERENCE_DB" --wide --threads "$IS" --consensus "$KONS" \
       --targets "$HERE/targets.tsv" --names "$HERE/taxid_names.tsv" \
       --identity "$FINAL/hedef_kimlik.tsv" \
       --timeout 21600 --out "$FINAL/dis_veritabani_genis.tsv"
   calistir H2 "the broad set, the second measurement (mfeprimer_layer.py --wide)" \
     python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" \
-      --db "$PT/REFERANS_DB" --mfe "$MFE" --wide --cpu "$IS" \
+      --db "$PT/REFERENCE_DB" --mfe "$MFE" --wide --cpu "$IS" \
       --timeout 21600 --blast "$FINAL/dis_veritabani_genis.tsv" \
       --out "$FINAL/mfeprimer_genis.tsv"
 fi

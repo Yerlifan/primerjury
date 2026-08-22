@@ -36,7 +36,7 @@ OPTIONAL TAXONOMIC CLASSIFICATION
 """
 # -------------------------------------------------------------------------
 # global_scan.py scans the last surviving candidates against the full database in
-#                     REFERANS_DB; it is the most expensive step of the search.
+#                     REFERENCE_DB; it is the most expensive step of the search.
 #
 # INPUT  : the candidate list ({'ad','F','R','lo','hi'}); as the database,
 #          yapilandirma.SILVA_SSU (or another fasta the caller gives); the

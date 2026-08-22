@@ -78,7 +78,7 @@ def main():
     P = Puanlayici(KOK)
     om = P.motor.okuma_motoru
     kons = {}
-    ix = os.path.join(KOK, 'konsensus_kanonik', 'INDEKS.tsv')
+    ix = os.path.join(KOK, 'canonical_consensus', 'INDEX.tsv')
     import csv as _csv
     for r in _csv.DictReader(open(ix, encoding='utf-8'), delimiter='\t'):
         kons[r['kutu']] = dict(uzunluk=int(r['uzunluk']),

@@ -12,7 +12,7 @@ WHO decides which records get aligned.
 # candidate_blastn.py
 #
 # INPUT  : the bin consensus (the query) and a BLAST indexed database under
-#          REFERANS_DB (the .nin/.nhr/.nsq files already exist)
+#          REFERENCE_DB (the .nin/.nhr/.nsq files already exist)
 # OUTPUT : [(header, sequence), ...], the records where blastn found a meaningful
 #          hit
 # CALLED BY: verification/identity_verification.py and all_bin_identities.py, only
@@ -28,7 +28,7 @@ WHO decides which records get aligned.
 #
 # More to the point: blastn IS ALREADY USED IN THIS DIRECTORY. The global
 # specificity layer was run with it and the BLAST index (.nin) of nine databases
-# sits ready under REFERANS_DB. So we wrote our own pipeline while a ready, indexed
+# sits ready under REFERENCE_DB. So we wrote our own pipeline while a ready, indexed
 # and tested tool was at hand. That goes against the project's own rule: look at
 # the measured tool you already have first.
 #
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         sys.exit(1)
     print(u'version             : %s' % surum())
     kok = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    rd = os.path.join(kok, 'REFERANS_DB')
+    rd = os.path.join(kok, 'REFERENCE_DB')
     if os.path.isdir(rd):
         for f in sorted(os.listdir(rd)):
             if f.endswith(('.fasta', '.fna')):

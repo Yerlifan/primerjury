@@ -9,8 +9,8 @@ ise mevcut motorda kalinir. Hizli olan DOGRU SAYILMAZ.
 # -------------------------------------------------------------------------
 # minimap2_compare.py
 #
-# INPUT  : the real databases under REFERANS_DB/ and the real bin consensuses
-#          (consensus sequences/ or konsensus_kanonik/)
+# INPUT  : the real databases under REFERENCE_DB/ and the real bin consensuses
+#          (consensus sequences/ or canonical_consensus/)
 # OUTPUT : MINIMAP2_KARSILASTIRMA.md (in the root directory) and the .tsv of the
 #          same name
 # CALLED BY: by hand. It IS NOT WIRED into the menu, because it produces a decision
@@ -66,9 +66,9 @@ def _kd_yukle(kok):
 def kutu_konsensuslari(kok, en_fazla):
     'Reads the real bin consensuses, preferring the canonical ones.'
     adaylar = []
-    kn = os.path.join(kok, 'konsensus_kanonik')
+    kn = os.path.join(kok, 'canonical_consensus')
     if os.path.isdir(kn):
-        adaylar = sorted(glob.glob(os.path.join(kn, '*.kanonik.fa')))
+        adaylar = sorted(glob.glob(os.path.join(kn, '*.canonical.fa')))
     if not adaylar:
         adaylar = sorted(glob.glob(os.path.join(kok, 'consensus sequences', '*', '*.fasta')))
     cikti = []
@@ -115,11 +115,11 @@ def main():
         return 1
 
     vtb = [(e, d) for e, d, _t, kullan, _n in kd.VTB
-           if kullan and os.path.exists(os.path.join(kok, 'REFERANS_DB', d))]
+           if kullan and os.path.exists(os.path.join(kok, 'REFERENCE_DB', d))]
     if a.vtb:
         vtb = [v for v in vtb if a.vtb.lower() in v[1].lower()]
     if not vtb:
-        sys.stderr.write(u'ERROR: there is no usable database under REFERANS_DB.\n')
+        sys.stderr.write(u'ERROR: there is no usable database under REFERENCE_DB.\n')
         return 1
 
     satirlar = []
@@ -129,7 +129,7 @@ def main():
 
     for kutu, q in kutular:
         for etiket, dosya in vtb:
-            yol = os.path.join(kok, 'REFERANS_DB', dosya)
+            yol = os.path.join(kok, 'REFERENCE_DB', dosya)
             kayitlar = []
             for bas, diz in kd.fasta_akisi(yol):
                 kayitlar.append((bas, diz))

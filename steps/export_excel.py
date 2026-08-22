@@ -5,7 +5,7 @@ export_excel.py gathers every output of the primer design into one Excel file.
 
 The input directories:
   --candidates  the batch design output (ozet.tsv, ayirt_edilemez.tsv, *.log)
-  --final       the specificity output (primer_final.tsv)
+  --final       the specificity output (final_primers.tsv)
   --splits      the cluster split output, optional (*_bolme.json)
   --names       the taxid name table
 """
@@ -64,7 +64,7 @@ def get_args():
     p.add_argument("--external", default=None,
                    help="output of the external-databases step (dis_veritabani.tsv)")
     p.add_argument("--reference", default=None,
-                   help="output of the design-from-reference step (primer_referans.tsv)")
+                   help="output of the design-from-reference step (reference_primers.tsv)")
     p.add_argument("--names", default=None)
     p.add_argument("--targets", default="targets.tsv")
     p.add_argument("--identity", default=None,
@@ -91,14 +91,14 @@ def main():
     # input is missing, it stops plainly; an empty workbook was reading as "not one
     # candidate passed".
     eksik = [y for y in (os.path.join(a.candidates, "ozet.tsv"),
-                         os.path.join(a.final, "primer_final.tsv"))
+                         os.path.join(a.final, "final_primers.tsv"))
              if not os.path.exists(y)]
     if eksik:
         sys.exit(u'The input file was not found, so no Excel was produced:\n   %s'
                  % "\n   ".join(eksik))
     ozet = tsv(os.path.join(a.candidates, "ozet.tsv"))
     ayirt = tsv(os.path.join(a.candidates, "ayirt_edilemez.tsv"))
-    final = tsv(os.path.join(a.final, "primer_final.tsv"))
+    final = tsv(os.path.join(a.final, "final_primers.tsv"))
     hedefler = tsv(a.targets) if os.path.exists(a.targets) else []
     ref_ham = tsv(a.reference) if a.reference else []
     dis_yolu = a.external or os.path.join(a.final, "dis_veritabani.tsv")

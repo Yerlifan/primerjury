@@ -3,14 +3,14 @@
 
 NE SINANIYOR
 ------------
-Katman 2'ye taksonomik ayrim eklemenin onundeki gercek engel, REFERANS_DB'deki
+Katman 2'ye taksonomik ayrim eklemenin onundeki gercek engel, REFERENCE_DB'deki
 dosyalarin BES AYRI baslik bicimi kullanmasidir. Tek bir ayristirici varsaymak
 kayitlarin cogunu "farkli alan" saydirir - yani duzeltmeye calistigimiz hatanin
 daha buyugunu uretir. Bu sinama her bicimin DOGRU cozuldugunu gosterir.
 
 Iki bolum var:
   1) SENTETIK - her bicimden birer baslik, beklenen alan ve klad uyelikleri
-  2) GERCEK   - REFERANS_DB varsa her dosyadan ilk N baslik cozulur ve
+  2) GERCEK   - REFERENCE_DB varsa her dosyadan ilk N baslik cozulur ve
                 'alan cozulemedi' orani olculur. Yuksek oran, ayristiricinin
                 o bicimi tanimadigini gosterir.
 
@@ -149,9 +149,9 @@ def bolum2():
 
 def bolum3(ornek):
     'THE REAL files: the fraction of headers that cannot be resolved is measured.'
-    refdb = os.path.join(KOK, 'REFERANS_DB')
+    refdb = os.path.join(KOK, 'REFERENCE_DB')
     if not os.path.isdir(refdb):
-        print(u'\n(REFERANS_DB is absent, so the real file section was skipped)')
+        print(u'\n(REFERENCE_DB is absent, so the real file section was skipped)')
         return True
     print()
     print(u'=== 3) THE REAL FILES (the first %d headers) ===' % ornek)

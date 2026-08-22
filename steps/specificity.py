@@ -741,17 +741,17 @@ def main():
     ok = sum(1 for s in sonuc if s["ozgulluk_durum"] == "GECTI")
     log(u'TOTAL: %d candidates tested, %d of them passed every rule' % (len(sonuc), ok))
     log(u'total time: %.1f minutes' % ((time.time() - t0) / 60))
-    log(u'output: %s' % os.path.join(a.out, "primer_final.tsv"))
+    log(u'output: %s' % os.path.join(a.out, "final_primers.tsv"))
 
 
 def yaz(out, sonuc):
     """The file is rewritten even when the result is empty. In the old version it
-        returned early, so the previous run's stale primer_final.tsv stayed on disk and
+        returned early, so the previous run's stale final_primers.tsv stayed on disk and
         the Excel export took it for a valid one and published it.
 
     """
     if not sonuc:
-        with open(os.path.join(out, "primer_final.tsv"), "w",
+        with open(os.path.join(out, "final_primers.tsv"), "w",
                   encoding="utf-8") as fh:
             fh.write("karar\thedef\tsinif\tozgulluk_durum\n")
         return
@@ -764,7 +764,7 @@ def yaz(out, sonuc):
             "ileri_baglanma_min", "geri_baglanma_min", "sus_ici_fark",
             "yetim_primer", "heterodimer_dg", "ceza", "rakip_detay"]
     cols = [c for c in cols if any(c in s for s in sonuc)]
-    with open(os.path.join(out, "primer_final.tsv"), "w", newline="",
+    with open(os.path.join(out, "final_primers.tsv"), "w", newline="",
               encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols, delimiter="\t",
                            extrasaction="ignore", lineterminator="\n")

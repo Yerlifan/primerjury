@@ -430,7 +430,7 @@ def get_args():
 
 def main():
     a = get_args()
-    tsv = os.path.join(a.final, "primer_final.tsv")
+    tsv = os.path.join(a.final, "final_primers.tsv")
     if not os.path.exists(tsv):
         sys.exit(u'not found: %s' % tsv)
     rows = [r for r in csv.DictReader(open(tsv, encoding="utf-8"), delimiter="\t")

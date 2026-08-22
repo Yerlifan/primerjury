@@ -96,7 +96,7 @@ def main():
         return TX.sinifla(baslik, db_ad, jetonlar, alan)
 
     vtbler = a.vtb if a.vtb else (KUCUK if a.kucuk else KUCUK)
-    refdb = os.path.join(KOK, 'REFERANS_DB')
+    refdb = os.path.join(KOK, 'REFERENCE_DB')
 
     adaylar = [dict(ad=c['hedef'], F=c['F'], R=c['R'], lo=URUN_ALT, hi=URUN_UST)
                for c in ciftler]

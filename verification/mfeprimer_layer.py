@@ -22,7 +22,7 @@ Two traps this module handles, both measured the hard way:
 # hairpins, dimers); it is the INDEPENDENT third layer of evidence in the
 # verification chain.
 #
-# INPUT  : the .fna/.fasta sets under REFERANS_DB/ and their .primerqc.bin
+# INPUT  : the .fna/.fasta sets under REFERENCE_DB/ and their .primerqc.bin
 #          indexes (the MFE_DB list), the tools/mfeprimer binary, and the primer
 #          pairs to verify (which come from the calling script).
 # OUTPUT : the input and raw output files under VERIFICATION_RESULT/mfe/
@@ -78,7 +78,7 @@ def mfe_bul(kok):
 
 def indeks_sina(kok, mfe, dosya, yaz, sure_tavani=120):
     """Is the index REALLY being read? It tests with a single synthetic pair."""
-    db = os.path.join(kok, 'REFERANS_DB', dosya)
+    db = os.path.join(kok, 'REFERENCE_DB', dosya)
     if not os.path.exists(db):
         return (False, u'fasta yok')
     if not os.path.exists(db + '.primerqc.bin'):
@@ -203,7 +203,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
             # the largest database". Exactly the failure pattern we have to avoid.
             # The rule: if the index is NEWER than the checkpoint, the checkpoint is INVALID.
             if os.path.exists(kp):
-                _ix = os.path.join(kok, 'REFERANS_DB', dosya + '.primerqc.bin')
+                _ix = os.path.join(kok, 'REFERENCE_DB', dosya + '.primerqc.bin')
                 _bayat = False
                 try:
                     if os.path.exists(_ix) and os.path.getmtime(_ix) > os.path.getmtime(kp):
@@ -272,7 +272,7 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
             try:
                 try:
                     pr = subprocess.run([mfe, 'spec', '-i', gi, '-o', _co, '-d',
-                                         os.path.join(kok, 'REFERANS_DB', dosya),
+                                         os.path.join(kok, 'REFERENCE_DB', dosya),
                                          '-c', '4', '-s', str(URUN_ALT), '-S', str(URUN_UST)],
                                         capture_output=True, text=True, timeout=sure_tavani)
                     if pr.returncode != 0:

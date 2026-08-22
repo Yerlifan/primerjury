@@ -37,7 +37,7 @@ RECOVERY_RESULT/.
 # INPUT  : ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the below-threshold rows),
 #          uyelik_yeniden_turetme_uyelik_*.tsv (stage U's measured membership),
 #          protocol/extra_pairs.tsv (target name aliases),
-#          konsensus_kanonik/ and "fastq files"/ (the measurement sources).
+#          canonical_consensus/ and "fastq files"/ (the measurement sources).
 # OUTPUT : RECOVERY_RESULT/kurtarma_satirlari.tsv (ONE row per target),
 #          RECOVERY_RESULT/yeni_adaylar.tsv (the candidates from the route 3 and
 #          route 5 scans),

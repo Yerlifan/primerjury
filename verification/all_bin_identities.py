@@ -72,8 +72,8 @@ It WRITES NOTHING into the panel files; it writes under ALL_IDENTITIES_RESULT/.
 # measurement, independently, against external reference databases ("the silent
 # majority").
 #
-# INPUT  : the 12 local FASTA sets under REFERANS_DB/ (all of them, with NO domain
-#          filter), konsensus_kanonik/ and the panel plus membership tables
+# INPUT  : the 12 local FASTA sets under REFERENCE_DB/ (all of them, with NO domain
+#          filter), canonical_consensus/ and the panel plus membership tables
 #          (screening.targets), IDENTITY_RESULT/kontrol/ (a cache SHARED with stage I),
 #          optionally NCBI nt.
 # OUTPUT : ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv (ONE row per bin),
@@ -437,7 +437,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
     for e, d, t, kullan, _n in K.VTB:
         if not kullan:
             continue                       # a twin or subset - not an independent source
-        p = os.path.join(kok, 'REFERANS_DB', d)
+        p = os.path.join(kok, 'REFERENCE_DB', d)
         (var if os.path.exists(p) else yok).append((e, d, t))
     lokus_tab = {e: t for e, _d, t, _k, _n in K.VTB}
 
@@ -450,7 +450,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
         yaz(u'      [WILL ASK]  %-20s %-32s expected %s records'
             % (e, d, '{:,}'.format(BEKLENEN_KAYIT.get(e, 0)).replace(',', ' ') or '?'))
     for e, d, _t in yok:
-        yaz(u'      [NO FILE]   %-20s %-32s not found under REFERANS_DB' % (e, d))
+        yaz(u'      [NO FILE]   %-20s %-32s not found under REFERENCE_DB' % (e, d))
     yaz(u'  DOMAIN FILTER                      : NONE. Every bin is asked against ALL'
         % len(var))
     yaz(u'    %d databases. Choosing the domain from the Kraken label would be')
@@ -537,7 +537,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                 yaz(u'     %-20s: ALL %d bins came from the cache' % (et, len(kume)))
                 continue
             t0 = time.time()
-            yol = os.path.join(kok, 'REFERANS_DB', dosya)
+            yol = os.path.join(kok, 'REFERENCE_DB', dosya)
 
             def ilerle(n, _e=et, _t0=t0):
                 print(u'     ... %s: %d records scanned (%s)      '
@@ -580,7 +580,7 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
         for e, d, _t in yok:
             for k in kume:
                 bulgular[k][e] = dict(durum=u'DOSYA YOK', isabet=[],
-                                      sebep=u'REFERANS_DB/%s bulunamadi' % d)
+                                      sebep=u'REFERENCE_DB/%s bulunamadi' % d)
 
         for k in kume:
             r = kutu_kaydi(K, kok, k, kons[k][:4000], bulgular[k], lokus_tab, uye,
@@ -817,7 +817,7 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
                         u'from cache (not scanned in this run)',
                         kap or u'verified in a previous run'))
         for e, d, _t in yok:
-            fh.write(u'| - | %s | - | - | **NO SUCH FILE** (`REFERANS_DB/%s`) |\n' % (e, d))
+            fh.write(u'| - | %s | - | - | **NO SUCH FILE** (`REFERENCE_DB/%s`) |\n' % (e, d))
         fh.write(u'| - | NCBI nt | - | - | %s |\n'
                  % {'yok': u'**NOT ASKED** (--nt none; a separate BLAST queue per bin)',
                     'oto': u'automatic (URL API)', 'elle': u'elle'}[nt_kip])

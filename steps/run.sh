@@ -32,8 +32,8 @@ PT="${PT:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
 KONS_IUPAC="${KONS_IUPAC:-$PT/referans_konsensus/self/konsensus}"
 BASKIN="${BASKIN:-$PT/referans_konsensus/baskin}"
 KONS="${KONS:-$BASKIN/konsensus}"
-ADAY="${ADAY:-$PT/primer_adaylari}"
-FINAL="${FINAL:-$PT/primer_final}"
+ADAY="${ADAY:-$PT/primer_candidates}"
+FINAL="${FINAL:-$PT/final_primers}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ANA_LOG="$PT/CALISTIR.log"
 MAX_OKUMA="${MAX_OKUMA:-20000}"
@@ -140,7 +140,7 @@ say "STEP 4/7  the external database scan (external_databases.py)"
 T0=$(date +%s)
 if command -v blastn >/dev/null 2>&1; then
   python3 "$HERE/external_databases.py" \
-      --final "$FINAL" --db "$PT/REFERANS_DB" \
+      --final "$FINAL" --db "$PT/REFERENCE_DB" \
       --out "$FINAL/dis_veritabani.tsv" 2>&1 | tee -a "$ANA_LOG"
 else
   say "  blastn was not found, the external database scan was skipped."
@@ -156,10 +156,10 @@ say "STEP 4 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 say "----------------------------------------------------------------"
 say "STEP 5/7  the reference based design (design_from_reference.py)"
 T0=$(date +%s)
-REFC="$PT/primer_referans"
+REFC="$PT/reference_primers"
 if [ -f "$HERE/reference_targets.tsv" ]; then
   python3 "$HERE/design_from_reference.py" \
-      --db "$PT/REFERANS_DB" --pt "$PT" \
+      --db "$PT/REFERENCE_DB" --pt "$PT" \
       --reference-targets "$HERE/reference_targets.tsv" \
       --out "$REFC" --max-reads "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 else
@@ -171,7 +171,7 @@ say "STEP 5 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 say "----------------------------------------------------------------"
 say "STEP 6/7  the Excel delivery (export_excel.py)"
 REFARG=""
-[ -s "$REFC/primer_referans.tsv" ] && REFARG="--reference $REFC/primer_referans.tsv"
+[ -s "$REFC/reference_primers.tsv" ] && REFARG="--reference $REFC/reference_primers.tsv"
 python3 "$HERE/export_excel.py" \
     --candidates "$ADAY" --final "$FINAL" \
     --splits "$ADAY/kume_setleri" \
@@ -191,14 +191,14 @@ T0=$(date +%s)
 python3 "$HERE/regression_test.py" \
     --real-data --candidates "$ADAY" --consensus "$KONS" 2>&1 | tee -a "$ANA_LOG"
 RC17=${PIPESTATUS[0]}
-if [ -s "$FINAL/primer_final.tsv" ]; then
+if [ -s "$FINAL/final_primers.tsv" ]; then
   python3 "$HERE/check_deliverables.py" \
       --final "$FINAL" --consensus "$KONS" --targets "$HERE/targets.tsv" \
       --out "$FINAL/teslim_denetimi.tsv" 2>&1 | tee -a "$ANA_LOG"
   RC18=${PIPESTATUS[0]}
 else
   RC18=2
-  say "  there is no primer_final.tsv, the delivery audit could not be run"
+  say "  there is no final_primers.tsv, the delivery audit could not be run"
 fi
 say "STEP 7 finished, regression=$RC17, delivery=$RC18, time=$(( ($(date +%s)-T0)/60 )) minutes"
 [ "$RC17" -eq 0 ] || say "CAREFUL: an item failed in the regression test, look at the log"
@@ -206,14 +206,14 @@ say "STEP 7 finished, regression=$RC17, delivery=$RC18, time=$(( ($(date +%s)-T0
 
 # --- the summary ------------------------------------------------------
 say "----------------------------------------------------------------"
-if [ -s "$FINAL/primer_final.tsv" ]; then
-  G=$(awk -F'\t' 'NR>1 && $4=="GECTI"' "$FINAL/primer_final.tsv" | wc -l)
-  H=$(awk -F'\t' 'NR>1 && $4=="GECTI" {print $2}' "$FINAL/primer_final.tsv" | sort -u | wc -l)
+if [ -s "$FINAL/final_primers.tsv" ]; then
+  G=$(awk -F'\t' 'NR>1 && $4=="GECTI"' "$FINAL/final_primers.tsv" | wc -l)
+  H=$(awk -F'\t' 'NR>1 && $4=="GECTI" {print $2}' "$FINAL/final_primers.tsv" | sort -u | wc -l)
   say "RESULT: candidates passing every rule = $G, targets covered = $H"
-  say "The file: $FINAL/primer_final.tsv"
+  say "The file: $FINAL/final_primers.tsv"
   say "Excel: $PT/PrimerJury_Primer_Tasarimi.xlsx"
 else
-  say "UYARI: primer_final.tsv olusmadi"
+  say "UYARI: final_primers.tsv olusmadi"
 fi
 if [ -s "$ADAY/ayirt_edilemez.tsv" ]; then
   AE=$(( $(wc -l < "$ADAY/ayirt_edilemez.tsv") - 1 ))

@@ -81,9 +81,9 @@ BETIKLER = [
 # shadow root even if empty; otherwise the pre-check stops, correctly, and we
 # never reach the test we came for. (That the pre-check DOES stop is tested
 # separately by scenario S4.)
-KLASORLER = ['fastq files', 'consensus sequences', 'primer_final', 'REFERANS_DB',
+KLASORLER = ['fastq files', 'consensus sequences', 'final_primers', 'REFERENCE_DB',
              'screening', 'protocol', 'engine', 'steps',
-             'konsensus_kanonik', 'tools', 'verification']
+             'canonical_consensus', 'tools', 'verification']
 
 MFE_IX = ['archaea.16S.fna', 'bacteria.16S.fna', 'fungi.ITS.fna',
           'fungi.28SrRNA.fna', 'fungi.18SrRNA.fna', 'SILVA_138.2_SSURef_NR99.fasta']
@@ -114,18 +114,18 @@ def golge_kur(taban):
         fh.write(u'#!/bin/sh\nexit 0\n')
     os.chmod(mp, 0o755)
     # SILVA: DNA alfabesi kapisini gecen kucuk bir sahte fasta
-    with io.open(os.path.join(taban, 'REFERANS_DB',
+    with io.open(os.path.join(taban, 'REFERENCE_DB',
                               'SILVA_138.2_SSURef_NR99.fasta'), 'w',
                  encoding='utf-8') as fh:
         for i in range(50):
             fh.write(u'>sahte%d test\nACGTACGTACGTTTTTACGTACGTACGTTTTT\n' % i)
     for f in KUMELER:
-        p = os.path.join(taban, 'REFERANS_DB', f)
+        p = os.path.join(taban, 'REFERENCE_DB', f)
         if not os.path.exists(p):
             with io.open(p, 'w', encoding='utf-8') as fh:
                 fh.write(u'>sahte\nACGT\n')
     for f in MFE_IX:
-        with io.open(os.path.join(taban, 'REFERANS_DB', f + '.primerqc.bin'),
+        with io.open(os.path.join(taban, 'REFERENCE_DB', f + '.primerqc.bin'),
                      'wb') as fh:
             fh.write(b'0' * 100)
     # Sahte asama betikleri
@@ -319,7 +319,7 @@ def s4_eksik_dosya(ana):
     print(u'\n--- S4: A REQUIRED FILE IS MISSING - the pre-check MUST STOP ---')
     t = golge_kur(os.path.join(ana, 's4'))
     ayar_yaz(t, basarili_ayar())
-    os.remove(os.path.join(t, 'REFERANS_DB',
+    os.remove(os.path.join(t, 'REFERENCE_DB',
                            'SILVA_138.2_SSURef_NR99.fasta.primerqc.bin'))
     shutil.rmtree(os.path.join(t, 'fastq files'))
     rc, out = kos(t)
