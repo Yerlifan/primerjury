@@ -1,39 +1,41 @@
-# HEDEF KLAD TABLOSU  -  bir hedef disi amplikonun hedefin ICINDEN mi
-# DISINDAN mi geldigini soylemek icin gereken TEK sey.
+# THE TARGET CLADE TABLE: the ONE thing needed to say whether an off target
+# amplicon came from INSIDE the target or from OUTSIDE it.
 #
-# NEDEN VAR (D-12, 2026-08-07): MFEprimer'in "hedef disi" olcusu SADECE BOYA
-# dayanir. Evrensel bir bakteri primerinin buldugu 1550 farkli-boy amplikonun
-# 1519'u SILVA'da "Bacteria;..." ile basliyor - yani hedef ICI, 16S'in dogal
-# uzunluk polimorfizmi. Ham sayi hukme sokuldugunda bu cift RISKLI cikiyordu.
-# Bu tablo o ayrimi olculebilir kilar.
+# WHY IT EXISTS (2026-08-07): MFEprimer's "off target" measure rests ON LENGTH
+# ALONE. Of the 1,550 differently sized amplicons a universal bacterial primer
+# found, 1,519 begin with "Bacteria;..." in SILVA, that is they are INSIDE the
+# target and are the natural length polymorphism of 16S. Put into the verdict,
+# the raw count made that pair come out risky. This table makes the distinction
+# measurable.
 #
-# Sutunlar:
-#   hedef   : "2 Panel" / SIPARIS_LISTESI.tsv'deki hedef adi (birebir)
-#   alan    : Bacteria | Archaea | Eukaryota  (SILVA dizgesinin ILK jetonu)
-#             (b) sinifi = ayni alan, klad disi ; (c) = farkli alan
-#   klad    : virgulle ayrilmis jeton listesi. Amplikonun taksonomi dizgesinde
-#             BUNLARDAN BIRI geciyorsa amplikon hedef ICI sayilir.
-#   kaynak  : bu jetonlar NEREDEN geldi - denetlenebilmesi icin
+# The columns:
+#   hedef   the target name exactly as it stands in the panel and the order list
+#   alan    Bacteria | Archaea | Eukaryota, the FIRST token of the SILVA string.
+#           Class (b) is the same domain outside the clade; (c) is a different
+#           domain.
+#   klad    a comma separated token list. When ONE OF THESE occurs in the
+#           amplicon's taxonomy string, the amplicon counts as INSIDE the target.
+#   kaynak  WHERE those tokens came from, so the table can be audited
 hedef	alan	klad	kaynak
-Bakteri_universal	Bacteria	Bacteria	targets.tsv karar 4, duzey='alan': "*B sinifindaki butun taksonlar"
-Arke_universal	Archaea	Archaea	targets.tsv karar 4, duzey='alan': "*A1,*A2 butun taksonlar"
-Mantar_universal (F1)	Eukaryota	Fungi	targets.tsv karar 4: "F sinifi; bakteri ve Apicomplexa haric"; hedef_uyelik haric=Dictyostelium(Amoebozoa),Plasmodium,Toxoplasma
-Mantar_universal (F2)	Eukaryota	Fungi	ayni satir (F2 barkod sinifi)
-Methanothrix_cinsi	Archaea	Methanothrix	hedef_uyelik uye 2223=Methanothrix soehngenii, duzey='cins'
-Methanothrix_soehngenii_turu	Archaea	Methanothrix	uye 2223, duzey='tur'; SILVA tur alti ayirmiyor -> cins jetonu
-Methanosarcina_cinsi	Archaea	Methanosarcina	uye 2209,2208,2210,1434102,3078083 -> cins Methanosarcina
-Methanosarcina mazei / M. soligelidi grubu	Archaea	Methanosarcina	uye 2209, duzey='tur'; SILVA tur alti ayirmiyor -> cins jetonu
-Petrimonas_cinsi	Bacteria	Petrimonas	uye 1642646,285070 -> cins Petrimonas
-Proteiniphilum_cinsi	Bacteria	Proteiniphilum	uye 2829812,1642647 -> cins Proteiniphilum
-Sakarolitik_Sphaerochaeta	Bacteria	Sphaerochaeta	uye 1129264=Sphaerochaeta associata
-Petriella_cinsi	Eukaryota	Petriella,Microascaceae	hedef adi = cins Petriella; SILVA/RefSeq ailesi Microascaceae
-Petriella_musispora	Eukaryota	Petriella,Microascaceae	hedef adi; duzey='cins -> sinif' (hedef_takson_esleme KARAR 18)
-Microascaceae_askomikot	Eukaryota	Microascaceae	hedef adi, duzey='aile' (KARAR 14)
-Metanomikrobiyales_hidrojenotrof	Archaea	Methanomicrobiales	hedef_uyelik not: "Methanomicrobiales: Methanoculleus, Methanocorpusculum, Methanofollis"
-Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	Bacteria	Synergistaceae,Synergistota	hedef adi + not: "adlandirilamayan Synergistaceae"
-Bacteroidales_kumesi	Bacteria	Bacteroidales	hedef adi + not: "Bacteroidales takimi"
-Asetoklastik_metanojenler	Archaea	Methanosarcinales	hedef_uyelik not: "Methanosarcina ve Methanothrix" -> ikisinin ortak takimi
-Proteolitik_Cloacimonas	Bacteria	Cloacimonadota,Cloacimonadia,Cloacimonadales,Cloacimonadaceae,Cloacimonas	not: "YALNIZ Ca. Cloacimonas" -> SILVA'daki butun rutbe adlari
-Nitrosocosmicus_AOA	Archaea	Nitrosocosmicus,Nitrososphaeraceae	uye 1826872=Ca. Nitrosocosmicus hydrocola; SILVA'da Nitrososphaeraceae altinda
-Metilotrofik_metanojen	Archaea	Methanomassiliicoccus,Methanomassiliicoccales	uye 1406512=Ca. Methanomassiliicoccus intestinalis
-Metanojen_universal	Archaea	Methanosarcina,Methanothrix,Methanoculleus,Methanocorpusculum,Methanofollis,Methanobrevibacter,Methanomassiliicoccus,Methanosarcinales,Methanomicrobiales,Methanobacteriales,Methanomassiliicoccales,Methanosaetaceae,Methanosarcinaceae,Methanocellales,Methanococcales,Methanopyrales,Methanonatronarchaeales,Methanofastidiosales,Methanomethyliales,Methanoliparia	13 uye taxid'in 7 cinsi (Methanosarcina, Methanothrix, Methanoculleus, Methanocorpusculum, Methanofollis, Methanobrevibacter, Methanomassiliicoccus) + o cinslerin SILVA takim/aile adlari + SILVA'daki diger metanojen takimlari (2026-08-07 bagimsiz denetimde eklendi; onceki liste 5 takimi atliyordu, bu kosuda etkisi 0 idi). DUZEY KUNYESI: 'grup (islevsel)' screening/hedef_takson_esleme.py KARAR sozlugundendir - bu hedef steps/targets.tsv'de YOKTUR.
+Bakteri_universal	Bacteria	Bacteria	targets.tsv decision 4, level 'domain': every taxon in class B
+Arke_universal	Archaea	Archaea	targets.tsv decision 4, level 'domain': every taxon in classes A1 and A2
+Mantar_universal (F1)	Eukaryota	Fungi	targets.tsv decision 4: class F, bacteria and Apicomplexa excluded; the membership table excludes Dictyostelium (Amoebozoa), Plasmodium and Toxoplasma
+Mantar_universal (F2)	Eukaryota	Fungi	the same row, for the F2 barcode class
+Methanothrix_cinsi	Archaea	Methanothrix	the membership table gives member 2223 = Methanothrix soehngenii, level 'genus'
+Methanothrix_soehngenii_turu	Archaea	Methanothrix	member 2223, level 'species'; SILVA does not separate below species, so the genus token is used
+Methanosarcina_cinsi	Archaea	Methanosarcina	members 2209, 2208, 2210, 1434102 and 3078083, so the genus Methanosarcina
+Methanosarcina mazei / M. soligelidi grubu	Archaea	Methanosarcina	member 2209, level 'species'; SILVA does not separate below species, so the genus token is used
+Petrimonas_cinsi	Bacteria	Petrimonas	members 1642646 and 285070, so the genus Petrimonas
+Proteiniphilum_cinsi	Bacteria	Proteiniphilum	members 2829812 and 1642647, so the genus Proteiniphilum
+Sakarolitik_Sphaerochaeta	Bacteria	Sphaerochaeta	member 1129264 = Sphaerochaeta associata
+Petriella_cinsi	Eukaryota	Petriella,Microascaceae	the target name is the genus Petriella; its family in SILVA and RefSeq is Microascaceae
+Petriella_musispora	Eukaryota	Petriella,Microascaceae	the target name; level 'genus, read as class' (decision 18 in the taxon mapping)
+Microascaceae_askomikot	Eukaryota	Microascaceae	the target name, level 'family' (decision 14)
+Metanomikrobiyales_hidrojenotrof	Archaea	Methanomicrobiales	the membership note: Methanomicrobiales, that is Methanoculleus, Methanocorpusculum and Methanofollis
+Proteolitik_Synergistaceae (formerly Proteolitik_Cloacibacillus)	Bacteria	Synergistaceae,Synergistota	the target name plus the note: an unnameable Synergistaceae
+Bacteroidales_kumesi	Bacteria	Bacteroidales	the target name plus the note: the order Bacteroidales
+Asetoklastik_metanojenler	Archaea	Methanosarcinales	the membership note: Methanosarcina and Methanothrix, so the order they share
+Proteolitik_Cloacimonas	Bacteria	Cloacimonadota,Cloacimonadia,Cloacimonadales,Cloacimonadaceae,Cloacimonas	the note: Ca. Cloacimonas ONLY, so every rank name it carries in SILVA
+Nitrosocosmicus_AOA	Archaea	Nitrosocosmicus,Nitrososphaeraceae	member 1826872 = Ca. Nitrosocosmicus hydrocola, which sits under Nitrososphaeraceae in SILVA
+Metilotrofik_metanojen	Archaea	Methanomassiliicoccus,Methanomassiliicoccales	member 1406512 = Ca. Methanomassiliicoccus intestinalis
+Metanojen_universal	Archaea	Methanosarcina,Methanothrix,Methanoculleus,Methanocorpusculum,Methanofollis,Methanobrevibacter,Methanomassiliicoccus,Methanosarcinales,Methanomicrobiales,Methanobacteriales,Methanomassiliicoccales,Methanosaetaceae,Methanosarcinaceae,Methanocellales,Methanococcales,Methanopyrales,Methanonatronarchaeales,Methanofastidiosales,Methanomethyliales,Methanoliparia	the 7 genera of the 13 member taxids (Methanosarcina, Methanothrix, Methanoculleus, Methanocorpusculum, Methanofollis, Methanobrevibacter, Methanomassiliicoccus) plus the SILVA order and family names of those genera plus the other methanogen orders in SILVA. The last part was added by an independent audit on 2026-08-07: the earlier list missed 5 orders, though the effect on that run was 0. The level, 'a functional group', comes from the decision dictionary in screening/target_taxon_mapping.py; this target IS NOT in steps/targets.tsv.

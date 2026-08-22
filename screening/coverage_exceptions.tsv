@@ -1,15 +1,15 @@
-# KAPSAMA DENETIMI - KABUL EDILMIS ISTISNALAR  (2026-08-10)
+# THE COVERAGE CHECK: THE EXCEPTIONS THAT WERE ACCEPTED  (2026-08-10)
 #
-# dislama_kapsama_denetimi.py bir hedefin uyesini dislanan taksonun DISINDA
-# bulursa alarm verir. Asagidaki satirlar BILEREK disarida birakilmistir:
-# o uye gercekten hedef disidir ve NCBI katmaninin onu ISARETLEMESI istenir.
-# Istisna yazmak alarmi susturur ama SEBEBI kayda gecirir - susturma sessizce
-# olmaz.
+# The exclusion coverage check raises an alarm when it finds a member of a target
+# OUTSIDE the excluded taxon. The rows below were left outside DELIBERATELY: that
+# member really is off target and the NCBI layer is MEANT to flag it.
+# Writing an exception silences the alarm but puts THE REASON on record, so the
+# silencing never happens quietly.
 #
 # hedef	uye_taxid	sebep
-Mantar_universal (F1)	299205	Leucocryptos - mantar degil, kriptofit benzeri protist. Mantar evrensel primerinin bunu tutmasi GERCEK hedef disi urundur; gizlenmemeli.
-Mantar_universal (F2)	1938500	Ventricleftida - Cercozoa, mantar degil. Isaretlenmesi istenir.
-Mantar_universal (F2)	1920164	Leptophryidae - Cercozoa, mantar degil. Isaretlenmesi istenir.
-Mantar_universal (F2)	99923	Cyrtohymena - siliyat, mantar degil. Isaretlenmesi istenir.
-Metanojen_universal	183968	Thermococci - metanojen degil. Metanojen evrensel primerinin bunu tutmasi gercek hedef disi urundur.
-Bacteroidales_kumesi	77133	"uncultured bacterium" - hicbir taksona bagli degil, taxid ile dislanamaz. Bu uyenin kimligine yalniz dizi karsilastirmasi (katman 2-3) karar verebilir.
+Mantar_universal (F1)	299205	Leucocryptos, not a fungus but a cryptophyte-like protist. A fungal universal primer catching it is a REAL off target product and must not be hidden.
+Mantar_universal (F2)	1938500	Ventricleftida, a cercozoan and not a fungus. It is meant to be flagged.
+Mantar_universal (F2)	1920164	Leptophryidae, a cercozoan and not a fungus. It is meant to be flagged.
+Mantar_universal (F2)	99923	Cyrtohymena, a ciliate and not a fungus. It is meant to be flagged.
+Metanojen_universal	183968	Thermococci, not a methanogen. A methanogen universal primer catching it is a real off target product.
+Bacteroidales_kumesi	77133	"uncultured bacterium", tied to no taxon at all and therefore not excludable by taxid. Only a sequence comparison, layers 2 and 3, can decide this member's identity.

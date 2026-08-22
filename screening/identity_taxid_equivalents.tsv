@@ -1,11 +1,11 @@
-# OLCULEN KIMLIK -> NCBI TAXID ESDEGERI  (2026-08-10)
+# THE MEASURED IDENTITY AND ITS NCBI TAXID COUNTERPART  (2026-08-10)
 #
-# Olculen kimlik metni her zaman NCBI'da aranabilir bir bilimsel ad degildir:
-# yazim NCBI'ninkinden ayrilabilir, ya da kimlik adlandirilmamis bir soydur ve
-# yerini yalniz veritabani soy zinciri gosterir. Bu tablo o bosluğu KAYITLA
-# kapatir - denetim betiginin icine gomulu tahmin YOKTUR.
+# The measured identity text is not always a scientific name that can be searched
+# at NCBI: the spelling can differ from NCBI's, or the identity is an unnamed
+# lineage whose place only the database's lineage chain shows. This table closes
+# that gap ON THE RECORD, so that NO guess is buried inside the audit script.
 #
-# anahtar: ya kutu adi (B-2_1197717) ya da olculen kimlik metni.
+# The key: either a bin name (B-2_1197717) or the measured identity text.
 # anahtar	taxid	dayanak
-Nitrocosmicus cf. oleophi	1826864	NCBI'daki ad "Candidatus Nitrosocosmicus" (1826864); olculen metinde "Nitrosocosmicus" yerine "Nitrocosmicus" yaziyor ve tur epiteti "oleophi" kisaltilmis. Ayni cins.
-B-2_1197717	649777	Olculen kimlik "Bacterium enrichment" - adlandirilmamis soy. Yeri veritabani soy zincirinden okunur: SILVA SSU NR99 AM933660 Bacteria;Synergistota;Synergistia;Synergistales;Synergistaceae (%98,74) ve PR2 SSU AF280863 Synergistales (%96,12). Aile: Synergistaceae 649777.
+Nitrocosmicus cf. oleophi	1826864	The name at NCBI is "Candidatus Nitrosocosmicus" (1826864); the measured text writes "Nitrocosmicus" instead of "Nitrosocosmicus" and abbreviates the species epithet to "oleophi". The same genus.
+B-2_1197717	649777	The measured identity is "Bacterium enrichment", an unnamed lineage. Its place is read from the database lineage chain: SILVA SSU NR99 AM933660 Bacteria;Synergistota;Synergistia;Synergistales;Synergistaceae (98.74%) and PR2 SSU AF280863 Synergistales (96.12%). The family: Synergistaceae 649777.

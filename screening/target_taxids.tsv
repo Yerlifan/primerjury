@@ -1,40 +1,48 @@
-# NCBI Primer-BLAST DISLAMA HARITASI  (2026-08-10)
-# Neden: genel organizma kisitiyla (Bacteria OR Archaea OR Fungi)
-# Primer-BLAST bulunan HER urunu "target templates" hanesine koyuyor,
-# "unintended" bolumu bos kaliyor. 22 sayfanin 22'sinde olculdu.
-# Cozum: hedefin KENDI taksonunu ENTREZ_QUERY ile disla; o zaman
-# kalan her urun tanimi geregi hedef disidir.
-# Bos taxid = dislama uygulanmaz ve o hedef SINANMADI yazilir.
-# Birden cok taxid virgulle yazilir: her biri ayri bir NOT terimi olur.
-# EVRENSEL primerlerde de dislama YAPILIR: alani disla, kalan her urun
-# gercek hedef disidir (bakteri primerinin kloroplast tutmasi gibi).
-# ANAHTARLAR SIPARIS_LISTESI.tsv icindeki hedef adiyla BIREBIR ayni olmali;
-# tutmayan anahtar sessizce SINANMADI uretir (2026-08-10 iki tanesinde oldu).
-# TAXID'LER NCBI Taxonomy'den DOGRULANDI (2026-08-10).
-# KURAL: dislanacak takson hedefin ADINA gore degil, OLCULEN KIMLIGE gore
-# secilir ve olculen kimligi ICEREN en dar taksona cikilir. Ad ile olculen
-# kimlik bu projede 100 kutunun 78'inde ayrisiyor; adi esas almak hedefin
-# kendisini dislamamaya ve kendi vuruslarini hedef disi saymaya yol acar.
+# THE NCBI PRIMER-BLAST EXCLUSION MAP  (2026-08-10)
+#
+# Why: with a general organism restriction (Bacteria OR Archaea OR Fungi),
+# Primer-BLAST puts EVERY product it finds into the "target templates" column and
+# leaves the "unintended" section empty. That was measured on all 22 pages.
+# The fix: exclude the target's OWN taxon through the Entrez query, and then
+# every product that remains is off target by definition.
+#
+# An empty taxid means no exclusion is applied and that target is written down as
+# NOT TESTED. More than one taxid is written comma separated and each becomes its
+# own NOT term.
+#
+# The exclusion IS APPLIED to universal primers too: exclude the domain, and every
+# product that remains is a real off target one, such as a bacterial primer
+# catching a chloroplast.
+#
+# THE KEYS have to match the target name in the order list EXACTLY; a key that
+# does not match silently produces NOT TESTED, which happened to two of them on
+# 2026-08-10. THE TAXIDS WERE CONFIRMED against NCBI Taxonomy on 2026-08-10.
+#
+# THE RULE: the taxon to exclude is chosen by the MEASURED IDENTITY and not by
+# the target's NAME, and it is widened to the narrowest taxon that CONTAINS the
+# measured identity. In this project the name and the measured identity diverge
+# in 78 of 100 bins, so going by the name would leave the target itself
+# unexcluded and count its own hits as off target.
 hedef	taxid	gerekce
-Methanothrix_cinsi	2222	Methanothrix cinsi, NCBI Taxonomy
-Methanothrix_soehngenii_turu	2223,2222	M. soehngenii (2223) + Methanothrix CINSI (2222). Uye kutularin ucu de olculende yalniz CINS duzeyine cozuluyor ("Methanothrix"), tur adi cikmiyor. Yalniz 2223 dislansaydi hedefin kendi kutulari hedef disi sayilirdi. Bedeli: bu katman baska bir Methanothrix turunu ayirt EDEMEZ; tur duzeyi ayrimi katman 2-3 olcer.
-Methanosarcina_cinsi	2207	Methanosarcina cinsi, NCBI Taxonomy
-Methanosarcina mazei / M. soligelidi grubu	2209,1036677,2213	M. mazei + M. soligelidi + "Methanosarcina sp." dugumu (2213): bir uye kutu olculende yalniz cins duzeyine cozuluyor. M. mazei 2209 + M. soligelidi 1036677 - cift bu IKI turu birlikte hedefliyor, ikisi de dislanir. Cins (2207) dislanmaz: baska bir Methanosarcina turunu tutmasi HEDEF DISIDIR ve gorunmelidir.
-Metilotrofik_metanojen	1080709,1577788	Methanomassiliicoccus cinsi (1080709) + Methanomassiliicoccaceae AILESI (1577788). Uye kutunun olculen kimligi aile duzeyinde kaliyor. Methanomassiliicoccus CINSI - olculen kimlik adlandirilamayan soy (%99,23). Tur yerine cins, cunku ad kesin degil.
-Nitrosocosmicus_AOA	1826864	Ca. Nitrosocosmicus CINSI - olculen kimlik "Nitrocosmicus cf. oleophi", tur degil. ESKI 1826872 (hydrocola TURU) farkli bir turu dislardi.
-Proteolitik_Synergistaceae (eski ad: Proteolitik_Cloacibacillus)	649777	Synergistaceae AILESI - olculen kimlik adlandirilamayan Synergistaceae. ESKI 1197717 (Cloacibacillus porcorum TURU) hedefi dislamazdi.
-Proteolitik_Cloacimonas	112	Planctomycetales takimi - OLCULEN kimlik "Planctomycetales bacterium". ESKI 456827 (Ca. Cloacimonas) YANLISTI: Kraken ADINA gore secilmisti, hedefin kendisi dislanmaz ve kendi vuruslari hedef disi sayilirdi.
-Sakarolitik_Sphaerochaeta	399320	Sphaerochaeta CINSI - olculen kimlik adlandirilamayan soy (%95,49). Tur yerine cins.
-Petrimonas_cinsi	307628,294702	Petrimonas (307628) + Proteiniphilum (294702). OLCULDU: uc uye kutunun ikisi "adlandirilamayan soy", en yakin kayitlarinin soyu Proteiniphilum ile bitiyor; yalnizca biri "Petrimonas sp." cikiyor. Kraken'in Petrimonas/Proteiniphilum ayrimi bu numunede tek bir adlandirilmamis Bacteroidales soyuna karsilik geliyor - "Proteiniphilum_cinsi hedefi numunede yok" hukmuyle de tutarli. Ikisi birlikte dislanir.
-Proteiniphilum_cinsi	294702	Proteiniphilum cinsi, NCBI Taxonomy
-Bacteroidales_kumesi	171549	Bacteroidales takimi, NCBI Taxonomy
-Microascaceae_askomikot	5593	Microascaceae ailesi - DOGRULANDI 2026-08-10 (34468 gecersiz)
-Petriella_musispora	42313	Petriella cinsi - DOGRULANDI 2026-08-10 (69605 YANLISTI: bakteriyofaj)
-Petriella_cinsi	42313	Petriella cinsi - DOGRULANDI 2026-08-10 (69605 YANLISTI: Enterobacteria phage FSalpha)
-Metanomikrobiyales_hidrojenotrof	2191	Methanomicrobiales takimi, NCBI Taxonomy
-Asetoklastik_metanojenler	94695,2905377	Methanosarcinales (94695) + Methanotrichales (2905377). 2026-08-10 OLCULDU: NCBI Methanothrix'i Methanosarcinales'ten CIKARIP kendi takimi Methanotrichales altina tasimis (soy: Methanomicrobia; Methanotrichales; Methanotrichaceae; Methanothrix). Yalniz 94695 yazilsaydi hedefin Methanothrix uyeleri hedef DISI sayilirdi. ESKI GEREKCE ("94695 Methanothrix'i kapsar") ARTIK DOGRU DEGIL - ezberden yazilmisti, zincir cekilince cikti. Methanosarcinales takimi - DOGRULANDI 2026-08-10 (2206 Methanosarcinaceae AILESIYDI; uye kumesinde Methanothrix 2223 var ve o Methanotrichaceae altinda, aile ile dislama eksik kalirdi)
-Metanojen_universal	2158,2182,2191,94695,2905377,68985,570264,1235850,2202723	Methanotrichales (2905377) EKLENDI - Methanothrix orada. BUTUN metanojen takimlari (Methanobacteriales, Methanococcales, Methanomicrobiales, Methanosarcinales, Methanopyrales, Methanocellales, Methanomassiliicoccales, Methanonatronarchaeales). Metanojenler tek bir takson degil, birkac takima yayilmistir; Archaea dislansaydi metanojen olmayan bir arkeyi tutmasi GIZLENIRDI. Kalan her urun hedef disidir.
-Mantar_universal (F1)	4751	Fungi alemi. Kalan her urun mantar disidir (bitki urunu uyarisi bu katmanda olculur).
-Mantar_universal (F2)	4751	Fungi alemi. Kalan her urun mantar disidir (bitki urunu uyarisi bu katmanda olculur).
-Bakteri_universal	2	Bacteria alani. Kalan her urun bakteri disidir - kloroplast ve mitokondri urunleri tam olarak burada gorunur.
-Arke_universal	2157	Archaea alani. Kalan her urun arke disidir.
+Methanothrix_cinsi	2222	the genus Methanothrix, NCBI Taxonomy
+Methanothrix_soehngenii_turu	2223,2222	M. soehngenii (2223) plus the GENUS Methanothrix (2222). All three member bins resolve only to GENUS level when measured, giving "Methanothrix" and no species name. Excluding 2223 alone would have counted the target's own bins as off target. The cost: this layer CANNOT tell another Methanothrix species apart; species level separation is measured by layers 2 and 3.
+Methanosarcina_cinsi	2207	the genus Methanosarcina, NCBI Taxonomy
+Methanosarcina mazei / M. soligelidi grubu	2209,1036677,2213	M. mazei plus M. soligelidi plus the "Methanosarcina sp." node (2213): one member bin resolves only to genus level when measured. The pair targets BOTH species, 2209 and 1036677, so both are excluded. The genus (2207) is NOT excluded: catching another Methanosarcina species IS OFF TARGET and has to stay visible.
+Metilotrofik_metanojen	1080709,1577788	The genus Methanomassiliicoccus (1080709) plus the FAMILY Methanomassiliicoccaceae (1577788). The member bin's measured identity stops at family level; at genus level the measured identity is an unnameable lineage at 99.23 per cent. The genus is used rather than the species, because the name is not certain.
+Nitrosocosmicus_AOA	1826864	The GENUS Ca. Nitrosocosmicus: the measured identity is "Nitrocosmicus cf. oleophi", which is not a species. The old value 1826872, the species hydrocola, would have excluded a different species.
+Proteolitik_Synergistaceae (formerly Proteolitik_Cloacibacillus)	649777	The FAMILY Synergistaceae: the measured identity is an unnameable Synergistaceae. The old value 1197717, the species Cloacibacillus porcorum, would not have excluded the target at all.
+Proteolitik_Cloacimonas	112	The order Planctomycetales: the MEASURED identity is "Planctomycetales bacterium". The old value 456827, Ca. Cloacimonas, WAS WRONG: it had been chosen by Kraken's NAME, so the target itself went unexcluded and its own hits counted as off target.
+Sakarolitik_Sphaerochaeta	399320	The GENUS Sphaerochaeta: the measured identity is an unnameable lineage at 95.49 per cent. The genus is used rather than the species.
+Petrimonas_cinsi	307628,294702	Petrimonas (307628) plus Proteiniphilum (294702). MEASURED: two of the three member bins are an "unnameable lineage" whose nearest records end in Proteiniphilum, and only one comes out as "Petrimonas sp.". In this sample Kraken's Petrimonas against Proteiniphilum distinction corresponds to a single unnamed Bacteroidales lineage, which is also consistent with the verdict that the Proteiniphilum genus target is not in the sample. Both are excluded together.
+Proteiniphilum_cinsi	294702	the genus Proteiniphilum, NCBI Taxonomy
+Bacteroidales_kumesi	171549	the order Bacteroidales, NCBI Taxonomy
+Microascaceae_askomikot	5593	the family Microascaceae, CONFIRMED on 2026-08-10 (34468 is not valid)
+Petriella_musispora	42313	the genus Petriella, CONFIRMED on 2026-08-10 (69605 WAS WRONG: a bacteriophage)
+Petriella_cinsi	42313	the genus Petriella, CONFIRMED on 2026-08-10 (69605 WAS WRONG: Enterobacteria phage FSalpha)
+Metanomikrobiyales_hidrojenotrof	2191	the order Methanomicrobiales, NCBI Taxonomy
+Asetoklastik_metanojenler	94695,2905377	Methanosarcinales (94695) plus Methanotrichales (2905377). MEASURED on 2026-08-10: NCBI has TAKEN Methanothrix OUT of Methanosarcinales and moved it under its own order Methanotrichales (the lineage: Methanomicrobia; Methanotrichales; Methanotrichaceae; Methanothrix). With 94695 alone, the target's own Methanothrix members would have counted as OFF target. The old reasoning, that 94695 covers Methanothrix, IS NO LONGER TRUE; it had been written from memory and came out once the lineage was pulled. The order Methanosarcinales was CONFIRMED on 2026-08-10: 2206 was the FAMILY Methanosarcinaceae, and because the member set holds Methanothrix 2223 which sits under Methanotrichaceae, excluding by family would have been incomplete.
+Metanojen_universal	2158,2182,2191,94695,2905377,68985,570264,1235850,2202723	Methanotrichales (2905377) WAS ADDED, because Methanothrix sits there. EVERY methanogen order is listed (Methanobacteriales, Methanococcales, Methanomicrobiales, Methanosarcinales, Methanopyrales, Methanocellales, Methanomassiliicoccales, Methanonatronarchaeales). The methanogens are not one taxon but spread across several orders; excluding Archaea instead would have HIDDEN the primer catching a non-methanogen archaeon. Every product that remains is off target.
+Mantar_universal (F1)	4751	the kingdom Fungi. Every product that remains is outside the fungi; the plant product warning is measured in this layer.
+Mantar_universal (F2)	4751	the kingdom Fungi. Every product that remains is outside the fungi; the plant product warning is measured in this layer.
+Bakteri_universal	2	the domain Bacteria. Every product that remains is outside the bacteria, and chloroplast and mitochondrial products show up exactly here.
+Arke_universal	2157	the domain Archaea. Every product that remains is outside the archaea.
