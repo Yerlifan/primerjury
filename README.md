@@ -78,7 +78,7 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 - **Unnamed environmental records cannot become a name.** A 99% match to
   `Uncultured bacterium clone 4B-11` is evidence that your sequence overlaps
   environmental clones, it is not a species. Reported as
-  `ADLANDIRILAMIYOR (referans adsız)`, never as a taxon.
+  `CANNOT BE NAMED (reference is unnamed)`, never as a taxon.
 - Output includes the **five nearest organisms**, deduplicated by organism
   rather than by record, so the list shows what else is close instead of the
   same species from five databases.

@@ -54,8 +54,8 @@ for _g, _b0, _ac in GRUP_ARALIK:
         BARKOD_GRUP[_b0 + _i] = _g
         BARKOD_YIL[_b0 + _i] = _y
 GRUPLAR = [g for g, _, _ in GRUP_ARALIK]
-RUTBE_ADI = {"D": "alem üstü", "K": "alem", "P": "şube", "C": "sınıf",
-             "O": "takım", "F": "aile", "G": "cins", "S": "tür"}
+RUTBE_ADI = {"D": 'domain', "K": 'kingdom', "P": 'phylum', "C": 'class',
+             "O": 'order', "F": 'family', "G": 'genus', "S": 'species'}
 
 
 def get_args():
@@ -165,8 +165,8 @@ def guvenilirlik_kur(a):
             t1, t2 = r.get("taxid1", ""), r.get("taxid2", "")
             a1, a2 = ad.get(t1, t1), ad.get(t2, t2)
             oz = r.get("kati_ozdeslik", r.get("ozdeslik_yuzde", ""))
-            g = ("dizi düzeyinde %s ile ayrılmıyor (katı özdeşlik %%%s, "
-                 "sınıf %s)" % (a2, oz, r.get("sinif", "")))
+            g = ('does not separate from %s at sequence level (strict '
+                 'identity %%%s, class %s)' % (a2, oz, r.get("sinif", "")))
             ekle(tur, a1, g)
             ekle(tur, a2, (u'it does not separate from %s at sequence level (strict identity %%%s, class %s)' % (a1, oz, r.get("sinif", ""))))
             for x in (a1, a2):
@@ -229,7 +229,7 @@ def genislik(ws, gs):
 
 def bolum_yaz(ws, satir, veri, ust, supheli, duzey):
     """Writes a taxon by year table for one group. Returns: the next row."""
-    basliklar = ["Takson"] + ["%d" % y for y in YILLAR] + ["Dört yıl ortalaması"]
+    basliklar = ["Takson"] + ["%d" % y for y in YILLAR] + ['The four year mean']
     if duzey == "tur":
         basliklar.append(u'Reliability')
     yaz_baslik(ws, basliklar, satir=satir, dondur=False)
@@ -246,15 +246,16 @@ def bolum_yaz(ws, satir, veri, ust, supheli, duzey):
         if duzey == "tur":
             g = supheli.get(tk)
             c = ws.cell(row=r, column=7,
-                        value=("CİNS DÜZEYİNDE OKUYUN: " + "; ".join(g)) if g
-                        else "ölçüm bu türü şüpheli göstermedi")
+                        value=('READ AT GENUS LEVEL:' + "; ".join(g)) if g
+                        else 'the measurement did not show this species as '
+                             'suspect')
             c.font = NORMAL; c.border = KENAR
             c.alignment = Alignment(wrap_text=True, vertical="top")
             c.fill = KIRMIZI if g else YESIL
     son = ilk + min(len(veri), ust) - 1
     # the total check: the taxa shown plus the others
     r = son + 1
-    c = ws.cell(row=r, column=1, value="Gösterilenlerin toplamı")
+    c = ws.cell(row=r, column=1, value='The total of what is shown')
     c.font = KALIN; c.border = KENAR
     for j in range(4):
         col = get_column_letter(2 + j)
@@ -282,46 +283,52 @@ def main():
     wb = Workbook()
 
     # ---------------- Kapak ----------------
-    ws = wb.active; ws.title = "Kapak ve Yöntem"
+    ws = wb.active; ws.title = 'Cover and method'
     genislik(ws, [30, 104])
     ws["A1"] = "PrimerJury topluluk trend analizi"
     ws["A1"].font = BUYUK; ws.merge_cells("A1:B1")
     satirlar = [
-        ("Üretim zamanı", datetime.datetime.now().strftime("%d.%m.%Y %H:%M")),
+        ('Produced at', datetime.datetime.now().strftime("%d.%m.%Y %H:%M")),
         ("Kaynak", os.path.abspath(a.bracken)),
         ("", ""),
         ("OKUMA SIRASI", ""),
-        ("0", "Önce 'Rütbe Kapsaması' sayfası: her örneğin bolluğu hangi "
-              "rütbede okunabilir. Ölçüldü: arke örneklerinde okumaların "
-              "%86-97'si cins düzeyine iner, mantar örneklerinde %0,1-2,5, "
-              "bakteri örneklerinde %8-10. Bolluk sayıları 'Güvenilir Bolluk' "
-              "sayfasından alınmalıdır."),
-        ("0b", "Bracken ÇALIŞTIRILMADI. Bracken üst rütbede kalan okumaları "
-               "veritabanı önceliklerine göre aşağı dağıtır; bu, gerçek "
-               "organizmanın veritabanında bulunduğu varsayımına dayanır ve "
-               "bu numunede mantar ile bakteri tarafında o varsayım "
-               "kurulamıyor. Ayrıntı: bolluk_rutbe_kaniti.md"),
-        ("1", "Baskın Cins ve Baskın Tür sayfaları ÖZGÜN Bracken çıktısıdır, "
-              "güven eşiği uygulanmamıştır; karşılaştırma için bırakılmıştır."),
-        ("2", "Tür düzeyi sayfaları yalnızca Güvenilirlik sütunu yeşil olan "
-              "satırlar için tür düzeyinde okunabilir. Kırmızı satırlar cins "
-              "düzeyinde toplanarak yorumlanmalıdır."),
+        ("0", 'Read the rank coverage sheet first: it says at which rank the '
+              'abundance of each sample can be read. Measured: in the '
+              'archaeal samples 86 to 97 per cent of the reads reach genus '
+              'level, in the fungal samples 0.1 to 2.5 per cent, and in the '
+              'bacterial samples 8 to 10 per cent. The abundance numbers have '
+              'to be taken from the reliable abundance sheet.'),
+        ("0b", 'Bracken WAS NOT RUN. Bracken pushes the reads that stayed at '
+               "a higher rank down according to the database's own priors, "
+               'which rests on the assumption that the real organism is in '
+               'the database, and on the fungal and bacterial side of this '
+               'sample that assumption does not hold.'),
+        ("1", 'The dominant genus and dominant species sheets are the '
+              'ORIGINAL Bracken output with no confidence threshold applied; '
+              'they are kept for comparison.'),
+        ("2", 'The species level sheets can be read at species level only on '
+              'the rows whose reliability column is green. Red rows have to '
+              'be read gathered at genus level.'),
         ("", ""),
         ("NEDEN", ""),
-        ("Ayırt edilemeyen kutular",
-         "Bazı tür kutularının dizileri birbirinden ayrılmıyor; hangi kutuya "
-         "kaç okuma düştüğü dizi kanıtına dayanmıyor. Kaynak: ayirt_edilemez.tsv"),
-        ("Kutu kimliği",
-         "Bazı kutuların ham okumaları kendi atandıkları türü tercih etmiyor, "
-         "başka bir referansa gidiyor. Kraken2 varsayılan ayarında çekimser "
-         "kalmaz; gerçek tür veritabanında yoksa okuma en yakın kardeş türe "
-         "düşer. Kaynak: kimlik_*.tsv"),
-        ("Bu işaret elle konmadı",
-         "Şüpheli tür ve cins listesi yukarıdaki iki ÖLÇÜM dosyasından "
-         "türetilmiştir. Dosya verilmezse işaret konmaz ve bu satırda belirtilir."),
+        ('Bins that cannot be told apart',
+         'The sequences of some species bins do not separate from one '
+         'another, so how many reads fell into which bin does not rest on '
+         'sequence evidence. The source: ayirt_edilemez.tsv'),
+        ('Bin identity',
+         'The raw reads of some bins do not prefer the species they were '
+         'assigned to and go to another reference. At its default setting '
+         'Kraken2 does not abstain: when the real species is not in the '
+         'database, the read falls onto the nearest sibling species. The '
+         'source: the identity tables.'),
+        ('This mark was not placed by hand',
+         'The list of suspect species and genera is derived from the two '
+         'MEASUREMENT files above. Without them no mark is placed, and that '
+         'is stated on this row.'),
         ("", ""),
-        ("Örnekleme eşlemesi", "Grup ve yıl BARKOD NUMARASINDAN kurulur, "
-                               "klasör adından değil."),
+        ('The sample mapping', 'The group and the year are built FROM THE '
+                                 'BARCODE NUMBER, not from the directory '
+                                 'name.'),
     ]
     r = 3
     for k, v in satirlar:
@@ -334,7 +341,7 @@ def main():
     r += 1
     ws.cell(row=r, column=1, value="Grup").font = BASLIK_YAZI
     ws.cell(row=r, column=1).fill = BASLIK_DOLGU
-    ws.cell(row=r, column=2, value="Barkodlar ve yıllar").font = BASLIK_YAZI
+    ws.cell(row=r, column=2, value='Barcodes and years').font = BASLIK_YAZI
     ws.cell(row=r, column=2).fill = BASLIK_DOLGU
     r += 1
     for g, b0, ac in GRUP_ARALIK:
@@ -342,36 +349,41 @@ def main():
         ws.cell(row=r, column=2, value=", ".join(
             "barcode%02d=%d" % (b0 + i, YILLAR[i]) for i in range(4))).font = NORMAL
         r += 1
-    ws.cell(row=r + 1, column=1, value="Kaynak dosya sayısı").font = KALIN
+    ws.cell(row=r + 1, column=1, value='The number of source files').font = KALIN
     ws.cell(row=r + 1, column=2,
-            value="cins %d barkod, tür %d barkod" % (len(cins), len(tur))).font = NORMAL
-    ws.cell(row=r + 2, column=1, value="Şüpheli işareti").font = KALIN
+            value='genus %d barcodes, species %d barcodes' % (len(cins), len(tur))).font = NORMAL
+    ws.cell(row=r + 2, column=1, value='The suspect mark').font = KALIN
     ws.cell(row=r + 2, column=2,
-            value=("%d tür, %d cins işaretlendi" % (len(s_tur), len(s_cins)))
+            value=('%d species and %d genera were marked' % (len(s_tur), len(s_cins)))
             if (s_tur or s_cins) else
-            "ÖLÇÜM DOSYASI VERİLMEDİ, tür düzeyi işaretlenemedi").font = NORMAL
+            'NO MEASUREMENT FILE WAS GIVEN, so species level could not be '
+            'marked').font = NORMAL
     if not (s_tur or s_cins):
         ws.cell(row=r + 2, column=2).fill = SARI
 
     # ---------------- Metrik sozlugu ----------------
-    ws = wb.create_sheet("Metrik Sözlüğü")
+    ws = wb.create_sheet('The metric glossary')
     genislik(ws, [26, 100])
-    yaz_baslik(ws, ["Metrik", "Ne ölçer, nasıl okunur"])
+    yaz_baslik(ws, ["Metrik", 'What it measures and how to read it'])
     for i, (k, v) in enumerate([
-        ("Bolluk (%)", "Bracken'in fraction_total_reads sütunu, yüze çevrilmiş. "
-                       "Okuma sayısı değil, o örnekteki okumaların oranıdır."),
-        ("Shannon", "Hem kaç takson olduğunu hem ne kadar dengeli dağıldıklarını "
-                    "birlikte ölçer. Büyüdükçe çeşitlilik artar. Birkaç takson "
-                    "baskınsa düşük kalır."),
-        ("Zenginlik", "Sıfırdan büyük bolluğa sahip takson sayısı. Dengeyi "
-                      "hesaba katmaz, yalnızca kaç tane olduğunu sayar."),
-        ("Simpson (1-D)", "Rastgele iki okumanın FARKLI taksona ait olma "
-                          "olasılığı. Sıfıra yakınsa topluluk tek taksonun "
-                          "elinde, bire yakınsa dengeli."),
-        ("Bray-Curtis", "İki örnek arasındaki farklılık. 0 aynı, 1 tamamen "
-                        "ayrı. Yıllar arası değişimin büyüklüğünü verir."),
-        ("Güvenilirlik", "Bu satırın tür düzeyinde okunup okunamayacağı. "
-                         "Ölçüm dosyalarından türetilir, elle konmaz."),
+        ("Bolluk (%)", "Bracken's fraction_total_reads column turned into a "
+                       'percentage. It is not a read count but the fraction '
+                       'of the reads in that sample.'),
+        ("Shannon", 'It measures how many taxa there are and how evenly they '
+                    'are spread at once. The larger it is the more diverse. '
+                    'It stays low when a few taxa dominate.'),
+        ("Zenginlik", 'The number of taxa with an abundance above zero. It '
+                      'takes no account of evenness and only counts how many '
+                      'there are.'),
+        ("Simpson (1-D)", 'The probability that two random reads belong to '
+                          'DIFFERENT taxa. Near zero the community is in the '
+                          'hands of one taxon; near one it is even.'),
+        ("Bray-Curtis", 'The dissimilarity between two samples. 0 is '
+                        'identical and 1 is completely separate. It gives the '
+                        'size of the change between years.'),
+        ('Reliability', 'Whether this row can be read at species level. It '
+                          'is derived from the measurement files and is not '
+                          'placed by hand.'),
     ], start=2):
         ws.cell(row=i, column=1, value=k).font = KALIN
         c = ws.cell(row=i, column=2, value=v)
@@ -380,8 +392,8 @@ def main():
 
     # ---------------- Baskin cins / tur ----------------
     grafik_yeri = {}
-    for duzey, veri, ad_sayfa in (("cins", cins, "Baskın Cins"),
-                                  ("tur", tur, "Baskın Tür")):
+    for duzey, veri, ad_sayfa in (('genus', cins, 'Dominant genus'),
+                                  ("tur", tur, 'Dominant species')):
         if not veri:
             continue
         ws = wb.create_sheet(ad_sayfa)
@@ -393,14 +405,14 @@ def main():
         # tables sit side by side and the reader cannot tell which one holds.
         if a.rank and os.path.exists(os.path.join(a.rank, "ozet.tsv")):
             c = ws.cell(row=1, column=1,
-                        value="BU SAYFA GÜVEN EŞİĞİ UYGULANMAMIŞ Bracken "
-                              "çıktısındandır ve karşılaştırma için "
-                              "bırakılmıştır. Bolluk okunacaksa 'Güvenilir "
-                              "Bolluk' sayfası kullanılmalıdır; hangi örneğin "
-                              "hangi rütbede okunabildiği 'Rütbe Kapsaması' "
-                              "sayfasındadır. Bu sayfadaki tür ve cins "
-                              "atamalarının çoğu, güven eşiği uygulandığında "
-                              "ayakta kalmamaktadır.")
+                        value='THIS SHEET COMES FROM Bracken output WITH NO '
+                              'CONFIDENCE THRESHOLD applied and is kept for '
+                              'comparison. To read abundance, use the '
+                              'reliable abundance sheet; which sample can be '
+                              'read at which rank is on the rank coverage '
+                              'sheet. Most of the species and genus '
+                              'assignments on this sheet do not stay standing '
+                              'once a confidence threshold is applied.')
             c.font = Font(name=YAZI, bold=True, size=10, color="9C0006")
             c.fill = KIRMIZI
             c.alignment = Alignment(wrap_text=True, vertical="center")
@@ -410,10 +422,11 @@ def main():
             r = 3
         if duzey == "tur":
             c = ws.cell(row=r, column=1,
-                        value="DİKKAT: Kırmızı işaretli satırlar tür düzeyinde "
-                              "okunmamalıdır; o taksonun kutusu ölçümle şüpheli "
-                              "bulunmuştur. Gerekçe Güvenilirlik sütunundadır. "
-                              "Cins düzeyi sayfası esas alınmalıdır.")
+                        value='CAREFUL: the rows marked red must not be read '
+                              'at species level; the bin of that taxon was '
+                              'found suspect by measurement. The reason is in '
+                              'the reliability column. The genus level sheet '
+                              'is the one to go by.')
             c.font = Font(name=YAZI, bold=True, size=10, color="9C0006")
             c.fill = KIRMIZI
             c.alignment = Alignment(wrap_text=True, vertical="center")
@@ -442,7 +455,7 @@ def main():
         # grafikler
         for g, ilk, son in grafik_yeri.get(ad_sayfa, []):
             ch = BarChart(); ch.type = "col"; ch.grouping = "clustered"
-            ch.title = "%s  baskın %s, yıllara göre" % (g, duzey)
+            ch.title = '%s  the dominant %s, by year' % (g, duzey)
             ch.y_axis.title = "bolluk (%)"; ch.x_axis.title = "takson"
             veri_ref = Reference(ws, min_col=2, max_col=5, min_row=ilk - 1,
                                  max_row=son)
@@ -453,13 +466,13 @@ def main():
             ws.add_chart(ch, "I%d" % ilk)
 
     # ---------------- Alfa cesitlilik ----------------
-    for duzey, veri, ad_sayfa in (("cins", cins, "Alfa Çeşitlilik Cins"),
-                                  ("tur", tur, "Alfa Çeşitlilik Tür")):
+    for duzey, veri, ad_sayfa in (('genus', cins, 'Alpha diversity, genus'),
+                                  ("tur", tur, 'Alpha diversity, species')):
         if not veri:
             continue
         ws = wb.create_sheet(ad_sayfa)
         genislik(ws, [10, 10, 10, 14, 14, 14])
-        yaz_baslik(ws, ["Grup", "Yıl", "Barkod", "Shannon", "Zenginlik",
+        yaz_baslik(ws, ["Grup", 'Year', "Barkod", "Shannon", "Zenginlik",
                         "Simpson (1-D)"])
         r = 2
         for g in GRUPLAR:
@@ -476,8 +489,8 @@ def main():
                         c.number_format = "0.000"
                 r += 1
         ch = LineChart()
-        ch.title = "Shannon çeşitliliği, yıllara göre (%s düzeyi)" % duzey
-        ch.y_axis.title = "Shannon"; ch.x_axis.title = "örnek"
+        ch.title = 'Shannon diversity by year (at %s level)' % duzey
+        ch.y_axis.title = "Shannon"; ch.x_axis.title = 'sample'
         ch.add_data(Reference(ws, min_col=4, min_row=1, max_row=r - 1),
                     titles_from_data=True)
         ch.set_categories(Reference(ws, min_col=3, min_row=2, max_row=r - 1))
@@ -485,26 +498,27 @@ def main():
         ws.add_chart(ch, "H2")
 
     # ---------------- Bray-Curtis ----------------
-    for duzey, veri, ad_sayfa in (("cins", cins, "Bray-Curtis Cins"),
-                                  ("tur", tur, "Bray-Curtis Tür")):
+    for duzey, veri, ad_sayfa in (('genus', cins, "Bray-Curtis Cins"),
+                                  ("tur", tur, 'Bray-Curtis, species')):
         if not veri:
             continue
         ws = wb.create_sheet(ad_sayfa)
         genislik(ws, [10, 14, 14, 14])
         c = ws.cell(row=1, column=1,
-                    value="Her grup icinde ardışık yılların Bray-Curtis "
-                          "farklılığı. 0 aynı, 1 tamamen ayrı.")
+                    value='The Bray-Curtis dissimilarity between consecutive '
+                          'years inside each group. 0 is identical and 1 is '
+                          'completely separate.')
         c.font = NORMAL
         ws.merge_cells("A1:D1")
-        yaz_baslik(ws, ["Grup", "Karşılaştırma", "Bray-Curtis", "Yorum"], satir=3)
+        yaz_baslik(ws, ["Grup", 'The comparison', "Bray-Curtis", "Yorum"], satir=3)
         r = 4
         for g in GRUPLAR:
             bcs = [b for b in sorted(BARKOD_GRUP) if BARKOD_GRUP[b] == g
                    and b in veri]
             for i in range(len(bcs) - 1):
                 d = bray_curtis(veri[bcs[i]], veri[bcs[i + 1]])
-                yorum = ("küçük değişim" if d < 0.3 else
-                         "orta değişim" if d < 0.6 else "büyük değişim")
+                yorum = ('a small change' if d < 0.3 else
+                         'a moderate change' if d < 0.6 else 'a large change')
                 for j, val in enumerate([g, "%d - %d" % (BARKOD_YIL[bcs[i]],
                                                          BARKOD_YIL[bcs[i + 1]]),
                                          round(d, 4), yorum], start=1):
@@ -527,21 +541,22 @@ def main():
     rb = os.path.join(a.rank, "bolluk.tsv") if a.rank else None
     if rk and os.path.exists(ro):
         ozetler = list(csv.DictReader(open(ro, encoding="utf-8"), delimiter="\t"))
-        ws = wb.create_sheet("Rütbe Kapsaması")
+        ws = wb.create_sheet('Rank coverage')
         genislik(ws, [12, 8, 8, 14, 14, 14, 18, 16, 14, 14])
         c = ws.cell(row=1, column=1,
-                    value="Bolluk hangi rütbede okunabilir. 'Cins oranı' o "
-                          "örnekteki okumaların yüzde kaçının cins ya da daha "
-                          "dar bir rütbeye yerleşebildiğini gösterir. Düşük "
-                          "oran, o gruptaki organizmaların Kraken2 "
-                          "veritabanında temsil edilmediği anlamına gelir. "
-                          "Bracken bu yüzden çalıştırılmadı: üst rütbede "
-                          "kalanları cinse dağıtmak sayı üretmek olurdu.")
+                    value='At which rank the abundance can be read. The genus '
+                          'fraction shows what percentage of the reads in '
+                          'that sample could settle at genus level or '
+                          'narrower. A low fraction means the organisms of '
+                          'that group are not represented in the Kraken2 '
+                          'database. That is why Bracken was not run: pushing '
+                          'what stayed at a higher rank down to genus would '
+                          'have been inventing numbers.')
         c.font = NORMAL; c.alignment = Alignment(wrap_text=True, vertical="top")
         ws.merge_cells("A1:J1"); ws.row_dimensions[1].height = 46
-        yaz_baslik(ws, ["Barkod", "Grup", "Yıl", "Toplam okuma", "Sınıflanan",
-                        "Sınıflanmamış", "Seçilen rütbe", "Bu rütbede yerleşen",
-                        "Cins oranı %", "Tür oranı %"], satir=3)
+        yaz_baslik(ws, ["Barkod", "Grup", 'Year', "Toplam okuma", 'Classified',
+                        'Unclassified', 'The rank chosen', 'Settling at that rank',
+                        'Genus fraction, per cent', 'Species fraction, per cent'], satir=3)
         r = 4
         for x in ozetler:
             vals = [x["barkod"], x["grup"], int(x["yil"]), int(x["toplam_okuma"]),
@@ -561,19 +576,20 @@ def main():
                                              else KIRMIZI)
             r += 1
         if rb and os.path.exists(rb):
-            ws = wb.create_sheet("Güvenilir Bolluk")
+            ws = wb.create_sheet('Reliable abundance')
             genislik(ws, [12, 8, 8, 12, 52, 12, 14, 12])
             c = ws.cell(row=1, column=1,
-                        value="Her örnek, o örnekte verinin desteklediği en "
-                              "dar rütbede verilmiştir. Rütbe elle seçilmedi; "
-                              "sınıflanmış okumaların yarısından çoğunun "
-                              "yerleşebildiği en dar rütbe seçildi. "
-                              "Yerleşemeyen okumalar gizlenmedi, ayrı satırda "
-                              "duruyor.")
+                        value='Every sample is given at the narrowest rank '
+                              'the data supports in that sample. The rank was '
+                              'not chosen by hand; the narrowest rank where '
+                              'more than half of the classified reads could '
+                              'settle was taken. The reads that could not '
+                              'settle are not hidden and stand on their own '
+                              'row.')
             c.font = NORMAL; c.alignment = Alignment(wrap_text=True, vertical="top")
             ws.merge_cells("A1:H1"); ws.row_dimensions[1].height = 34
-            yaz_baslik(ws, ["Barkod", "Grup", "Yıl", "Rütbe", "Takson",
-                            "taxid", "Okuma", "Yüzde"], satir=3)
+            yaz_baslik(ws, ["Barkod", "Grup", 'Year', 'Rank', "Takson",
+                            "taxid", "Okuma", 'Per cent'], satir=3)
             r = 4
             for x in csv.DictReader(open(rb, encoding="utf-8"), delimiter="\t"):
                 vals = [x["barkod"], x["grup"], int(x["yil"]),
@@ -592,17 +608,17 @@ def main():
         print(u'WARNING: --rank was given but there is no ozet.tsv: %s' % ro)
 
     # ---------------- Guvenilirlik kaniti ----------------
-    ws = wb.create_sheet("Tür Düzeyi Güvenilirlik")
+    ws = wb.create_sheet('Species level reliability')
     genislik(ws, [40, 16, 96])
     c = ws.cell(row=1, column=1,
-                value="Aşağıdaki işaretlerin tamamı ölçüm dosyalarından "
-                      "türetilmiştir; elle yazılmış bir liste yoktur.")
+                value='Every mark below is derived from the measurement '
+                      'files; there is no hand written list.')
     c.font = NORMAL; ws.merge_cells("A1:C1")
-    yaz_baslik(ws, ["Takson", "Düzey", "Ölçülen gerekçe"], satir=3)
+    yaz_baslik(ws, ["Takson", 'Level', 'The measured reason'], satir=3)
     r = 4
     for tk in sorted(s_tur):
         for g in s_tur[tk]:
-            for j, v in enumerate([tk, "tür", g], start=1):
+            for j, v in enumerate([tk, 'species', g], start=1):
                 c = ws.cell(row=r, column=j, value=v)
                 c.font = NORMAL; c.border = KENAR
                 c.alignment = Alignment(wrap_text=True, vertical="top")
@@ -610,7 +626,7 @@ def main():
             r += 1
     for tk in sorted(s_cins):
         for g in s_cins[tk]:
-            for j, v in enumerate([tk, "cins", g], start=1):
+            for j, v in enumerate([tk, 'genus', g], start=1):
                 c = ws.cell(row=r, column=j, value=v)
                 c.font = NORMAL; c.border = KENAR
                 c.alignment = Alignment(wrap_text=True, vertical="top")
@@ -618,7 +634,8 @@ def main():
             r += 1
     if r == 4:
         ws.cell(row=4, column=1,
-                value="Ölçüm dosyası verilmedi, işaret konamadı.").font = NORMAL
+                value='No measurement file was given, so no mark could be '
+                      'placed.').font = NORMAL
         ws.cell(row=4, column=1).fill = SARI
 
     d = os.path.dirname(os.path.abspath(a.out))

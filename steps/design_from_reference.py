@@ -2,26 +2,29 @@
 # -*- coding: utf-8 -*-
 """
 design_from_reference.py
-Numunede karşılanamayan hedefler için REFERANS VERİTABANI dizilerinden
-primer tasarlar ve tasarladığı çifti numunenin ham okumalarına karşı sınar.
+Designs primers from REFERENCE DATABASE sequences for targets the sample cannot
+meet, and tests the pair it designed against the sample's raw reads.
 
-Neden ayrı bir betik: numunedeki kutular birbirinden ayrılamadığı için bazı
-hedeflerde özgül çift bulunamıyor. Referans veritabanındaki adlandırılmış
-türler ayrılabilir; oradan tasarlanan primer bilimsel olarak doğrudur ama bu
-numuneyle DOĞRULANAMAZ. Bu ayrım çıktıda açıkça taşınır: her satır
-`referanstan_tasarlandi` etiketi ve numunede ölçülen destek oranıyla gelir.
+Why a separate script: because the bins in the sample cannot be separated from
+one another, no specific pair can be found for some targets. The named species in
+a reference database can be separated; a primer designed from there is
+scientifically sound but CANNOT BE CONFIRMED with this sample. That distinction
+is carried openly into the output: every row comes with a "designed from a
+reference" label and with the support measured in the sample.
 
-Girdi tablosu (--reference-targets), sekmeyle ayrılmış:
-  ad            çıktı etiketi
-  sinif         A1, A2, B, F1, F2   (numune desteği bu sınıfın okumalarında ölçülür)
-  veritabani    REFERANS_DB içindeki dosya adı
-  ic            hedef tür/cins adları, virgülle
-  dis           rakip adları, virgülle
-  taxid         numune desteği ölçülürken kullanılacak taxid'ler, virgülle
+The input table (--reference-targets), tab separated:
+  ad            the output label
+  sinif         A1, A2, B, F1, F2  (the sample support is measured in the reads
+                of this class)
+  veritabani    the file name inside the reference database directory
+  ic            the target species or genus names, comma separated
+  dis           the competitor names, comma separated
+  taxid         the taxids to use when the sample support is measured, comma
+                separated
 
-Kullanım:
-  python3 design_from_reference.py --db REFERANS_DB --pt . \
-      --reference-targets reference_targets.tsv --out primer_referans
+Usage:
+  python3 design_from_reference.py --db REFERENCE_DB --pt . \
+      --reference-targets reference_targets.tsv --out primer_reference
 """
 import argparse, csv, glob, importlib.util, os, re, subprocess, sys, tempfile, datetime
 

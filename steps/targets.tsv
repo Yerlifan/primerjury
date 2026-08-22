@@ -1,19 +1,28 @@
-# Toplantı kararlarının taxid karşılıkları.
-# in_taxid  : hedeflenen üyeler, ürün HEPSİNDE oluşmalı
-# hariç     : bu taxidler out-group'a alınmaz (yakın akraba, ayrım zorlanmasın diye
-#             bilerek dışarıda bırakılanlar); boşsa aynı amplikon sınıfındaki
-#             diğer bütün taksonlar rakip sayılır
-# Tasarım her amplikon sınıfı için ayrı yapılır (A1, A2, B, F1, F2), çünkü
-# sınıflar rDNA'nın farklı pencerelerini kapsıyor ve konsensüsler artık
-# sınıf içinde ortak koordinatta.
+# The taxid counterparts of the design decisions.
 #
-# hedef_tur (7. sütun, isteğe bağlı): beyan edilen taxid'in adı numunedeki
-# organizmaya karşılık gelmediğinde, doğru tür adı buraya doğrudan yazılır.
-# Taxid UYDURULMAZ; taxid_names.tsv'de karşılığı olmayan bir tür bu sütunla
-# bildirilir. Sütun boşsa hiçbir şey değişmez.
+# The columns:
+#   karar     the decision this row belongs to
+#   hedef     the target name, which is also the output label
+#   duzey     the level asked for: tur (species), cins (genus), grup, universal
+#   in_taxid  the targeted members; a product has to form in ALL of them
+#   haric     these taxids are not taken into the competitor set. They are the
+#             close relatives deliberately left out so that the separation is not
+#             forced. When it is empty, every other taxon in the same amplicon
+#             class counts as a competitor.
+#   not       a free note; it does not affect the run
+#   hedef_tur optional. When the name of the declared taxid does not match the
+#             organism in the sample, the right species name is written here
+#             directly. A TAXID IS NEVER INVENTED: a species with no counterpart
+#             in taxid_names.tsv is reported through this column instead. An
+#             empty column changes nothing.
 #
-# Karar 5 satırları toplantıda konuşulmadı; ölçümden türetildi ve onaya
-# sunulmak üzere ayrı numaralandırıldı. Gerekçeleri not sütununda.
+# The design is made separately for every amplicon class (A1, A2, B, F1, F2),
+# because the classes cover different windows of the rDNA and the consensuses now
+# share coordinates inside a class.
+#
+# The rows numbered 5 were never discussed; they were derived from a measurement
+# and numbered separately so that they can be put forward for approval. Their
+# reasoning is in the note column.
 karar	hedef	duzey	in_taxid	haric	not	hedef_tur
 1	Methanosarcina_mazei_turu	tur	2209		Methanosarcina mazei
 1	Methanothrix_soehngenii_turu	tur	2223		Methanothrix soehngenii

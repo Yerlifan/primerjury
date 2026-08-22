@@ -2,7 +2,7 @@
 """
 minimap2_compare.py - iki hizalayiciyi AYNI girdiyle yan yana olcer.
 
-Sorusu tek: minimap2, saf Python motorunun bulduğu kimligi ayni sekilde buluyor
+One question alone: does minimap2 find the same identity the pure Python engine finds
 mu ve ne kadar hizli. Cevap "evet" ise minimap2 varsayilan yapilabilir; "hayir"
 ise mevcut motorda kalinir. Hizli olan DOGRU SAYILMAZ.
 """
@@ -215,7 +215,7 @@ def main():
     A(u'| Condition | Result |')
     A(u'|---|---|')
     for ad, ok in sartlar:
-        A(u'| %s | %s |' % (ad, u'geçti' if ok else u'**KALDI**'))
+        A(u'| %s | %s |' % (ad, u'PASSED' if ok else u'**FAILED**'))
     A(u'')
     A(u'Speed-up: **%.1f fold** (pure Python %.1f s, minimap2 %.1f s).\n'
       % (hiz, t_py_top, t_mm_top))

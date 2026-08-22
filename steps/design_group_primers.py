@@ -2,43 +2,45 @@
 # -*- coding: utf-8 -*-
 """
 design_group_primers.py
-Çok üyeli hedef kümeleri için primer çifti üretir. Karar 2 (cins özgül),
-Karar 3 (işlev grubu) ve Karar 4 (universal) aynı motoru kullanır; aradaki
-tek fark hedef kümesinin büyüklüğü ve dejenerelik bütçesidir.
+Produces a primer pair for a target set with more than one member. A genus
+specific set, a function group and a domain universal all use the same engine;
+the only difference is how large the target set is and how much degeneracy is
+allowed.
 
-Yöntem: hizalama kullanılmaz. Adaylar bir çapa konsensüsten üretilir, sonra
-her aday toplantı kararındaki BAĞLANMA KURALIYLA her üyeye ve her rakibe
-karşı taranır:
-    son iki baz hedefe birebir uymalı (uzama oradan başlar)
-    son beş bazda en fazla bir uyumsuzluk
-    primerin tamamında en fazla üç uyumsuzluk
-    5' tarafta sarkma serbest
-    iki primer ters zincirlerde ve 3' uçları birbirine bakacak
+The method: no alignment is used. Candidates are produced from an anchor
+consensus, and every candidate is then scanned against every member and every
+competitor with THE BINDING RULE:
+    the last two bases have to match the target exactly (extension starts there)
+    at most one mismatch in the last five bases
+    at most three mismatches across the whole primer
+    an overhang on the 5' side is free
+    the two primers sit on opposite strands with their 3' ends facing each other
 
-Kabul ölçütleri:
-    hedeflenen HER üyede ürün oluşmalı, ürün uzunluğu aralıkta kalmalı
-    rakiplerin HİÇBİRİNDE ürün oluşmamalı
-    ayrım sağlam olmalı: primerlerden en az biri rakiplerde hiç bağlanma
-    yeri bulamamalı. İki primerin de zayıf bağlanıp yalnızca birlikte
-    yetersiz kalmasıyla oluşan temizlik kabul edilmez.
+The acceptance criteria:
+    a product has to form in EVERY targeted member, within the length range
+    no product may form in ANY competitor
+    the separation has to be solid: at least one of the primers must find no
+    binding site at all in the competitors. A cleanliness that comes from both
+    primers binding weakly and only failing together is not accepted.
 
-KONSENSÜS HANGİ KLASÖRDEN OKUNMALI (2026-08-21 düzeltmesi)
-    Yalnız `konsensus_kanonik/` kullanın. Eski örnekler `consensus sequences/`
-    klasörünü gösteriyordu; o klasör KARIŞIK YÖNLÜDÜR (ölçülen: 71 antisense /
-    27 sense). Ters yönlü bir konsensüste in-silico PCR SESSİZCE 0 ürün verir —
-    ölçülen kayıp %100, kanıt `screening/orientation_impact_test.py`.
-    Bu betikte tehlike daha büyüktür: girdi bir GLOB'dur, yani ters yönlü tek
-    bir üye sessizce "bu üyede ürün yok" diye sayılır ve çift haksız yere
-    elenir. Kutu -> dosya eşlemesi `konsensus_kanonik/INDEKS.tsv` içindedir.
+WHICH DIRECTORY THE CONSENSUS COMES FROM
+    Use the canonical directory alone. Older examples pointed at the raw
+    consensus directory, which is MIXED IN ORIENTATION (measured: 71 antisense
+    against 27 sense). On a reversed consensus an in-silico PCR SILENTLY gives 0
+    products, a measured loss of 100 per cent, and the evidence is in
+    screening/orientation_impact_test.py.
+    The danger is larger in this script, because the input is a GLOB: one member
+    stored the other way round is silently counted as "no product in this member"
+    and the pair is dropped for nothing. The bin to file mapping is in the index
+    inside the canonical directory.
 
-Kullanım:
+Usage:
   python3 design_group_primers.py \
-     --in-group  "konsensus_kanonik/*_2209.kanonik.fa" \
-                 "konsensus_kanonik/*_2223.kanonik.fa" \
-     --out-group "konsensus_kanonik/*_394967.kanonik.fa" \
-     --label Asetoklastik_metanojenler \
-     --out primer_adaylari/Asetoklastik.tsv \
-     --degeneracy-budget 2
+     --in-group  "canonical_consensus/*_2209.kanonik.fa" \
+                 "canonical_consensus/*_2223.kanonik.fa" \
+     --out-group "canonical_consensus/*_394967.kanonik.fa" \
+     --label acetoclastic_methanogens \
+     --out primer_candidates/acetoclastic.tsv
 """
 import argparse, csv, glob, importlib.util, os, re, statistics, sys, bisect
 
