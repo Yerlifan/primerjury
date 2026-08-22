@@ -1476,15 +1476,19 @@ def girdi_denetle(yaz, ad, dosyalar):
 # --arms-max how many candidates get an ARMS variant, --reads the depth cap (it must
 # match P), and --skip-if-no-panel skips the requests with no panel row in a quick test.
 def main():
-    p = argparse.ArgumentParser(description='Esik alti satirlar icin kurtarma turu')
+    p = argparse.ArgumentParser(description='The recovery round for the rows '
+                                            'below the threshold')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--candidate-max', dest='aday_ust', type=int, default=400,
-                   help='yol 3 taramasinda olculecek en fazla aday cift')
+                   help='at most this many candidate pairs measured in the '
+                        'third route scan')
     p.add_argument('--scan-max', dest='tarama_ust', type=int, default=3000,
-                   help='yol 3 taramasinda omurgadan examplele nen en fazla primer adayi')
+                   help='at most this many primer candidates sampled from the '
+                        'backbone in the third route scan')
     p.add_argument('--only', dest='yalniz', default=None, help='only targets whose name contains this (test)')
     p.add_argument('--arms-max', dest='arms_ust', type=int, default=5,
-                   help='kac adayin ARMS varyantlari uretilsin')
+                   help='for how many candidates the ARMS variants are '
+                        'produced')
     p.add_argument('--reads', dest='okuma', type=int, default=OKUMA_TAVANI,
                    help='cap on reads per bin (must match the single-protocol measurement)')
     p.add_argument('--skip-if-no-panel', dest='panelsiz_atla', action='store_true',

@@ -378,14 +378,16 @@ def get_args():
     p.add_argument("--top", type=int, default=15,
                    help="number of best candidates tested per target")
     p.add_argument("--max-reads", type=int, default=20000,
-                   help="taxon basina taranacak en fazla reads; 0 sinirsiz. "
-                        "Kirpma yapilirsa log'a yazilir.")
+                   help='at most this many reads scanned per taxon; 0 means '
+                        'unlimited. When the reads are trimmed it is written '
+                        'into the log.')
     p.add_argument("--min-member-fraction", type=float, default=0.5,
                    help="at least this fraction of target members must be confirmed in the raw reads")
     p.add_argument("--consensus", default=None,
-                   help="consensus directory. if given competitor kutulardaki "
-                        "capraz bulasma olculur ve 'rakipte urun' karari bu "
-                        "olculen sizintiyla karsilastirilarak verilir.")
+                   help='the consensus directory. When it is given, the cross '
+                        'contamination in the competitor bins is measured and '
+                        'the "a product in a competitor" verdict is decided '
+                        'against that measured leak.')
     p.add_argument("--prod-min", type=int, default=70,
                    help="must match the value used at the design stage")
     p.add_argument("--prod-hard-max", type=int, default=300,
@@ -397,14 +399,17 @@ def get_args():
     p.add_argument("--leak-cap", type=float, default=0.15,
                    help="the leakage threshold may open up to this value at most")
     p.add_argument("--competitor-wilson-max", type=float, default=0.02,
-                   help="rakipte urun veren reads oraninin Wilson alt siniri "
-                        "bu degeri asarsa aday elenir")
+                   help='a candidate is dropped when the Wilson lower bound '
+                        'of the fraction of competitor reads giving a product '
+                        'exceeds this value')
     p.add_argument("--within-strain-diff-max", type=float, default=0.40,
-                   help="iki primerin baglanma orani arasindaki en buyuk fark; "
-                        "asilirsa aday cezalandirilir")
+                   help='the largest difference allowed between the binding '
+                        'rates of the two primers; a candidate that exceeds '
+                        'it is penalised')
     p.add_argument("--atla-mfe", action="store_true")
     p.add_argument("--atla-blast", action="store_true")
-    p.add_argument("--mfe", default=None, help="mfeprimer ikilisinin yolu")
+    p.add_argument("--mfe", default=None, help='the path of the mfeprimer '
+                                               'binary')
     p.add_argument("--rerun", action="store_true")
     return p.parse_args()
 

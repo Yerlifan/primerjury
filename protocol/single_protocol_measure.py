@@ -915,7 +915,8 @@ def _ing_deger(a):
     return a
 
 def main():
-    p = argparse.ArgumentParser(description='Tek protokolle panel olcumu')
+    p = argparse.ArgumentParser(description='Measure the panel with a single '
+                                            'protocol')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--reads', dest='okuma', type=int, default=PROTOKOL['okuma_tavani'],
                    help='cap on reads per bin (0 = all of them)')

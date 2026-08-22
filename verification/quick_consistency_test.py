@@ -652,7 +652,8 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
 # symbolically and the outputs stay separate. That way the test DOES NOT
 # OVERWRITE the long run results in the real output directories.
 def main():
-    p = argparse.ArgumentParser(description='Zincirin hizli dogruluk testi')
+    p = argparse.ArgumentParser(description='The quick correctness test of '
+                                            'the chain')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--cap-minutes', dest='tavan_dk', type=int, default=15,
                    help='asama basina zaman tavani (dakika)')

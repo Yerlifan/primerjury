@@ -57,12 +57,13 @@ def rc(s):
 
 # ----------------------------------------------------------------- arguments
 def get_args():
-    p = argparse.ArgumentParser(description="Primer cifti aday uretimi")
+    p = argparse.ArgumentParser(description='Produce primer pair candidates')
     p.add_argument("--consensus", required=True)
-    p.add_argument("--mask", default=None, help="02 betiginin urettigi BED")
+    p.add_argument("--mask", default=None, help='the BED produced by the '
+                                                'ambiguous base analysis')
     p.add_argument("--mask-contig", default=None,
-                   help="only BED rows whose first column has this name are used; "
-                        "verilmezse butun satirlar alinir")
+                   help='only BED rows whose first column has this name are '
+                        'used; without it every row is taken')
     p.add_argument("--ambig", default=None, help="IUPAC kodlu consensus (bilgi amacli)")
     p.add_argument("--out", required=True)
     p.add_argument("--label", default=None)
@@ -81,17 +82,18 @@ def get_args():
     p.add_argument("--require-3p-gc", type=int, default=1,
                    help="1 ise 3' uc G or C with bitmeli")
     p.add_argument("--degeneracy-budget", type=int, default=0,
-                   help="ARTIK ETKISIZ. Toplanti karari geregi oligolar salt "
-                        "ACGT uretiliyor; kalip belirsizligi --iupac-max ile "
-                        "yonetiliyor. Bayrak geriye donuk uyum icin duruyor "
-                        "ve verildiginde uyari basilir.")
+                   help='NO LONGER HAS ANY EFFECT. Oligos are produced as '
+                        'ACGT only and template ambiguity is handled with '
+                        '--iupac-max. The flag stays for backward '
+                        'compatibility and prints a warning when it is given.')
     p.add_argument("--degeneracy-fold-max", type=int, default=4,
-                   help="ARTIK ETKISIZ, geriye donuk uyum for duruyor")
+                   help='NO LONGER HAS ANY EFFECT, it stays for backward '
+                        'compatibility')
     p.add_argument("--iupac-max", type=int, default=2,
-                   help="number of IUPAC positions allowed in the template window; "
-                        "bunlar somut baza cozulur, oligoya dejenere baz "
-                        "girmez. 0 verilirse IUPAC iceren pencere hic "
-                        "kullanilmaz.")
+                   help='the number of IUPAC positions allowed in the '
+                        'template window; they are resolved to concrete '
+                        'bases, so no degenerate base enters the oligo. With '
+                        '0, a window holding an IUPAC code is never used.')
     p.add_argument("--iupac-clamp-forbidden", type=int, default=5,
                    help="IUPAC is not accepted in the last this many bases of the oligo")
     # termodinamik
@@ -108,8 +110,10 @@ def get_args():
     p.add_argument("--homodimer-dg-min", type=float, default=-6000.0)
     p.add_argument("--heterodimer-dg-min", type=float, default=-6000.0)
     # the buffer conditions, given identically to both libraries
-    p.add_argument("--mv", type=float, default=50.0, help="tek degerlikli katyon mM")
-    p.add_argument("--dv", type=float, default=1.5, help="iki degerlikli katyon mM")
+    p.add_argument("--mv", type=float, default=50.0, help='the monovalent cation '
+                                                          'concentration in mM')
+    p.add_argument("--dv", type=float, default=1.5, help='the divalent cation '
+                                                         'concentration in mM')
     p.add_argument("--dntp", type=float, default=0.6, help="dNTP mM")
     p.add_argument("--dna-conc", type=float, default=50.0, help="oligo nM")
     # urun
@@ -124,9 +128,10 @@ def get_args():
     p.add_argument("--max-pairs", type=int, default=5000,
                    help="maximum output rows, trimmed by score")
     p.add_argument("--min-locus-spacing", type=int, default=0,
-                   help="thins out shifted copies of the same locus: two candidates "
-                        "cifti hem F hem R baslangici bu kadar yakinsa daha "
-                        "kotu puanli olan atilir. 0 kapatir.")
+                   help='thins out shifted copies of the same locus: when two '
+                        'candidate pairs start within this distance at both '
+                        'the forward and the reverse end, the one with the '
+                        'worse score is dropped. 0 turns it off.')
     return p.parse_args()
 
 

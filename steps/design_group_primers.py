@@ -202,11 +202,13 @@ def load_set(patterns, mask_dir=None):
 
 
 def get_args():
-    p = argparse.ArgumentParser(description="Cok uyeli hedef icin primer cifti")
+    p = argparse.ArgumentParser(description='A primer pair for a target with '
+                                            'more than one member')
     p.add_argument("--in-group", nargs="+", required=True,
-                   help="hedeflenen uyelerin consensus files, glob kabul eder")
+                   help='the consensus files of the targeted members; a glob '
+                        'is accepted')
     p.add_argument("--out-group", nargs="*", default=[],
-                   help="competitor consensus files, glob kabul eder")
+                   help='the competitor consensus files; a glob is accepted')
     p.add_argument("--anchor", default=None,
                    help="consensus the candidates are generated from; if omitted, the one with fewest Ns")
     p.add_argument("--mask-dir", default=None, help="02 betiginin maske directory")
@@ -214,11 +216,12 @@ def get_args():
     p.add_argument("--out", required=True)
     p.add_argument("--max-pairs", type=int, default=2000)
     p.add_argument("--max-oligo", type=int, default=400,
-                   help="how many to keep per strand after the thermodynamic filter, at most "
-                        "fazla oligo. Tek takson hedeflerinde binlerce korunmus "
-                        "oligo cikiyor ve F x R carpimi milyonlara ulasiyor. "
-                        "Secim pozisyona gore tabakalanir, yani kalip boyunca "
-                        "esit dagilir; 0 sinirsiz.")
+                   help='how many oligos to keep per strand after the '
+                        'thermodynamic filter. A single taxon target yields '
+                        'thousands of conserved oligos and the forward times '
+                        'reverse product reaches millions. The choice is '
+                        'stratified by position, so it spreads evenly along '
+                        'the template; 0 means unlimited.')
     p.add_argument("--stop-after", type=int, default=20000,
                    help="stop pairing after this many valid pairs; 0 means unlimited")
     # baglanma kurali
@@ -230,21 +233,24 @@ def get_args():
                    help="5' overhang is allowed, but the part overlapping the template must be at least "
                         "bu kadar baz olmali")
     p.add_argument("--competitor-prod-max", type=int, default=0,
-                   help="rakipte urun aranirken kullanilan ust sinir. 0 ise "
-                        "sinirsiz, yani dizi boyunca olusan her bant sayilir. "
-                        "Toplanti karari 'rakiplerin hicbirinde urun olusmamali' "
-                        "dedigi icin varsayilan sinirsizdir.")
+                   help='the upper bound used when a product is looked for in '
+                        'a competitor. 0 means unlimited, so every band along '
+                        'the sequence counts. The rule says no product may '
+                        'form in any competitor, so the default is unlimited.')
     # ozgulluk
     p.add_argument("--competitor-prod-min", type=int, default=1,
-                   help="rakipte urun sayilmasi for en kucuk boy; rakipte "
-                        "herhangi bir bant istenmedigi icin varsayilan 1")
+                   help='the smallest length that counts as a product in a '
+                        'competitor; because no band at all is wanted there, '
+                        'the default is 1')
     p.add_argument("--orphan-min-mismatch", type=int, default=0,
-                   help="0: kati kural, yetim primer rakiplerde HIC baglanmamali. "
-                        ">0: rakiplerdeki en iyi yerlesimi bu kadar uyumsuzluk "
-                        "tasiyan primer de yetim sayilir (gevsetilmis kademe)")
+                   help='0: the strict rule, an orphan primer must not bind '
+                        'in the competitors AT ALL. Above 0: a primer whose '
+                        'best placement in the competitors carries this many '
+                        'mismatches counts as an orphan too, which is the '
+                        'relaxed step')
     p.add_argument("--require-orphan-primer", type=int, default=1,
-                   help="1 ise primerlerden biri rakiplerde HIC baglanma yeri "
-                        "bulamamali (toplanti karari)")
+                   help='1 means one of the primers has to find NO binding '
+                        'site at all in the competitors')
     # the same oligo, thermodynamics and product rules as generate_primer_candidates.py
     p.add_argument("--len-min", type=int, default=18)
     p.add_argument("--len-max", type=int, default=25)

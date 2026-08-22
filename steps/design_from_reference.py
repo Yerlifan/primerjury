@@ -168,7 +168,8 @@ def kardes_turleri_bul(yollar, cinsler, hedef_turler, azami_tur,
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--db", required=True, help="REFERANS_DB directory")
+    p.add_argument("--db", required=True, help='the reference database '
+                                               'directory')
     p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
     p.add_argument("--reference-targets", required=True)
     p.add_argument("--out", required=True)
@@ -176,13 +177,16 @@ def get_args():
     p.add_argument("--top", type=int, default=5)
     p.add_argument("--extra", default="")
     p.add_argument("--max-members", type=int, default=6,
-                   help="target ad basina alinacak en fazla reference dizi")
+                   help='at most this many reference sequences per target '
+                        'name')
     p.add_argument("--sibling-competitors", action="store_true", default=True,
-                   help="hedefin cinsindeki oteki turleri VERIDEN bulup "
-                        "rakip kumesine ekler (varsayilan acik)")
+                   help='find the other species of the target genus FROM THE '
+                        'DATA and add them to the competitor set; on by '
+                        'default')
     p.add_argument("--no-sibling-competitors", dest="kardes_rakip",
                    action="store_false",
-                   help="kardes tur rakiplerini kapatir (eski davranis)")
+                   help='turn the sibling species competitors off, which is '
+                        'the older behaviour')
     p.add_argument("--max-sibling-species", type=int, default=60,
                    help="maximum number of sibling SPECIES taken as competitors")
     p.add_argument("--max-sibling-records", type=int, default=2,

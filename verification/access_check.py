@@ -63,12 +63,15 @@ import os, sys, csv, time, random, argparse
 # marks exactly that case.
 # -------------------------------------------------------------------------
 def main():
-    p = argparse.ArgumentParser(description='Veritabani erisim dogrulamasi')
+    p = argparse.ArgumentParser(description='Confirm that the databases can '
+                                            'be read')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--db', dest='vtb', default=None, help='this database only (a fragment of the file name)')
-    p.add_argument('--records', dest='kayit', type=int, default=3, help='veritabani basina test kaydi')
+    p.add_argument('--records', dest='kayit', type=int, default=3, help='how many test records per '
+                                                                        'database')
     p.add_argument('--cap', dest='tavan', type=int, default=0,
-                   help='taranacak en fazla kayit (0 = all of them, default)')
+                   help='at most this many records scanned (0 means all of '
+                        'them, which is the default)')
     p.add_argument('--mutation', dest='mutasyon', type=float, default=0.08)
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

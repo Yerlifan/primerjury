@@ -40,7 +40,8 @@ def get_args():
     p.add_argument("--divergence-threshold", type=float, default=0.005,
                    help="iki yari arasindaki izin verilen fark orani")
     p.add_argument("--min-coverage", type=float, default=0.95,
-                   help="iki yarinin hizalamasinda beklenen en az kapsama")
+                   help='the least coverage expected in the alignment of the '
+                        'two halves')
     p.add_argument("--indel-warning", type=float, default=0.005,
                    help="print a note for indel differences above this fraction")
     p.add_argument("--seed", type=int, default=20260801,

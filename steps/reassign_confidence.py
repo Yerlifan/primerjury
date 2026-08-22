@@ -28,10 +28,11 @@ def get_args():
     p.add_argument("--report-pattern", default="*_kraken2.report")
     p.add_argument("--output-pattern", default="*_output")
     p.add_argument("--max-reads", type=int, default=0,
-                   help="0 = all; deneme for kucultun")
+                   help='0 means all of them; lower it for a trial run')
     p.add_argument("--scan", default=None,
-                   help="comma-separated ayrilmis esikler; if given only tarama "
-                        "yapilir, rapor yazilmaz. Ornek: 0,0.005,0.01,0.02,0.05")
+                   help='comma separated thresholds; when it is given only '
+                        'the scan runs and no report is written. For example: '
+                        '0,0.005,0.01,0.02,0.05')
     p.add_argument("--scan-reads", type=int, default=20000,
                    help="reads per file in scan mode")
     return p.parse_args()

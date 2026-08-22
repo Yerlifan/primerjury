@@ -2099,10 +2099,11 @@ def _ing_deger(a):
     return a
 
 def main():
-    p = argparse.ArgumentParser(description='Kimlik iddialarinin bagimsiz dogrulanmasi')
+    p = argparse.ArgumentParser(description='Confirm the identity claims '
+                                            'independently')
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--only', dest='yalniz', default=None, help='iddia numarasi or metninden parca')
-    p.add_argument('--db-max', dest='vtb_ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
+    p.add_argument('--db-max', dest='vtb_ust', type=int, default=len(VTB), help='how many databases to use')
     p.add_argument('--shortlist', type=int, default=KISA_LISTE, dest='kisa_liste',
                    help=(u'her veritabanindan TAM HIZALANACAK aday sayisi (varsayilan %d). '
                          u'Buyuk deger kesme noktasini baglayici olmaktan cikarir; '

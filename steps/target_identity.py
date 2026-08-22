@@ -47,7 +47,8 @@ def get_args():
     p.add_argument("--names", default="taxid_adlari.tsv")
     p.add_argument("--out", required=True)
     p.add_argument("--min-alignment", type=int, default=250,
-                   help="bundan kisa hizalamalar kimlik sayilmaz")
+                   help='an alignment shorter than this does not count as an '
+                        'identity')
     p.add_argument("--min-identity", type=float, default=90.0)
     p.add_argument("--threads", type=int, default=4)
     return p.parse_args()

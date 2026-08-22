@@ -207,8 +207,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--write', dest='yaz', action='store_true',
-                   help='also update the Tm and dTm columns of the panel table '
-                        '(once yedek alinir)')
+                   help='also update the Tm and dTm columns of the panel '
+                        'table; a backup is taken first')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

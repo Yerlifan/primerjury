@@ -195,7 +195,7 @@ def main():
     if a.selftest:
         sys.exit(selftest())
     if not a.output:
-        ap.error("--output gerekli")
+        ap.error('--output is required')
     import io, contextlib
     with contextlib.redirect_stdout(io.StringIO()):
         if selftest() != 0:

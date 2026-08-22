@@ -85,8 +85,8 @@ def get_args():
     p.add_argument("--min-length", type=int, default=400)
     p.add_argument("--write-fractions", type=int, default=1)
     p.add_argument("--batch", type=int, default=2000,
-                   help="single call on the minimap2 command-line backend "
-                        "verilecek okuma sayisi")
+                   help='how many reads to pass in a single call to the '
+                        'minimap2 command line backend')
     return p.parse_args()
 
 

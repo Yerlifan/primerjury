@@ -71,8 +71,9 @@ SINIF_DB_GENIS = {
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--final", required=True, help="09'un output directory")
-    p.add_argument("--db", required=True, help="REFERANS_DB directory")
-    p.add_argument("--mfe", required=True, help="mfeprimer calistirilabiliri")
+    p.add_argument("--db", required=True, help='the reference database '
+                                               'directory')
+    p.add_argument("--mfe", required=True, help='the mfeprimer executable')
     p.add_argument("--blast", default=None,
                    help="output of the external-databases step; if given, the two measurements are compared")
     p.add_argument("--out", required=True)
@@ -81,12 +82,13 @@ def get_args():
     p.add_argument("--tm-min", type=float, default=30.0,
                    help="mfeprimer amplikon Tm alt siniri")
     p.add_argument("--mismatch", type=int, default=3,
-                   help="toplanti kararindaki toplam mismatch siniri")
+                   help='the total mismatch bound from the design rules')
     p.add_argument("--mis-end", type=int, default=3,
-                   help="mfeprimer'in mismatch penceresi. 3 hizli and "
-                        "secici, 9 (mfeprimer varsayilani) asiri gevsek ve "
-                        "cok yavas. Bu deger toplanti kararindaki 3' uc "
-                        "kuralini UYGULAMAZ, betik basindaki nota bakin.")
+                   help="mfeprimer's mismatch window. 3 is fast and "
+                        'selective, while 9, the mfeprimer default, is far '
+                        'too loose and very slow. This value DOES NOT APPLY '
+                        "the 3' end rule of the design decisions; see the "
+                        'note at the head of the script.')
     p.add_argument("--wide", action="store_true",
                    help="also scan the same wide database set as the external-databases step")
     p.add_argument("--cpu", type=int, default=4)

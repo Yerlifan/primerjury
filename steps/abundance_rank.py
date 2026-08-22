@@ -78,9 +78,9 @@ def get_args():
     p.add_argument("--out", required=True)
     p.add_argument("--pattern", default="*_kraken2.report")
     p.add_argument("--coverage", type=float, default=0.50,
-                   help="classified fraction required before a rank can be chosen "
-                        "okumalarin en az bu orani o rutbede ya da altinda "
-                        "yerlesmeli")
+                   help='the classified fraction required before a rank can '
+                        'be chosen: at least this fraction of the reads has '
+                        'to sit at that rank or below it')
     p.add_argument("--top", type=int, default=15, help="taxon shown in the table")
     return p.parse_args()
 

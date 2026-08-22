@@ -58,7 +58,8 @@ class Esik:
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--reference", required=True)
-    p.add_argument("--pt", required=True, help="'fastq files' klasorunu iceren kok")
+    p.add_argument("--pt", required=True, help="the root holding the 'fastq "
+                                               "files' directory")
     p.add_argument("--db", required=True)
     p.add_argument("--reference-targets", default=os.path.join(HERE, "hedefler_referans.tsv"))
     p.add_argument("--out", required=True)

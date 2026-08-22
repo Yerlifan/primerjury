@@ -225,7 +225,8 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--consensus", required=True)
     p.add_argument("--names", default=None,
-                   help="taxid<TAB>ad file, only raporu okunakli kilar")
+                   help='a taxid and name table; it only makes the report '
+                        'easier to read')
     p.add_argument("--out", default=None)
     p.add_argument("--identity-threshold", type=float, default=OZDESLIK_ESIK)
     p.add_argument("--length-threshold", type=int, default=UZUNLUK_ESIK)
