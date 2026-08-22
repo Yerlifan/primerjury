@@ -2,27 +2,28 @@
 # -*- coding: utf-8 -*-
 """
 reference_identity.py
-REFERANS TABANLI PRIMERLERIN NUMUNEDE NEYI COGALTTIGINI OLCER.
+MEASURES WHAT THE REFERENCE BASED PRIMERS ACTUALLY AMPLIFY IN THE SAMPLE.
 
-design_from_reference.py, numunede karsilanamayan hedefler icin referans
-veritabani dizilerinden primer tasarladi ve numunede DESTEK olup olmadigini
-olctu. Ornegin Methanosarcina barkeri icin tasarlanan bir cift, numunedeki
-okumalarin %63'unde urun veriyor.
+design_from_reference.py designed primers from reference database sequences for
+the targets the sample cannot meet, and measured whether the sample SUPPORTS
+them. A pair designed for Methanosarcina barkeri, for example, gives a product in
+63 per cent of the reads in the sample.
 
-Ama "urun veriyor" ile "hedefi cogaltiyor" ayni sey degildir. Bir onceki
-olcum (target_identity.py) numunedeki kutularin Kraken2 etiketleriyle
-uyusmadigini gosterdi: M. barkeri etiketli kutu dizi duzeyinde
-Methanosarcina vacuolata'ya gidiyor. O halde destegin hangi organizmadan
-geldigi ayrica olculmelidir.
+But "it gives a product" and "it amplifies the target" are not the same thing.
+The earlier measurement showed that the bins in the sample do not agree with
+their Kraken2 labels: the bin labelled M. barkeri goes to Methanosarcina
+vacuolata at sequence level. So which organism the support comes from has to be
+measured separately.
 
-Yontem: her cift icin numunedeki okumalar taranir, urun veren okumalardan
-URUN DIZISI kesilir, urunlerden baskin alel konsensusu kurulur ve bu
-konsensus referans veritabanina blastn ile sorulur. Boylece "bu primer
-numunede ne cogaltiyor" sorusu dizi kanitiyla yanitlanir.
+The method: for every pair the reads in the sample are scanned, THE PRODUCT
+SEQUENCE is cut out of the reads that give one, a dominant allele consensus is
+built from those products, and that consensus is asked of the reference database
+with blastn. That answers "what does this primer amplify in the sample" with
+sequence evidence.
 
-Kullanim:
-  python3 reference_identity.py --reference primer_referans/primer_referans.tsv \
-      --pt . --db REFERANS_DB --out primer_referans/referans_kimlik.tsv
+Usage:
+  python3 reference_identity.py --reference <the reference primer table>
+      --pt . --db REFERENCE_DB --out <the identity table>
 """
 import argparse, csv, collections, glob, importlib.util, os, re, shutil
 import subprocess, sys, tempfile

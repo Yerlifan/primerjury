@@ -135,7 +135,7 @@ _SIKILIK = [[hucre_sikilik(_hucre(pi, ui)) for ui in range(len(URUN_KOMBO))]
 
 
 def cift_maskesi(c):
-    "The pair's (primer_mask, product_mask); computed once and cached."
+    "The pair's primer mask and product mask; computed once and cached."
     if 'pm' not in c:
         c['pm'] = primer_maskesi(c['mF']) & primer_maskesi(c['mR'])
         c['um'] = urun_maskesi(c['urun'])

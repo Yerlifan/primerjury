@@ -118,7 +118,7 @@ def calistir(yaz):
                   ('target_membership.tsv', H.UYELIK_TSV)):
         tum &= _ok(yaz, ad, os.path.exists(p), '' if os.path.exists(p) else p)
     var_ref = os.path.exists(C.SILVA_SSU)
-    _ok(yaz, u'REFERANS_DB/SILVA SSU (for the global step)', var_ref,
+    _ok(yaz, "the reference database's SILVA SSU, for the global step", var_ref,
         '' if var_ref else u'-> the global step will be skipped')
 
     bilgi = engine_gateway.surum_bilgisi()

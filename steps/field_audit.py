@@ -2,24 +2,23 @@
 # -*- coding: utf-8 -*-
 """
 field_audit.py
-ALAN (domain) TUTARLILIK DENETIMI, tek kaynak.
+THE FIELD CONSISTENCY CHECK, in one place.
 
-Sorun: bir hedefin taxid listesi, o hedefin ait olmadigi bir lokus
-kitapliginda da gecebiliyor. Ornek: Sakarolitik bakteriler hedefi
-bakteriyeldir (Bacteroides, Proteiniphilum, Sphaerochaeta,
-Acetobacteroides) ve kutulari B sinifindadir; ama taxid 1760811
-(Acetobacteroides) mantar ITS/28S kitapliginda da iki kutuda goruluyor.
-Dogru sinif olan B'de hicbir cift bulunamayinca, geriye yalniz yanlis
-lokustaki tek kutudan tasarlanmis F2 cifti kaliyor. Tablo o hedefi
-kapsanmis gosteriyor, oysa kapsanmiyor. Kural denetimi bunu yakalamaz,
-cunku ortada kural ihlali yoktur.
+The problem: a target's taxid list can occur in a locus library the target does
+not belong to. An example: the saccharolytic bacteria target is bacterial
+(Bacteroides, Proteiniphilum, Sphaerochaeta, Acetobacteroides) and its bins are
+in the bacterial class; but taxid 1760811 (Acetobacteroides) also shows up in two
+bins of the fungal ITS and 28S library. When no pair can be found in the correct
+class, all that is left is a pair designed from a single bin at the wrong locus.
+The table then shows that target as covered while it is not. A rule check cannot
+catch this, because no rule is broken.
 
-Cozum: hedefin uye kutularinin hangi alanlarda (A arke, B bakteri,
-F mantar) bulundugu VERIDEN cikarilir. Hedef birden cok alanda kutu
-tasiyorsa, azinlik alandaki tasarim isaretlenir.
+The fix: which fields (A archaea, B bacteria, F fungi) a target's member bins sit
+in is derived FROM THE DATA. When a target carries bins in more than one field,
+the design in the minority field is flagged.
 
-Bu dosya elle yazilmis bir alan tablosu icermez. Alan bilgisi yalnizca
-konsensus dosya adlarindan ve targets.tsv'deki taxid listesinden gelir.
+This file holds no hand written field table. The field information comes from the
+consensus file names and the taxid list in targets.tsv alone.
 """
 import os
 import re
@@ -28,7 +27,7 @@ ETIKET = re.compile(r"((?:A1|A2|B|F1|F2))-\d+_(\d+)$")
 
 
 def taxid_alanlari(kons_klasoru):
-    """Konsensus dosya adlarindan taxid -> {alan: kutu_sayisi} cikarir."""
+    'Derives taxid -> {field: bin_count} from the consensus file names.'
     d = {}
     if not kons_klasoru or not os.path.isdir(kons_klasoru):
         return d
@@ -46,7 +45,7 @@ def taxid_alanlari(kons_klasoru):
 
 
 def hedef_taxidleri(hedefler_tsv):
-    """targets.tsv -> {hedef_adi: [taxid, ...]}"""
+    'targets.tsv -> {target_name: [taxid, ...]}'
     d = {}
     if not hedefler_tsv or not os.path.exists(hedefler_tsv):
         return d
@@ -63,12 +62,13 @@ def hedef_taxidleri(hedefler_tsv):
 
 def alan_dagilimi(hedef, sinif, kons_klasoru=None, hedefler_tsv=None,
                   taxid_alan=None, hedef_taxid=None):
-    """Doner: (uyumsuz_mu, dagilim_sozlugu, baskin_alan)
+    """Returns (is_it_inconsistent, the distribution, the dominant field).
 
-    uyumsuz_mu True ise bu (hedef, sinif) ikilisi hedefin BASKIN alaninda
-    degildir ve teslim edilmemelidir. Hedef tek alanda kutu tasiyorsa ya da
-    veri eksikse (False, {}, None) doner: karar verilemiyorsa suclamayiz.
-    """
+        When the first value is True, this (target, class) pair is not in the
+        target's DOMINANT field and must not be delivered. When the target carries
+        bins in one field alone, or the data is missing, it returns (False, {}, None):
+        where nothing can be decided, nothing is blamed.
+"""
     if taxid_alan is None:
         taxid_alan = taxid_alanlari(kons_klasoru)
     if hedef_taxid is None:

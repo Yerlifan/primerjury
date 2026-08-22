@@ -405,7 +405,7 @@ def main():
                 except OSError as e:
                     log(u'      WARNING: the old candidate file could not be deleted (%s)' % e)
             best = ""
-            mb = re.search(r"En iyi bes aday:\n\s*(.+)", txt)
+            mb = re.search(r"Five best candidates:\n\s*(.+)", txt)
             if mb:
                 best = mb.group(1).strip()
             durum = "TAMAM" if n > 0 else "cift yok"
