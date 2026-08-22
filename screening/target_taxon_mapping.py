@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """target_taxon_mapping.py produces two tables:
-  Table A  the 21 targets in the panel -> which meeting decision each comes from
-  Table B  the 44 taxa in the sample -> which target covers each (measured)
+  Table A  the targets in the panel -> which decision each one comes from
+  Table B  the taxa in the sample -> which target covers each one, measured
 
-Output: hedef_takson_eslemesi_20260802.md plus "18 Hedef-Takson Eslemesi" in the
-panel
+Output: a markdown mapping table, plus the sheet "18 The target to taxon
+mapping" inside the panel workbook
 
 """
 # -------------------------------------------------------------------------
@@ -19,7 +19,7 @@ panel
 #          file; the rows that do not come from a meeting decision are marked there
 #          plainly as "Karar 5 - derived from the measurement".
 # OUTPUT : the Markdown file given with --md and the sheet
-#          "18 Hedef-Takson Eslemesi" added to the --xlsx file (wb.save).
+#          the sheet "18 The target to taxon mapping" added to the --xlsx file.
 # CALLED BY: IT IS NOT IN THE MENU, it is run by hand; it changes the delivery
 #          xlsx. cross_coverage.py, one of its inputs, is run by hand as well.
 #
@@ -40,68 +40,110 @@ SAR     = Alignment(wrap_text=True, vertical='top')
 
 # the panel row -> (target name, level, decision, an explanation of the source)
 KARAR = {
- 2:  ('Metanojen_universal',              'grup (islevsel)', 'Karar 4 - alan/evrensel',
-      'Toplanti: "universal metanojen" kontrol primeri.'),
- 3:  ('Methanothrix_cinsi',               'cins',            'Karar 5 - olcumden turetilen',
-      'Toplanti kararlarinda YOK. Bu oturumda tasarlandi; M. soehngenii tur iddiasi dusurulunce cins duzeyi kondu.'),
- 4:  ('Petrimonas_cinsi',                 'cins',            'Karar 2 - dort cins ozgul',
-      'Toplanti: istenen dort cinsten biri.'),
- 5:  ('Metanomikrobiyales_hidrojenotrof', 'takim',           'Karar 3 - islev/ekolojik grup',
-      'Toplanti: "hidrojenotrofik metanojenler". Adi olculen kapsama gore Metanomikrobiyales takimina daraltildi.'),
- 6:  ('Mantar_universal (F1)',            'alan',            'Karar 4 - alan/evrensel',
-      'Toplanti: mantar evrensel kontrol primeri (F1 barkod sinifi).'),
- 7:  ('Methanosarcina_cinsi',             'cins',            'Karar 5 - olcumden turetilen',
-      'Toplanti kararlarinda YOK dogrudan. Karar 1\'in "M. barkeri tur ozgul" hedefinin YERINE GECER: '
-      'tur numunede yok (2208 kutusu M. vacuolata\'ya %97,4-97,9), cins duzeyi verildi.'),
- 8:  ('Metilotrofik_metanojen',           'grup (islevsel)', 'Karar 3 - islev/ekolojik grup',
-      'Toplanti: metilotrofik metanojenler.'),
- 9:  ('Nitrosocosmicus_AOA',              'grup (ekolojik)', 'Karar 3 - islev/ekolojik grup',
-      'Toplanti: amonyak oksitleyen arke (AOA). Sonradan eklenmedi.'),
- 10: ('Proteiniphilum_cinsi',             'cins',            'Karar 2 - dort cins ozgul',
-      'Toplanti: istenen dort cinsten biri.'),
- 11: ('Proteolitik_Synergistaceae',       'soy',             'Karar 5 - olcumden turetilen (Karar 3 altinda)',
-      'Toplanti "proteolitik/sintrofik bakteriler" dedi; olculen soy Synergistaceae cikti. Eski ad: Proteolitik_Cloacibacillus.'),
- 12: ('Bacteroidales_kumesi',             'soy',             'Karar 5 - olcumden turetilen',
-      'Karar 2\'nin "Bacteroides" ve "Alistipes" hedeflerinin YERINE GECER: iki cins de numunede yok, '
-      'kutular birbirine %95,3-96,8 benziyor, adlandirilamayan tek bir Bacteroidales soyu.'),
- 13: ('Mantar_universal (F2)',            'alan',            'Karar 4 - alan/evrensel',
-      'Toplanti: mantar evrensel kontrol primeri (F2 barkod sinifi).'),
- 14: ('Microascaceae_askomikot',          'aile',            'Karar 5 - olcumden turetilen',
-      'AILE DUZEYI HEDEF. Karar 1\'in "Trichoderma asperellum tur ozgul" hedefinin YERINE GECER: '
-      '101201 kutusundaki organizma Trichoderma degil, ITS\'te Petriella/Microascaceae. PANELDEN CIKARILDI (ayrim 0,7x).'),
- 15: ('Sakarolitik_Sphaerochaeta',        'cins',            'Karar 5 - olcumden turetilen (Karar 3 altinda)',
-      'Toplanti "sakarolitik bakteriler" dedi; olculen uye Sphaerochaeta associata cikti.'),
- 16: ('Asetoklastik_metanojenler',        'grup (islevsel)', 'Karar 3 - islev/ekolojik grup',
-      'Toplanti: asetoklastik metanojenler.'),
- 17: ('Bakteri_universal',                'alan',            'Karar 4 - alan/evrensel',
-      'Toplanti: bakteri evrensel kontrol primeri.'),
- 18: ('Petriella_musispora',              'cins -> sinif',   'Karar 5 - olcumden turetilen',
-      'Karar 1\'in "Podospora pseudopauciseta tur ozgul" hedefinin yerine olcumden cikti. PANELDEN CIKARILDI (ayrim 0,7x).'),
- 19: ('Proteolitik_Cloacimonas',          'cins',            'Karar 5 - olcumden turetilen (Karar 3 altinda)',
-      'Toplanti "proteolitik/sintrofik bakteriler" dedi; olculen uye Ca. Cloacimonas acidaminovorans cikti.'),
- 20: ('Arke_universal',                   'alan',            'Karar 4 - alan/evrensel',
-      'Toplanti: arke evrensel kontrol primeri.'),
- 21: ('Methanothrix_soehngenii_turu',     'TUR (kosullu)',   'Karar 1 - alti tur ozgul',
-      'Toplanti: istenen alti turden biri. TUR DUZEYI VERILDI (kosullu).'),
- 22: ('Methanosarcina_mazei_turu',        'TUR GRUBU',       'Karar 1 - alti tur ozgul',
-      'Toplanti: istenen alti turden biri. TUR GRUBU verildi (M. mazei / M. soligelidi ayrilamiyor). '
-      'OKUMA MOTORU DUZELTMESI SONRASI ESIK ALTI - bkz. "16 Okuma Motoru Duzeltmesi".'),
+ 2:  ('Metanojen_universal',              'grup (islevsel)', 'Decision 4, domain and '
+                                                             'universal',
+      'Asked for: a universal methanogen control primer.'),
+ 3:  ('Methanothrix_cinsi',               'cins',            'Decision 5, derived from a '
+                                                             'measurement',
+      'NOT in the decisions. It was designed in this session; genus level was '
+      'put in when the M. soehngenii species claim was dropped.'),
+ 4:  ('Petrimonas_cinsi',                 'cins',            'Decision 2, four genus '
+                                                             'specific',
+      'Asked for: one of the four genera.'),
+ 5:  ('Metanomikrobiyales_hidrojenotrof', 'takim',           'Decision 3, a functional or '
+                                                             'ecological group',
+      'Asked for: hydrogenotrophic methanogens. The name was narrowed to the '
+      'order Methanomicrobiales according to the measured coverage.'),
+ 6:  ('Mantar_universal (F1)',            'alan',            'Decision 4, domain and '
+                                                             'universal',
+      'Asked for: a universal fungal control primer, the F1 barcode class.'),
+ 7:  ('Methanosarcina_cinsi',             'cins',            'Decision 5, derived from a '
+                                                             'measurement',
+      'NOT directly in the decisions. It STANDS IN FOR the species specific '
+      'M. barkeri target of decision 1: the species is not in the sample, '
+      'since the 2208 bin is 97.4 to 97.9 per cent to M. vacuolata, so genus '
+      'level was given.'),
+ 8:  ('Metilotrofik_metanojen',           'grup (islevsel)', 'Decision 3, a functional or '
+                                                             'ecological group',
+      'Asked for: methylotrophic methanogens.'),
+ 9:  ('Nitrosocosmicus_AOA',              'grup (ekolojik)', 'Decision 3, a functional or '
+                                                             'ecological group',
+      'Asked for: ammonia oxidising archaea. It was not added later.'),
+ 10: ('Proteiniphilum_cinsi',             'cins',            'Decision 2, four genus '
+                                                             'specific',
+      'Asked for: one of the four genera.'),
+ 11: ('Proteolitik_Synergistaceae',       'soy',             'Decision 5, derived from a '
+                                                             'measurement, under decision 3',
+      'What was asked for was proteolytic and syntrophic bacteria; the '
+      'measured lineage came out Synergistaceae. Formerly named '
+      'Proteolitik_Cloacibacillus.'),
+ 12: ('Bacteroidales_kumesi',             'soy',             'Decision 5, derived from a '
+                                                             'measurement',
+      'It STANDS IN FOR the Bacteroides and Alistipes targets of decision 2: '
+      'neither genus is in the sample, the bins are 95.3 to 96.8 per cent '
+      'similar to one another, and they are a single unnameable Bacteroidales '
+      'lineage.'),
+ 13: ('Mantar_universal (F2)',            'alan',            'Decision 4, domain and '
+                                                             'universal',
+      'Asked for: a universal fungal control primer, the F2 barcode class.'),
+ 14: ('Microascaceae_askomikot',          'aile',            'Decision 5, derived from a '
+                                                             'measurement',
+      'A FAMILY LEVEL TARGET. It STANDS IN FOR the species specific '
+      'Trichoderma asperellum target of decision 1: the organism in the '
+      '101201 bin is not Trichoderma but Petriella and Microascaceae in ITS. '
+      'TAKEN OUT OF THE PANEL, with a separation of 0.7x.'),
+ 15: ('Sakarolitik_Sphaerochaeta',        'cins',            'Decision 5, derived from a '
+                                                             'measurement, under decision 3',
+      'What was asked for was saccharolytic bacteria; the measured member '
+      'came out Sphaerochaeta associata.'),
+ 16: ('Asetoklastik_metanojenler',        'grup (islevsel)', 'Decision 3, a functional or '
+                                                             'ecological group',
+      'Asked for: acetoclastic methanogens.'),
+ 17: ('Bakteri_universal',                'alan',            'Decision 4, domain and '
+                                                             'universal',
+      'Asked for: a universal bacterial control primer.'),
+ 18: ('Petriella_musispora',              'cins -> sinif',   'Decision 5, derived from a '
+                                                             'measurement',
+      'It came out of the measurement in place of the species specific '
+      'Podospora pseudopauciseta target of decision 1. TAKEN OUT OF THE '
+      'PANEL, with a separation of 0.7x.'),
+ 19: ('Proteolitik_Cloacimonas',          'cins',            'Decision 5, derived from a '
+                                                             'measurement, under decision 3',
+      'What was asked for was proteolytic and syntrophic bacteria; the '
+      'measured member came out Ca. Cloacimonas acidaminovorans.'),
+ 20: ('Arke_universal',                   'alan',            'Decision 4, domain and '
+                                                             'universal',
+      'Asked for: a universal archaeal control primer.'),
+ 21: ('Methanothrix_soehngenii_turu',     'TUR (kosullu)',   'Decision 1, six species '
+                                                             'specific',
+      'Asked for: one of the six species. SPECIES LEVEL WAS GIVEN, '
+      'conditionally.'),
+ 22: ('Methanosarcina_mazei_turu',        'TUR GRUBU',       'Decision 1, six species '
+                                                             'specific',
+      'Asked for: one of the six species. A SPECIES GROUP was given, because '
+      'M. mazei and M. soligelidi do not separate. BELOW THE THRESHOLD after '
+      'the read engine fix; see the read engine sheet.'),
 }
 
 # requests asked for under Decisions 1 and 2 that COULD NOT ENTER THE PANEL AS A TARGET
 KARSILANMAYAN = [
- ('Karar 1 - tur ozgul', 'Methanosarcina barkeri',
-  'Organizma numunede yok (2208 kutusu M. vacuolata %97,4-97,9). Yerine satir 7 Methanosarcina_cinsi.'),
- ('Karar 1 - tur ozgul', 'Podospora pseudopauciseta',
-  'Organizma numunede yok. Yerine satir 18 Petriella_musispora (o da panelden cikarildi).'),
- ('Karar 1 - tur ozgul', 'Dictyostelium discoideum (44689)',
-  'Kraken2 etiketi curutuldu; kutu heterojen. HICBIR PANEL HEDEFI YOK - yalniz Mantar_universal F1 cogaltiyor.'),
- ('Karar 1 - tur ozgul', 'Trichoderma asperellum (101201)',
-  'Kutudaki organizma Trichoderma degil (ITS: Petriella/Microascaceae). Yerine satir 14, o da cikarildi.'),
- ('Karar 2 - cins ozgul', 'Bacteroides',
-  'Cins numunede yok (en iyi eslesme Alistipes putredinis %85,5). Yerine satir 12 Bacteroidales_kumesi.'),
- ('Karar 2 - cins ozgul', 'Alistipes',
-  'Bacteroides ile ayni organizma; satir 12 altinda birlestirildi.'),
+ ('Decision 1, species specific', 'Methanosarcina barkeri',
+  'The organism is not in the sample: the 2208 bin is 97.4 to 97.9 per cent '
+  'to M. vacuolata. Row 7, Methanosarcina_cinsi, stands in for it.'),
+ ('Decision 1, species specific', 'Podospora pseudopauciseta',
+  'The organism is not in the sample. Row 18, Petriella_musispora, stands in '
+  'for it, and that one was taken out of the panel too.'),
+ ('Decision 1, species specific', 'Dictyostelium discoideum (44689)',
+  'The Kraken2 label was refuted and the bin is heterogeneous. THERE IS NO '
+  'PANEL TARGET for it; only the universal fungal F1 pair amplifies it.'),
+ ('Decision 1, species specific', 'Trichoderma asperellum (101201)',
+  'The organism in the bin is not Trichoderma; in ITS it is Petriella and '
+  'Microascaceae. Row 14 stands in for it, and that one was taken out too.'),
+ ('Decision 2, genus specific', 'Bacteroides',
+  'The genus is not in the sample; the best match, Alistipes putredinis, is '
+  '85.5 per cent. Row 12, Bacteroidales_kumesi, stands in for it.'),
+ ('Decision 2, genus specific', 'Alistipes',
+  'The same organism as Bacteroides; they were merged under row 12.'),
 ]
 
 GENIS_AD = {2: 'Metanojen_universal', 6: 'Mantar_universal (F1)', 13: 'Mantar_universal (F2)',
@@ -149,11 +191,11 @@ def takson_tablosu(R, CP, ad, uye):
         c3 = sorted(KARAR[s][0] for s in d if d[s][1] >= 10 and d[s][0] < 10)
         ozgul1 = [x for x in c1 if x not in GENIS_AD.values()]
         if c1:
-            durum = 'kapsanan (ozgul hedef)' if ozgul1 else 'yalniz evrensel/kontrol'
+            durum = 'covered by a specific target' if ozgul1 else 'a universal or control primer only'
         elif c3:
-            durum = 'yalniz mm<=3 ile'
+            durum = 'amplified at mm<=3 only'
         else:
-            durum = 'BOSLUK - hicbir hedef cogaltmiyor'
+            durum = 'A GAP: no target amplifies it'
         satirlar.append(dict(taxid=tx, ad=ad.get(tx, '?'),
                              uye='; '.join(u) or '-',
                              cog1='; '.join(c1) or '-',
@@ -196,8 +238,8 @@ def md_yaz(yol, satirlar):
         L.append('| %s | %s | %s | %s | %s | %s |' % (r['taxid'], r['ad'], r['uye'],
                                                       r['cog1'], r['cog3'], r['durum']))
     bos = [r for r in satirlar if r['durum'].startswith('BOSLUK')]
-    yev = [r for r in satirlar if r['durum'] == 'yalniz evrensel/kontrol']
-    m3 = [r for r in satirlar if r['durum'] == 'yalniz mm<=3 ile']
+    yev = [r for r in satirlar if r['durum'] == 'a universal or control primer only']
+    m3 = [r for r in satirlar if r['durum'] == 'amplified at mm<=3 only']
     L.append(u'\n### The gaps\n')
     L.append(u'| State | Count | Taxa |')
     L.append('|---|---|---|')
@@ -213,7 +255,7 @@ def md_yaz(yol, satirlar):
 
 def xlsx_yaz(xlsx, satirlar):
     wb = openpyxl.load_workbook(xlsx)
-    adx = '18 Hedef-Takson Eslemesi'
+    adx = '18 The target to taxon mapping'
     if adx in wb.sheetnames:
         del wb[adx]
     ws = wb.create_sheet(adx)
@@ -272,13 +314,15 @@ def xlsx_yaz(xlsx, satirlar):
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
     ws.row_dimensions[n].height = 30
     n += 1
-    for j, h in enumerate(['taxid', 'Takson', 'Uyesi oldugu hedef(ler)', 'Cogaltan hedefler (mm<=1)',
-                           'Ek (yalniz mm<=3)', 'Durum'], 1):
+    for j, h in enumerate(['taxid', 'Takson', 'The target or targets it is a '
+                                              'member of', 'The targets that amplify it '
+                                                                         '(mm<=1)',
+                           'Extra, at mm<=3 only', 'Durum'], 1):
         yaz(n, j, h, bold=True, fill=GRI)
     n += 1
     for r in satirlar:
         f = (KIRMIZI if r['durum'].startswith('BOSLUK') else
-             SARI if r['durum'] in ('yalniz evrensel/kontrol', 'yalniz mm<=3 ile') else None)
+             SARI if r['durum'] in ('a universal or control primer only', 'amplified at mm<=3 only') else None)
         yaz(n, 1, r['taxid'], fill=f); yaz(n, 2, r['ad'], fill=f); yaz(n, 3, r['uye'], fill=f)
         yaz(n, 4, r['cog1'], fill=f); yaz(n, 5, r['cog3'], fill=f); yaz(n, 6, r['durum'], fill=f)
         ws.row_dimensions[n].height = 26
@@ -286,11 +330,12 @@ def xlsx_yaz(xlsx, satirlar):
     n += 1
 
     yaz(n, 1, 'BOSLUKLAR', bold=True, fill=KIRMIZI); n += 1
-    gr = [('Hicbir hedef cogaltmiyor', [r for r in satirlar if r['durum'].startswith('BOSLUK')], KIRMIZI),
-          ('Yalniz mm<=3 olcutuyle cogaliyor', [r for r in satirlar if r['durum'] == 'yalniz mm<=3 ile'], SARI),
-          ('Yalniz evrensel/kontrol primeri cogaltiyor, ozgul hedefi yok',
-           [r for r in satirlar if r['durum'] == 'yalniz evrensel/kontrol'], SARI),
-          ('Ozgul bir hedefin kapsaminda',
+    gr = [('No target amplifies it', [r for r in satirlar if r['durum'].startswith('BOSLUK')], KIRMIZI),
+          ('It is amplified at the mm<=3 criterion only', [r for r in satirlar if r['durum'] == 'amplified at mm<=3 only'], SARI),
+          ('Only a universal or control primer amplifies it; it has no '
+           'specific target',
+           [r for r in satirlar if r['durum'] == 'a universal or control primer only'], SARI),
+          ('It is covered by a specific target',
            [r for r in satirlar if r['durum'].startswith('kapsanan')], YESIL)]
     for ad2, lst, f in gr:
         yaz(n, 1, len(lst), bold=True, fill=f); yaz(n, 2, ad2, fill=f)
