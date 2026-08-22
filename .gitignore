@@ -56,6 +56,7 @@ SONUCLAR/
 # kraken_tool.sh and install.sh write their run logs here.
 kurulum_loglari/
 TAM_ZINCIR_SONUC/
+KRAKEN_KARSILASTIRMA.*
 REFERANS_TASARIM_SONUC/
 FARKLI_LOKUS_SONUC/
 ERISIM_SONUC/
