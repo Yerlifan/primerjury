@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 """orientation_report.py - panele "19 Yon Normalizasyonu" sayfasini yazar."""
-# ---------------------------------------------------------------------------
-# orientation_report.py — yon normalizasyonunun butun kanitlarini teslim panelinin
-#                  xlsx dosyasina "19 Yon Normalizasyonu" sayfasi olarak yazar.
+# -------------------------------------------------------------------------
+# orientation_report.py writes all the evidence of the orientation normalisation
+#                  into the delivery panel xlsx as a sheet named "19 Yon
+#                  Normalizasyonu".
 #
-# GIRDI  : --xlsx teslim paneli; --yon ile orientation_audit.py'nin urettigi dosya
-#          bazli yon tablosu; --kod ile orientation_code_scan.py'nin urettigi kod
-#          yolu siniflandirmasi; --indeks ile konsensus_kanonik/INDEKS.tsv.
-#          Hangi dosyanin nasil duzeltildigine dair notlar (KOD_NOT) bu dosyanin
-#          icinde sabittir.
-# CIKTI  : verilen xlsx dosyasina yeni bir sayfa ekleyip kaydeder (wb.save);
-#          ekrana yazilan sayfa adini ve satir sayisini basar.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilir, cunku teslim dosyasini
-#          degistirir. Girdilerini uretecek iki betik de (orientation_audit.py,
-#          orientation_code_scan.py) elle calistirilir.
+# INPUT  : the delivery panel given with --xlsx; the per file orientation table
+#          orientation_audit.py produces, given with --yon; the code route
+#          classification orientation_code_scan.py produces, given with --kod; and
+#          konsensus_kanonik/INDEKS.tsv given with --indeks. The notes on how each
+#          file was corrected (KOD_NOT) are fixed inside this file.
+# OUTPUT : it adds a new sheet to the given xlsx and saves it (wb.save); it prints
+#          the sheet name written and the row count to the screen.
+# CALLED BY: IT IS NOT IN THE MENU, it is run by hand, because it changes the
+#          delivery file. Both scripts that produce its inputs
+#          (orientation_audit.py and orientation_code_scan.py) are run by hand too.
 #
-# Sayfanin varlik sebebi: yon hatasi ayni gece uc ayri yerde ayri ayri bulunup
-# yamandi. Bu sayfa "hangi dosya duzeltildi, hangi konsensus cevrildi, hangi
-# kod yolu hala risktedir" sorularinin cevabini panelin icinde, izlenebilir
-# bicimde tutar.
-# ---------------------------------------------------------------------------
+# Why the sheet exists: the orientation fault was found and patched in three
+# separate places on the same night. This sheet keeps the answers to "which file
+# was corrected, which consensus was flipped, which code route is still at risk"
+# inside the panel, in a form that can be followed.
+# -------------------------------------------------------------------------
 import os, sys, csv, argparse, collections
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
