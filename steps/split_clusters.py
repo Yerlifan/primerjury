@@ -61,11 +61,11 @@ def run_engine(members, outg, label, out_tsv, extra):
     r = subprocess.run(cmd, capture_output=True, text=True)
     txt = r.stdout + r.stderr
     n = 0
-    m = re.search(r"gecerli cift sayisi\s*:\s*(\d+)", txt)
+    m = re.search(r"valid pairs\s*:\s*(\d+)", txt)
     if m:
         n = int(m.group(1))
     blockers = []
-    m = re.search(r"en cok engelleyen uyeler:\s*(.+)", txt)
+    m = re.search(r"the members blocking most:\s*(.+)", txt)
     if m:
         for part in m.group(1).split(","):
             part = part.strip()
@@ -120,7 +120,7 @@ def main():
             worst = blockers[0][0]
             hit = [x for x in cur if tag_of(x) == worst]
             if not hit:
-                print("  engelleyen uye eslestirilemedi: %s" % worst)
+                print("  the blocking member could not be matched: %s" % worst)
                 cur = []
                 break
             cur.remove(hit[0])

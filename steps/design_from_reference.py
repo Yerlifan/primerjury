@@ -294,7 +294,7 @@ def main():
         with open(os.path.join(a.out, "%s.log" % h["ad"]), "w",
                   encoding="utf-8") as lf:
             lf.write(txt)
-        m = re.search(r"gecerli cift sayisi\s*:\s*(\d+)", txt)
+        m = re.search(r"valid pairs\s*:\s*(\d+)", txt)
         n = int(m.group(1)) if m else 0
         log(u'%-34s %-3s reference_members=%d reference_competitors=%d pairs=%d'
             % (h["ad"], h["sinif"], len(ing), len(outg), n))

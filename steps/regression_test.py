@@ -1002,9 +1002,9 @@ def testler(a):
     sina(u'the genus name is searched for AS A WORD, not as a substring',
          len(bsec["Bacteroides"]) == 2,
          u'%d records for Bacteroides' % len(bsec["Bacteroides"]))
-    sina("Parabacteroides, Bacteroides uyesi sayilmiyor",
+    sina(u'Parabacteroides does not count as a Bacteroides member',
          all("Parabacteroides" not in b for b, _ in bsec["Bacteroides"]))
-    sina("Acetobacteroides, Bacteroides uyesi sayilmiyor",
+    sina(u'Acetobacteroides does not count as a Bacteroides member',
          all("Acetobacteroides" not in b for b, _ in bsec["Bacteroides"]))
     sina(u'Parabacteroides is still found under its own name',
          len(bsec["Parabacteroides"]) == 1)
@@ -1013,6 +1013,74 @@ def testler(a):
          "toplanan: %d"
          % len(RT.sec([dar, genis], ["Podospora"], 100)["Podospora"]))
     shutil.rmtree(g5, ignore_errors=True)
+
+    # ------------------------------------------------------------------
+    print(u'\n18. THE LOG CONTRACT BETWEEN THE GROUP ENGINE AND ITS READERS')
+    # design_group_primers.py prints its counters as text and four other
+    # scripts read them back with a regular expression: batch_design.py and
+    # design_from_reference.py take the valid pair count, split_clusters.py
+    # takes the count plus the blocking members, and export_excel.py fills a
+    # whole sheet from ten of them. Nothing binds the two sides, so rewording
+    # one line there leaves an empty column here and no error anywhere. That
+    # happened once, when the engine's output was translated into English and
+    # every pattern kept looking for the Turkish wording. This test runs the
+    # engine on a small synthetic case and requires every pattern to match.
+    import re as _re
+    g18 = _tf.mkdtemp()
+    try:
+        random.seed(4242)
+        govde = "".join(random.choice("ACGT") for _ in range(600))
+        uyeler = []
+        for i in range(3):
+            u = os.path.join(g18, "grup_%d.fasta" % i)
+            # the members share the backbone, so a conserved pair can be found
+            with open(u, "w") as fh:
+                fh.write(">A1-%d_%d\n%s\n" % (i + 1, 1000 + i, govde))
+            uyeler.append(u)
+        cikti = os.path.join(g18, "cift.tsv")
+        r = _sp.run([sys.executable, os.path.join(HERE, "design_group_primers.py"),
+                     "--in-group"] + uyeler
+                    + ["--label", "LOG_CONTRACT", "--out", cikti,
+                       "--max-oligo", "60", "--max-pairs", "20"],
+                    capture_output=True, text=True)
+        txt = r.stdout + r.stderr
+        DESENLER = [
+            (u'oligos after composition filter',
+             r"oligos after composition filter:\s*(\d+)"),
+            (u'oligos after thermodynamics',
+             r"oligos after thermodynamics:\s*(\d+)"),
+            (u'oligos binding every target member',
+             r"oligos binding every target member:\s*(\d+)"),
+            (u'dropped, pair Tm difference',
+             r"dropped, pair Tm difference\s*:\s*(\d+)"),
+            (u'dropped, no product in one member',
+             r"dropped, no product in one member\s*:\s*(\d+)"),
+            (u'dropped, product forms in a competitor',
+             r"dropped, product forms in a competitor\s*:\s*(\d+)"),
+            (u'dropped, no orphan primer',
+             r"dropped, no orphan primer\s*:\s*(\d+)"),
+            (u'dropped, hetero-dimer dG',
+             r"dropped, hetero-dimer dG\s*:\s*(\d+)"),
+            (u'valid pairs', r"valid pairs\s*:\s*(\d+)"),
+        ]
+        for ad, desen in DESENLER:
+            sina(u'the engine still prints "%s" as its readers expect' % ad,
+                 _re.search(desen, txt) is not None,
+                 u'the pattern matched nothing in the output')
+        # the competitor line is only printed when there IS a competitor set
+        r2 = _sp.run([sys.executable, os.path.join(HERE, "design_group_primers.py"),
+                      "--in-group", uyeler[0], "--out-group", uyeler[1],
+                      "--label", "LOG_CONTRACT_2",
+                      "--out", os.path.join(g18, "cift2.tsv"),
+                      "--max-oligo", "40", "--max-pairs", "10"],
+                     capture_output=True, text=True)
+        txt2 = r2.stdout + r2.stderr
+        sina(u'the engine still prints "oligos that bind nowhere in the '
+             u'competitors"',
+             _re.search(r"oligos that bind nowhere in the competitors:\s*(\d+)",
+                       txt2) is not None)
+    finally:
+        shutil.rmtree(g18, ignore_errors=True)
 
     if a.real_data:
         print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')
@@ -1028,7 +1096,7 @@ def testler(a):
                      "--tsv", t, "--consensus", a.consensus, "--max", "500"],
                     capture_output=True, text=True)
                 for line in r.stdout.splitlines():
-                    if "gecen satir" in line:
+                    if "rows passing all four geometry conditions" in line:
                         x = line.split(":")[1].split("/")
                         toplam += int(x[1]); hata += int(x[1]) - int(x[0])
             sina(u'all of the real pairs pass the geometry audit',
@@ -1048,7 +1116,7 @@ def main():
     gecen = sum(1 for _, ok, _ in SONUC if ok)
     print("\n" + "=" * 72)
     print(u'RESULT: %d of %d tests passed, %d failed'
-          % (len(SONUC), gecen, len(SONUC) - gecen))
+          % (gecen, len(SONUC), len(SONUC) - gecen))
     for ad, ok, ayrinti in SONUC:
         if not ok:
             print("   KALDI: %s   %s" % (ad, ayrinti))

@@ -724,7 +724,7 @@ def main():
     print(u'   dropped, no product in one member  : %d' % n_noprod)
     if fail_member:
         worst = sorted(fail_member.items(), key=lambda x: -x[1])[:5]
-        print("      en cok engelleyen uyeler: %s"
+        print("      the members blocking most: %s"
               % ", ".join("%s=%d" % kv for kv in worst))
     print(u'   dropped, product forms in a competitor : %d' % n_comp)
     print(u'   dropped, no orphan primer          : %d' % n_orph)
