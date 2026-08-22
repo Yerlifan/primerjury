@@ -1,27 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-OZEL KRAKEN2 VERITABANI ICIN TAKSONOMI VE KUTUPHANE URETIMI  (EN SON CARE)
-
-ONCE BUNU OKUYUN
-PlusPFP kuruluysa BU BETIGE GEREK YOKTUR. PlusPFP zaten Standard'a protozoa,
-mantar ve bitki ekler, yani eksik oldugunu olctugumuz gruplarin tamami.
-Bu betik, PlusPFP hicbir sekilde kurulamiyorsa ya da marker gen (16S/18S/ITS)
-duzeyinde ikinci bir gorus isteniyorsa vardir.
-
-NE YAPAR
-SILVA, UNITE ve PR2 dosyalarinin basliklarindaki soy dizgilerinden sentetik bir
-NCBI benzeri taksonomi kurar (nodes.dmp, names.dmp) ve dizileri kraken2'nin
-bekledigi `kraken:taxid|N` bicimiyle library/ altina yazar. Sonrasini
-kraken2-build --build yapar.
-
-TAXID'LER SENTETIKTIR. NCBI taxid'leriyle karsilastirilamaz. Karsilastirma bu
-yuzden isim duzeyinde yapilir (comparison_table.py boyle davranir).
-
-Calistirma:
-  python3 custom_taxonomy.py --output <db klasoru> --set silva_ssu=/yol/a.fasta ...
-  python3 custom_taxonomy.py --selftest
-"""
+' BUILDING A TAXONOMY AND LIBRARY FOR A CUSTOM KRAKEN2 DATABASE (THE LAST '
+'RESORT)  READ THIS FIRST If PlusPFP is installed, THIS SCRIPT IS NOT NEEDED. '
+'PlusPFP already adds protozoa, fungi and plants to Standard, which is every '
+'group we measured as missing. This script exists for when PlusPFP cannot be '
+'installed at all, or when a second opinion is wanted at the marker gene '
+'level (16S, 18S, ITS).  WHAT IT DOES It builds a synthetic NCBI-like '
+'taxonomy (nodes.dmp, names.dmp) out of the lineage strings in the headers of '
+'the SILVA, UNITE and PR2 files, and writes the sequences under library/ in '
+'the `kraken:taxid|N` form kraken2 expects. kraken2-build --build does the '
+'rest.  THE TAXIDS ARE SYNTHETIC. They cannot be compared against NCBI '
+'taxids, which is why the comparison is done at the level of names.  Usage: '
+'python3 custom_taxonomy.py --output <the database directory> --set '
+'silva_ssu=/path/a.fasta ...   python3 custom_taxonomy.py --selftest'
 import argparse, os, re, sys
 
 RANKLAR = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
@@ -29,15 +20,12 @@ RANKLAR = ["superkingdom", "phylum", "class", "order", "family", "genus", "speci
 ONEK = re.compile(r"^[kdpcofgs]__")
 
 def soy_ayikla(baslik):
-    """
-    Fasta basligindan soy dizgisini cikarir ve duzeylere boler.
-
-    Uc bicim de desteklenir:
-      SILVA : AB000389.1.1487 Bacteria;Pseudomonadota;...;Genus species
-      PR2   : AB000000.1.1000 Eukaryota;TSAR;Alveolata;...
-      UNITE : Ad|KY123|SH123.08FU|reps|k__Fungi;p__Ascomycota;...;s__Petriella_x
-    Doner: (dizi_kimligi, [duzey, duzey, ...])
-    """
+    '     Pulls the lineage string out of a fasta header and splits it into '
+    'levels.      All three formats are supported:       SILVA : '
+    'AB000389.1.1487 Bacteria;Pseudomonadota;...;Genus species       PR2   : '
+    'AB000000.1.1000 Eukaryota;TSAR;Alveolata;...       UNITE : '
+    'Name|KY123|SH123.08FU|reps|k__Fungi;p__Ascomycota;...;s__Petriella_x '
+    'Returns: (sequence_id, [level, level, ...])'
     b = baslik.lstrip(">").rstrip()
     if not b:
         return "", []
@@ -64,11 +52,11 @@ def soy_ayikla(baslik):
     return kimlik, duzeyler
 
 class Taksonomi:
-    """
-    Sentetik agac. Kok taxid 1. Her benzersiz soy YOLU bir dugumdur; ayni ad
-    farkli soylarda gecerse ayri dugum olur, cunku 'Incertae sedis' gibi adlar
-    birden cok yerde geciyor ve birlestirilirse agac catallanip bozulur.
-    """
+    '     The synthetic tree. The root taxid is 1. Every distinct lineage '
+    'PATH is a     node; the same name occurring in different lineages '
+    "becomes a separate node,     because names such as 'Incertae sedis' "
+    'occur in more than one place and     merging them would fork and corrupt '
+    'the tree.'
     def __init__(self):
         self.ebeveyn = {1: 1}
         self.ad = {1: "root"}
@@ -104,7 +92,7 @@ class Taksonomi:
         return len(self.ebeveyn)
 
 def kume_isle(yol, tak, cikti_fh):
-    """Bir fasta dosyasini okur, taksonomiyi buyutur, kutuphane fastasini yazar."""
+    'Reads one fasta file, grows the taxonomy and writes the library fasta.'
     okunan = soysuz = yazilan = 0
     tx = None
     with open(yol, errors="replace") as fh:
@@ -171,7 +159,7 @@ def selftest():
         K(u'the sequences with a lineage are written', yz, 2)
         icerik = open(cy).read()
         K("baslik kraken:taxid tasir", "|kraken:taxid|" in icerik, True)
-        K("RNA'daki U, DNA'da T olur", "ATGCATGC" in icerik, True)
+        K('a U in RNA becomes a T in DNA', "ATGCATGC" in icerik, True)
         K(u'the sequence of a record with no lineage is not written either', "AAAA" in icerik, False)
         n = t2.yaz(os.path.join(dizin, "taxonomy"))
         K(u'nodes.dmp is written', os.path.exists(os.path.join(dizin, "taxonomy", "nodes.dmp")), True)

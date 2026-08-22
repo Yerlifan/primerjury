@@ -144,13 +144,13 @@ def main():
                 continue
             if k in gorulen:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
-                                     eski_yon='', cevrildi='', uzunluk='', durum='atlandi (%s kazandi)' % gorulen[k]))
+                                     eski_yon='', cevrildi='', uzunluk='', durum='skipped (%s won)' % gorulen[k]))
                 continue
             kayitlar, _ = orientation.dosya_kanonik(y)
             kayitlar = [r for r in kayitlar if len(r[1]) >= 200]
             if not kayitlar:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
-                                     eski_yon='', cevrildi='', uzunluk=0, durum='bos/kisa - atlandi'))
+                                     eski_yon='', cevrildi='', uzunluk=0, durum='empty or too short, skipped'))
                 continue
             ad, dizi, karar, cev = max(kayitlar, key=lambda r: len(r[1]))
             if karar == 'BELIRSIZ':
@@ -160,7 +160,7 @@ def main():
                                      not_='yon belirlenemedi - KANONIGE ALINMADI, maskeli'))
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
                                      eski_yon='BELIRSIZ', cevrildi='', uzunluk=len(dizi),
-                                     durum='BELIRSIZ - yazilmadi'))
+                                     durum='UNDECIDED, not written'))
                 continue
             gorulen[k] = etiket
             cy = os.path.join(cik, '%s.kanonik.fa' % k)
