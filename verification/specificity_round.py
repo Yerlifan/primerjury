@@ -99,17 +99,17 @@ BOY_TOL = 10                           # beklenen urun boyuna bu kadar yakin vur
 
 # The local sets to scan: (label, file name, description)
 KUMELER = [
-    ('SILVA SSU NR99', 'SILVA_138.2_SSURef_NR99.fasta', u'510 495 kayit; SSU (16S/18S)'),
-    ('SILVA LSU NR99', 'SILVA_138.2_LSURef_NR99.fasta', u'95 279 kayit; LSU (23S/28S)'),
-    ('UNITE ITS', 'UNITE_ITS.fasta', u'2 069 189 kayit; mantar ITS'),
-    ('PR2 SSU', 'PR2_SSU_taxo_long.fasta', u'240 201 kayit; okaryot 18S'),
-    ('ROD operon', 'ROD_v1.2_operon_variants.fasta', u'60 320 kayit; rRNA operon varyantlari'),
-    ('RefSeq bakteri 16S', 'bacteria.16S.fna', u'26 877 kayit'),
-    ('RefSeq arke 16S', 'archaea.16S.fna', u'1 160 kayit'),
-    ('RefSeq mantar ITS', 'fungi.ITS.fna', u'20 394 kayit'),
-    ('RefSeq mantar 28S', 'fungi.28SrRNA.fna', u'12 890 kayit'),
-    ('RefSeq mantar 18S', 'fungi.18SrRNA.fna', u'4 037 kayit'),
-    ('RefSeq ref_all2', 'ref_all2.fna', u'65 358 kayit; RefSeq birlesik'),
+    ('SILVA SSU NR99', 'SILVA_138.2_SSURef_NR99.fasta', '510,495 records; SSU (16S and 18S)'),
+    ('SILVA LSU NR99', 'SILVA_138.2_LSURef_NR99.fasta', '95,279 records; LSU (23S and 28S)'),
+    ('UNITE ITS', 'UNITE_ITS.fasta', '2,069,189 records; fungal ITS'),
+    ('PR2 SSU', 'PR2_SSU_taxo_long.fasta', '240,201 records; eukaryotic 18S'),
+    ('ROD operon', 'ROD_v1.2_operon_variants.fasta', '60,320 records; rRNA operon variants'),
+    ('RefSeq bakteri 16S', 'bacteria.16S.fna', '26,877 records'),
+    ('RefSeq arke 16S', 'archaea.16S.fna', '1,160 records'),
+    ('RefSeq mantar ITS', 'fungi.ITS.fna', '20,394 records'),
+    ('RefSeq mantar 28S', 'fungi.28SrRNA.fna', '12,890 records'),
+    ('RefSeq mantar 18S', 'fungi.18SrRNA.fna', '4,037 records'),
+    ('RefSeq ref_all2', 'ref_all2.fna', '65,358 records; the merged RefSeq set'),
 ]
 # SILVA Parc is DELIBERATELY not used in the SPECIFICITY scan: a non-dereplicated
 # set of 1.3 million records adds no new information to the false product question
@@ -117,24 +117,9 @@ KUMELER = [
 # there Parc is REQUIRED (see identity_verification.py), because NR99 deletes rare
 # genera. It can be turned on if wanted:
 PARC_ISTEGE_BAGLI = ('SILVA LSU Parc', 'SILVA_138.2_LSUParc.fasta',
-                     u'1 312 521 kayit; tekrarsizlastirilmamis')
+                     '1,312,521 records; not deduplicated')
 
-OLCUT_NOTU = u"""
-YEREL TARAMANIN OLCUTU - ACIKCA YAZILIYOR
-=========================================
-Kullanilan kod: screening/global_scan.py  (AYNEN, degistirilmedi)
-
-  * iki primer KARSILIKLI YONELIMDE baglanacak
-  * aralarindaki mesafe %d-%d bp
-  * F ve R uyumsuzluklari TOPLAM en cok %s
-
-3' SON IKI BAZ SARTI BU KATMANDA UYGULANMADI. Sebep: mevcut kuresel tarama
-kodu bu sarti tasimiyor ve o kodu yeniden yazmamak icin oldugu gibi kullanildi.
-Bu olcut, 3' son iki baz sarti olan olcutten DAHA GEVSEKTIR - yani bulunan
-vuruslarin bir kismi gercekte urun VERMEYEBILIR. Risk taramasinda bu GUVENLI
-taraftir: gercek riski gozden kacirmaktansa fazladan uyari uretir.
-Bir vurus ciddiye alinacaksa 3' ucunun tuttugu ayrica bakilmalidir.
-"""
+OLCUT_NOTU = "\nTHE CRITERION OF THE LOCAL SCAN, WRITTEN OUT OPENLY\n===================================================\nThe code used: screening/global_scan.py, EXACTLY as it stands and unmodified.\n\n  * the two primers have to bind IN OPPOSITE ORIENTATIONS\n  * the distance between them is %d to %d bp\n  * the forward and reverse mismatches come to at most %s IN TOTAL\n\nTHE LAST TWO BASES AT THE 3' END ARE NOT REQUIRED IN THIS LAYER. The reason: the\nexisting global scan code does not carry that condition and it was used as it\nstands rather than rewritten. This criterion is LOOSER than one that requires the\nlast two bases, which means some of the hits found MAY NOT actually give a\nproduct. In a risk scan that is the SAFE side: it produces an extra warning\nrather than missing a real risk. If a hit is to be taken seriously, whether its\n3' end holds has to be looked at separately.\n"
 
 
 def sure_metni(sn):
@@ -181,16 +166,12 @@ _ATLANAN = []
 # only thing that changes is WHICH pairs are tested.
 # -------------------------------------------------------------------------
 def siparistekiler(kok, hepsi=False):
-    """SIPARIS_LISTESI.tsv -> siparise giden ciftler (KESIN + EVRENSEL).
-
-    hepsi=True ise KOSULLU ve ONERILMEZ satirlar da alinir - kullanici onlari
-    da sinatmak isterse. Varsayilan: yalniz siparise gidecekler.
-    """
+    'Reads the order list and returns the pairs that go into the order.\n\n    With hepsi=True the conditional and not recommended rows are taken as well,\n    for a user who wants those tested too. The default is the ones that go into\n    the order alone.\n    '
     yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
     if not os.path.exists(yol):
         yol = os.path.join(kok, 'SIPARIS_LISTESI.tsv')
     if not os.path.exists(yol):
-        sys.exit(u'ERROR: SIPARIS_LISTESI.tsv is missing.\n      verification/full_chain.py -> option (T) has to be run first.')
+        sys.exit('ERROR: the order list is missing.\n      The ordering stage has to be run first.')
     with open(yol, encoding='utf-8') as fh:
         satirlar = list(csv.DictReader(
             (s for s in fh if not s.startswith('#')), delimiter='\t'))
@@ -219,7 +200,7 @@ def siparistekiler(kok, hepsi=False):
 
 
 def kurtarilanlar(kok):
-    """RECOVERY_RESULT/kurtarma_satirlari.tsv -> esigi gecen YENI/DEGISMIS ciftler."""
+    'Reads the recovery table and returns the NEW or CHANGED pairs that pass the threshold.'
     yol = os.path.join(kok, 'RECOVERY_RESULT', 'kurtarma_satirlari.tsv')
     if not os.path.exists(yol):
         sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (K) has to be run first.' % yol)
@@ -244,7 +225,7 @@ def kurtarilanlar(kok):
             tur = 'YENI CIFT'
         else:
             F, R, bp = ciftler.get(s['hedef'], ('', '', ''))
-            tur = 'DEGISMIS (ayni primerler, olcu/uyelik degisti)'
+            tur = 'CHANGED: the same primers, with a different measure or membership'
         if not F or not R:
             _ATLANAN.append(s['hedef'])
             continue
@@ -734,11 +715,11 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             if not m:
                 # DO NOT GUESS THE REASON - read NCBI's own error text and write it.
                 _h = re.search(r'(?:Exception error|Error)\s*:\s*([^<\n]{5,300})', s, re.I)
-                _sebep = _h.group(1).strip() if _h else u'NCBI hata metni bulunamadi'
+                _sebep = _h.group(1).strip() if _h else 'the NCBI error text was not found'
                 open(os.path.join(ham, '%s_ANAHTARSIZ.html' % re.sub(r'\W+', '_', ad)),
                      'w', encoding='utf-8').write(s)
                 out[ad] = dict(durum='BASARISIZ',
-                               not_=u'is anahtari alinamadi - NCBI yaniti: %s' % _sebep)
+                               not_='the job key could not be obtained; the NCBI reply: %s' % _sebep)
                 yaz(u'  [%s] NCBI: is anahtari alinamadi - NCBI diyor ki: %s'
                     % (ad, _sebep)); continue
             anahtar = m.group(1)
@@ -776,8 +757,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             if not _bitti:
                 # Is bitmeden tavana carptik. TEMIZ demek YASAK - bilinmiyor denir.
                 out[ad] = dict(durum='BASARISIZ',
-                               not_=u'NCBI isi %d yoklamada bitmedi (hala kuyrukta). '
-                                    u'Sonuc BILINMIYOR - temiz sayilmadi.' % tur_ust)
+                               not_='The NCBI job did not finish in %d polls and is still queued. The result is BILINMIYOR and it was NOT counted as clean.' % tur_ust)
                 yaz(u'  [%s] NCBI: the job did not finish (queued). Fall back to the manual route.' % ad)
                 continue
             n = len(re.findall(r'product length\s*=\s*\d+', son, re.I))
@@ -820,30 +800,20 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                     out[ad] = dict(durum='TAMAM (alt sinir)', hedef_disi=len(_adli),
                                    ncbi_toplam_urun=n, ncbi_adsiz_klon=len(_adsiz),
                                    ncbi_ornek=u'; '.join(b[:70] for _a, b, _L in _adli[:3]),
-                                   not_=u'Sayfa tavana carpti (%d urun, gercek sayi daha '
-                                        u'fazla). Hedefin kendi taksonu (txid%s) dislandi. '
-                                        u'Kirpilmis listede ADLI hedef disi takson: %d - bu '
-                                        u'bir ALT SINIRDIR, kesin sayi degildir. Adsiz cevre '
-                                        u'klonu: %d (etiketten karar verilemez, katman 2-3 '
-                                        u'karar verir).'
+                                   not_="The page hit its cap at %d products and the real number is larger. The target's own taxon (txid%s) was excluded. In the truncated list there are %d NAMED off target taxa, which is a LOWER BOUND and not an exact count, and %d unnamed environmental clones, which the label cannot decide and layers 2 and 3 do."
                                         % (n, HARITA.get(ad, '?'), len(_adli), len(_adsiz)))
                     yaz(u'  [%s] NCBI: hit the cap (%d) but NAMED off-target >= %d (a lower bound)'
                         % (ad, n, len(_adli)))
                     continue
-                out[ad] = dict(durum='BASARISIZ - SONUC TAVANI',
+                out[ad] = dict(durum='BASARISIZ - the result cap was hit',
                                ncbi_toplam_urun=n, ncbi_adsiz_klon=len(_adsiz),
-                               not_=u'Primer-BLAST %d urun listeledi (sayfa tavani). '
-                                    u'Gercek sayi >= %d. Bu bir SAYIM DEGIL; hukum '
-                                    u'icin kullanilamaz. Organizma kisiti (--organism) '
-                                    u'ile daraltip yeniden kosun.'
+                               not_='Primer-BLAST listed %d products, which is the page cap. The real number is %d or more. That IS NOT A COUNT and cannot be used for a verdict. Narrow it with --organism and run it again.'
                                     % (n, NCBI_SONUC_TAVANI))
                 yaz(u'  [%s] NCBI: RESULT CAP (%d) - not a count, not tested' % (ad, n))
                 continue
             if not hedefsiz and n == 0:
-                out[ad] = dict(durum='BASARISIZ - BOS SONUC',
-                               not_=u'Sayfa bitti ama hicbir "product length" satiri yok '
-                                    u'(hedefteki urun bile listelenmemis). Bu TEMIZ degil, '
-                                    u'VERI YOK. Sinanmadi sayilir.')
+                out[ad] = dict(durum='BASARISIZ - an empty result',
+                               not_='The page finished but holds no "product length" row at all, not even the product in the target. That is not CLEAN, it is NO DATA, and it counts as not tested.')
                 yaz(u'  [%s] NCBI: EMPTY result page - not tested' % ad)
                 continue
             # IF THERE IS NO ORGANISM RESTRICTION (--organism empty), Primer-BLAST also
@@ -859,18 +829,15 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
             # 'clean'.
             if hedefsiz:
                 out[ad] = dict(durum='TAMAM', hedef_disi=0, ncbi_toplam_urun=0,
-                               not_=u'Primer-BLAST hic urun bulamadi.')
+                               not_='Primer-BLAST found no product at all.')
                 yaz(u'  [%s] NCBI: no products at all -> off-target 0' % ad)
                 continue
             if n_unint == 0 and n_target > 0:
                 if not _kendi_dislandi:
                     out[ad] = dict(
-                        durum='BASARISIZ - DISLAMA HARITASINDA YOK',
+                        durum='BASARISIZ - it is not in the exclusion map',
                         ncbi_toplam_urun=n_target, ncbi_adsiz_klon=len(_adsiz),
-                        not_=u'Sayfa %d urun listeledi ama bu hedef icin '
-                             u'screening/target_taxids.tsv icinde dislanacak takson '
-                             u'yazili degil. Hedefin kendi uyeleri de listede olabilir, '
-                             u'ayirt edilemez. SINANMADI.' % n_target)
+                        not_="The page listed %d products, but no taxon to exclude is written for this target in screening/target_taxids.tsv. The target's own members may be in the list too and cannot be told apart. NOT TESTED." % n_target)
                     yaz(u'  [%s] NCBI: not in the exclusion map, not tested' % ad)
                     continue
                 # Its own taxon was excluded. Even if the section heading never opens, every
@@ -879,24 +846,15 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                     durum='TAMAM', hedef_disi=len(_adli),
                     ncbi_toplam_urun=n_target, ncbi_adsiz_klon=len(_adsiz),
                     ncbi_ornek=u'; '.join(b[:70] for _a, b, _L in _adli[:3]),
-                    not_=u'Hedefin kendi taksonu (txid%s) ENTREZ_QUERY ile dislandi. '
-                         u'%d urunun %d tanesi ADLI takson (hedef disi kaniti), %d '
-                         u'tanesi adsiz cevre klonu ("uncultured ...") - adsizlar '
-                         u'hicbir taksona bagli olmadigi icin dislama suzgeci onlara '
-                         u'islemez ve hedefin KENDISI olabilirler; kimliklerine dizi '
-                         u'karsilastirmasi (katman 2-3) karar verir, hukme girmezler. '
-                         u'Bolum basligina bakilmadi - sablon dizi bildirilmedigi surece '
-                         u'Primer-BLAST "unintended" bolumunu hic acmiyor (olculdu).'
+                    not_='The target\'s own taxon (txid%s) was excluded through the Entrez query. Of the %d products, %d fall on a NAMED taxon, which is evidence of an off target product, and %d are unnamed environmental clones ("uncultured ..."). Because an unnamed record is tied to no taxon the exclusion filter does not reach it and it may be THE TARGET ITSELF; a sequence comparison, layers 2 and 3, decides its identity, and it does not enter the verdict. The section heading was not used: unless a template sequence is declared, Primer-BLAST never opens the "unintended" section, which was measured.'
                          % (HARITA.get(ad, '?'), n_target, len(_adli), len(_adsiz)))
                 yaz(u'  [%s] NCBI: named off-target %d / unnamed clones %d / total %d'
                     % (ad, len(_adli), len(_adsiz), n_target))
                 continue
-            _kusur = (u'ORGANIZMA KISITI YOK: hedefin kendi uyeleri de "unintended" '
-                      u'altinda sayilmis olabilir. ' if not organizma else u'')
+            _kusur = ('THERE IS NO ORGANISM RESTRICTION, so the target\'s own members may have been counted under "unintended" too. ' if not organizma else u'')
             out[ad] = dict(durum='TAMAM', hedef_disi=n_unint,
                            ncbi_toplam_urun=n_target,
-                           not_=_kusur + u'"unintended templates" bolumunun sayimi; '
-                                u'ham yanit ncbi_ham/ altinda')
+                           not_=_kusur + 'the count of the "unintended templates" section; the raw reply is under ncbi_ham/')
             yaz(u'  [%s] NCBI: off-target (unintended section) %s / total products %s%s'
                 % (ad, n_unint, n_target, u' (no organism restriction)' if _kusur else u''))
         except Exception as e:
@@ -994,7 +952,7 @@ ANA_KATEGORILER = ('KESIN', 'KOSULLU', 'INCELEME', 'RISKLI')
 
 
 def karar_kategorisi(karar):
-    """Hukum dizgesinden SAYISIZ kategori anahtarini cikarir."""
+    'Pulls the category key out of a verdict string, WITHOUT any number.'
     k = (karar or '').strip()
     # D-16 (2026-08-07): maxsplit was passed as a POSITIONAL argument; from
     # Python 3.13 that is a DeprecationWarning, and later an error.
@@ -1069,7 +1027,7 @@ def uc3_ceza_dongu(uyumsuz_konumlar, terminal_ciftler=None):
     # Sozhamannan: son dort baz icinde uc ve uzeri uyumsuzluk
     son4 = [k for k in kon if k <= 4]
     if len(son4) >= 3:
-        return (15.0, 'son 4 baz icinde %d uyumsuzluk -> >15 dongu [K17]'
+        return (15.0, '%d mismatches within the last 4 bases, which means more than 15 cycles'
                 % len(son4), True)
 
     for k in kon:
@@ -1098,7 +1056,7 @@ def uc3_ceza_dongu(uyumsuz_konumlar, terminal_ciftler=None):
 
 
 def hukum(v):
-    """Bir katmanin sonucunu TEMIZ / RISKLI / BILINMIYOR'a indirger."""
+    "Reduces one layer's result to TEMIZ, RISKLI or BILINMIYOR."
     if v is None:
         return 'BILINMIYOR'
     if isinstance(v, str):
@@ -1211,8 +1169,7 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
         _organel = (kl or {}).get('ao') or 0
         _organel_notu = ''
         if _organel:
-            _organel_notu = (u' | ORGANEL UYARISI: %d konak organel (kloroplast/'
-                             u'mitokondri) amplikonu; olusabilir %s'
+            _organel_notu = (' | AN ORGANELLE WARNING: %d host organelle amplicons, chloroplast or mitochondrial; can form: %s'
                              % (_organel, (kl or {}).get('olusabilir')))
         if _gevsek_fazla:
             # D-18 (2026-08-09): "the last two bases at the 3' end" DOES NOT DECIDE and is no
@@ -1226,27 +1183,25 @@ def birlestir(ciftler, yerel, ncbi, mfe=None, klad=None):
             #      targets |difference| <= 0.09). No verdict changed.
             # What is asked for instead: the DISTANCE of the mismatch from the 3' end, and its
             # TYPE (see uc3_ceza_dongu). Detail: ESIK_VE_OLCUT_2026-08-08.md.
-            karar = ('INCELEME - gevsek olcut vurusu (%s adet); 3\' uca yakin '
-                     'uyumsuzlugun KONUMU ve TIPI degerlendirilmeli '
-                     '(son iki baz sarti hukum vermez)' % y)
+            karar = ("INCELEME - %s hits on the loose criterion; the POSITION and the TYPE of the mismatch near the 3' end have to be judged, since the last two bases condition gives no verdict here" % y)
         elif len(set(bilinen)) > 1:
             karar = 'CELISKILI'
         elif n_kaynak == 0:
-            karar = 'EKSIK - hicbir kaynak sonuc vermedi'
+            karar = 'EKSIK - no source returned a result'
         elif set(bilinen) == {'TEMIZ'}:
             if _organel:
                 # D-17: even when every layer looks clean, if there is an organelle
                 # product that can form, the row is NOT clean; a human decision is needed.
-                karar = ('INCELEME - katmanlar temiz ama %d organel amplikonu var'
+                karar = ('INCELEME - the layers are clean but there are %d organelle amplicons'
                          % _organel)
             elif n_kaynak >= 3:
-                karar = 'KESIN - uc olcum katmani da uyusuyor'
+                karar = 'KESIN - all three measurement layers agree'
             elif n_kaynak == 2:
-                karar = 'KOSULLU - iki katman uyusuyor, biri eksik'
+                karar = 'KOSULLU - two layers agree and one is missing'
             else:
-                karar = 'EKSIK - yalnizca %d kaynak sonuc verdi' % n_kaynak
+                karar = 'EKSIK - only %d source returned a result' % n_kaynak
         else:
-            karar = 'RISKLI - siparis edilmez'
+            karar = 'RISKLI - it is not ordered'
         if _organel_notu and 'ORGANEL' not in karar:
             karar = karar + _organel_notu
         out.append(dict(c, kategori=karar_kategorisi(karar),
@@ -1346,7 +1301,7 @@ def raporla(cikti, satirlar, yaz):
                         s['yerel'], s['yerel_urun'],
                         s.get('yerel_ayni_boyda', ''), s.get('yerel_tum', ''),
                         '; '.join('%s=%s' % kv for kv in (s['yerel_kume'] or {}).items()),
-                        ('EVET' if s.get('yerel_klad_ayrimi') else 'HAYIR - yalniz boy'),
+                        ('EVET' if s.get('yerel_klad_ayrimi') else 'NO, on length alone'),
                         s.get('yerel_klad_disi', ''),
                         s.get('yerel_a', ''), s.get('yerel_ao', ''),
                         s.get('yerel_b', ''), s.get('yerel_c', ''),
@@ -1638,7 +1593,7 @@ def main():
     if not ciftler:
         yaz(u'  The recovery round produced no NEW or CHANGED pair above the threshold, so there is nothing to verify.')
         return 0
-    yaz(u'  kaynak            : %s' % os.path.basename(kyol))
+    yaz('  the source        : %s' % os.path.basename(kyol))
     yaz(u'  source path       : %s' % kyol)
     yaz(u'  pairs to verify   : %d' % len(ciftler))
     if getattr(a, 'tumu', False):

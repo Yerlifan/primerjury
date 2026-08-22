@@ -97,41 +97,14 @@ KIL_PAYI_ALT = 5.0          # yol 3'e girecek satirin asgari mevcut kati
 EVRENSEL_KAPSAMA_ESIGI = 0.80   # uye kutularin en az %80'i urun vermeli
 EVRENSEL_ALANDISI_UST = 5.0     # alan disi kutularda Wilson ust sinir en cok %5
 
-GEREKCE_EVRENSEL = u"""
-YOL 1 - EVRENSEL HEDEFLERDE OLCU NEDEN DEGISTI (esik DUSURULMEDI)
-
-Ayrim kati = (uye alt siniri) / (rakip ust siniri). Evrensel bir hedefte
-"rakip" diye bir kume YOKTUR: Bakteri_universal butun bakterileri, Arke_universal
-butun arkeleri cogaltmak icin tasarlandi. Payda sifira giderse oran ya 0/0
-(tanimsiz, betik 0,00 yazar) ya da devasa bir sayi olur - nitekim ayni sutunda
-0,00 ile 117 056 685 yan yana duruyor. Bu sayilar bir SEYI OLCMUYOR.
-
-Bu satirlarda iddia da farklidir: "her seyi ayirt ederim" degil, "grubun
-tamamini gorurum, grup disina tasmam". Dogru olcu bu iddiayi olcendir:
-
-  KAPSAMA      = uye kutularin kaci >=%%%d urun veriyor
-  ALAN DISI    = hedef grubun DISINDAKI kutularda urun veren okuma orani
-                 (Wilson UST siniri - muhafazakar taraf)
-
-GECME OLCUTU (ikisi birden):
-  KAPSAMA   >= %%%d  ve  ALAN DISI <= %%%.0f
-
-Bu, 10x esiginin gevsetilmesi DEGILDIR: 10x oranini bu satirlarda uygulamak
-zaten mumkun degil, cunku oranin paydasi tanimsiz. Diger butun satirlarda 10x
-esigi AYNEN durur.
-""" % (int(KAPSAM_ESIGI * 100), int(EVRENSEL_KAPSAMA_ESIGI * 100), EVRENSEL_ALANDISI_UST)
+GEREKCE_EVRENSEL = '\nROUTE 1: WHY THE MEASURE CHANGED ON UNIVERSAL TARGETS (the threshold was NOT\nlowered)\n\nThe strict separation is the member lower bound divided by the competitor upper\nbound. On a universal target THERE IS NO competitor set: the bacterial universal\nis designed to amplify every bacterium and the archaeal universal every\narchaeon. When the denominator goes to zero the ratio is either 0/0, which is\nundefined and which the script writes as 0.00, or an enormous number, and indeed\n0.00 and 117,056,685 stand side by side in the same column. Those numbers ARE\nMEASURING NOTHING.\n\nThe claim on those rows is different too: not "I can tell everything apart" but\n"I see the whole group and do not spill outside it". The right measure is the one\nthat measures that claim:\n\n  COVERAGE      how many of the member bins give a product of %%%d or more\n  OUTSIDE       the fraction of reads giving a product in bins OUTSIDE the target\n                group, taken as the Wilson UPPER bound, which is the conservative\n                side\n\nTHE PASS CRITERION, both at once:\n  COVERAGE   >= %%%d  and  OUTSIDE <= %%%.0f\n\nThis IS NOT a relaxation of the tenfold threshold: applying a ratio on these rows\nis impossible to begin with, because its denominator is undefined. On every other\nrow the tenfold threshold stands EXACTLY as before.\n' % (int(KAPSAM_ESIGI * 100), int(EVRENSEL_KAPSAMA_ESIGI * 100), EVRENSEL_ALANDISI_UST)
 
 # --- rows ALREADY MEASURED, not to be tried again ------------------------
 BILINEN = {
     'Proteiniphilum_cinsi': dict(
         sonuc='KURTARILAMAZ',
-        sebep=u'Hedef organizma numunede beyan edildigi gibi MEVCUT DEGIL. '
-              u'Uye kutularin 2/3\'u olculen kimlikte Fermentimonas caenicola '
-              u'(%95,33 ve %97,13, cins FARKLI) ve cift Fermentimonas\'i bilerek '
-              u'disliyor (0/137). Uye kutularda urun HIC yok (0/3 kapsam). '
-              u'Uyeligi daraltmak burada bir sey kurtarmaz - sorun uyelik degil '
-              u'HEDEF TANIMI. Yeniden olculmedi, zaman harcanmadi.',
-        yol=u'atlandi (onceden olculdu)'),
+        sebep='The target organism IS NOT in the sample as it was declared. Two of the three member bins measure as Fermentimonas caenicola, at 95.33 and 97.13 per cent and in a DIFFERENT genus, while the pair deliberately excludes Fermentimonas, at 0 of 137. There is NO product in the member bins at all, 0 of 3 coverage. Narrowing the membership rescues nothing here: the problem is not the membership but THE TARGET DEFINITION. It was not measured again and no time was spent on it.',
+        yol='skipped, it was measured before'),
     # 2026-08-06: THIS RECORD WAS REMOVED (left here as a comment).
     # Because of a hand written 'atlandi' stamp, the row was NOT ENTERING the recovery
     # ladder at all, so route 5 (the multi locus search) never ran either.
@@ -207,7 +180,7 @@ def wilson(k, n, z=1.96):
 # the run does not start: finishing silently with "there is no row to recover"
 # would give the impression that the job was done when in fact nothing was tried.
 def tek_protokol_oku(kok):
-    """ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]"""
+    'ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv -> [{hedef, kaynak, karar, ...}]'
     yol = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv')
     if not os.path.exists(yol):
         sys.exit(u'ERROR: %s is missing.\n      verification/full_chain.py -> option (P) has to be run first.' % yol)
@@ -289,17 +262,10 @@ def evrensel_mi(hedef, duzey=''):
 PANELSIZ_TALEPLER = [
     dict(hedef='Podospora_pseudopauciseta (PANELSIZ TALEP)', karar='Karar 1',
          sinif='F1', uye=['F1-1_2093780', 'F1-4_2093780'],
-         not_=u'Toplantida TUR ozgul istendi. Organizmanin KENDISI numunede yok '
-               u'(bes referans ciftinden ucu F1 sinifinin 85 804 okumasinin '
-               u'tamamina karsi tarandi, sifir urun; bolluk ust siniri %0,011). '
-               u'AMA KUTU VAR ve olculen kimligi Petriella (F1-4_2093780, %99,58). '
-               u'Bu deneme adlandirilmis turu degil KUTUYU hedefler.'),
+         not_='SPECIES specific was asked for. The organism ITSELF is not in the sample: three of the five reference pairs were scanned against all 85,804 reads of the F1 class and gave zero products, with an abundance upper bound of 0.011 per cent. BUT THE BIN EXISTS and its measured identity is Petriella (F1-4_2093780 at 99.58 per cent). This attempt targets THE BIN and not the named species.'),
     dict(hedef='Dictyostelium_discoideum_44689 (PANELSIZ TALEP)', karar='Karar 1',
          sinif='F1', uye=['F1-1_44689', 'F1-2_44689', 'F1-3_44689', 'F1-4_44689'],
-         not_=u'Toplantida TUR ozgul istendi. Kraken etiketi olcumle curutuldu ve '
-               u'kutuya YENI bir ad konulamadi; hedef dizisi tanimlanamadigi icin '
-               u'panele hic girmedi. Bu deneme kutunun KENDI konsensusunu omurga '
-               u'alir - ad bilinmese de kutuyu cogaltan bir cift bulunabilir.'),
+         not_="SPECIES specific was asked for. The Kraken label was refuted by measurement and NO new name could be given to the bin; because the target sequence could not be defined it never entered the panel. This attempt takes the bin's OWN consensus as the backbone: even without a name, a pair that amplifies the bin can be found."),
 ]
 
 
@@ -333,7 +299,7 @@ PANELSIZ_TALEPLER = [
 # measurement counted as a success.
 # -------------------------------------------------------------------------
 def yol1_evrensel(nm, uye, rakip, F, R):
-    """Kapsama + alan disi orani. Ayrim kati KULLANILMAZ (paydasi tanimsiz)."""
+    'Coverage plus the outside fraction. The strict separation IS NOT USED, because its denominator is undefined.'
     ka = na = 0
     for k in uye:
         h = nm.havuz.get(k['kutu'])
@@ -442,7 +408,7 @@ def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
     """
     d = {k: kons[k] for k in uye_adlari if k in kons and len(kons[k]) > 200}
     if len(d) < 2:
-        return (list(uye_adlari), [], u'uye kutu sayisi 2\'den az - kumeleme yapilamaz')
+        return (list(uye_adlari), [], 'there are fewer than 2 member bins, so no clustering can be done')
     adlar = sorted(d)
     kimlik = {}
     for i, a in enumerate(adlar):
@@ -468,23 +434,15 @@ def yol2_uyelik_daralt(kons, uye_adlari, capa=None):
         # no two bins came out as the same organism -> narrowing is MEANINGLESS
         ozet = '; '.join('%d kutu' % len(k) for k in kumeler)
         return (list(uye_adlari), [],
-                u'DARALTMA UYGULANMADI: %d uye kutunun hicbiri birbiriyle >=%%%s '
-                u'kimlikte degil (kumeler = %s). Kutular ayni organizma degil; '
-                u'birini secmek keyfi olurdu. Bu hedef HETEROJEN - once kutu '
-                u'kimlikleri referansla dogrulanmali.'
+                'NO NARROWING WAS APPLIED: not one of the %d member bins is %s per cent or more identical to another (the clusters are %s). The bins are not the same organism and picking one would be arbitrary. This target is HETEROGENEOUS, so the bin identities have to be confirmed against a reference first.'
                 % (len(adlar), vir(KIMLIK_ESIGI, 1), ozet))
     cikan = [a for a in adlar if a not in secilen]
     ic = [kimlik[(a, b)] for i, a in enumerate(sorted(secilen))
           for b in sorted(secilen)[i + 1:]]
     ozet = '; '.join('%d kutu' % len(k) for k in sorted(kumeler, key=len, reverse=True))
-    ick = (u'kume ici kimlik %%%s-%%%s' % (vir(min(ic)), vir(max(ic)))) if ic else \
-          u'kumede tek kutu kaldi, kume ici karsilastirma yok'
-    kanit = (u'%d uye kutu KONSENSUS DIZI KIMLIGINE gore kumelendi (esik %%%s): '
-             u'kumeler = %s. En buyuk kume UYE sayildi (%d kutu, %s) - bu bir '
-             u'VARSAYIMDIR: hangi kumenin hedef oldugu numune ici dizi kanitiyla '
-             u'degil kume buyuklugu ile secildi; dis referansla teyidi I asamasinin '
-             u'isidir. Kume disinda kalan ve RAKIP hanesine tasinan: %s. '
-             u'(Bu karar primerin sonucuna HIC bakmadan verildi.)'
+    ick = ('the within cluster identity is %s to %s per cent' % (vir(min(ic)), vir(max(ic)))) if ic else \
+          'one bin was left in the cluster, so there is no within cluster comparison'
+    kanit = ("%d member bins were clustered by CONSENSUS SEQUENCE IDENTITY at a threshold of %s per cent, giving the clusters %s. The largest cluster was taken as the MEMBER set (%d bins, %s), and that IS AN ASSUMPTION: which cluster is the target was chosen by cluster size and not by sequence evidence inside the sample, and confirming it against an outside reference is the identity stage's job. Moved out of the cluster into the COMPETITOR column: %s. This decision was taken WITHOUT LOOKING at the primer's result at all."
              % (len(adlar), vir(KIMLIK_ESIGI, 1), ozet, len(secilen), ick,
                 ', '.join(cikan) if cikan else 'yok'))
     return (sorted(secilen) + [a for a in uye_adlari if a not in d], cikan, kanit)
@@ -563,29 +521,27 @@ def _ayirt_onbellekli(U, uye_diz, rak_diz):
 def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                          yalniz_ileri=False, aday_ust=400, tarama_ust=3000,
                          arms_ust=5, yaz=print):
-    """Yeni cift ara + ARMS varyantlari. primer3 yoksa duzgunce atlar."""
+    'Look for a new pair plus its ARMS variants. Without primer3 it skips cleanly.'
     import importlib.util
     if importlib.util.find_spec('primer3') is None:
         return dict(durum='ATLANDI', adaylar=[],
-                    sebep=u'primer3-py bu makinede kurulu degil - yeniden tasarim '
-                          u'taramasi yapilamadi. Kurulum: '
-                          u'pip3 install primer3-py --break-system-packages')
+                    sebep='primer3-py is not installed on this machine, so the redesign scan could not be run. To install it: pip3 install primer3-py --break-system-packages')
     try:
         from screening import config as C, motor, uretec as U, geometri as G
         G.tm('ACGTACGTACGTACGTAC')
     except SystemExit:
         return dict(durum='ATLANDI', adaylar=[],
-                    sebep=u'geometri modulu primer3 bulamadigi icin durdu', adaylar2=[])
+                    sebep='the geometry module stopped because it could not find primer3', adaylar2=[])
     except Exception as e:
         return dict(durum='ATLANDI', adaylar=[],
-                    sebep=u'yeniden tasarim baslatilamadi (%s)' % type(e).__name__)
+                    sebep='the redesign could not be started (%s)' % type(e).__name__)
 
     capa = None
     for k in uye:
         if k['kutu'] in kons and len(kons[k['kutu']]) > 500:
             capa = k['kutu']; break
     if not capa:
-        return dict(durum='ATLANDI', sebep=u'kullanilabilir omurga konsensusu yok', adaylar=[])
+        return dict(durum='ATLANDI', sebep='there is no usable backbone consensus', adaylar=[])
     omurga = kons[capa]
     uye_diz = [kons[k['kutu']] for k in uye if k['kutu'] in kons]
     rak_diz = [kons[k['kutu']] for k in rakip if k['kutu'] in kons]
@@ -623,9 +579,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                     iR = j; break
         if iR < 0:
             return dict(durum='ATLANDI', adaylar=[],
-                        sebep=u'mevcut geri primerin omurgadaki baglanma yeri '
-                              u'bulunamadi - "yalniz ileri primeri degistir" '
-                              u'kipi uygulanamadi')
+                        sebep='the binding site of the existing reverse primer could not be found on the backbone, so the mode that changes the forward primer alone could not be applied')
         ad['R'] = [(iR, len(mevcut_R), mevcut_R, G.olc(mevcut_R))]
         yaz(u'      keeping the existing reverse primer, its position on the backbone: %d' % iR)
 
@@ -714,12 +668,12 @@ CAPALAR = [
     ('58S_son',       'GCTGCGTTCTTCATCGATGC',  u'ITS2 (ters tumleyen) - 5.8S basi'),
     ('LSU_baslangic', 'GCATATCAATAAGCGGAGGAAAAG', u'NL1 - LSU D1 basi'),
     ('LSU_D2_son',    'GGTCCGTGTTTCAAGACGG',   u'NL4 - D2 sonu'),
-    ('LSU_ic',        'TCCTCCGCTTATTGATATGC',  u'ITS4 - LSU basi (5.8S sonrasi)'),
+    ('LSU_ic',        'TCCTCCGCTTATTGATATGC',  'ITS4, the head of the LSU, after the 5.8S'),
 ]
 
 
 def capa_bul(motor, dizi, max_mm=3):
-    """Capalari konsensuste ara. Donen: {ad: konum} (bulunanlar)."""
+    'Look for the anchors in the consensus. Returns {name: position} for the ones found.'
     out = {}
     try:
         enc = motor.encode(dizi)
@@ -736,7 +690,7 @@ def capa_bul(motor, dizi, max_mm=3):
 
 
 def bolgeler_kur(motor, dizi, yaz):
-    """Konsensusu bolgelere ayir. Donen: [(ad, bas, son, kaynak)]"""
+    'Split the consensus into regions. Returns [(name, start, end, source)].'
     L = len(dizi)
     c = capa_bul(motor, dizi)
     b = []
@@ -771,7 +725,7 @@ def bolgeler_kur(motor, dizi, yaz):
         n = max(2, min(6, L // 600))
         adim = L // n
         for i in range(n):
-            ekle('bolge %d/%d (YEDEK - capa bulunamadi)' % (i + 1, n),
+            ekle('region %d of %d (A FALLBACK, since no anchor was found)' % (i + 1, n),
                  i * adim, min(L, (i + 1) * adim + 100), 'yedek')
     else:
         # THE PLACES THE ANCHORS DO NOT COVER ARE SCANNED TOO. The whole point of
@@ -804,7 +758,7 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
     import importlib.util
     if importlib.util.find_spec('primer3') is None:
         return dict(durum='ATLANDI', bolge=[],
-                    sebep=u'primer3-py kurulu degil - cok lokuslu arama yapilamadi')
+                    sebep='primer3-py is not installed, so the multi locus search could not be run')
     from screening import engine_gateway, uretec as U
 
     # THE BACKBONE = the LONGEST member consensus (the 2026-08-06 fix).
@@ -821,7 +775,7 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
             capa_kutu, _en = _k, len(kons[_k])
     if not capa_kutu:
         return dict(durum='ATLANDI', bolge=[],
-                    sebep=u'800 bp ustu konsensus yok - bolgelere ayrilamaz')
+                    sebep='there is no consensus above 800 bp, so it cannot be split into regions')
     omurga = kons[capa_kutu]
     yaz(u'      omurga: %s (%d bp)' % (capa_kutu, len(omurga)))
     bolge, capalar = bolgeler_kur(motor, omurga, yaz)
@@ -919,7 +873,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
 
     rc = girdi_denetle(yaz, 'K (verification)', [
         (os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'),
-         'P asamasinin panel tablosu', 'P')])
+         'the panel table of the single protocol stage', 'P')])
     if rc:
         return rc
     satirlar, tp_yolu = tek_protokol_oku(kok)
@@ -937,7 +891,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
     for t in ([] if panelsiz_atla else PANELSIZ_TALEPLER):
         panelsiz.append(dict(hedef=t['hedef'], sinif=t['sinif'], F='', R='',
                              urun_bp='', ASIL_ayrim_mm1='', ASIL_kapsam_mm1='',
-                             esik_gecti_mi='PANELDE SATIR YOK', _panelsiz=t))
+                             esik_gecti_mi='THERE IS NO ROW IN THE PANEL', _panelsiz=t))
     hedefler = hedefler + panelsiz
     if yalniz:
         hedefler = [r for r in hedefler
@@ -1074,7 +1028,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
 
         # --- PANELSIZ TALEP: dogrudan tasarim denemesi ---
         if pz:
-            s.update(olcu=u'panelde satiri yok - kutudan tasarim denemesi',
+            s.update(olcu='it has no row in the panel, so a design from the bin was attempted',
                      yollar=["route 3 - a request with no panel row, designed from the bin's own consensus"])
             yaz(u'      -> PANELSIZ TALEP (%s): %s' % (pz['karar'], pz['not_'][:90]))
             t = yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, '', '',
@@ -1082,11 +1036,10 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
             s['ayrinti']['yol3'] = t
             en_iyi = t['adaylar'][0] if t.get('adaylar') else None
             if en_iyi and en_iyi['kat1'] >= ESIK:
-                s.update(yeni=u'YENI CIFT %s / %s (%d bp) %s x'
+                s.update(yeni='A NEW PAIR %s / %s (%d bp) %s x'
                               % (en_iyi['F'], en_iyi['R'], en_iyi['urun'], vir(en_iyi['kat1'])),
-                         gecti='EVET (yeni cift)',
-                         sebep=u'Panelde satiri yoktu; kutu konsensusundan tasarim '
-                               u'denendi ve esigi gecen aday bulundu. %s' % pz['not_'])
+                         gecti='YES, a new pair',
+                         sebep='It had no row in the panel; a design from the bin consensus was attempted and a candidate passing the threshold was found. %s' % pz['not_'])
                 yaz(u'         BULUNDU: %s x' % vir(en_iyi['kat1']))
             else:
                 yaz(u'         not available in a single window - ROUTE 5: multi-locus search')
@@ -1099,14 +1052,13 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                        if b.get('en_iyi') and b['en_iyi']['kat1'] >= ESIK]
                 if iyi:
                     en = max(iyi, key=lambda b: b['en_iyi']['kat1']); e = en['en_iyi']
-                    s.update(yeni=u'YENI CIFT (%s bolgesi) %s / %s (%d bp) %s x'
+                    s.update(yeni='A NEW PAIR (in the %s region) %s / %s (%d bp) %s x'
                                   % (en['bolge'], e['F'], e['R'], e['urun'], vir(e['kat1'])),
-                             gecti='EVET (yeni cift)',
-                             sebep=u'%s Panelde satiri yoktu; %s bolgesinde cozum bulundu.'
+                             gecti='YES, a new pair',
+                             sebep='%s It had no row in the panel; a solution was found in the %s region.'
                                    % (pz['not_'], en['bolge']))
                 else:
-                    s['sebep'] = (u'%s DENENDI (tek pencere + %d bolgede cok lokuslu '
-                                  u'arama): esigi gecen aday yok.'
+                    s['sebep'] = ('%s WAS TRIED, a single window plus a multi locus search over %d regions: no candidate passes the threshold.'
                                   % (pz['not_'], len(t5.get('bolge', []))))
 
         # --- bilinen, tekrar denenmeyecek ---
@@ -1119,9 +1071,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
         elif hedef in eslenik:
             g, kat, ort = eslenik[hedef]
             s.update(gecti='DUSENLERE TASINDI', olcu='eslenik',
-                     sebep=u'Ayni uye kumesini hedefleyen ve esigi GECEN baska bir '
-                           u'cift var: "%s" (%s x, uye kumesi ortusme %%%d). Bu satir '
-                           u'artik gereksiz; panelde tutulmasi plaka yeri israfidir.'
+                     sebep='There is another pair targeting the same member set that DOES pass the threshold: "%s" (%s x, with %d per cent member set overlap). This row is now redundant, and keeping it in the panel wastes a well on the plate.'
                            % (g, vir(kat), int(100 * ort)),
                      yollar=['route 4 - a row whose counterpart is still there'])
             yaz(u'      -> ROUTE 4: an equivalent exists (%s, %s x), moved to the failed list' % (g, vir(kat)))
@@ -1129,14 +1079,14 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
         # --- YOL 1: evrensel ---
         elif evrensel_mi(hedef, r.get('duzey', '')):
             o = yol1_evrensel(nm, uye, rakip, r['F'], r['R'])
-            s.update(olcu=u'KAPSAMA + ALAN DISI (ayrim kati bu satirda tanimsiz)',
+            s.update(olcu='COVERAGE plus OUTSIDE (the strict separation is undefined on this row)',
                      yollar=[u'yol 1 - olcu duzeltildi'],
-                     yeni=u'kapsama %s (%%%d), alan disi %%%s'
+                     yeni='coverage %s (%d per cent), outside %s per cent'
                           % (o['kapsam_pay'], int(100 * o['kapsama']), vir(o['alandisi'])),
                      gecti='EVET' if o['gecti'] else 'HAYIR',
                      ayrinti=o)
             if not o['gecti']:
-                s['sebep'] = (u'Kapsama %%%d (olcut %%%d) / alan disi %%%s (olcut en cok %%%.0f).'
+                s['sebep'] = ('Coverage %d per cent against a criterion of %d per cent; outside %s per cent against a criterion of at most %.0f per cent.'
                               % (int(100 * o['kapsama']), int(100 * EVRENSEL_KAPSAMA_ESIGI),
                                  vir(o['alandisi']), EVRENSEL_ALANDISI_UST))
             yaz(u'      -> ROUTE 1: coverage %s, outside the domain %%%s  => %s'
@@ -1174,7 +1124,7 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     kat3 = (o3 or {}).get('kat_enkotu')
                     # KOSULSUZ BENIMSEME - yon ne olursa olsun
                     uye, rakip = uye2, rakip2
-                    s['yollar'].append(u'yol 2 - uyelik daraltildi (KOSULSUZ benimsendi)')
+                    s['yollar'].append('route 2, the membership was narrowed and adopted UNCONDITIONALLY')
                     s['ayrinti']['yol2'].update(kat1=kat, kat3=kat3,
                                                 kapsam=(o or {}).get('uye_kapsam_pay'))
                     dus = (kat is not None and eski is not None and kat < eski)
@@ -1185,22 +1135,11 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     yaz(u'         with the narrowed membership: %s x (previously %s x, %s), adopted UNCONDITIONALLY' % (vir(kat), vir(eski), yon))
                     if dus:
                         s['dusus_notu'] = (
-                            u'DIKKAT - BU BIR KAYIP DEGIL, DUZELTMEDIR. Bu satirin '
-                            u'eski %s x degeri YANLIS UYELIKTEN geliyordu: hedefe ait '
-                            u'olmayan kutular uye sayilmis, ya da ayni organizma olan '
-                            u'kutular rakip hanesinde birakilmisti. Uyelik olculen dizi '
-                            u'kimligine gore duzeltilince gercek deger %s x cikti. '
-                            u'Dusus, primerin kotulesmesi degil OLCUNUN duzelmesidir; '
-                            u'eski deger hicbir zaman gecerli degildi. Uyelik karari '
-                            u'primerin sonucuna BAKILMADAN verildi - bu satirin dusmesi '
-                            u'the rule does not work in one direction only.'
+                            "CAREFUL, THIS IS NOT A LOSS BUT A CORRECTION. This row's old value of %s x came FROM A WRONG MEMBERSHIP: bins that do not belong to the target had been counted as members, or bins of the same organism had been left in the competitor column. Once the membership was corrected by measured sequence identity, the real value came out %s x. The fall is not the primer getting worse but THE MEASURE getting right; the old value was never valid. The membership decision was taken WITHOUT LOOKING at the primer's result, and this row falling is the evidence that the rule does not work in one direction only."
                             % (vir(eski), vir(kat)))
                         yaz(u'         NOTE: the drop is NOT A LOSS, it is the measurement being corrected. The old %s x came from a wrong membership.' % vir(eski))
                     s['uyelik_gerekcesi'] = (
-                        u'Uye kumesi YALNIZ olculen konsensus kimligine gore '
-                        u'belirlendi (esik %%%s), primerin sonucundan BAGIMSIZ olarak '
-                        u've kosulsuz benimsendi. Kanit: %s. Yeni deger %s x '
-                        u'(eski %s x, %s) - bu deger benimseme kararini ETKILEMEDI.'
+                        "The member set was decided by the measured consensus identity ALONE, at a threshold of %s per cent, INDEPENDENTLY of the primer's result, and it was adopted unconditionally. The evidence: %s. The new value is %s x against an old %s x (%s), and that value DID NOT AFFECT the decision to adopt it."
                         % (vir(KIMLIK_ESIGI, 1), kanit, vir(kat), vir(eski), yon))
                     s['eski'] = eski = kat      # bundan sonrasi duzeltilmis uyelikle
                     if kat is not None and kat >= ESIK:
@@ -1225,16 +1164,16 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                 t = yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons,
                                          r['F'], r['R'], yalniz_ileri, aday_ust,
                                          tarama_ust, arms_ust, yaz)
-                s['yollar'].append(u'yol 3 - yeniden tasarim + ARMS (%s)' % t['durum'])
+                s['yollar'].append('route 3, a redesign plus ARMS (%s)' % t['durum'])
                 s['ayrinti']['yol3'] = t
                 en_iyi = t['adaylar'][0] if t.get('adaylar') else None
                 if en_iyi and en_iyi['kat1'] >= ESIK:
-                    s.update(yeni=u'YENI CIFT %s / %s (%d bp) %s x%s'
+                    s.update(yeni='A NEW PAIR %s / %s (%d bp) %s x%s'
                                   % (en_iyi['F'], en_iyi['R'], en_iyi['urun'],
                                      vir(en_iyi['kat1']),
                                      (u' [ARMS: %s]' % en_iyi['arms']) if en_iyi['arms'] else ''),
-                             gecti='EVET (yeni cift)',
-                             sebep=u'Mevcut cift esigi gecmiyor; taramada esigi gecen aday bulundu.')
+                             gecti='YES, a new pair',
+                             sebep='The existing pair does not pass the threshold; the scan found a candidate that does.')
                     yaz(u'         BULUNDU: %s x  %s / %s'
                         % (vir(en_iyi['kat1']), en_iyi['F'], en_iyi['R']))
                 elif t['durum'] == 'ATLANDI':
@@ -1242,14 +1181,14 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     yaz(u'         %s' % t['sebep'])
                 else:
                     s['sebep'] = s['sebep'] or (
-                        u'Tarandi, esigi gecen aday yok (en iyi %s x).'
+                        'It was scanned and no candidate passes the threshold; the best is %s x.'
                         % (vir(en_iyi['kat1']) if en_iyi else '-'))
                     yaz(u'         no candidate passes the threshold')
 
                 # --- ROUTE 5: THE MULTI LOCUS SEARCH ---
                 # Route 3 rests on a single backbone window. For Petriella the answer was not
                 # in ITS but in LSU; EVERY locus is tried before anything says "cannot be done".
-                yaz(u'      -> YOL 5: cok lokuslu arama (bolge bolge)')
+                yaz('      -> ROUTE 5: a multi locus search, region by region')
                 t5 = yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons,
                                       aday_ust=min(aday_ust, 40),
                                       tarama_ust=min(tarama_ust, 200), yaz=yaz)
@@ -1260,16 +1199,14 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                 if iyi:
                     en = max(iyi, key=lambda b: b['en_iyi']['kat1'])
                     e = en['en_iyi']
-                    s.update(yeni=u'YENI CIFT (%s bolgesi) %s / %s (%d bp) %s x'
+                    s.update(yeni='A NEW PAIR (in the %s region) %s / %s (%d bp) %s x'
                                   % (en['bolge'], e['F'], e['R'], e['urun'], vir(e['kat1'])),
-                             gecti='EVET (yeni cift)',
-                             sebep=u'Tek omurga penceresinde cozum yoktu; %s bolgesinde '
-                                   u'bulundu. Taranan bolge: %d.'
+                             gecti='YES, a new pair',
+                             sebep='There was no solution in the single backbone window; one was found in the %s region. Regions scanned: %d.'
                                    % (en['bolge'], len(t5.get('bolge', []))))
                     yaz(u'         FOUND: the %s region, %s x' % (en['bolge'], vir(e['kat1'])))
                 elif t5.get('bolge'):
-                    s['sebep'] += (u' COK LOKUSLU ARAMA: %d bolgenin hepsi tarandi '
-                                   u'(%s), hicbirinde esigi gecen aday yok.'
+                    s['sebep'] += (' A MULTI LOCUS SEARCH: all %d regions were scanned (%s) and not one holds a candidate that passes the threshold.'
                                    % (len(t5['bolge']),
                                       ', '.join(b['bolge'] for b in t5['bolge'])))
             elif s['gecti'] != 'EVET':
@@ -1299,22 +1236,19 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                            if b.get('en_iyi') and b['en_iyi']['kat1'] >= ESIK]
                     if iyi:
                         en = max(iyi, key=lambda b: b['en_iyi']['kat1']); e = en['en_iyi']
-                        s.update(yeni=u'YENI CIFT (%s bolgesi) %s / %s (%d bp) %s x'
+                        s.update(yeni='A NEW PAIR (in the %s region) %s / %s (%d bp) %s x'
                                       % (en['bolge'], e['F'], e['R'], e['urun'], vir(e['kat1'])),
-                                 gecti='EVET (yeni cift)',
-                                 sebep=u'Mevcut lokusta taban cok dusuktu; %s bolgesinde '
-                                       u'esigi gecen aday bulundu. Taranan bolge: %d.'
+                                 gecti='YES, a new pair',
+                                 sebep='The floor was far too low at the current locus; a candidate passing the threshold was found in the %s region. Regions scanned: %d.'
                                        % (en['bolge'], len(t5.get('bolge', []))))
                         yaz(u'         FOUND: the %s region, %s x' % (en['bolge'], vir(e['kat1'])))
                     else:
                         s['sebep'] = ((s['sebep'] + u'  ') if s['sebep'] else u'') + (
-                            u'BUTUN LOKUSLAR DENENDI: %d bolge tarandi (%s), hicbirinde '
-                            u'esigi gecen aday yok.'
+                            'EVERY LOCUS WAS TRIED: %d regions were scanned (%s) and not one holds a candidate that passes the threshold.'
                             % (len(t5.get('bolge', [])),
                                ', '.join(b['bolge'] for b in t5.get('bolge', [])) or '-'))
                 elif not s['sebep']:
-                    s['sebep'] = (u'Taban cok dusuk (%s x < %s x) ve konsensus %d bp - '
-                                  u'tek lokus (16S) var, gidilecek baska bolge YOK.'
+                    s['sebep'] = ('The floor is far too low (%s x against %s x) and the consensus is %d bp: there is one locus, the 16S, and NO other region to go to.'
                                   % (vir(eski), vir(KIL_PAYI_ALT), _uzun))
 
         json.dump(s, open(yol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1, default=str)
@@ -1380,7 +1314,7 @@ def raporla(CIKTI, sonuc, yaz):
                 else:
                     w.writerow([s['hedef'], '%s (%d-%d, %s)' % (b['bolge'], b['bas'],
                                                                b['son'], b['kaynak']),
-                                '', '', '', '', 'aday yok (%d taranan)' % b['aday'], '', ''])
+                                '', '', '', '', 'no candidate (%d scanned)' % b['aday'], '', ''])
     yaz(u'  written: %s' % ay)
 
     gecen = [s for s in sonuc if s['gecti'].startswith('EVET')]
