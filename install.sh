@@ -307,7 +307,7 @@ komut_durum() {
     while read -r h; do
       local d; d=$(dirname "$h")
       printf '   %s  (%s)\n' "$d" "$(du -sh "$d" 2>/dev/null | cut -f1)"
-      [ -f "$d/opts.k2d" ] && bilgi "    for k-mer details: bash tools/kraken_tool.sh vt-kimlik"
+      [ -f "$d/opts.k2d" ] && bilgi "    for k-mer details: bash tools/kraken_tool.sh db-identity"
     done <<< "$bulunan"
   else
     printf '   \033[31mMISSING\033[0m  -> bash install.sh kraken-download  or  bash install.sh kraken-build\n'
@@ -435,7 +435,7 @@ komut_kraken_indir() {
   uyar "K-MER LENGTH. To choose your own: bash install.sh kraken-build"
   bilgi
   bilgi "After installing, VERIFY its identity (which release, which k-mer):"
-  bilgi "   bash tools/kraken_tool.sh vt-kimlik"
+  bilgi "   bash tools/kraken_tool.sh db-identity"
 }
 
 # ===========================================================================
@@ -445,8 +445,8 @@ komut_kraken_kur() {
     case "$1" in
       --kmer)               KMER="$2"; shift 2 ;;
       --minimizer)          MINI="$2"; shift 2 ;;
-      --spaces|--bosluk)    BOSLUK="$2"; shift 2 ;;
-      --library|--kutuphane) KUTUP="$2"; shift 2 ;;
+      --spaces)             BOSLUK="$2"; shift 2 ;;
+      --library)            KUTUP="$2"; shift 2 ;;
       --db)                 DB="$2"; shift 2 ;;
       --threads)            IS="$2"; shift 2 ;;
       *) shift ;;
@@ -489,8 +489,8 @@ komut_kraken_kur() {
    ------------------------------------------------
        bash install.sh kraken-build --kmer 35 --db ~/k2db_k35
        bash install.sh kraken-build --kmer 31 --db ~/k2db_k31
-       bash tools/kraken_tool.sh esik      # the threshold scan
-       bash tools/kraken_tool.sh tablo     # dort sutunlu karsilastirma
+       bash tools/kraken_tool.sh threshold      # the threshold scan
+       bash tools/kraken_tool.sh table     # the four column comparison
 EOF
   if ! command -v kraken2-build >/dev/null 2>&1; then
     hata "kraken2-build not found. Run first: bash install.sh tools"
@@ -594,16 +594,14 @@ ozet() {
 # ===========================================================================
 KOMUT="${1:-status}"; shift 2>/dev/null || true
 ortam_denetimi "$KOMUT"
-# Subcommands are English; the original Turkish names stay as aliases so that
-# existing notes and habits keep working.
 case "$KOMUT" in
-  status|durum)               komut_durum ;;
-  tools|araclar)              komut_araclar; ozet ;;
-  databases|db|veritabani)    komut_veritabani "$@"; ozet ;;
-  kraken-download|kraken-indir) komut_kraken_indir ;;
-  kraken-build|kraken-kur)    komut_kraken_kur "$@"; ozet ;;
+  status)                     komut_durum ;;
+  tools)                      komut_araclar; ozet ;;
+  databases|db)               komut_veritabani "$@"; ozet ;;
+  kraken-download)            komut_kraken_indir ;;
+  kraken-build)               komut_kraken_kur "$@"; ozet ;;
   qiime)                      komut_qiime; ozet ;;
-  all|hepsi)                  komut_araclar; komut_veritabani; komut_qiime
+  all)                        komut_araclar; komut_veritabani; komut_qiime
                  renk "KRAKEN2"
                  bilgi "The Kraken2 database is a SEPARATE choice (download prebuilt, or build with your own k):"
                  bilgi "   bash install.sh kraken-download     # prebuilt, k fixed at 35"

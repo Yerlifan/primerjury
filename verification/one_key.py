@@ -262,9 +262,9 @@ def _py(*a):
     return [sys.executable] + list(a)
 
 
-KRAKEN_KOMUTLARI = {'W': ('durum', 'vt-ara', 'vt-kimlik', 'sinav'),
-                    'X': ('esik',),
-                    'Z': ('tablo',)}
+KRAKEN_KOMUTLARI = {'W': ('status', 'find-db', 'db-identity', 'selftest'),
+                    'X': ('threshold',),
+                    'Z': ('table',)}
 
 
 def ASAMALAR(ayar):

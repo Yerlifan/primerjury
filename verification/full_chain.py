@@ -285,10 +285,10 @@ ASAMALAR = [
     # would never see the installation instructions.
     ('W', u'KRAKEN2 ENVIRONMENT CHECK - installed? which database?', u'Group 3',
      (1, 5), False,
-     lambda kok, a: [['bash', a['karac'], 'durum'],
-                     ['bash', a['karac'], 'vt-ara'],
-                     ['bash', a['karac'], 'vt-kimlik'],
-                     ['bash', a['karac'], 'sinav']],
+     lambda kok, a: [['bash', a['karac'], 'status'],
+                     ['bash', a['karac'], 'find-db'],
+                     ['bash', a['karac'], 'db-identity'],
+                     ['bash', a['karac'], 'selftest']],
      d_kraken_ortam),
 
     # MEASURED on the clean run of 2026-08-05: 3 h 20 min (KISA_LISTE 500 plus idf/BM25
@@ -319,21 +319,21 @@ ASAMALAR = [
     # and the scan ran on the full data. The estimate was pulled to what actually happened.
     ('X', u'KRAKEN CONFIDENCE THRESHOLD SWEEP (on a sample)', u'Group 3',
      (100, 140), True,
-     lambda kok, a: [['bash', a['karac'], 'esik']],
+     lambda kok, a: [['bash', a['karac'], 'threshold']],
      d_esik),
 
     # Y IS KEPT SEPARATE: reclassifying against the full database is a one off and it is
     # heavy. It is left for the night. It runs with mmap and few threads too.
     ('Y', u'RE-RUN WITH PlusPFP (heavy; leave it overnight)', u'Group 3',
      (120, 480), True,
-     lambda kok, a: [['bash', a['karac'], 'vt-kimlik'],
-                     ['bash', a['karac'], 'esik'],
-                     ['bash', a['karac'], 'tablo']],
+     lambda kok, a: [['bash', a['karac'], 'db-identity'],
+                     ['bash', a['karac'], 'threshold'],
+                     ['bash', a['karac'], 'table']],
      d_esik),
 
     ('Z', u'FOUR-COLUMN COMPARISON TABLE', u'Group 3',
      (1, 2), True,
-     lambda kok, a: [['bash', a['karac'], 'tablo']],
+     lambda kok, a: [['bash', a['karac'], 'table']],
      d_tablo),
 
     ('S', u'REFRESH THE COMBINED SUMMARY - no measurement', u'Group 4',
@@ -382,7 +382,7 @@ def kraken2_bul(karac, ortam):
     if ortam:
         cevre['ORTAM'] = ortam
     try:
-        p = subprocess.Popen(['bash', karac, 'kraken-yol'],
+        p = subprocess.Popen(['bash', karac, 'kraken-path'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              env=cevre)
         cikti, hata = p.communicate(timeout=180)
@@ -437,7 +437,7 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
     if not os.path.exists(os.path.join(vt, 'hash.k2d')):
         if kbin:
             try:
-                p = subprocess.Popen(['bash', karac, 'vt-ara'],
+                p = subprocess.Popen(['bash', karac, 'find-db'],
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT,
                                      env=dict(os.environ, KRAKEN2_BIN=kbin))
