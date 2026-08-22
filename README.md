@@ -252,8 +252,9 @@ Honest list; these are the gaps between "runs for the original study" and
 **[Full user guide → `docs/GUIDE.md`](docs/GUIDE.md)**, installation, input
 preparation, defining your own targets, reading the output, and troubleshooting.
 
-`docs/DENETIM_2026-08-21.md` is the pre-release code audit (Turkish): what was
-measured, what was broken, and what was fixed.
+`docs/AUDIT_2026-08-21.md` is the pre-release code audit: what was measured,
+what was broken and what was fixed. `docs/WORK_RECORD.md` is the record of the
+design decisions and the faults found while the pipeline was built.
 
 ## Licence
 
