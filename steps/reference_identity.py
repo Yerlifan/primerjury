@@ -71,8 +71,8 @@ def get_args():
 
 
 def urun_kes(oligo_f, oligo_r, dizi, a):
-    'Returns the product sequence when the read gives one, otherwise None. '
-    'Because the template is double stranded, both orientations are tried.'
+    """Returns the product sequence when the read gives one, otherwise None.
+        Because the template is double stranded, both orientations are tried."""
     rc = G.rc
     for s in (dizi, rc(dizi)):
         idx = G.build_index(s, Esik.tail_len)
@@ -102,10 +102,10 @@ def urun_kes(oligo_f, oligo_r, dizi, a):
 
 
 def baskin_konsensus(urunler):
-    'Without aligning products of equal length, it calls the dominant base '
-    'per     position over the products of the most frequent length. Because '
-    'the length     distribution is narrow, being a single amplicon, that is '
-    'enough; on a wide     distribution a warning is printed.'
+    """Without aligning products of equal length, it calls the dominant base per
+        position over the products of the most frequent length. Because the length
+        distribution is narrow, being a single amplicon, that is enough; on a wide
+        distribution a warning is printed."""
     if not urunler:
         return None, 0, 0
     uz = collections.Counter(len(u) for u in urunler)

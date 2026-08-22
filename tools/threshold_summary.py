@@ -247,8 +247,7 @@ def egri_metni(satirlar, baslik):
     return "\n".join(g)
 
 def kutu_hakim(kutu_sayac):
-    "A bin's most frequent assignment and its fraction, with the unclassified "
-    'reads in the denominator.'
+    """A bin's most frequent assignment and its fraction, with the unclassified reads in the denominator."""
     toplam = sum(kutu_sayac.values())
     if not toplam:
         return "", 0.0

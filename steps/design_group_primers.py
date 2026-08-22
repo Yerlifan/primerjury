@@ -120,12 +120,12 @@ def build_index(seq, k, azami_acilim=64):
 
 
 def seed_variants(tail, max_mm_in_tail, exact_last):
-    "The TEMPLATE k-mer variants allowed for the last 'tail' bases.     The "
-    "last 'exact_last' bases are fixed and the rest may carry at most "
-    'max_mm_in_tail mismatches. The template can hold an N; base_match counts '
-    'an N     as a mismatch, so at the free positions N is a variant too. N '
-    'is produced at     the free positions alone, because the last two bases '
-    'have to match exactly     and an exact match with N is not possible.'
+    """The TEMPLATE k-mer variants allowed for the last 'tail' bases.
+        The last 'exact_last' bases are fixed and the rest may carry at most
+        max_mm_in_tail mismatches. The template can hold an N; base_match counts an N
+        as a mismatch, so at the free positions N is a variant too. N is produced at
+        the free positions alone, because the last two bases have to match exactly
+        and an exact match with N is not possible."""
     n = len(tail)
     free = n - exact_last
     out = set()
@@ -155,12 +155,12 @@ def seed_variants(tail, max_mm_in_tail, exact_last):
 
 
 def find_bindings(oligo, seq, idx, k, a):
-    "The oligo's binding sites on seq.     An overhang on the 5' side is free "
-    "by rule: the oligo's 5' end may run past     the template and the part "
-    "that runs past does not count as a mismatch. The     3' end has to be "
-    'inside the template, because extension starts there.     Returns: [(the '
-    "3' end position, the mismatches in the overlapping region)],     zero "
-    'based.'
+    """The oligo's binding sites on seq.
+        An overhang on the 5' side is free by rule: the oligo's 5' end may run past
+        the template and the part that runs past does not count as a mismatch. The
+        3' end has to be inside the template, because extension starts there.
+        Returns: [(the 3' end position, the mismatches in the overlapping region)],
+        zero based."""
     L, n = len(seq), len(oligo)
     tail = oligo[-k:]
     hits = []
@@ -574,21 +574,19 @@ def main():
     print(u'forward candidates: %d   reverse candidates: %d' % (len(Fs), len(Rs)))
 
     def ozgulluk_skoru(k):
-        "The mismatch count of the oligo's BEST placement in the competitors. "
-        'When it binds nowhere in them it counts as 99. Larger is more '
-        'specific.'
+        """The mismatch count of the oligo's BEST placement in the competitors.
+                When it binds nowhere in them it counts as 99. Larger is more specific."""
         v = rakip_en_iyi.get(k["oligo"], None)
         return 99 if v is None else v
 
     def tabakala(lst, n):
-        'Stratified selection by position: the template is cut into n slices '
-        'and         one oligo is taken from each. Inside a slice the choice '
-        'goes first by         SPECIFICITY and then by how close the Tm is to '
-        'the middle of the 58 to 62         band. Going by Tm alone let '
-        'thousands of non-discriminating oligos in the         conserved '
-        'regions push the discriminating ones out; because the '
-        'conserved backbone outnumbers the variable regions so heavily in '
-        'rDNA,         this selection criterion decides the result.'
+        """Stratified selection by position: the template is cut into n slices and
+                one oligo is taken from each. Inside a slice the choice goes first by
+                SPECIFICITY and then by how close the Tm is to the middle of the 58 to 62
+                band. Going by Tm alone let thousands of non-discriminating oligos in the
+                conserved regions push the discriminating ones out; because the
+                conserved backbone outnumbers the variable regions so heavily in rDNA,
+                this selection criterion decides the result."""
         if not n or len(lst) <= n:
             return lst
         lst = sorted(lst, key=lambda k: k["start"])
@@ -775,9 +773,9 @@ def main():
 
 
 def _one_config(b_plus, b_minus, ln_plus, ln_minus, L, pmin, pmax):
-    'One primer on the plus strand and the other on the minus strand. The '
-    'coordinate conversion: position m on the minus strand corresponds to '
-    'L-1-m on     the plus strand.'
+    """One primer on the plus strand and the other on the minus strand. The
+        coordinate conversion: position m on the minus strand corresponds to L-1-m on
+        the plus strand."""
     best = None
     for fend, _ in b_plus:
         fstart = fend - ln_plus + 1
@@ -797,13 +795,14 @@ def _one_config(b_plus, b_minus, ln_plus, ln_minus, L, pmin, pmax):
 
 
 def product_len(bf, br, lnf, lnr, a, pmax=None, pmin=None):
-    'Because the template is double stranded, BOTH configurations give a real '
-    'product:     (1) the first primer on the plus strand and the second on '
-    'the minus strand     (2) the first primer on the minus strand and the '
-    'second on the plus strand     Looking at only one of them marks a '
-    'sequence stored the other way round as     "no product", and in a '
-    'competitor that escapes the specificity check     entirely.     Returns: '
-    'the shortest valid product length, or None.'
+    """Because the template is double stranded, BOTH configurations give a real
+        product:
+        (1) the first primer on the plus strand and the second on the minus strand
+        (2) the first primer on the minus strand and the second on the plus strand
+        Looking at only one of them marks a sequence stored the other way round as
+        "no product", and in a competitor that escapes the specificity check
+        entirely.
+        Returns: the shortest valid product length, or None."""
     L = bf.get("L") or br.get("L")
     if not L:
         return None

@@ -34,9 +34,9 @@ from collections import Counter, defaultdict
 
 # ------------------------------------------------------------------ yardimci
 def isimleri_oku(kok):
-    "taxid -> name. The same route the source study's Kraken summary script "
-    'takes:     the module IS NOT RUN, it is read out of the source text with '
-    'ast, so there is     no dependency on numpy.'
+    """taxid -> name. The same route the source study's Kraken summary script takes:
+        the module IS NOT RUN, it is read out of the source text with ast, so there is
+        no dependency on numpy."""
     adaylar = [os.path.join(kok, "tools", "blast_ispcr.py") if kok else "",
                os.path.join(os.path.dirname(os.path.abspath(__file__)), "blast_ispcr.py")]
     for yol in adaylar:
@@ -60,11 +60,14 @@ def isimleri_oku(kok):
 UST_DUZEY = re.compile(r"(aceae|ales|mycota|mycetes|bacteria|archaea|idae|inae)$", re.I)
 
 def cins(ad):
-    "     Pulls the genus token out of a name.     'Methanosarcina mazei "
-    "(taxid 2209)' -> 'methanosarcina'     'Microascaceae askomikot' "
-    "-> ''   (a family level name, not a genus)     A name with no genus IS "
-    'NOT PUT into the comparison. Forcing an equality is     exactly the '
-    'fault this project keeps meeting: making a wrong answer look     clean.'
+    """
+        Pulls the genus token out of a name.
+        'Methanosarcina mazei (taxid 2209)' -> 'methanosarcina'
+        'Microascaceae askomikot'           -> ''   (a family level name, not a genus)
+        A name with no genus IS NOT PUT into the comparison. Forcing an equality is
+        exactly the fault this project keeps meeting: making a wrong answer look
+        clean.
+"""
     if not ad:
         return ""
     a = re.sub(r"\(taxid[^)]*\)", "", ad).strip()
@@ -77,20 +80,21 @@ def cins(ad):
     return ilk.lower()
 
 def ust_taksonlar(ad):
-    'The higher level tokens in a name, such as a family or an order. For a '
-    'family     level label that is the only ground there is to compare on.'
+    """The higher level tokens in a name, such as a family or an order. For a family
+        level label that is the only ground there is to compare on."""
     if not ad:
         return set()
     a = re.sub(r"\(taxid[^)]*\)", "", ad)
     return {k.lower() for k in re.findall(r"[A-Za-z]+", a) if UST_DUZEY.search(k)}
 
 def karsilastir(a, b):
-    "     Returns 'uyusuyor', 'ayrisiyor' or 'karsilastirilamaz'.     The "
-    'genus level is looked at first. When one of the two sides carries no '
-    'genus, as with a family level label, the higher level tokens they share '
-    'are     looked at instead. When there is no ground at all, no verdict is '
-    'given:     "cannot be compared" and "they disagree" are never put in the '
-    'same sentence.'
+    """
+        Returns 'uyusuyor', 'ayrisiyor' or 'karsilastirilamaz'.
+        The genus level is looked at first. When one of the two sides carries no
+        genus, as with a family level label, the higher level tokens they share are
+        looked at instead. When there is no ground at all, no verdict is given:
+        "cannot be compared" and "they disagree" are never put in the same sentence.
+"""
     if not a or not b:
         return "karsilastirilamaz"
     ca, cb = cins(a), cins(b)
@@ -103,11 +107,12 @@ def karsilastir(a, b):
 
 # ------------------------------------------------------------------ kraken okuma
 def tur_haritasi(rapor):
-    '     From the merged report, taxid -> (species_taxid, species_name). The '
-    "same map     the source study's Kraken summary script builds: kraken2 "
-    'can leave the LCA     BELOW the species (the S1 and S2 strain levels), '
-    'and two strains of the same     species then make a bin look MIXED for '
-    'nothing.'
+    """
+        From the merged report, taxid -> (species_taxid, species_name). The same map
+        the source study's Kraken summary script builds: kraken2 can leave the LCA
+        BELOW the species (the S1 and S2 strain levels), and two strains of the same
+        species then make a bin look MIXED for nothing.
+"""
     harita = {}
     if not rapor or not os.path.exists(rapor):
         return harita
@@ -134,9 +139,11 @@ def taxid_cek(k):
     return ""
 
 def kutulari_oku(out_yol, rapor_yol):
-    '     Splits the threshold output file by source bin and finds the '
-    'dominant     identity of each bin at species level.     Returns: '
-    '{source_taxid: (dominant_name, fraction, total, unclassified_fraction)}'
+    """
+        Splits the threshold output file by source bin and finds the dominant
+        identity of each bin at species level.
+        Returns: {source_taxid: (dominant_name, fraction, total, unclassified_fraction)}
+"""
     if not os.path.exists(out_yol):
         return {}
     TUR = tur_haritasi(rapor_yol)
@@ -198,10 +205,12 @@ def esik_dosyalari(klasor, esik):
 
 # ------------------------------------------------------------------ hizalama
 def hizalama_oku(kok):
-    '     Our own alignment based identity, read from the identity result '
-    'CSV.     The columns: taxid, iddia_tur, iddia_cins, eslesen_baz, '
-    'en_iyi_referans,                  eslesme_cins, SONUC     Returns: '
-    '{taxid: (name_to_show, result_text, matching_bases)}'
+    """
+        Our own alignment based identity, read from the identity result CSV.
+        The columns: taxid, iddia_tur, iddia_cins, eslesen_baz, en_iyi_referans,
+                     eslesme_cins, SONUC
+        Returns: {taxid: (name_to_show, result_text, matching_bases)}
+"""
     adaylar = [os.path.join(kok, "tools", "0_TESLIM_RAPOR", "kimlik_sonuc.csv"),
                os.path.join(kok, "VALIDASYON_v2", "primerler", "PIPELINE_TEMIZ",
                             "cikti", "NIHAI", "kimlik_sonuc.csv")]

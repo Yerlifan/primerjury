@@ -1,28 +1,38 @@
 # -*- coding: utf-8 -*-
-'BUILD BINS FOR THE TAXA NEVER MEASURED, so that no data is left idle.  THE '
-"SITUATION ------------- Until now only 5 bins per barcode, Bracken's top "
-'five, were split out and measured. That covers a median of 83 per cent of '
-'the species level reads but stops at 27 per cent on the WORST barcode. So '
-'the problem is not in the average but in the spread.  This script turns the '
-"remaining taxa into bins as well: from Kraken's read level output it pulls "
-"the reads assigned to that taxon's CLADE out of the raw fastq and writes "
-'them under the fastq directory with the existing naming. The existing '
-'consensus generator and identity verification chain then see them by '
-'themselves: NO new measurement route is opened, the existing one is fed. '
-'THE CLADE RULE, measured rather than assumed '
-"-------------------------------------------- A bin's reads are the ones "
-"assigned to that taxon's WHOLE CLADE, NOT only the ones assigned to the "
-'taxon itself. An example: one bin holds 19,757 reads while the number '
-'assigned in Kraken to exactly that taxid is ZERO, because all of them are '
-'assigned to a strain level node below it. Without the clade rule that bin '
-'would have come out empty.  THE CALIBRATION GATE: PROVE IT FIRST, PRODUCE '
-'AFTERWARDS -------------------------------------------------------- The '
-'script first recomputes the bins that are ALREADY on disk and checks whether '
-'the read identity sets match EXACTLY. If they do not, it produces nothing '
-'and fails. On 2026-08-10 all 14 of 14 matched exactly; if a new barcode or a '
-'new Kraken run breaks that assumption, the gate catches it.  To run it: '
-'python verification/build_bins.py --root . --calibration-only     python '
-'verification/build_bins.py --root . --coverage 0.95'
+"""BUILD BINS FOR THE TAXA NEVER MEASURED, so that no data is left idle.
+
+THE SITUATION
+-------------
+Until now only 5 bins per barcode, Bracken's top five, were split out and
+measured. That covers a median of 83 per cent of the species level reads but
+stops at 27 per cent on the WORST barcode. So the problem is not in the average
+but in the spread.
+
+This script turns the remaining taxa into bins as well: from Kraken's read level
+output it pulls the reads assigned to that taxon's CLADE out of the raw fastq and
+writes them under the fastq directory with the existing naming. The existing
+consensus generator and identity verification chain then see them by themselves:
+NO new measurement route is opened, the existing one is fed.
+
+THE CLADE RULE, measured rather than assumed
+--------------------------------------------
+A bin's reads are the ones assigned to that taxon's WHOLE CLADE, NOT only the
+ones assigned to the taxon itself. An example: one bin holds 19,757 reads while
+the number assigned in Kraken to exactly that taxid is ZERO, because all of them
+are assigned to a strain level node below it. Without the clade rule that bin
+would have come out empty.
+
+THE CALIBRATION GATE: PROVE IT FIRST, PRODUCE AFTERWARDS
+--------------------------------------------------------
+The script first recomputes the bins that are ALREADY on disk and checks whether
+the read identity sets match EXACTLY. If they do not, it produces nothing and
+fails. On 2026-08-10 all 14 of 14 matched exactly; if a new barcode or a new
+Kraken run breaks that assumption, the gate catches it.
+
+To run it:
+    python verification/build_bins.py --root . --calibration-only
+    python verification/build_bins.py --root . --coverage 0.95
+"""
 from __future__ import print_function
 
 import argparse

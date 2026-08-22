@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-' BUILDING A TAXONOMY AND LIBRARY FOR A CUSTOM KRAKEN2 DATABASE (THE LAST '
-'RESORT)  READ THIS FIRST If PlusPFP is installed, THIS SCRIPT IS NOT NEEDED. '
-'PlusPFP already adds protozoa, fungi and plants to Standard, which is every '
-'group we measured as missing. This script exists for when PlusPFP cannot be '
-'installed at all, or when a second opinion is wanted at the marker gene '
-'level (16S, 18S, ITS).  WHAT IT DOES It builds a synthetic NCBI-like '
-'taxonomy (nodes.dmp, names.dmp) out of the lineage strings in the headers of '
-'the SILVA, UNITE and PR2 files, and writes the sequences under library/ in '
-'the `kraken:taxid|N` form kraken2 expects. kraken2-build --build does the '
-'rest.  THE TAXIDS ARE SYNTHETIC. They cannot be compared against NCBI '
-'taxids, which is why the comparison is done at the level of names.  Usage: '
-'python3 custom_taxonomy.py --output <the database directory> --set '
-'silva_ssu=/path/a.fasta ...   python3 custom_taxonomy.py --selftest'
+"""
+BUILDING A TAXONOMY AND LIBRARY FOR A CUSTOM KRAKEN2 DATABASE (THE LAST RESORT)
+
+READ THIS FIRST
+If PlusPFP is installed, THIS SCRIPT IS NOT NEEDED. PlusPFP already adds protozoa,
+fungi and plants to Standard, which is every group we measured as missing. This
+script exists for when PlusPFP cannot be installed at all, or when a second
+opinion is wanted at the marker gene level (16S, 18S, ITS).
+
+WHAT IT DOES
+It builds a synthetic NCBI-like taxonomy (nodes.dmp, names.dmp) out of the
+lineage strings in the headers of the SILVA, UNITE and PR2 files, and writes the
+sequences under library/ in the `kraken:taxid|N` form kraken2 expects.
+kraken2-build --build does the rest.
+
+THE TAXIDS ARE SYNTHETIC. They cannot be compared against NCBI taxids, which is
+why the comparison is done at the level of names.
+
+Usage:
+  python3 custom_taxonomy.py --output <the database directory> --set silva_ssu=/path/a.fasta ...
+  python3 custom_taxonomy.py --selftest
+"""
 import argparse, os, re, sys
 
 RANKLAR = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
@@ -20,12 +29,15 @@ RANKLAR = ["superkingdom", "phylum", "class", "order", "family", "genus", "speci
 ONEK = re.compile(r"^[kdpcofgs]__")
 
 def soy_ayikla(baslik):
-    '     Pulls the lineage string out of a fasta header and splits it into '
-    'levels.      All three formats are supported:       SILVA : '
-    'AB000389.1.1487 Bacteria;Pseudomonadota;...;Genus species       PR2   : '
-    'AB000000.1.1000 Eukaryota;TSAR;Alveolata;...       UNITE : '
-    'Name|KY123|SH123.08FU|reps|k__Fungi;p__Ascomycota;...;s__Petriella_x '
-    'Returns: (sequence_id, [level, level, ...])'
+    """
+        Pulls the lineage string out of a fasta header and splits it into levels.
+
+        All three formats are supported:
+          SILVA : AB000389.1.1487 Bacteria;Pseudomonadota;...;Genus species
+          PR2   : AB000000.1.1000 Eukaryota;TSAR;Alveolata;...
+          UNITE : Name|KY123|SH123.08FU|reps|k__Fungi;p__Ascomycota;...;s__Petriella_x
+        Returns: (sequence_id, [level, level, ...])
+"""
     b = baslik.lstrip(">").rstrip()
     if not b:
         return "", []
@@ -52,11 +64,12 @@ def soy_ayikla(baslik):
     return kimlik, duzeyler
 
 class Taksonomi:
-    '     The synthetic tree. The root taxid is 1. Every distinct lineage '
-    'PATH is a     node; the same name occurring in different lineages '
-    "becomes a separate node,     because names such as 'Incertae sedis' "
-    'occur in more than one place and     merging them would fork and corrupt '
-    'the tree.'
+    """
+        The synthetic tree. The root taxid is 1. Every distinct lineage PATH is a
+        node; the same name occurring in different lineages becomes a separate node,
+        because names such as 'Incertae sedis' occur in more than one place and
+        merging them would fork and corrupt the tree.
+"""
     def __init__(self):
         self.ebeveyn = {1: 1}
         self.ad = {1: "root"}

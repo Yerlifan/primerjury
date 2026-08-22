@@ -448,11 +448,12 @@ def main():
 
 
 def yaz_ozet(out, ozet, kismi=False):
-    'The summary is rewritten after every target, so that even if the run is '
-    'interrupted the results up to that point stay on disk.      With '
-    'kismi=True, which is what --only and --decision produce, the existing '
-    'summary is read and the rows this run did not touch are kept; otherwise '
-    'a     partial run reduced the whole report to a single target.'
+    """The summary is rewritten after every target, so that even if the run is
+        interrupted the results up to that point stay on disk.
+
+        With kismi=True, which is what --only and --decision produce, the existing
+        summary is read and the rows this run did not touch are kept; otherwise a
+        partial run reduced the whole report to a single target."""
     cols = ["karar", "hedef", "duzey", "sinif", "uye", "rakip", "cift",
             "durum", "kademe", "en_iyi", "engelleyen", "sure", "zaman",
             "tsv", "note"]

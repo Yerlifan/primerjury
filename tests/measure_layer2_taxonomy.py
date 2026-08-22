@@ -1,21 +1,31 @@
 # -*- coding: utf-8 -*-
-'THE LAYER 2 MEASUREMENT: length based separation beside taxonomic '
-'separation.  WHAT IT ASKS ------------ Layer 2, the local databases, used to '
-'decide whether a product came from INSIDE or OUTSIDE the target by LENGTH '
-'alone. A taxonomic separation was added beside it. This script measures both '
-'ON THE SAME SCAN and shows the difference.  It WRITES to no panel file. It '
-'only reads and prints a table.  WHY IT MATTERS -------------- It was '
-'measured in layer 3, MFEprimer: of the 1,605 amplicons counted off target, '
-"95.7 per cent came from INSIDE the target's own clade and differed only in "
-'length. This script measures whether the same mistake is present in layer 2. '
-'TO RUN IT ---------     python3 tests/measure_layer2_taxonomy.py --small '
-'python3 tests/measure_layer2_taxonomy.py --db SILVA_138.2_SSURef_NR99.fasta '
-'python3 tests/measure_layer2_taxonomy.py --target Bakteri_universal  --small '
-'uses the small RefSeq sets alone, about 75 MB and a few minutes. That is not '
-'coverage but evidence THAT THE METHOD WORKS, plus a first order of '
-'magnitude. For full coverage the large sets such as SILVA and UNITE have to '
-'be given separately; that takes hours and this script DOES NOT do it '
-'SILENTLY.'
+"""THE LAYER 2 MEASUREMENT: length based separation beside taxonomic separation.
+
+WHAT IT ASKS
+------------
+Layer 2, the local databases, used to decide whether a product came from INSIDE
+or OUTSIDE the target by LENGTH alone. A taxonomic separation was added beside
+it. This script measures both ON THE SAME SCAN and shows the difference.
+
+It WRITES to no panel file. It only reads and prints a table.
+
+WHY IT MATTERS
+--------------
+It was measured in layer 3, MFEprimer: of the 1,605 amplicons counted off target,
+95.7 per cent came from INSIDE the target's own clade and differed only in
+length. This script measures whether the same mistake is present in layer 2.
+
+TO RUN IT
+---------
+    python3 tests/measure_layer2_taxonomy.py --small
+    python3 tests/measure_layer2_taxonomy.py --db SILVA_138.2_SSURef_NR99.fasta
+    python3 tests/measure_layer2_taxonomy.py --target Bakteri_universal
+
+--small uses the small RefSeq sets alone, about 75 MB and a few minutes. That is
+not coverage but evidence THAT THE METHOD WORKS, plus a first order of magnitude.
+For full coverage the large sets such as SILVA and UNITE have to be given
+separately; that takes hours and this script DOES NOT do it SILENTLY.
+"""
 from __future__ import print_function
 import argparse
 import csv

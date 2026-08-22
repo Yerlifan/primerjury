@@ -136,14 +136,14 @@ def main():
     }
 
     def kimlik_destek(hedef):
-        'Returns (identity, support, bins, is_there_a_majority)          On a '
-        'group target a single measured identity can mislead: the most '
-        'frequent name may be a PLURALITY rather than a MAJORITY. Measured: '
-        'of the         19 bins of the acetoclastic methanogen target only 6 '
-        'go to Methanothrix         soehngenii and the rest spread across '
-        'Methanosarcina species. That is why         the support fraction is '
-        'always shown, and why anything below half is         called "no '
-        'clear majority".'
+        """Returns (identity, support, bins, is_there_a_majority)
+
+                On a group target a single measured identity can mislead: the most
+                frequent name may be a PLURALITY rather than a MAJORITY. Measured: of the
+                19 bins of the acetoclastic methanogen target only 6 go to Methanothrix
+                soehngenii and the rest spread across Methanosarcina species. That is why
+                the support fraction is always shown, and why anything below half is
+                called "no clear majority"."""
         r = kimlik.get(hedef)
         if not r:
             return None, 0, 0, False
