@@ -254,22 +254,19 @@ def main():
     myol = os.path.join(a.kok, 'TOPLANTI_KARARLARI_DURUM_%s.md' % ETIKET)
     L = []
     A = L.append
-    A('# Toplantı kararları — ne yapabildik, ne yapamadık\n')
-    A('2 Ağustos 2026. Sayılar **canlı panelden** alındı: '
-      '`%s` (`2 Panel`), md5 `%s`.\n' % (os.path.basename(xy), ozet))
-    A('## Hedef sayısı — belgeler arasındaki çelişki\n')
-    A('Bazı belgeler "yirmi hedef", bazıları "altı tür + dört cins" diyor. **Esas alınan:** '
-      'panelin karar defteri `6 Karar Durumu`. Ona göre toplantıda **21 hedef** istendi:\n')
-    A('| Karar | İstenen hedef sayısı |')
+    A(u'# The meeting decisions, what was managed and what was not\n')
+    A(u'2 August 2026. The numbers were taken **from the live panel**: `%s` (`2 Panel`), md5 `%s`.\n' % (os.path.basename(xy), ozet))
+    A(u'## The target count, the contradiction between the documents\n')
+    A(u'Some documents say "twenty targets", others "six species plus four genera". **What is taken as the base:** the panel\'s own decision ledger, `6 Karar Durumu`. By that, **21 targets** were asked for at the meeting:\n')
+    A(u'| Decision | Targets asked for |')
     A('|---|---|')
-    A('| Karar 1 — tür özgül | 6 |')
-    A('| Karar 2 — cins özgül | 4 |')
-    A('| Karar 3 — işlev/ekolojik grup | 7 |')
-    A('| Karar 4 — alan/evrensel | 4 |')
-    A('| **Toplam istenen** | **21** |')
-    A('| Karar 5 — ölçümden türetilen (toplantıda istenmedi) | 8 |\n')
-    A('"Altı tür + dört cins" ifadesi yalnız **Karar 1 + Karar 2**\'yi (10 hedef) anlatır, '
-      'toplantının tamamını değil. "Yirmi" ise eski bir sayımdır; karar defterindeki 21 esastır.\n')
+    A(u'| Decision 1, species specific | 6 |')
+    A(u'| Decision 2, genus specific | 4 |')
+    A(u'| Decision 3, a functional or ecological group | 7 |')
+    A(u'| Decision 4, domain or universal | 4 |')
+    A(u'| **Total asked for** | **21** |')
+    A(u'| Decision 5, derived from the measurement (not asked for at the meeting) | 8 |\n')
+    A(u'The phrase "six species plus four genera" describes **Decision 1 plus Decision 2** only (10 targets), not the whole meeting.')
     A('---\n')
 
     # uye kumesi guvenilirligi - CANLI ciftler.tsv'den
@@ -290,16 +287,16 @@ def main():
         if uyedur.get(r['satir']) == 'YENIDEN_KURULDU' and ham:
             # the corrected measurement was made with the rebuilt member set, so it is not reliable on its own
             deger = 'panel: %s' % r['ayrim']
-            notlar.append('düzeltilmiş motorla üye kümesi **doğrulanamadı** (panel değeri gösteriliyor)')
+            notlar.append(u'the member set **could not be confirmed** under the corrected engine (the panel\'s value is shown)')
         elif enk is not None and enk < 10:
-            notlar.append('**en kötü tek kutu 10x ALTINDA**')
+            notlar.append(u'**the worst single bin is BELOW 10x**')
         if str(r['esik']).upper().startswith('EVET'):
             if not notlar:
-                notlar.append('**10x eşiğinin altında**')
+                notlar.append(u'**below the 10x threshold**')
         return deger, '; '.join(notlar) or '-'
 
-    A('## YAPILDI — çift var, sipariş edilebilir (%d)\n' % len(yapildi))
-    A('| Karar | Hedef | İleri / Geri primer | Ürün | Ayrım | Uyarı |')
+    A(u'## DONE, there is a pair and it can be ordered (%d)\n' % len(yapildi))
+    A(u'| Decision | Target | Forward / Reverse primer | Product | Discrimination | Warning |')
     A('|---|---|---|---|---|---|')
     for r in sorted(yapildi, key=lambda x: KARAR_ESLEME[x['satir']][0]):
         k, ist = KARAR_ESLEME[r['satir']]
@@ -307,14 +304,10 @@ def main():
         A('| %s | %s | `%s` / `%s` | %s bp | %s | %s |' % (k.split(' - ')[0], r['hedef'],
                                                            r['F'], r['R'], r['urun'], ay, nt))
     A('')
-    A('> Ayrım sütunu: düzeltilmiş okuma motoruyla **en kötü tek kutu / havuz** (mm≤1). '
-      '"panel:" ön eki, düzeltilmiş ölçümün üye kümesinin doğrulanamadığını ve panelin '
-      'kendi değerinin gösterildiğini bildirir. "x/y kutu" yazan hedefler kapsam ölçüsüdür, '
-      'ayrım ölçülmez. **10x eşiğinin altındaki çiftler sipariş edilebilir ama koşulludur** — '
-      'amplikon dizilemesi ya da jel doğrulaması gerekir.\n')
+    A(u'> The discrimination column: **the worst single bin / the pool** under the corrected read engine (mm<=1). The "panel:" prefix says that the corrected measurement could not confirm the member set and that the panel\'s own value is being shown. Targets reading "x/y kutu" are a coverage measure; discrimination is not measured for them. **Pairs below the 10x threshold can be ordered but they are conditional**: they need amplicon sequencing or a gel confirmation.')
 
-    A('## KISMEN — bir şey verildi ama istenen düzeyde değil (%d)\n' % len(kismen))
-    A('| Karar | İstenen | Verilen | Neden |')
+    A(u'## PARTLY, something was given but not at the level asked for (%d)\n' % len(kismen))
+    A(u'| Decision | Asked for | Given | Why |')
     A('|---|---|---|---|')
     for r in sorted(kismen, key=lambda x: KARAR_ESLEME[x['satir']][0]):
         k, ist = KARAR_ESLEME[r['satir']]
@@ -322,17 +315,16 @@ def main():
                                              r['urun'], KISMEN_NOT[r['satir']]))
     A('')
 
-    A('## YAPILAMIYOR — hiç verilemedi (%d)\n' % len(YAPILAMIYOR))
-    A('| Karar | İstenen | Ölçüm gerekçesi |')
+    A(u'## CANNOT BE DONE, nothing could be given (%d)\n' % len(YAPILAMIYOR))
+    A(u'| Decision | Asked for | The measured reason |')
     A('|---|---|---|')
     for k, ist, ger in YAPILAMIYOR:
         A('| %s | %s | %s |' % (k.split(' - ')[0], ist, ger))
     A('')
     A('---\n')
-    A('## Sipariş\n')
-    A('Sipariş edilecek **%d çift = %d oligo**. Diziler yalnız '
-      '`%s` dosyasından kopyalanmalıdır.\n' % (len(sip), 2 * len(sip), KANONIK_SIPARIS))
-    A('Panelden çıkarılan ve sipariş edilmeyecek çiftler: %s.\n'
+    A(u'## The order\n')
+    A(u'**%d pairs = %d oligos** to be ordered. The sequences must be copied from the `%s` file only.\n' % (len(sip), 2 * len(sip), KANONIK_SIPARIS))
+    A(u'The pairs removed from the panel, which will not be ordered: %s.\n'
       % ', '.join(r['hedef'] for r in hayir))
     open(myol, 'w', encoding='utf-8').write('\n'.join(L) + '\n')
 
@@ -355,7 +347,7 @@ def main():
         print(u'\nCANONICAL LIST : %s   (the order is placed from THIS file)' % kyol)
 
     print(u'\nTHE STATUS FILE: %s' % myol)
-    print(u'  YAPILDI %d | KISMEN %d | YAPILAMIYOR %d' % (len(yapildi), len(kismen), len(YAPILAMIYOR)))
+    print(u'  DONE %d | PARTLY %d | CANNOT BE DONE %d' % (len(yapildi), len(kismen), len(YAPILAMIYOR)))
     return 0 if fark == 0 else 1
 
 

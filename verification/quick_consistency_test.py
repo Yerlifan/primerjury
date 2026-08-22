@@ -252,7 +252,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
     P = tsv_oku(os.path.join(hizli_kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
     sonuc['asama']['P'] = dict(rc=rc, satir=len(P))
     if not P:
-        sonuc['hata'].append(u'P asamasi hic satir uretmedi - zincir burada kopuyor.')
+        sonuc['hata'].append(u'stage P produced no rows at all, so the chain breaks here.')
         return sonuc
 
     olculen = {}
@@ -297,22 +297,17 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
                 _cr = (v.get('R') or '').upper()
                 if _rf[1] and _rf[2] and (_cf, _cr) != (_rf[1], _rf[2]):
                     sonuc.setdefault('referans_bayat', []).append(
-                        u'%s: primer cifti referans olcumunden bu yana DEGISTI '
-                        u'(referans F %s / R %s, simdiki F %s / R %s). Eski %sx '
-                        u'ile yeni olcum (%sx) karsilastirilamaz - bu bir '
-                        u'gerileme DEGILDIR. Referansi yenileyin: '
-                        u'HIZLI_TEST/referans_degerler.tsv'
+                        u'%s: the primer pair CHANGED since the reference measurement (the reference F %s / R %s, now F %s / R %s). The old %sx and the new measurement (%sx) cannot be compared, so this IS NOT a regression. Refresh the reference: HIZLI_TEST/referans_degerler.tsv'
                         % (ad, _rf[1][:12], _rf[2][:12], _cf[:12], _cr[:12],
                            vir(ref), vir(v['kat']) if v['kat'] is not None else '-'))
                     continue
             if v is None:
-                sonuc['hata'].append(u'%s: satir P ciktisinda YOK (beklenen %s: %sx)'
+                sonuc['hata'].append(u'%s: the row is MISSING from the P output (expected %s: %sx)'
                                      % (ad, grup, vir(ref)))
                 continue
             kat = v['kat']
             if kat is None:
-                sonuc['hata'].append(u'%s: ayrim kati olculemedi (karar=%s), '
-                                     u'referansta %sx' % (ad, v['karar'], vir(ref)))
+                sonuc['hata'].append(u'%s: the discrimination fold could not be measured (decision=%s), %sx in the reference' % (ad, v['karar'], vir(ref)))
                 continue
             _ust = (ref >= ESIK) if _rf else ust_mu
             gecti = kat >= ESIK
@@ -320,14 +315,11 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
             oran_ok = (ref > 0 and BANT_ALT <= (kat / ref) <= BANT_UST)
             if gecti != _ust and sinirda and oran_ok:
                 sonuc['uyari'].append(
-                    u'%s: referansta %sx, testte %sx - esik SINIRINDA bir satir '
-                    u'(referans < %sx). Dusuk derinlikte esigin obur tarafina '
-                    u'gecmesi beklenen davranistir (olculmus ornek: 11,03x -> '
-                    u'8,93x); oran bantta oldugu icin HATA sayilmadi.'
+                    u'%s: %sx in the reference, %sx in the test, a row ON THE EDGE of the threshold (the reference is < %sx). Crossing to the other side of the threshold at a low depth is expected behaviour (a measured example: 11,03x -> 8,93x); the ratio is inside the band so it did not count as an ERROR.'
                     % (ad, vir(ref), vir(kat), vir(SINIRDA_UST)))
             elif gecti != _ust:
                 sonuc['hata'].append(
-                    u'%s: SINIF DEGISTI - referansta %sx (%s) iken testte %sx (%s)%s'
+                    u'%s: THE CLASS CHANGED, %sx (%s) in the reference against %sx (%s) in the test%s'
                     % (ad, vir(ref), u'esik ustu' if _ust else u'esik alti',
                        vir(kat), u'esik ustu' if gecti else u'esik alti',
                        u'' if oran_ok else u' - ustelik %sx-%sx bandinin DISINDA'
@@ -336,8 +328,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
                 oran = kat / ref
                 if not (BANT_ALT <= oran <= BANT_UST):
                     sonuc['uyari'].append(
-                        u'%s: %sx (referans %sx, oran %sx) - bant disi ama sinif '
-                        u'korundu' % (ad, vir(kat), vir(ref), vir(oran)))
+                        u'%s: %sx (the reference %sx, the ratio %sx), outside the band but the class was kept' % (ad, vir(kat), vir(ref), vir(oran)))
             sonuc['satir'].append(dict(hedef=ad, ref=ref, olculen=kat,
                                        karar=v['karar'], kapsam=v['kapsam'],
                                        sinif_ok=(gecti == _ust)))
@@ -352,7 +343,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
     sonuc['siralama'] = dict(referans=ref_sira, test=test_sira,
                              korundu=(ref_sira == test_sira))
     if ref_sira != test_sira:
-        sonuc['hata'].append(u'SIRALAMA BOZULDU: referans %s, testte %s'
+        sonuc['hata'].append(u'THE ORDER BROKE: the reference says %s, the test %s'
                              % (' > '.join(ref_sira), ' > '.join(test_sira)))
     return sonuc
 
@@ -382,7 +373,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
     K = tsv_oku(os.path.join(hizli_kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'))
     sonuc['asama']['K'] = dict(rc=rc, satir=len(K))
     if len(K) < 1:
-        sonuc['hata'].append(u'K asamasi HIC satir uretmedi (bos cikti gecmis sayilmaz).')
+        sonuc['hata'].append(u'stage K produced NO rows at all (an empty output does not count as passing).')
     else:
         yaz(u'    K: %d rows, %d of them recovered'
             % (len(K), sum(1 for r in K if (r.get('esigi_gecti_mi') or '').startswith('EVET'))))
@@ -429,23 +420,20 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         sonuc['asama']['D'] = dict(rc=rc2, satir=len(D2), kendi_sinamasi=True)
         if len(D2) >= 1:
             sonuc['uyari'].append(
-                u'D asamasi zincirde bos kaldi cunku K hicbir cifti kurtarmadi '
-                u'(dogrulanacak sey yok). D KENDI BASINA sinandi ve %d satir uretti '
-                u'- asama saglam.' % len(D2))
+                u'stage D came out empty in the chain because K recovered no pair (there is nothing to verify). D was tested ON ITS OWN and produced %d rows, so the stage is sound.' % len(D2))
             yaz(u'    D: produced %d rows in its own self-test, so the stage is SOUND' % len(D2))
             Dd = D2
         else:
-            sonuc['hata'].append(u'D asamasi sentetik girdiyle de satir uretmedi.')
+            sonuc['hata'].append(u'stage D produced no rows with synthetic input either.')
     if len(Dd) < 1:
         if rc == 7 or len(K) < 1:
             # A CASCADED FAILURE: if K produced no rows, D's input is empty anyway.
             # It is not counted as a separate error but attributed to K's.
             sonuc['uyari'].append(
-                u'D asamasi kosmadi cunku K hic satir uretmedi (ardisik cokus). '
-                u'Bu D\'nin hatasi degildir; K duzeltilince D de kosar.')
+                u'stage D did not run because K produced no rows at all (a chain of failures). That is not D\'s fault; once K is fixed D runs too.')
             yaz(u'    D: SKIPPED - the input is empty because K produced no rows (a knock-on failure)')
         else:
-            sonuc['hata'].append(u'D asamasi HIC satir uretmedi.')
+            sonuc['hata'].append(u'stage D produced NO rows at all.')
     else:
         # The REQUIRED layers: our two measurements. MFEprimer and NCBI are
         # DELIBERATELY skipped in the test (--mfe-yok, --ncbi elle: there is no
@@ -464,7 +452,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
     I = tsv_oku(os.path.join(hizli_kok, 'KIMLIK_SONUC', 'kimlik_iddialari.tsv'))
     sonuc['asama']['I'] = dict(rc=rc, satir=len(I))
     if len(I) < 1:
-        sonuc['hata'].append(u'I asamasi HIC iddia sonucu uretmedi.')
+        sonuc['hata'].append(u'stage I produced NO claim results at all.')
     else:
         yaz(u'    I: %d claims resolved' % len(I))
     return sonuc
@@ -539,25 +527,22 @@ def katman_denetimi(Dd, sonuc):
     for sut, ad in ZORUNLU_KATMAN:
         coz, dolu = sutun_coz(Dd, sut)
         if coz is None:
-            yok_sutun.append(u'%s ["%s" sutunu D ciktisinda HIC YOK]' % (ad, sut))
+            yok_sutun.append(u'%s [the "%s" column is MISSING ENTIRELY from the D output]' % (ad, sut))
         elif not dolu:
-            eksik_sutun.append(u'%s ("%s" sutunu var ama butun satirlarda bos)'
+            eksik_sutun.append(u'%s (the "%s" column is there but empty on every row)'
                                % (ad, coz))
         elif coz != sut:
-            takma_ad.append(u'%s: "%s" yerine "%s" sutunu kullanildi'
+            takma_ad.append(u'%s: the "%s" column was used instead of "%s"'
                             % (ad, sut, coz))
     if yok_sutun:
         sonuc['hata'].append(
-            u'D ciktisinda ZORUNLU katman sutunu HIC YOK (sema kaymasi): %s. '
-            u'Kapi bunu "bos" ile ayni saymaz; D ciktisinin sutun adlari '
-            u'degismisse kapi da guncellenmelidir.' % ', '.join(yok_sutun))
+            u'a REQUIRED layer column is MISSING ENTIRELY from the D output (a schema drift): %s. The gate does not treat this the same as "empty"; if the column names of the D output have changed then the gate has to be updated too.' % ', '.join(yok_sutun))
     if eksik_sutun:
-        sonuc['hata'].append(u'D asamasinda ZORUNLU katmanlar doldurulmadi: %s'
+        sonuc['hata'].append(u'the REQUIRED layers were not filled in at stage D: %s'
                              % ', '.join(eksik_sutun))
     for t in takma_ad:
         sonuc['uyari'].append(
-            u'D ciktisinda sutun adi degismis ama katman DOLU, bu yuzden hata '
-            u'sayilmadi - %s' % t)
+            u'a column name changed in the D output but the layer is FULL, so it did not count as an error, %s' % t)
     istege_bagli = []
     for sut, ad in ISTEGE_BAGLI_KATMAN:
         coz, _ = sutun_coz(Dd, sut)
@@ -568,9 +553,7 @@ def katman_denetimi(Dd, sonuc):
             istege_bagli.append(ad)
     if istege_bagli:
         sonuc['uyari'].append(
-            u'D asamasinda su kaynaklar testte doldurulmadi: %s. Bu BILEREK '
-            u'boyledir (test --mfe-yok ve agsiz --ncbi elle ile kosar); tam '
-            u'kosuda dolarlar.' % ', '.join(istege_bagli))
+            u'these sources were not filled in during the test at stage D: %s. That is DELIBERATE (the test runs with --mfe-yok and with the network off, --ncbi elle); they are filled in on a full run.' % ', '.join(istege_bagli))
     return eksik_sutun, yok_sutun, takma_ad, istege_bagli
 
 
@@ -602,7 +585,7 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
             else:
                 fh.write(u'Every row tested kept its class, the ranking held, and all four stages produced non-empty output')
         else:
-            fh.write(u'# ZINCIR TUTARSIZ — TAM KOSUYA GIRMEYIN\n\n')
+            fh.write(u'# THE CHAIN IS INCONSISTENT, DO NOT START A FULL RUN\n\n\n')
             fh.write(u'The 6 to 16 hour run should not be spent before the mismatches below are resolved.\n\n')
             for h in sonuc['hata']:
                 fh.write(u'- **%s**\n' % h)
@@ -629,7 +612,7 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
             a = sonuc['asama'].get(k, {})
             fh.write(u'| %s | %s | %s |\n' % (k, a.get('rc', 'kosulmadi'), a.get('satir', 0)))
         if sonuc['uyari']:
-            fh.write(u'\n## Uyarilar (testi dusurmez)\n\n')
+            fh.write(u'\n## Warnings (they do not fail the test)\n\n\n')
             for u_ in sonuc['uyari']:
                 fh.write(u'- %s\n' % u_)
         fh.write(u'\n```' + BANT_GEREKCESI + u'```\n')
