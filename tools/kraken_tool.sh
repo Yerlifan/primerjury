@@ -1316,12 +1316,12 @@ tus_bellek_ayari() {
   echo "WSL MEMORY SETTING - it stops Windows from freezing"
   echo "======================================================================"
   echo
-  local TOPLAM_MB=0 KAYNAK="olculemedi"
+  local TOPLAM_MB=0 KAYNAK="could not be measured"
   if command -v powershell.exe >/dev/null 2>&1; then
     TOPLAM_MB=$(powershell.exe -NoProfile -Command \
       "[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1MB)" \
       2>/dev/null | tr -d '\r' | tr -d ' ')
-    [ -n "$TOPLAM_MB" ] && KAYNAK="Windows'tan olculdu"
+    [ -n "$TOPLAM_MB" ] && KAYNAK="measured from Windows"
   fi
   case "$TOPLAM_MB" in ''|*[!0-9]*) TOPLAM_MB=0 ;; esac
   if [ "$TOPLAM_MB" -le 0 ]; then
@@ -1329,7 +1329,7 @@ tus_bellek_ayari() {
     KAYNAK="estimated from inside WSL (the Windows total can be LARGER)"
   fi
   local TOPLAM_GB=$(( TOPLAM_MB / 1024 ))
-  # Yuzde 60: WSL'e yeter, Windows'a nefes payi birakir. Alt sinir 4 GB,
+  # 60 percent: enough for WSL and it leaves Windows room to breathe. The floor is 4 GB,
   # because a 110 GB database needs a floor of memory even with mmap.
   local WSL_GB=$(( TOPLAM_GB * 60 / 100 ))
   [ "$WSL_GB" -lt 4 ] && WSL_GB=4
