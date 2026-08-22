@@ -108,7 +108,7 @@ def _py(kok, *arg):
 
 
 def _satir_sayisi(yol):
-    """TSV'de BASLIK HARIC veri satiri sayar. Yorum satirlari sayilmaz."""
+    'Counts the data rows in a TSV, NOT COUNTING the header. Comment lines are not counted.'
     if not os.path.exists(yol):
         return -1
     n = 0
@@ -141,20 +141,20 @@ def d_dosya_dolu(yollar, en_az_satir=1):
             elif os.path.getsize(t) < 40:
                 bos.append(y)
         if eksik:
-            return False, u'beklenen cikti YOK: %s' % ', '.join(eksik)
+            return False, 'the expected output IS MISSING: %s' % ', '.join(eksik)
         if bos:
-            return False, u'cikti BOS ya da veri satiri yok: %s' % ', '.join(bos)
-        return True, u'cikti dogrulandi: %s' % ', '.join(yollar)
+            return False, 'the output is EMPTY or holds no data row: %s' % ', '.join(bos)
+        return True, 'the output was confirmed: %s' % ', '.join(yollar)
     return f
 
 
 def d_sina(kok, ayar):
-    """8 tusu: selftest ciktisi 'TUM SINAMALAR GECTI' demeli."""
+    'The self test key: its output has to say that every self test passed.'
     g = ayar.get('_son_cikti', '')
     if u'TUM SINAMALAR GECTI' in g:
-        return True, u'butun selftestler gecti'
-    return False, (u'selftest metni bulunamadi. Kod kendini dogrulayamadi; '
-                   u'olcume girilmez.')
+        return True, 'every self test passed'
+    return False, ('the self test text was not found. The code could not '
+                   'confirm itself, so no measurement is started.')
 
 
 def d_hizli_test(kok, ayar):
@@ -169,11 +169,12 @@ def d_hizli_test(kok, ayar):
         return False, u'QUICK_TEST/QUICK_TEST_REPORT.md uretilmedi'
     m = io.open(y, encoding='utf-8', errors='ignore').read()
     if u'ZINCIR TUTARSIZ' in m:
-        return False, (u'rapor ZINCIR TUTARSIZ diyor. Tam kosuya GIRILMEZ; '
-                       u'QUICK_TEST/QUICK_TEST_REPORT.md dosyasina bakin.')
+        return False, ('the report says THE CHAIN IS INCONSISTENT. The full '
+                       'run IS NOT STARTED; look at '
+                       'QUICK_TEST/QUICK_TEST_REPORT.md.')
     if u'ZINCIR TUTARLI' in m:
-        return True, u'rapor ZINCIR TUTARLI diyor'
-    return False, u'raporda ne TUTARLI ne TUTARSIZ karari var - bicim beklenmedik'
+        return True, 'the report says the chain is consistent'
+    return False, 'the report holds neither a consistent nor an inconsistent verdict; the format is not what was expected'
 
 
 def d_esik(kok, ayar):
@@ -187,21 +188,22 @@ def d_esik(kok, ayar):
     a = ayar['kraken_is']
     csvy = os.path.join(a, 'esik_egrisi.csv')
     if not os.path.exists(csvy):
-        return False, u'esik_egrisi.csv uretilmedi (%s)' % csvy
+        return False, 'the threshold curve file was not produced (%s)' % csvy
     try:
         with io.open(csvy, encoding='utf-8', errors='ignore') as fh:
             r = list(csv.DictReader(fh))
     except Exception as e:
-        return False, u'esik_egrisi.csv okunamadi: %s' % e
+        return False, 'the threshold curve file could not be read: %s' % e
     if not r:
-        return False, u'esik_egrisi.csv BOS - hicbir esik olculmemis'
+        return False, 'the threshold curve file is EMPTY; no threshold was measured'
     ad = [k for k in (r[0].keys() if r else []) if k and k.strip().lower() == 'ayrilik']
     if ad:
         dolu = [x for x in r if (x.get(ad[0]) or '').strip()]
         if dolu:
-            return False, (u'AYRILIK sutunu DOLU (%d satir). Iki bagimsiz olcum '
-                           u'ayrildi; sayilara guvenilmez.' % len(dolu))
-    return True, u'%d esik olculdu, ayrilik yok' % len(r)
+            return False, ('the DIVERGENCE column is FILLED IN on %d rows. '
+                           'Two independent measurements diverged, so the '
+                           'numbers are not to be trusted.' % len(dolu))
+    return True, '%d thresholds were measured with no divergence' % len(r)
 
 
 def d_tablo(kok, ayar):
@@ -226,16 +228,17 @@ def d_tablo(kok, ayar):
         return False, u'KRAKEN_KARSILASTIRMA.md neredeyse bos (%d bayt)' % os.path.getsize(y)
     m = io.open(y, encoding='utf-8', errors='ignore').read()
     eksik = []
-    for anahtar, ad in ((u'PlusPFP kosusu YOK', u'PlusPFP sutunu'),
-                        (u'esik taramasi yok', u'esik sutunu'),
+    for anahtar, ad in (('there is NO PlusPFP run', u'PlusPFP sutunu'),
+                        ('there is no threshold scan', u'esik sutunu'),
                         (u'kimlik_sonuc.csv bulunamadi', u'hizalama sutunu')):
         if anahtar in m:
             eksik.append(ad)
     if eksik:
-        return 'eksik', (u'tablo uretildi ama EKSIK: %s. Veri gelince ayni asama '
-                         u'tabloyu tamamlar; bu yuzden bitti sayilmadi.'
+        return 'eksik', ('the table was produced but it is INCOMPLETE: %s. '
+                         'Once the data arrives the same stage completes it, '
+                         'which is why it does not count as finished.'
                          % ', '.join(eksik))
-    return True, u'karsilastirma tablosu TAM uretildi (%d bayt)' % os.path.getsize(y)
+    return True, 'the comparison table was produced COMPLETE (%d bytes)' % os.path.getsize(y)
 
 
 
@@ -245,8 +248,8 @@ def d_ozet(kok, ayar):
         return False, u'00_OZET_HEPSI.md uretilmedi'
     yas = time.time() - os.path.getmtime(y)
     if yas > 3600:
-        return False, (u'00_OZET_HEPSI.md bu kosuda YENILENMEMIS '
-                       u'(%d dakika once yazilmis)' % (yas / 60))
+        return False, ('the summary was NOT REFRESHED in this run; it was '
+                       'written %d minutes ago' % (yas / 60))
     return True, u'ozet yenilendi'
 
 
@@ -260,10 +263,11 @@ def d_kraken_ortam(kok, ayar):
 
     """
     if ayar.get('kraken_var'):
-        return True, u'kraken2 bulundu (%s), veritabani denetimi gecti' % (
+        return True, 'kraken2 was found (%s) and the database check passed' % (
             ayar.get('kraken2_bin') or 'PATH')
-    return 'eksik', (u'kraken2 ya da veritabani yok - X, Y ve Z atlanacak. '
-                     u'Kurulunca bu asama yeniden denenir. %s'
+    return 'eksik', ('kraken2 or its database is missing, so the Kraken '
+                     'stages will be skipped. Once it is installed this stage '
+                     'is tried again. %s'
                      % ayar.get('kraken_sebep', ''))
 
 
@@ -377,7 +381,7 @@ def kraken2_bul(karac, ortam):
 
     """
     if not os.path.exists(karac):
-        return None, u'Kraken araci bulunamadi (%s)' % karac
+        return None, 'the Kraken tool was not found (%s)' % karac
     cevre = dict(os.environ)
     if ortam:
         cevre['ORTAM'] = ortam
@@ -479,9 +483,9 @@ def plan_yaz(yaz, secili, ayar, durum):
     for kod, ad, grup, (a, u_), kraken, _k, _d in secili:
         d = durum.get(kod, {})
         if d.get('durum') == 'bitti':
-            nd = u'BITTI - atlanacak'
+            nd = 'FINISHED, it will be skipped'
         elif d.get('durum') == 'eksik':
-            nd = u'EKSIK - yeniden denenecek'
+            nd = 'INCOMPLETE, it will be tried again'
         elif kraken and not ayar['kraken_var']:
             nd = u'WILL SKIP (no kraken2)'
         elif kod == 'Y' and not ayar['pluspfp']:
@@ -539,7 +543,7 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
             continue
 
         if kod == 'Y' and not ayar['pluspfp']:
-            d.update(durum='atlandi', sebep=u'PlusPFP veritabani yolu verilmedi', sure=0)
+            d.update(durum='atlandi', sebep='no PlusPFP database path was given', sure=0)
             yaz(u'\n>> %s  %s\n   SKIPPED - no PlusPFP path given (pass it with --pluspfp)' % (kod, ad))
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
                       ensure_ascii=False, indent=1)
@@ -578,7 +582,7 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT)
                 except Exception as e:
-                    rc, son_cikti = 127, u'komut baslatilamadi: %s' % e
+                    rc, son_cikti = 127, 'the command could not be started: %s' % e
                     yaz(u'   %s' % son_cikti)
                     break
                 bicik = []
@@ -620,9 +624,10 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
         # A non-zero exit code on a non-Kraken stage now counts as A FAILURE.
         if tamam and rc != 0 and not kraken:
             tamam = False
-            mesaj = (u'cikis kodu %s (sifir degil). Cikti dosyasi var ama alt '
-                     u'asamalarin hepsi kosmamis olabilir - T asamasinda tam '
-                     u'boyle olmustu. Yukaridaki asama ciktisini okuyun.' % rc)
+            mesaj = ('exit code %s, which is not zero. The output file is '
+                     'there but not every substage may have run, which is '
+                     'exactly what happened once at the ordering stage. Read '
+                     'the stage output above.' % rc)
         if not tamam:
             d.update(durum='DUSTU', sure=sure, cikis=rc, sebep=mesaj)
             json.dump(durum, io.open(dyol, 'w', encoding='utf-8'),
@@ -713,7 +718,7 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
         (u'What should I order', 'SIPARIS_LISTESI.tsv'),
         (u'The Kraken threshold curve',
          '../tools/RESULTS/kraken_esik_A/esik_egrisi.txt'),
-        (u'Rapora gidecek Kraken tablosu', '../tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md'),
+        ('The Kraken table that goes into the report', '../tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md'),
     ]
     for soru, dy in bakilacak:
         t = os.path.join(kok, dy)
