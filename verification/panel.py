@@ -1,32 +1,27 @@
 # -*- coding: utf-8 -*-
-"""panel.py  -  TEK GIRIS NOKTASI.
-
-NEDEN BIRLESTIRILDI
--------------------
-Bir gecede sekiz ayri betik birikti (denetim, geometri, plaka, esik, guncel
-durum, toplanti durumu, NCBI katmani, kutu uretimi). Sekiz ayri komut demek,
-birini kosup otekini unutmak demek; bu projenin butun hatalari tam da boyle
-cikti - bir sey degisti, ona bagli olan yeniden kosulmadi.
-
-Burada hepsi TEK komutun alt komutlari. Kod KOPYALANMADI: her alt komut kendi
-betigini cagirir, boylece iki kopya zamanla ayrisamaz.
-
-Kullanim:
-    python verification/panel.py hepsi          # sirasiyla hepsi (olcum, yazmaz)
-    python verification/panel.py denetle        # 9 maddelik denetim kapisi
-    python verification/panel.py geometri       # primer3 ile Tm ve kural denetimi
-    python verification/panel.py geometri --write # Tm/dTm sutunlarini duzelt
-    python verification/panel.py plaka          # jel cakismasi icin plaka onerisi
-    python verification/panel.py esik           # iki esik kurali yan yana
-    python verification/panel.py guncel         # GUNCEL_DURUM.md uret
-    python verification/panel.py toplanti       # toplantida ne istendi, ne oldu
-    python verification/panel.py ncbi4          # NCBI 4. katman (~30 dk)
-    python verification/panel.py kutu --plan    # olculmeyen taksonlar icin plan
-    python verification/panel.py referans       # hizli test referanslarini yenile
-
-"hepsi" olcum yapar, HICBIR dosyayi degistirmez: geometri --write ve ncbi4 gibi
-yan etkili adimlar hepsi'ye DAHIL DEGILDIR. Yan etkiyi insan ister.
-"""
+'panel.py, THE ONE ENTRY POINT.  WHY THEY WERE MERGED -------------------- '
+'Eight separate scripts piled up in one night: the audit, the geometry, the '
+'plate, the thresholds, the current state, the state of the requests, the '
+'NCBI layer and bin generation. Eight separate commands means running one and '
+'forgetting another, and every fault in this project came out exactly that '
+'way: something changed and what depended on it was not run again.  Here they '
+'are all subcommands of ONE command. The code WAS NOT COPIED: every '
+'subcommand calls its own script, so two copies cannot drift apart over time. '
+'Usage:     python verification/panel.py hepsi           # all of them in '
+'order (measures, writes nothing)     python verification/panel.py denetle '
+'# the audit gate     python verification/panel.py geometri        # Tm and '
+'rule checks with primer3     python verification/panel.py geometri --write '
+'# correct the Tm and dTm columns     python verification/panel.py plaka '
+'# a plate suggestion against gel overlap     python verification/panel.py '
+'esik            # the two threshold rules side by side     python '
+'verification/panel.py guncel          # produce the current state document '
+'python verification/panel.py toplanti        # what was asked for and what '
+'came of it     python verification/panel.py ncbi4           # the NCBI '
+'fourth layer, about 30 minutes     python verification/panel.py kutu --plan '
+'# a plan for the taxa never measured     python verification/panel.py '
+'referans        # refresh the quick test references  "hepsi" measures and '
+'changes NO file: the steps with a side effect, such as geometri --write and '
+'ncbi4, ARE NOT INCLUDED in it. A person asks for a side effect.'
 from __future__ import print_function
 
 import os
@@ -39,36 +34,44 @@ KOK = os.path.dirname(BURA)
 # alt komut -> (betik yolu, aciklama, "hepsi"ye dahil mi)
 KOMUT = {
     'denetle':  ('verification/audit_all.py',
-                 u'18 maddelik denetim kapisi (tablolar, referans, muhur, '
-                 u'geometri, plaka, belge sayilari)', True),
+                 'the eighteen item audit gate: the tables, the references, '
+                 'the seals, the geometry, the plate and the document counts', True),
     'guncel':   ('verification/current_status.py',
                  u'GUNCEL_DURUM.md - panelin bugunku sayilari', True),
     'toplanti': ('verification/decision_status.py',
-                 u'toplantida ne istendi, hangisi oldu', True),
+                 'what was asked for and which of it came about', True),
     'esik':     ('verification/recompute_thresholds.py',
-                 u'duz esik ile bolluga agirlikli esik yan yana', True),
+                 'the flat threshold beside the abundance weighted one', True),
     'geometri': ('verification/refresh_geometry.py',
-                 u'primer3 ile Tm/GC/uzunluk/toka/dimer + urun boyu olcumu', True),
+                 'Tm, GC, length, hairpin and dimer with primer3, plus the '
+                 'product length', True),
     'plaka':    ('verification/assign_plate.py',
                  u'plaka ici jel cakismasini azaltan dagilim onerisi', True),
     'referans': ('verification/refresh_reference.py',
-                 u'hizli test referanslarini tam kosudan yenile', False),
+                 'refresh the quick test references from a full run', False),
     'ncbi4':    ('verification/ncbi_layer.py',
-                 u'NCBI Primer-BLAST 4. katman (~30 dk, aga cikar)', False),
+                 'the NCBI Primer-BLAST fourth layer, about 30 minutes and it '
+                 'uses the network', False),
     'kutu':     ('verification/build_bins.py',
-                 u'olculmeyen taksonlari kutuya cevir (kalibrasyon kapili)', False),
+                 'turn the taxa never measured into bins, behind the '
+                 'calibration gate', False),
     'siparis':  ('verification/order_form.py',
-                 u'tedarikciye gidecek TEK dogru oligo listesi (uretilir)', True),
+                 'the ONE correct oligo list for the supplier, produced '
+                 'rather than written', True),
     'excel':    ('verification/build_excel.py',
-                 u'butun guncel veriyi TEK Excel e yaz (uretilir)', True),
+                 'write every current value into ONE Excel file, produced '
+                 'rather than written', True),
     'lokus':    ('engine/target_full.py',
-                 u'bir hedef icin BUTUN lokuslarda cift ara (primer3 gerekir)', False),
+                 'look for a pair at EVERY locus of one target; primer3 is '
+                 'needed', False),
     'arsiv':    ('verification/archive.py',
-                 u'eski dosyalari _SILINECEKLER e tasi (once PLAN basar)', False),
+                 'move the old files aside, printing the PLAN first', False),
     'sinif':    ('verification/ncbi_reclassify.py',
-                 u'NCBI sonuclarini siki ad kuraliyla yeniden say (aga cikmaz)', True),
+                 'count the NCBI results again under the strict name rule, '
+                 'without the network', True),
     'kapsama':  ('screening/exclusion_coverage_check.py',
-                 u'dislama taksonu uyeleri kapsiyor mu (NCBI Taxonomy)', False),
+                 'does the exclusion taxon cover its members, against NCBI '
+                 'Taxonomy', False),
 }
 
 # "hepsi" sirasi: once durum uretilir, sonra denetim onu da gorur.
@@ -120,14 +123,15 @@ def main(argv):
         for k in SIRA:
             print('    %-10s cikis kodu %s' % (k, kodlar[k]))
         print()
-        print('  Yan etkili adimlar BILEREK kosulmadi. Gerekiyorsa ayri ayri:')
+        print('  The steps with a side effect were DELIBERATELY not run. To '
+              'run them separately:')
         for k in sorted(KOMUT):
             if not KOMUT[k][2]:
                 print('    python verification/panel.py %s' % k)
         print('=' * 78)
         return 1 if any(v not in (0, 2) for v in kodlar.values()) else 0
     if ad not in KOMUT:
-        print('Bilinmeyen alt komut: %s' % ad)
+        print('Unknown subcommand: %s' % ad)
         yardim()
         return 2
     return kos(ad, ek)

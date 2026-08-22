@@ -120,9 +120,9 @@ def testler(a):
                        gc_clamp_max=3, homopolymer_max=4, require_3p_gc=1,
                        degeneracy_budget=0, degeneracy_fold_max=4,
                        iupac_max=2, iupac_clamp_forbidden=5)
-    sina("3' ucu A ile biten oligo elenir",
+    sina("an oligo ending in A at the 3' end is dropped",
          not E.composition_ok("CGCGATATCGCGATATCGA", ar)[0])
-    sina("3' ucu G ile biten oligo gecer",
+    sina("an oligo ending in G at the 3' end passes",
          E.composition_ok("CGCGATATCGCGATATCGG", ar)[0])
     sina(u'five identical bases in a row are eliminated',
          not E.composition_ok("CGCGAAAAACGCGATATCG", ar)[0])
@@ -252,10 +252,10 @@ def testler(a):
 
     print(u'\n8. THE INDISTINGUISHABILITY MEASUREMENT')
     sina(u'N does not count as a match with any base', not D.baz_kesisir("N", "A"))
-    sina("N ile N de eslesmez", not D.baz_kesisir("N", "N"))
-    sina("Y ile C kesisir", D.baz_kesisir("Y", "C"))
-    sina("Y ile G kesismez", not D.baz_kesisir("Y", "G"))
-    sina("A ile A kesisir", D.baz_kesisir("A", "A"))
+    sina('N does not match N either', not D.baz_kesisir("N", "N"))
+    sina('Y and C intersect', D.baz_kesisir("Y", "C"))
+    sina('Y and G do not intersect', not D.baz_kesisir("Y", "G"))
+    sina('A and A intersect', D.baz_kesisir("A", "A"))
 
     print(u'\n9. THE ALIGNMENT BACKEND')
     try:
@@ -702,7 +702,7 @@ def testler(a):
         sina("UNITE'te '%s' tur adi SAYILMIYOR" % kotu,
              DZ.tur_adi("UDB1|k__Fungi;g__X;%s|SH1" % kotu) == "",
              "cikan: %r" % DZ.tur_adi("UDB1|k__Fungi;g__X;%s|SH1" % kotu))
-    sina("gercek ikili ad hala taniniyor",
+    sina('a real binomial is still recognised',
          DZ.tur_adi("UDB1|k__Fungi;g__Petriella;s__Petriella_setifera|SH1")
          == "Petriella setifera")
     # 'Methanosarcina_barkeri_referans' strips to 'Methanosarcina_barkeri' while the

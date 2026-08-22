@@ -95,7 +95,7 @@ def _ciftler_tsv_uyelik():
 
 
 def _kimlik_uyelik():
-    """hedef_kimlik.tsv'deki OLCULEN kimlikten taxid kumesi turet."""
+    'Derive a taxid set from the MEASURED identity in the identity table.'
     yol = os.path.join(C.KOK, 'primer_final', 'hedef_kimlik.tsv')
     taxad = H.taxid_adlari()
     ad2tax = {}
@@ -232,7 +232,7 @@ def tani_yorumu(uye_kutu, veren, kons_veren, panel_urun, olcum=None, panel_uye='
     esik = int(100 * C.KAPSAM_ESIGI)
 
     if kapsam:
-        return 'SORUN YOK', 'Uye kutularinin %d tanesi kapsam esigini (>=%%%d) geciyor.' % (
+        return 'SORUN YOK', '%d of the member bins pass the coverage threshold of %d per cent or more.' % (
             kapsam, esik)
 
     if uye_veren:
@@ -241,37 +241,25 @@ def tani_yorumu(uye_kutu, veren, kons_veren, panel_urun, olcum=None, panel_uye='
         ek = ''
         if dis:
             d0 = max(dis, key=lambda v: v['yuzde'])
-            ek = (' Ayni sinifta uye OLMAYAN %s (%s) %%%s veriyor - uye kumesi '
-                  'genisletilmeli mi?' % (d0['kutu'], d0['ad'], d0['yuzde']))
-        return ('KAPSAM ESIGININ ALTINDA - PANELLE CELISKILI',
-                'Uye kutularinda urun VAR ama zayif: en iyisi %s %%%s (esik >=%%%d), '
-                'urun boyu %s bp. Panelde bu satir icin "%s" yaziyor. Urun boyu '
-                'tutuyorsa cift dogru; farkli olan ORAN. Muhtemel sebepler: '
-                '(a) panel farkli bir olcut ya da farkli gevseklik ayariyla '
-                'olculmus, (b) konsensus ile ham okumalar ayni organizmayi '
-                'anlatmiyor. Konsensus sinamasi asagida.%s'
+            ek = (' In the same class %s (%s), which is NOT a member, gives %s per cent. Should the member set be widened?' % (d0['kutu'], d0['ad'], d0['yuzde']))
+        return ('BELOW THE COVERAGE THRESHOLD, and it contradicts the panel',
+                'There IS a product in the member bins but it is weak: the best is %s at %s per cent against a threshold of %d per cent, with a product length of %s bp. The panel writes "%s" for this row. If the product length holds, the pair is right and what differs is THE RATE. The likely causes: (a) the panel was measured under a different criterion or a different looseness setting, or (b) the consensus and the raw reads are not describing the same organism. The consensus test is below.%s'
                 % (en['kutu'], en['yuzde'], esik,
                    en['boy'][0][0] if en['boy'] else '?', panel_uye, ek))
 
     if veren:
         ilk = veren[0]
-        return ('UYE KUMESI YANLIS OLABILIR',
-                'Uye kutularinda urun YOK, ama ayni sinifta %d kutu urun veriyor. '
-                'En yuksek: %s (%s) %%%s, urun %s. Bu takson uye sayilmali mi?'
+        return ('THE MEMBER SET MAY BE WRONG',
+                'There is NO product in the member bins while %d bins of the same class give one. The highest is %s (%s) at %s per cent, with a product of %s. Should that taxon count as a member?'
                 % (len(veren), ilk['kutu'], ilk['ad'], ilk['yuzde'],
                    ilk['boy'][0][0] if ilk['boy'] else '?'))
     if kons_uye:
         b = kons_uye[0]
         return ('KONSENSUS/OKUMA UYUSMAZLIGI',
-                'Uye kutusunun KONSENSUSU urun veriyor (%s, %s bp - panelde %s bp) '
-                'ama ayni kutunun HAM OKUMALARI vermiyor. Sorun uyelik degil: '
-                'konsensus ile okumalar ayni organizmayi anlatmiyor ya da '
-                'konsensus bayat. Secenek (6) ile konsensusu yeniden uretin.'
+                "The member bin's CONSENSUS gives a product (%s, %s bp against %s bp in the panel) while the same bin's RAW READS do not. The problem is not the membership: either the consensus and the reads are not describing the same organism, or the consensus is stale. Regenerate the consensus."
                 % (b['kutu'], b['boy'], panel_urun))
-    return ('CIFT HIC URUN VERMIYOR',
-            'Ne uye kutularinda, ne ayni sinifin herhangi bir kutusunda, ne de '
-            'konsensuslerde urun olusuyor. Cift dizisi ya da urun boyu penceresi '
-            'kontrol edilmeli.')
+    return ('THE PAIR GIVES NO PRODUCT AT ALL',
+            "No product forms in the member bins, in any bin of the same class, or in the consensuses. The pair's sequences or the product length window have to be checked.")
 
 
 # ---------------------------------------------------------------- ana
@@ -482,7 +470,7 @@ def rapor_yaz(sonuclar, panel_yolu, turetildi):
     A('')
     A(u'### The definition sources')
     A('')
-    A('| kod | kaynak |')
+    A('| code | source |')
     A('|---|---|')
     A(u'| **A** | `screening/target_membership.tsv`, the definition the tool uses now |')
     A(u'| **B** | `steps/targets.tsv`, the project\'s decision table (the group row) |')

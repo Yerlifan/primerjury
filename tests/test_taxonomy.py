@@ -56,15 +56,15 @@ SENTETIK = [
      'Arthropoda;Insecta;Diptera;Drosophilidae;Drosophila;Drosophila_melanogaster',
      'ROD_v1.2_operon_variants.fasta', 'Eukaryota', 'Arthropoda'),
 
-    ('RefSeq bakteri (taksonomi YOK - alan dosyadan)',
+    ('RefSeq bacteria (NO taxonomy; the domain comes from the file)',
      'NR_201932.1 Sphingosinicella wutangchuni strain LY54 16S ribosomal RNA, partial sequence',
      'bacteria.16S.fna', 'Bacteria', 'Sphingosinicella'),
 
-    ('RefSeq arke (taksonomi YOK - alan dosyadan)',
+    ('RefSeq archaea (NO taxonomy; the domain comes from the file)',
      'NR_201921.1 Methanothermococcus jasoni strain Ax23 16S ribosomal RNA, complete sequence',
      'archaea.16S.fna', 'Archaea', 'Methanothermococcus'),
 
-    ('RefSeq mantar (taksonomi YOK - alan dosyadan)',
+    ('RefSeq fungi (NO taxonomy; the domain comes from the file)',
      'NR_202962.1 Tremella indecorata ITS region; from TYPE material',
      'fungi.ITS.fna', 'Eukaryota', 'Tremella'),
 ]
@@ -72,43 +72,43 @@ SENTETIK = [
 # --- 2) SINIFLANDIRMA: hedef klad/alan verilince a/ao/b/c dogru mu ---------
 SINIF = [
     # (ad, baslik, vtb, hedef_klad, hedef_alan, beklenen_sinif)
-    ('hedefin KENDI kladi -> a',
+    ("the target's OWN clade -> a",
      'AY846379.1.1791 Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;'
      'Marinifilaceae;Petrimonas;Petrimonas sulfuriphila',
      'SILVA_138.2_SSURef_NR99.fasta', ['Petrimonas'], 'Bacteria', 'a'),
 
-    ('ayni alan, klad DISI -> b',
+    ('the same domain, OUTSIDE the clade -> b',
      'AY000001.1.1500 Bacteria;Pseudomonadota;Gammaproteobacteria;'
      'Enterobacterales;Enterobacteriaceae;Escherichia;Escherichia coli',
      'SILVA_138.2_SSURef_NR99.fasta', ['Petrimonas'], 'Bacteria', 'b'),
 
-    ('FARKLI alan -> c',
+    ('a DIFFERENT domain -> c',
      'AY000002.1.1700 Eukaryota;Amorphea;Obazoa;Opisthokonta;Nucletmycea;Fungi',
      'SILVA_138.2_SSURef_NR99.fasta', ['Petrimonas'], 'Bacteria', 'c'),
 
-    ('hedef alan icinde ORGANEL -> ao',
+    ('an ORGANELLE inside the target domain -> ao',
      'AY000003.1.1600 Bacteria;Cyanobacteriota;Chloroplast;Streptophyta',
      'SILVA_138.2_SSURef_NR99.fasta', ['Chloroplast'], 'Bacteria', 'ao'),
 
-    ('alan cozulemez -> bilinmiyor (KANIT DEGIL)',
+    ('the domain cannot be resolved -> undecidable (NOT EVIDENCE)',
      'bilinmeyen_bir_baslik_taksonomisiz',
      'gizemli_dosya.fasta', ['Petrimonas'], 'Bacteria', 'bilinmiyor'),
 
-    ('RefSeq, hedef cinsi adda geciyor -> a',
+    ('RefSeq, with the target genus in the name -> a',
      'NR_201921.1 Methanothrix soehngenii strain X 16S ribosomal RNA',
      'archaea.16S.fna', ['Methanothrix'], 'Archaea', 'a'),
 
     # A2 duzeltmesi (2026-08-21): taksonomi TASIMAYAN kayitta, CINS USTU bir
     # hedef klad organizma adinda GECMEZ. Eskiden 'b' (sahte capraz) donuyordu.
-    ('RefSeq + CINS USTU hedef -> bilinmiyor (b DEGIL)',
+    ('RefSeq plus a target ABOVE GENUS -> undecidable (NOT b)',
      'NR_201932.1 Bacteroides fragilis strain X 16S ribosomal RNA',
      'bacteria.16S.fna', ['Bacteroidales'], 'Bacteria', 'bilinmiyor'),
 
-    ('RefSeq + FARKLI alan -> c (taksonomi gerekmez, vtb tanimi yeter)',
+    ('RefSeq plus a DIFFERENT domain -> c; no taxonomy is needed, the database definition is enough',
      'NR_201921.1 Methanothermococcus jasoni strain Ax23 16S ribosomal RNA',
      'archaea.16S.fna', ['Bacteroidales'], 'Bacteria', 'c'),
 
-    ('SILVA + CINS USTU hedef -> b (taksonomi VAR, karar kesin)',
+    ('SILVA plus a target above genus -> b; the taxonomy IS there, so the verdict is definite',
      'AY000001.1.1500 Bacteria;Pseudomonadota;Gammaproteobacteria;'
      'Enterobacterales;Enterobacteriaceae;Escherichia;Escherichia coli',
      'SILVA_138.2_SSURef_NR99.fasta', ['Bacteroidales'], 'Bacteria', 'b'),
@@ -148,7 +148,7 @@ def bolum2():
 
 
 def bolum3(ornek):
-    """GERCEK dosyalar: cozulemeyen baslik orani olculur."""
+    'THE REAL files: the fraction of headers that cannot be resolved is measured.'
     refdb = os.path.join(KOK, 'REFERANS_DB')
     if not os.path.isdir(refdb):
         print(u'\n(REFERANS_DB is absent, so the real file section was skipped)')
