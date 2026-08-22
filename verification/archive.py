@@ -96,17 +96,18 @@ def _xlsx_dizi_sayimi(yol, guncel):
 def adaylar(kok):
     """(yol, sebep) listesi. Yol koke GORELIDIR."""
     a = []
-    # GUNCEL uretilen Excel ASLA aday olmaz. (Ilk planda kendi urettigim
-    # PrimerJury_PANEL_20260811.xlsx tasinacaklar listesine dusmustu -
-    # plan adimi olmasa teslim dosyasini arsive atacaktim.)
+    # The CURRENT produced Excel is NEVER a candidate. (In the first plan the
+    # PrimerJury_PANEL_20260811.xlsx I had produced myself fell into the list of files
+    # to be moved; without the plan step I would have thrown the delivery file into the
+    # archive.)
     for f in sorted(glob.glob(os.path.join(kok, '*.xlsx'))):
         ad = os.path.basename(f)
         if ad.startswith('PrimerJury_PANEL_'):
             continue
-        # SADECE PRIMER DIZISI TASIYAN ve o dizileri ESKI olan dosyalar aday.
-        # "Butun xlsx'ler" demek, primerle ilgisi olmayan bir analiz dosyasini
-        # (Topluluk_Trend_Analizi) da surukler - o bir teslim urunudur ve
-        # icinde tek primer yoktur.
+        # ONLY the files that CARRY A PRIMER SEQUENCE and whose sequences are OLD are
+        # candidates. Saying "every xlsx" drags along an analysis file that has nothing to
+        # do with primers (Topluluk_Trend_Analizi); that is a delivery product and holds not
+        # one primer.
         n_dizi, n_guncel = _xlsx_dizi_sayimi(f, _guncel_diziler(kok))
         if n_dizi == 0:
             continue
@@ -128,7 +129,7 @@ def adaylar(kok):
         if os.path.exists(os.path.join(kok, *f.split('/'))):
             a.append((f, u'ikiz kopya; oylamaya girmiyor ve SSU olani artik '
                       u'ikiz DEGIL (138.2 surumu U->T cevrildi, bu kopya RNA)'))
-    # ayni dosya iki kalibla iki kez gelebilir
+    # the same file can come twice under two patterns
     gor = set()
     tek = []
     for y, s in a:
@@ -156,10 +157,11 @@ def main():
         except IOError:
             pass
 
-    # ACIK ZORLAMA LISTESI. Bu dosyalarin adi kodda geciyor ama gecen yerler
-    # ya tarihsel tek seferlik betikler, ya dosyayi URETEN (okumayan) betikler,
-    # ya da bugun duzeltilmis canli betikler. Her biri tek tek bakildi ve
-    # sebebi asagiya yazildi - toplu bir "zorla tasi" bayragi YOK.
+    # AN EXPLICIT FORCE LIST. The names of these files appear in the code, but the
+    # places they appear in are either historical one off scripts, or scripts that
+    # PRODUCE the file rather than read it, or live scripts corrected today. Each one
+    # was looked at separately and the reason written below; there is NO blanket "force
+    # move" flag.
     ZORLA = {
         'PrimerJury_PCR_Paneli_2026-08-02.xlsx':
             u'yalniz tarihsel duzeltme betikleri okuyor (DUZELTME_/MADDE123_/'
@@ -182,12 +184,11 @@ def main():
     for yol, sebep in ad_listesi:
         ad = os.path.basename(yol)
         gecen = [os.path.relpath(k, kok) for k, m in metinler.items() if ad in m]
-        # kendi arsivleme betigi ve denetim betigi adi anmasi engel degil
-        # TARIHSEL TEK SEFERLIK betikler engel degildir: engine/,
-        # engine/ ve engine/ altindakiler o gunku
-        # duzeltmeyi yapip bitmis islerdir, zincirde kosmuyorlar. Onlarin adi
-        # anmasi bir dosyayi canli tutmaz - ama MANIFEST'e yazilir ki
-        # birisi o betigi yeniden kosarsa nereye bakacagini bilsin.
+        # its own archiving script and the audit script mentioning the name is not an
+        # obstacle. HISTORICAL ONE OFF scripts are not an obstacle either: the ones under
+        # engine/ did that day's correction and are finished work, they do not run in the
+        # chain. Their mentioning a name does not keep a file alive, but it is written into
+        # the MANIFEST so that whoever reruns that script knows where to look.
         tarihsel = ('engine', 'engine',
                     'engine', 'engine',
                     'REFERANS_TASARIM_betikleri')
