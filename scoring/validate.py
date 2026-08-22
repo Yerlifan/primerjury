@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-"""SON DOGRULAMA - PANELIN KENDI MOTORUYLA, PANEL DERINLIGINDE.
+"""THE FINAL CONFIRMATION, WITH THE PANEL'S OWN ENGINE, AT PANEL DEPTH.
 
-Toplu tarama hiz/bellek icin numpy motorunu (otorite=False) ve bazi siniflarda
-sig derinligi kullandi. RAPORLANACAK her aday burada YENIDEN olculur:
-    otorite=True (KutuOtorite / okuma_motoru)  +  derinlik 3000  +  mm<=1
-yani single_protocol_measure.py'nin kullandigi yolun BIREBIR aynisi.
+The bulk scan used the numpy engine (otorite=False) for speed and memory, and a
+shallow depth in some classes. EVERY candidate TO BE REPORTED is measured again here:
+    otorite=True (KutuOtorite / okuma_motoru)  +  a depth of 3000  +  mm<=1
+that is, exactly the route single_protocol_measure.py uses.
 
-Tarama degeri ile dogrulama degeri FARKLI cikarsa RAPORA DOGRULAMA DEGERI girer
-ve fark acikca yazilir.
+If the scan value and the confirmation value COME OUT DIFFERENT, THE CONFIRMATION
+VALUE goes into the report and the difference is written out plainly.
+
 """
 import os, sys, json, time, argparse
 sys.path.insert(0, '/tmp/mrb')

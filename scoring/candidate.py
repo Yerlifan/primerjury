@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
-"""ADAY URETIMI + KONSENSUS ON ELEMESI (asama 1).  [duzeltilmis surum]
+"""CANDIDATE PRODUCTION plus A CONSENSUS PREFILTER (stage 1).  [the corrected version]
 
-IKI DUZELTME (ilk surum yanlisti, olcumle yakalandi):
+TWO CORRECTIONS (the first version was wrong and it was caught by measurement):
 
- 1) GERI PRIMER YONU. Numune.olc geri primeri rc(R) olarak arar. Yani
-    konsensus uzerinde bulunan pencere rc(R)'dir ve GERI PRIMER = rc(pencere).
-    Ilk surum R=pencere yaziyordu; 196 adayin hepsi butun uye kutularda 0,00
-    urun verdi. Sifir, biyolojik sonuc degil YON HATASI imzasidir.
+ 1) THE REVERSE PRIMER'S ORIENTATION. Numune.olc searches for the reverse primer as
+    rc(R). So the window found on the consensus IS rc(R) and THE REVERSE PRIMER =
+    rc(window). The first version wrote R=window; all 196 candidates gave 0.00
+    product in every member bin. A zero is not a biological result, it is the
+    signature of AN ORIENTATION FAULT.
 
- 2) "BUTUN uye konsensuslara baglanmali" sarti FAZLA KATIYDI. Panelin KENDI
-    Petrimonas ileri primeri bu sarti gecmiyor (kapsami 1/3). Sart kaldirildi;
-    baglanma SAYISI artik bir eleme degil, SIRALAMA olcutudur.
+ 2) The condition "it must bind ALL the member consensuses" WAS TOO STRICT. The
+    panel's OWN Petrimonas forward primer does not pass it (its coverage is 1 of 3).
+    The condition was removed; the binding COUNT is now a RANKING criterion rather
+    than an elimination.
 
-Pencereler BUTUN uye konsensuslardan uretilir (tek omurga degil). Eslestirme
-en uzun uye konsensusu (referans) uzerinde yapilir - urunun olusabilmesi icin
-iki primerin ayni sablona baglanmasi gerekir.
+The windows are produced from ALL the member consensuses (not from a single
+backbone). The matching is done on the longest member consensus (the reference),
+because for a product to form the two primers have to bind the same template.
+
 """
 import os, sys, json, argparse, time
 sys.path.insert(0, '/tmp/mrb')

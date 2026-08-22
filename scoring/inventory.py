@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-"""FIZIKSEL LOKUS ENVANTERI - numunede hangi lokuslar GERCEKTEN var.
+"""THE PHYSICAL LOCUS INVENTORY: which loci are REALLY in the sample.
 
-"Baska lokus yok" cumlesi ancak olcumle kurulabilir. Uc BAGIMSIZ olcu:
+The sentence "there is no other locus" can only be established by measurement. Three
+INDEPENDENT measures:
 
-  1) HAM OKUMA BOY DAGILIMI (suzgecsiz). Bir kutuphanede en uzun okuma 1650 bp
-     ise 23S/ITS orada FIZIKSEL OLARAK yoktur - hangi capa bulunursa bulunsun.
-     Bu olcu capa secimine bagimli DEGILDIR, en guclu kanit budur.
-  2) KANONIK KONSENSUS UZUNLUGU.
-  3) CAPA TARAMASI: korunmus rRNA motifleri (SSU / 5.8S / LSU / ITS sinirlari).
-     Motor olarak projenin KENDI okuma_motoru.Sonda sinifi kullanilir (IUPAC
-     farkindaligi + guvercin yuvasi tohumu, kayipsiz). son2 kurali burada
-     KAPALIDIR: capa aramasi PCR baglanmasi degil, VARLIK tespitidir.
+  1) THE RAW READ LENGTH DISTRIBUTION (unfiltered). If the longest read in a library
+     is 1650 bp, then 23S and ITS are PHYSICALLY absent there, whatever anchor is
+     found. This measure DOES NOT depend on the anchor choice, and it is the
+     strongest evidence.
+  2) THE CANONICAL CONSENSUS LENGTH.
+  3) THE ANCHOR SCAN: conserved rRNA motifs (the SSU / 5.8S / LSU / ITS boundaries).
+     The engine used is the project's OWN okuma_motoru.Sonda class (IUPAC aware plus
+     pigeonhole seeding, lossless). The son2 rule is OFF here: an anchor search is a
+     detection of PRESENCE, not a PCR binding.
 
-Capa bulunamamasi tek basina "yok" demek DEGILDIR (capa dizisi o soyda
-degismis olabilir). Bu yuzden karar 1. olcuyle, dogrulama 3. olcuyle verilir.
+Failing to find an anchor DOES NOT on its own mean "it is absent" (the anchor
+sequence may have changed in that lineage). So the decision is made with measure 1
+and the confirmation with measure 3.
+
 """
 import os, sys, json, statistics, argparse, gzip
 sys.path.insert(0, '/tmp/mrb')
@@ -50,8 +54,10 @@ CAPALAR = [
 
 
 def ham_boylar(yol, tavan=4000):
-    """SUZGECSIZ okuma boylari. Numune suzgeci (200-6000) burada UYGULANMAZ -
-    amac tam da suzgecin gizleyebilecegi uzun/kisa okumalari gormek."""
+    """Read lengths WITH NO FILTER. The sample filter (200-6000) IS NOT APPLIED here;
+    the aim is precisely to see the long and short reads the filter could hide.
+
+    """
     ac = gzip.open if yol.endswith('.gz') else open
     boy = []
     with ac(yol, 'rt', errors='ignore') as fh:

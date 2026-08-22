@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
-"""ORTAK PUANLAYICI - panelin KENDI olcusuyle puanlar, hicbir sayiyi yeniden yazmaz.
+"""THE SHARED SCORER: it scores with the panel's OWN measure and rewrites no number.
 
-NEDEN VAR
----------
-2026-08-10: ayni primer cifti icin farkli betikler farkli ayrim sayisi uretti.
-Sebep aritmetik degil, UYELIK KAYNAGI idi:
+WHY IT EXISTS
+-------------
+2026-08-10: different scripts produced different discrimination numbers for the same
+primer pair. The cause was not the arithmetic but THE MEMBERSHIP SOURCE:
 
-  single_protocol_measure.py  -> uyelik_yeniden_turetme_uyelik_*.tsv (OLCULEN uyelik),
-                          karisik kutu RAKIP sayilir, kutu adlari normalize edilir.
-  multi_locus.py,        -> hedefler.hedef_baglami() : steps/hedefler.tsv
-  referans_tasarim.py     ve screening/hedef_uyelik.tsv uzerinden TAXID
-                          kumesi + sinif suzgeci. Karisik kutu kavrami YOK.
+  single_protocol_measure.py  -> uyelik_yeniden_turetme_uyelik_*.tsv (the MEASURED
+                          membership); a mixed bin counts as a COMPETITOR and the bin
+                          names are normalised.
+  multi_locus.py,        -> hedefler.hedef_baglami(): a TAXID set plus a class filter
+  referans_tasarim.py     over steps/hedefler.tsv and screening/hedef_uyelik.tsv.
+                          There is NO notion of a mixed bin.
 
-Iki yol farkli uye/rakip kumesi kurar. Her ikisi de kendi icinde dogru hesap
-yapar ama sonuclar KARSILASTIRILAMAZ.
+The two routes build different member and competitor sets. Each is internally
+correct and the results ARE NOT COMPARABLE.
 
-BU MODUL panelin yolunu TEK dogru yol kabul eder ve onu ICE AKTARIR:
-  - uyelik okuma      : tek_protokol_olc.uyelik_oku
-  - kutu adi duzeltme : tek_protokol_olc.kutu_adi_normalize
-  - verdikt           : tek_protokol_olc.karar
-  - esik/protokol     : tek_protokol_olc.PROTOKOL
-  - ASIL OLCUM        : screening.sample.Numune.olc  (yeniden yazilmadi)
+THIS MODULE takes the panel's route as the ONE right route and IMPORTS it:
+  - reading the membership : tek_protokol_olc.uyelik_oku
+  - fixing the bin name    : tek_protokol_olc.kutu_adi_normalize
+  - the verdict            : tek_protokol_olc.karar
+  - the threshold/protocol : tek_protokol_olc.PROTOKOL
+  - THE MEASUREMENT ITSELF : screening.sample.Numune.olc  (not rewritten)
 
-Bu dosyada HICBIR ayrim sayisi hesaplanmaz; yalnizca panelin hesapladigi sayi
-tasinir.
+NO discrimination number is computed in this file; the number the panel computed is
+only carried across.
 
-ONBELLEK ANAHTARI: anahtara primer DIZISI girer (F|R). Dizi degisince onbellek
-kendiliginden gecersiz olur.
+THE CACHE KEY: the primer SEQUENCE goes into the key (F|R). When a sequence changes
+the cache becomes invalid by itself.
+
 """
 import os, sys, json, hashlib
 
@@ -55,12 +57,13 @@ def _kur(kok):
 
 
 class Puanlayici(object):
-    """Panel derinliginde puanlayici.
+    """A scorer at panel depth.
 
-    otorite=True  -> okuma_motoru (KutuOtorite). PANELIN KULLANDIGI YOL.
-    otorite=False -> numpy havuz (KutuHavuzu). YALNIZ ON ELEME.
-    Ikisi ayni sayiyi vermek ZORUNDA DEGILDIR; panel derinligindeki her karar
-    otorite=True ile uretilir.
+    otorite=True  -> okuma_motoru (KutuOtorite). THE ROUTE THE PANEL USES.
+    otorite=False -> the numpy pool (KutuHavuzu). FOR PREFILTERING ONLY.
+    The two ARE NOT OBLIGED to give the same number; every decision at panel depth is
+    produced with otorite=True.
+
     """
 
     def __init__(self, kok, derinlik=None, karisik_kural=None, otorite=True,
@@ -102,7 +105,7 @@ class Puanlayici(object):
                 self._ob = {}
 
     def _coz(self, adlar):
-        """tek_protokol_olc.calistir icindeki coz() ile BIREBIR ayni."""
+        """Exactly the same as coz() inside tek_protokol_olc.calistir."""
         out = []
         for a in adlar:
             a2 = self.TP.kutu_adi_normalize(a.strip())
@@ -115,7 +118,7 @@ class Puanlayici(object):
         return out
 
     def baglam(self, hedef, sinif_yedek=''):
-        """Panelin uye/rakip kumesi. tek_protokol_olc.calistir ile BIREBIR ayni."""
+        """The panel's member and competitor set. Exactly the same as tek_protokol_olc.calistir."""
         if hedef in self._baglam:
             return self._baglam[hedef]
         u = self.uyelik.get(hedef)
@@ -184,8 +187,10 @@ class Puanlayici(object):
         return o
 
     def puanla(self, hedef, F, R, duzey='', yan=False):
-        """PANEL DERINLIGINDE puan. 'kat' ve 'durum' panelin karar() fonksiyonundan
-        gelir; burada esik karsilastirmasi YAPILMAZ."""
+        """A score AT PANEL DEPTH. 'kat' and 'durum' come from the panel's karar() function;
+        NO threshold comparison is made here.
+
+        """
         o1 = self.olc_ham(hedef, F, R, self.mm_asil)
         d1, g1, day1 = self.TP.karar(o1, hedef, duzey)
         s = dict(hedef=hedef, F=F.upper(), R=R.upper(),
