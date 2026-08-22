@@ -6,9 +6,9 @@
 #                  Normalizasyonu".
 #
 # INPUT  : the delivery panel given with --xlsx; the per file orientation table
-#          orientation_audit.py produces, given with --yon; the code route
-#          classification orientation_code_scan.py produces, given with --kod; and
-#          konsensus_kanonik/INDEKS.tsv given with --indeks. The notes on how each
+#          orientation_audit.py produces, given with --orientation; the code route
+#          classification orientation_code_scan.py produces, given with --code; and
+#          konsensus_kanonik/INDEKS.tsv given with --index. The notes on how each
 #          file was corrected (KOD_NOT) are fixed inside this file.
 # OUTPUT : it adds a new sheet to the given xlsx and saves it (wb.save); it prints
 #          the sheet name written and the row count to the screen.
@@ -78,9 +78,9 @@ def yaz(ws, r, c, v, fill=None, bold=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
-    ap.add_argument('--orientation', '--yon', dest='yon', required=True)
-    ap.add_argument('--code', '--kod', dest='kod', required=True)
-    ap.add_argument('--index', '--indeks', dest='indeks', required=True)
+    ap.add_argument('--orientation', dest='yon', required=True)
+    ap.add_argument('--code', dest='kod', required=True)
+    ap.add_argument('--index', dest='indeks', required=True)
     a = ap.parse_args()
 
     yr = list(csv.DictReader(open(a.yon, encoding='utf-8'), delimiter='\t'))
@@ -223,14 +223,14 @@ def main():
     for s in ['build_consensus.py was fixed in THREE places: (a) the template is converted to canonical, (b) the orphan bin template (a raw read) is converted too, (c) the OUTPUT is measured once more and converted before it is written (the last seat belt). The output fasta header carries kanonik=... cevrildi=..., and the columns cikti_yon and cikti_cevrildi were added to the TSV.',
               'A GATE WAS PUT IN: konsensus_uret.calistir() runs the orientation test first, and if it does not pass, GENERATION IS NOT STARTED and what to do is printed. The reason: if the output of this step comes out in the wrong orientation, the whole night is wasted.',
               "yon_sinamasi() was added inside self_test.py (3 items: orientation.py's own test, whether the canonical set still holds a reversed file, and a known-answer impact test). It does NOT TRIP over optional dependencies such as primer3, and it can be called on its own. It was run in this session: 3/3 PASSED (correct 39/40, reversed 0/40).",
-              'THE ORDER: (1) python screening/build_canonical.py --root .   (2) consensus regeneration from the verification/full_chain.py menu   (3) once generation finishes, run kanonik_uret AGAIN with --oncelik yeni so that the new set becomes the canonical source.']:
+              'THE ORDER: (1) python screening/build_canonical.py --root .   (2) consensus regeneration from the verification/full_chain.py menu   (3) once generation finishes, run kanonik_uret AGAIN with --priority yeni so that the new set becomes the canonical source.']:
         yaz(ws, n, 1, s, fill=SARI if s.startswith('SIRA') else None)
         ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=7)
         ws.row_dimensions[n].height = 56; n += 1
     n += 1
 
     yaz(ws, n, 1, '8. ACIK KALAN', bold=True, fill=SARI); n += 1
-    for s in ['konsensus_kanonik currently comes from referans_konsensus/konsensus (99 bins) plus 1 orphan bin (A1-1_2209, from the original directory, which was ANTISENSE and was converted). konsensus_yeni was NOT taken into the canonical set because it is INCOMPLETE (35/99); mixing a half set with a full one creates a heterogeneous base. Once the overnight generation finishes it should be re-run with --oncelik yeni.',
+    for s in ['konsensus_kanonik currently comes from referans_konsensus/konsensus (99 bins) plus 1 orphan bin (A1-1_2209, from the original directory, which was ANTISENSE and was converted). konsensus_yeni was NOT taken into the canonical set because it is INCOMPLETE (35/99); mixing a half set with a full one creates a heterogeneous base. Once the overnight generation finishes it should be re-run with --priority yeni.',
               "steps/split_clusters.py reads the mixed directory assuming a single orientation. It does not produce the panel's CURRENT numbers (it is a disabled line), but if it is re-run it gives a wrong answer. It should either be converted to canonical or archived.",
               'The scripts flagged KAYNAK_BELIRSIZ in yon_kod_taramasi (most of them under steps and engine) take the consensus path from the command line and leave the orientation to the caller. Those are the old line. If they are to be re-run, the canonical directory must be given.',
               'The orientation measurement on this page applies to the consensus files. RAW READ measurements are unaffected by orientation (reads are scanned in both directions anyway), so the numbers on the "16 Okuma Motoru Duzeltmesi" sheet are NOT AFFECTED by this finding.']:

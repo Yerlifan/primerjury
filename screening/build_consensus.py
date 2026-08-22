@@ -43,9 +43,9 @@ KNOWN TRAPS (all of them handled deliberately)
 #          konsensus_yeniden_uretim.tsv (calistir returns those two paths); plus a
 #          checkpoint per bin. The files produced are NOT USED DIRECTLY; run_all.py
 #          first takes them into the canonical directory through
-#          build_canonical.py --oncelik yeni, passing them through orientation
+#          build_canonical.py --priority yeni, passing them through orientation
 #          normalisation.
-# CALLED BY: verification/full_chain.py key 6 (--mod konsensus) and the 3rd stage
+# CALLED BY: verification/full_chain.py key 6 (--mode konsensus) and the 3rd stage
 #          inside key 9 (hepsi.calistir -> konsensus_uret.calistir).
 #
 # ORIENTATION is handled at three separate points here (the gate at the start of the
@@ -212,7 +212,7 @@ def calistir(yaz, sure, yalniz=None, yeniden=False):
     from . import self_test as _KS
     if not _KS.yon_sinamasi(yaz):
         yaz(u'   THE ORIENTATION TEST FAILED, so consensus generation WAS NOT STARTED.')
-        yaz(u'   Run this first: python screening/build_canonical.py --kok .')
+        yaz(u'   Run this first: python screening/build_canonical.py --root .')
         return None
     from .run_all import yon_kapisi
     _ok, _m = yon_kapisi(yaz, 'konsensus yeniden uretim')

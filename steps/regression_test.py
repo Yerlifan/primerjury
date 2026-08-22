@@ -8,7 +8,7 @@ mathematics.
 
 Usage:
   python3 regression_test.py                 # the quick tests
-  python3 regression_test.py --gercek-veri   # with real consensuses and reads
+  python3 regression_test.py --real-data   # with real consensuses and reads
 
 """
 import argparse, importlib.util, itertools, math, os, random, shutil, subprocess, sys, glob, tempfile
@@ -119,7 +119,7 @@ def testler(a):
                        gc_hard_min=35, gc_hard_max=65, gc_clamp_last=5,
                        gc_clamp_max=3, homopolymer_max=4, require_3p_gc=1,
                        degeneracy_budget=0, degeneracy_fold_max=4,
-                       iupac_max=2, iupac_son_yasak=5)
+                       iupac_max=2, iupac_clamp_forbidden=5)
     sina("3' ucu A ile biten oligo elenir",
          not E.composition_ok("CGCGATATCGCGATATCGA", ar)[0])
     sina("3' ucu G ile biten oligo gecer",
@@ -330,7 +330,7 @@ def testler(a):
         j0 = k09.index("    ayirt = {}")
         govde = _tw.dedent(k09[i0:j0])
         dtmp = _tf.mkdtemp()
-        sarmal = ("import os, sys\nclass A: adaylar=%r\na=A()\n"
+        sarmal = ("import os, sys\nclass A: candidates=%r\na=A()\n"
                   "def log(*x): pass\n" % dtmp + govde
                   + "\nprint('SONUC', sorted(dislanan))\n")
 
@@ -520,9 +520,9 @@ def testler(a):
             [sys.executable, os.path.join(HERE, "external_databases.py"),
              "--final", os.path.join(gec2, "final"),
              "--db", os.path.join(gec2, "REFERANS_DB"),
-             "--kons", os.path.join(gec2, "kons"),
-             "--hedefler", os.path.join(gec2, "hedefler.tsv"),
-             "--adlar", os.path.join(gec2, "adlar.tsv"),
+             "--consensus", os.path.join(gec2, "kons"),
+             "--targets", os.path.join(gec2, "hedefler.tsv"),
+             "--names", os.path.join(gec2, "adlar.tsv"),
              "--out", cik], capture_output=True, text=True)
         satir = {}
         if os.path.exists(cik):
@@ -776,8 +776,8 @@ def testler(a):
         cik3 = os.path.join(g3, "cikti.tsv")
         r3 = subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--hedefler", os.path.join(g3, "hedefler.tsv"),
-             "--adlar", os.path.join(g3, "adlar.tsv"),
+             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
              "--out", cik3], capture_output=True, text=True)
@@ -809,11 +809,11 @@ def testler(a):
         cik5 = os.path.join(g3, "cikti_esik3.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--hedefler", os.path.join(g3, "hedefler.tsv"),
-             "--adlar", os.path.join(g3, "adlar.tsv"),
+             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
-             "--capraz-tur-esik", "3",
+             "--cross-species-tolerance", "3",
              "--out", cik5], capture_output=True, text=True)
         sat5 = {}
         if os.path.exists(cik5):
@@ -837,8 +837,8 @@ def testler(a):
         cik4 = os.path.join(g3, "cikti2.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--hedefler", os.path.join(g3, "hedefler.tsv"),
-             "--adlar", os.path.join(g3, "adlar.tsv"),
+             "--targets", os.path.join(g3, "hedefler.tsv"),
+             "--names", os.path.join(g3, "adlar.tsv"),
              "--final", os.path.join(g3, "final"),
              "--db", os.path.join(g3, "REFERANS_DB"),
              "--out", cik4], capture_output=True, text=True)
@@ -897,11 +897,11 @@ def testler(a):
         cik6 = os.path.join(g4, "cikti.tsv")
         subprocess.run(
             [sys.executable, os.path.join(HERE, "check_taxonomic_level.py"),
-             "--hedefler", os.path.join(g4, "hedefler.tsv"),
-             "--adlar", os.path.join(g4, "adlar.tsv"),
+             "--targets", os.path.join(g4, "hedefler.tsv"),
+             "--names", os.path.join(g4, "adlar.tsv"),
              "--final", os.path.join(g4, "final"),
              "--db", os.path.join(g4, "REFERANS_DB"),
-             "--kimlik", os.path.join(g4, "kimlik.tsv"),
+             "--identity", os.path.join(g4, "kimlik.tsv"),
              "--out", cik6], capture_output=True, text=True)
         sat6 = {}
         if os.path.exists(cik6):
@@ -1014,18 +1014,18 @@ def testler(a):
          % len(RT.sec([dar, genis], ["Podospora"], 100)["Podospora"]))
     shutil.rmtree(g5, ignore_errors=True)
 
-    if a.gercek_veri:
+    if a.real_data:
         print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')
-        tsvler = sorted(glob.glob(os.path.join(HERE, a.aday, "*__*.tsv")))
+        tsvler = sorted(glob.glob(os.path.join(HERE, a.candidates, "*__*.tsv")))
         if not tsvler:
-            sina(u'a candidate TSV was found', False, a.aday)
+            sina(u'a candidate TSV was found', False, a.candidates)
         else:
             toplam = hata = 0
             for t in tsvler[:6]:
                 r = subprocess.run(
                     [sys.executable, os.path.join(HERE,
                                                   "check_primer_geometry.py"),
-                     "--tsv", t, "--kons", a.kons, "--en-fazla", "500"],
+                     "--tsv", t, "--consensus", a.consensus, "--max", "500"],
                     capture_output=True, text=True)
                 for line in r.stdout.splitlines():
                     if "gecen satir" in line:
@@ -1037,9 +1037,9 @@ def testler(a):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--gercek-veri", action="store_true")
-    p.add_argument("--aday", default="pr_aday")
-    p.add_argument("--kons", default="pr_kons/konsensus")
+    p.add_argument("--real-data", action="store_true")
+    p.add_argument("--candidates", default="pr_aday")
+    p.add_argument("--consensus", default="pr_kons/konsensus")
     a = p.parse_args()
     print("=" * 72)
     print("BORU HATTI REGRESYON TESTI")

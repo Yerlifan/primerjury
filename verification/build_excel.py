@@ -14,7 +14,7 @@ of the source files is written on the cover sheet; if a source changes, the Exce
 changes.
 
 To run:
-    python verification/build_excel.py --kok .
+    python verification/build_excel.py --root .
 Output:
     PrimerJury_PANEL_<date>.xlsx
 
@@ -151,7 +151,7 @@ def sayfa(wb, ad, basliklar, satirlar, genislik=None, notlar=None, renk=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     T = lambda *y: os.path.join(kok, *y)

@@ -20,7 +20,7 @@ Conserved regions (18S, 28S) do not separate at genus level; the script writes o
 every row which region it measured from, so the level of confidence is not hidden.
 
 Usage:
-  python3 target_identity.py --kons referans_konsensus/baskin/konsensus       --db REFERANS_DB --hedefler hedefler.tsv --adlar taxid_adlari.tsv       --out primer_final/hedef_kimlik.tsv
+  python3 target_identity.py --consensus referans_konsensus/baskin/konsensus       --db REFERANS_DB --targets hedefler.tsv --names taxid_adlari.tsv       --out primer_final/hedef_kimlik.tsv
 
 """
 import argparse, csv, collections, glob, os, re, subprocess, sys, tempfile, shutil
@@ -41,15 +41,15 @@ SINIF_DB = {
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--kons", required=True)
+    p.add_argument("--consensus", required=True)
     p.add_argument("--db", required=True)
-    p.add_argument("--hedefler", default="hedefler.tsv")
-    p.add_argument("--adlar", default="taxid_adlari.tsv")
+    p.add_argument("--targets", default="hedefler.tsv")
+    p.add_argument("--names", default="taxid_adlari.tsv")
     p.add_argument("--out", required=True)
-    p.add_argument("--min-hizalama", type=int, default=250,
+    p.add_argument("--min-alignment", type=int, default=250,
                    help="bundan kisa hizalamalar kimlik sayilmaz")
-    p.add_argument("--min-ozdeslik", type=float, default=90.0)
-    p.add_argument("--is-parcacigi", type=int, default=4)
+    p.add_argument("--min-identity", type=float, default=90.0)
+    p.add_argument("--threads", type=int, default=4)
     return p.parse_args()
 
 
@@ -78,13 +78,13 @@ def main():
     if not shutil.which("blastn"):
         sys.exit(u'blastn was not found. To install it: sudo apt-get install -y ncbi-blast+')
     ad = {}
-    if os.path.exists(a.adlar):
-        for l in open(a.adlar, encoding="utf-8"):
+    if os.path.exists(a.names):
+        for l in open(a.names, encoding="utf-8"):
             q = l.rstrip("\n").split("\t")
             if len(q) > 1:
                 ad[q[0]] = q[1]
     hedef_taxid = {}
-    for l in open(a.hedefler, encoding="utf-8"):
+    for l in open(a.targets, encoding="utf-8"):
         if l.startswith("#") or not l.strip():
             continue
         q = l.rstrip("\n").split("\t")
@@ -94,14 +94,14 @@ def main():
 
     # the bin inventory
     kutular = {}
-    for p in sorted(glob.glob(os.path.join(a.kons, "*.fasta"))):
+    for p in sorted(glob.glob(os.path.join(a.consensus, "*.fasta"))):
         et = re.sub(r"_(baskin|ref|self)?_?konsensus\.fasta$", "",
                     os.path.basename(p))
         m = re.match(r"((?:A1|A2|B|F1|F2))-\d+_(\d+)$", et)
         if m:
             kutular[et] = (m.group(1), m.group(2), oku_fasta(p))
     if not kutular:
-        sys.exit(u'no consensus found: %s' % a.kons)
+        sys.exit(u'no consensus found: %s' % a.consensus)
     print(u'bins: %d' % len(kutular))
 
     calisma = tempfile.mkdtemp(prefix="kimlik_")
@@ -129,7 +129,7 @@ def main():
                 ["blastn", "-query", sorgu, "-db", db, "-outfmt",
                  "6 qseqid pident length bitscore stitle",
                  "-max_target_seqs", "5",
-                 "-evalue", "1e-20", "-num_threads", str(a.is_parcacigi),
+                 "-evalue", "1e-20", "-num_threads", str(a.threads),
                  "-out", cikti], capture_output=True, text=True)
             print(u'   blastn %-3s x %-20s (%d bins)' % (sinif, dbad, len(kalan)))
             if r.returncode != 0:
@@ -142,7 +142,7 @@ def main():
                     continue
                 et, pid, aln, bit, tit = (q[0], float(q[1]), int(q[2]),
                                           float(q[3]), q[4])
-                zayif = aln < a.min_hizalama or pid < a.min_ozdeslik
+                zayif = aln < a.min_alignment or pid < a.min_identity
                 if zayif:
                     # The best hit that fails the threshold is kept too. "No match"
                     # and "the nearest relative is at 88 percent" are not the same

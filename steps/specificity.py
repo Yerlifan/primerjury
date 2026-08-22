@@ -71,8 +71,8 @@ def _girdi_parmak_izi(a):
     kullanilmasi, kosunun bitmis gorunmesine ama sonucun eski girdiye ait
     olmasina yol aciyordu."""
     h = hashlib.sha256()
-    h.update(("adaylar=%s\n" % os.path.abspath(a.adaylar)).encode())
-    for f in sorted(glob.glob(os.path.join(a.adaylar, "*__*.tsv"))):
+    h.update(("adaylar=%s\n" % os.path.abspath(a.candidates)).encode())
+    for f in sorted(glob.glob(os.path.join(a.candidates, "*__*.tsv"))):
         try:
             st = os.stat(f)
             h.update(("%s|%d|%d\n" % (os.path.basename(f), st.st_size,
@@ -80,14 +80,14 @@ def _girdi_parmak_izi(a):
         except OSError:
             pass
     for ek in ("ayirt_edilemez.tsv",):
-        yol = os.path.join(a.adaylar, ek)
+        yol = os.path.join(a.candidates, ek)
         try:
             st = os.stat(yol)
             h.update(("%s|%d|%d\n" % (ek, st.st_size, int(st.st_mtime))).encode())
         except OSError:
             h.update(("%s|yok\n" % ek).encode())
     try:
-        st = os.stat(a.hedefler)
+        st = os.stat(a.targets)
         h.update(("hedefler|%d|%d\n" % (st.st_size, int(st.st_mtime))).encode())
     except OSError:
         pass
@@ -103,9 +103,9 @@ def _girdi_parmak_izi(a):
             h.update(("%s|yok\n" % _b).encode())
     h.update(("kons=%s|top=%d|maxokuma=%d|wilson=%.5f|susici=%.5f|"
               "minuye=%s|bulasma=%d|mfe=%d|blast=%d\n"
-              % (os.path.abspath(a.kons) if a.kons else "-", a.top,
-                 a.max_okuma, a.rakip_wilson_max, a.sus_ici_fark_max,
-                 getattr(a, "min_uye_orani", ""), a.bulasma_ornek,
+              % (os.path.abspath(a.consensus) if a.consensus else "-", a.top,
+                 a.max_reads, a.competitor_wilson_max, a.within_strain_diff_max,
+                 getattr(a, "min_uye_orani", ""), a.contamination_sample,
                  int(a.atla_mfe), int(a.atla_blast))).encode())
     h.update(("bulasma_min=%s|sizinti_tavan=%s\n"
               % (getattr(a, "bulasma_min_okuma", ""),
@@ -371,18 +371,18 @@ def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--adaylar", required=True, help="08'in output directory")
+    p.add_argument("--candidates", required=True, help="08'in output directory")
     p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
     p.add_argument("--out", required=True)
-    p.add_argument("--hedefler", default=os.path.join(HERE, "hedefler.tsv"))
+    p.add_argument("--targets", default=os.path.join(HERE, "hedefler.tsv"))
     p.add_argument("--top", type=int, default=15,
                    help="number of best candidates tested per target")
-    p.add_argument("--max-okuma", type=int, default=20000,
+    p.add_argument("--max-reads", type=int, default=20000,
                    help="taxon basina taranacak en fazla reads; 0 sinirsiz. "
                         "Kirpma yapilirsa log'a yazilir.")
-    p.add_argument("--min-uye-orani", type=float, default=0.5,
+    p.add_argument("--min-member-fraction", type=float, default=0.5,
                    help="at least this fraction of target members must be confirmed in the raw reads")
-    p.add_argument("--kons", default=None,
+    p.add_argument("--consensus", default=None,
                    help="consensus directory. if given competitor kutulardaki "
                         "capraz bulasma olculur ve 'rakipte urun' karari bu "
                         "olculen sizintiyla karsilastirilarak verilir.")
@@ -390,22 +390,22 @@ def get_args():
                    help="must match the value used at the design stage")
     p.add_argument("--prod-hard-max", type=int, default=300,
                    help="must match the value used at the design stage")
-    p.add_argument("--bulasma-ornek", type=int, default=400)
-    p.add_argument("--bulasma-min-okuma", type=int, default=100,
+    p.add_argument("--contamination-sample", type=int, default=400)
+    p.add_argument("--contamination-min-reads", type=int, default=100,
                    help="when the carry-over measurement rests on fewer reads than this "
                         "sizintinin esigi acmasina izin verilmez")
-    p.add_argument("--sizinti-tavan", type=float, default=0.15,
+    p.add_argument("--leak-cap", type=float, default=0.15,
                    help="the leakage threshold may open up to this value at most")
-    p.add_argument("--rakip-wilson-max", type=float, default=0.02,
+    p.add_argument("--competitor-wilson-max", type=float, default=0.02,
                    help="rakipte urun veren reads oraninin Wilson alt siniri "
                         "bu degeri asarsa aday elenir")
-    p.add_argument("--sus-ici-fark-max", type=float, default=0.40,
+    p.add_argument("--within-strain-diff-max", type=float, default=0.40,
                    help="iki primerin baglanma orani arasindaki en buyuk fark; "
                         "asilirsa aday cezalandirilir")
     p.add_argument("--atla-mfe", action="store_true")
     p.add_argument("--atla-blast", action="store_true")
     p.add_argument("--mfe", default=None, help="mfeprimer ikilisinin yolu")
-    p.add_argument("--yeniden", action="store_true")
+    p.add_argument("--rerun", action="store_true")
     return p.parse_args()
 
 
@@ -416,7 +416,7 @@ def main():
     CKPT = os.path.join(a.out, "checkpoint.json")
     parmak = _girdi_parmak_izi(a)
     ckpt = {}
-    if os.path.exists(CKPT) and not a.yeniden:
+    if os.path.exists(CKPT) and not a.rerun:
         try:
             ham = json.load(open(CKPT, encoding="utf-8"))
             eski = ham.get("_girdi_parmak_izi") if isinstance(ham, dict) else None
@@ -436,7 +436,7 @@ def main():
         except Exception as e:
             log(u'the checkpoint could not be read (%s)' % e)
     t0 = time.time()
-    log(u'start. candidates=%s' % a.adaylar)
+    log(u'start. candidates=%s' % a.candidates)
 
     mfe = a.mfe or os.path.join(a.pt, "tools", "mfeprimer")
     kullan_mfe = (not a.atla_mfe) and os.path.exists(mfe) and os.access(mfe, os.X_OK)
@@ -463,18 +463,18 @@ def main():
 
     # the consensus inventory: (group, taxid) -> path. For the cross contamination measurement.
     kons = {}
-    if a.kons:
-        for p2 in glob.glob(os.path.join(a.kons, "*_konsensus.fasta")):
+    if a.consensus:
+        for p2 in glob.glob(os.path.join(a.consensus, "*_konsensus.fasta")):
             m = re.match(r"((?:A1|A2|B|F1|F2)-\d+)_(\d+)_", os.path.basename(p2))
             if m:
                 kons[(m.group(1), m.group(2))] = p2
         log(u'consensus inventory: %d files' % len(kons))
         log(alignment.durum())
         if not MAPPY:
-            log(u'WARNING: there is no alignment backend, cross contamination cannot be measured. The fixed threshold (--rakip-wilson-max %.3f) will be used.'
-                % a.rakip_wilson_max)
+            log(u'WARNING: there is no alignment backend, cross contamination cannot be measured. The fixed threshold (--competitor-wilson-max %.3f) will be used.'
+                % a.competitor_wilson_max)
     else:
-        log(u'--kons was not given: cross contamination will not be measured, a fixed threshold will be used (--rakip-wilson-max %.3f)' % a.rakip_wilson_max)
+        log(u'--consensus was not given: cross contamination will not be measured, a fixed threshold will be used (--competitor-wilson-max %.3f)' % a.competitor_wilson_max)
 
     def _kons_of(fq_yolu):
         b = os.path.basename(fq_yolu)
@@ -484,7 +484,7 @@ def main():
 
     # the target definitions
     hedefler = {}
-    for line in open(a.hedefler, encoding="utf-8"):
+    for line in open(a.targets, encoding="utf-8"):
         if line.startswith("#") or not line.strip():
             continue
         p = line.rstrip("\n").split("\t")
@@ -506,7 +506,7 @@ def main():
     # empty consensus does not mean the reads are gone, only that no consensus could be
     # built.
     dislanan = set()
-    dl = os.path.join(a.adaylar, "dislanan_takson.tsv")
+    dl = os.path.join(a.candidates, "dislanan_takson.tsv")
     if os.path.exists(dl):
         # The columns are read BY HEADER, not BY POSITION. In earlier versions this file had
         # 4 columns (taxid, etiket, uzunluk, kapsanan); code reading by position took the
@@ -530,7 +530,7 @@ def main():
             log("   %s %s" % (g, t))
 
     ayirt = {}
-    ae = os.path.join(a.adaylar, "ayirt_edilemez.tsv")
+    ae = os.path.join(a.candidates, "ayirt_edilemez.tsv")
     if os.path.exists(ae):
         for r in csv.DictReader(open(ae, encoding="utf-8"), delimiter="\t"):
             ayirt.setdefault((r["sinif"], r["taxid1"]), set()).add(r["taxid2"])
@@ -541,14 +541,14 @@ def main():
         log(u'WARNING: %s is missing, indistinguishable taxa will not be filtered out' % ae)
 
     sonuc = []
-    tsvler = sorted(glob.glob(os.path.join(a.adaylar, "*__*.tsv")))
+    tsvler = sorted(glob.glob(os.path.join(a.candidates, "*__*.tsv")))
     log(u'NOTE: external database specificity (mfeprimer and blastn) does NOT run in this script, it runs in the external_databases.py step.')
     log(u'candidate files to process: %d' % len(tsvler))
 
     for ti, tsv in enumerate(tsvler, 1):
         etiket = os.path.basename(tsv)[:-4]
         hedef, sinif = etiket.rsplit("__", 1)
-        if etiket in ckpt and not a.yeniden:
+        if etiket in ckpt and not a.rerun:
             log(u'[%d/%d] SKIPPED (checkpoint) %s' % (ti, len(tsvler), etiket))
             sonuc.extend(ckpt[etiket])
             continue
@@ -611,7 +611,7 @@ def main():
                 % ", ".join(sorted(atilan_tx)))
         log(u'[%d/%d] %-46s candidates=%d member_taxa=%d member_fastq=%d competitor_fastq=%d (at most %d reads per fastq)'
             % (ti, len(tsvler), etiket, len(rows), len(uye_takson),
-               len(uye_fq), len(rakip_fq), a.max_okuma))
+               len(uye_fq), len(rakip_fq), a.max_reads))
         if not uye_fq:
             log(u'      no member fastq was found, the raw read verification will be skipped')
 
@@ -627,7 +627,7 @@ def main():
                 return (0, 0)
             en = (0, 0)
             for hk in uye_kons:
-                k, n = capraz_bulasma(hk, rk, rakip_yolu, a.bulasma_ornek)
+                k, n = capraz_bulasma(hk, rk, rakip_yolu, a.contamination_sample)
                 if n and (not en[1] or k / n > en[0] / max(1, en[1])):
                     en = (k, n)
             return en
@@ -646,7 +646,7 @@ def main():
                 tx_urun = 0
                 for p in yollar:
                     tot, fh_, rh, both = okuma_taramasi(p, F, R, pmin, pmax,
-                                                        a.max_okuma)
+                                                        a.max_reads)
                     if tot:
                         f_or.append(fh_ / tot)
                         r_or.append(rh / tot)
@@ -661,7 +661,7 @@ def main():
             rak_detay = []
             rakipte_gercek = False
             for p in rakip_fq:
-                tot, fh_, rh, both = okuma_taramasi(p, F, R, pmin, pmax, a.max_okuma)
+                tot, fh_, rh, both = okuma_taramasi(p, F, R, pmin, pmax, a.max_reads)
                 w = wilson_alt(both, tot)
                 # The UPPER bound of the measured bin leakage. If the product ratio is
                 # below this, the reads giving a product can be explained by TARGET
@@ -673,13 +673,13 @@ def main():
                 # one of 5 reads to 0.43, so a competitor giving a product in half its
                 # reads counts as "clean". So leakage can only raise the threshold when
                 # there are enough reads, and the amount it raises it by is capped.
-                if bn >= a.bulasma_min_okuma:
-                    sizinti_ust = min(wilson_ust(bk, bn), a.sizinti_tavan)
+                if bn >= a.contamination_min_reads:
+                    sizinti_ust = min(wilson_ust(bk, bn), a.leak_cap)
                     sizinti_not = "%.4f" % sizinti_ust
                 else:
                     sizinti_ust = 0.0
                     sizinti_not = "yetersiz_okuma(%d)" % bn
-                esik = max(a.rakip_wilson_max, sizinti_ust)
+                esik = max(a.competitor_wilson_max, sizinti_ust)
                 if w > esik:
                     rakipte_gercek = True
                 rak_detay.append("%s=%d/%d(W%.4f,sizinti<%s)"
@@ -696,13 +696,13 @@ def main():
             # was added at all and the candidate was delivered as PASSED.
             if not uye_fq:
                 durum.append("uye_okumasi_yok")
-            elif uye_orani is None or uye_orani < a.min_uye_orani:
+            elif uye_orani is None or uye_orani < a.min_member_fraction:
                 durum.append("numuneden_dogrulanamadi")
             if not rakip_fq:
                 durum.append("rakip_sinanmadi")
             elif rakipte_gercek:
                 durum.append("rakipte_urun")
-            if sus_fark > a.sus_ici_fark_max:
+            if sus_fark > a.within_strain_diff_max:
                 durum.append("sus_ici_degisken")
             r2 = dict(r)
             r2.update(hedef=hedef, sinif=sinif, karar=h.get("karar", ""),

@@ -235,10 +235,10 @@ def get_args():
                         "Toplanti karari 'rakiplerin hicbirinde urun olusmamali' "
                         "dedigi icin varsayilan sinirsizdir.")
     # ozgulluk
-    p.add_argument("--rakip-prod-min", type=int, default=1,
+    p.add_argument("--competitor-prod-min", type=int, default=1,
                    help="rakipte urun sayilmasi for en kucuk boy; rakipte "
                         "herhangi bir bant istenmedigi icin varsayilan 1")
-    p.add_argument("--yetim-min-uyumsuzluk", type=int, default=0,
+    p.add_argument("--orphan-min-mismatch", type=int, default=0,
                    help="0: kati kural, yetim primer rakiplerde HIC baglanmamali. "
                         ">0: rakiplerdeki en iyi yerlesimi bu kadar uyumsuzluk "
                         "tasiyan primer de yetim sayilir (gevsetilmis kademe)")
@@ -258,10 +258,10 @@ def get_args():
     p.add_argument("--require-3p-gc", type=int, default=1)
     p.add_argument("--degeneracy-budget", type=int, default=0)
     p.add_argument("--degeneracy-fold-max", type=int, default=4)
-    p.add_argument("--varyantlari-tut", action="store_true",
+    p.add_argument("--keep-variants", action="store_true",
                    help="keep IUPAC sibling variants of the same locus as separate rows")
     p.add_argument("--iupac-max", type=int, default=2)
-    p.add_argument("--iupac-son-yasak", type=int, default=5)
+    p.add_argument("--iupac-clamp-forbidden", type=int, default=5)
     p.add_argument("--tm-min", type=float, default=58.0)
     p.add_argument("--tm-max", type=float, default=62.0)
     p.add_argument("--tm-hard-min", type=float, default=57.0)
@@ -536,7 +536,7 @@ def main():
             rakip_en_iyi[o] = en_iyi
             if en_iyi is None:
                 orphan.add(o); n_tam += 1
-            elif a.yetim_min_uyumsuzluk and en_iyi >= a.yetim_min_uyumsuzluk:
+            elif a.orphan_min_mismatch and en_iyi >= a.orphan_min_mismatch:
                 # The step used when the strict rule cannot be met: if even
                 # the BEST placement of the primer in the competitors carries
                 # this many mismatches, the binding stays weak even when the
@@ -544,8 +544,8 @@ def main():
                 # in the output.
                 orphan.add(o)
         print(u'oligos that bind nowhere in the competitors: %d' % n_tam)
-        if a.yetim_min_uyumsuzluk:
-            print(u'oligos whose best placement in the competitors carries >=%d mismatches: %d (the relaxed step)' % (a.yetim_min_uyumsuzluk,
+        if a.orphan_min_mismatch:
+            print(u'oligos whose best placement in the competitors carries >=%d mismatches: %d (the relaxed step)' % (a.orphan_min_mismatch,
                                             len(orphan) - n_tam))
         dag = {}
         for v in rakip_en_iyi.values():
@@ -644,7 +644,7 @@ def main():
                 # as well.
                 if product_len(bind[f["oligo"]][t], bind[r["oligo"]][t],
                                f["ln"], r["ln"], a, pmax=cpmax,
-                               pmin=a.rakip_prod_min) is not None:
+                               pmin=a.competitor_prod_min) is not None:
                     bad = True
                     break
             if bad:
@@ -732,7 +732,7 @@ def main():
     # Otherwise the first ten candidates fill up with the allele variants of one
     # region and the table loses its diversity. What is kept is the variant with the
     # lowest penalty; how many siblings there were is reported in its own column.
-    if not a.varyantlari_tut:
+    if not a.keep_variants:
         onceki = len(pairs)
         secili, gorulen = [], {}
         for pr in pairs:

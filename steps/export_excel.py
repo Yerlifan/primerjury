@@ -5,10 +5,10 @@ export_excel.py
 Primer tasarımının bütün çıktılarını tek bir Excel dosyasında toplar.
 
 Girdi klasörleri:
-  --aday   08'in çıktısı (ozet.tsv, ayirt_edilemez.tsv, *.log)
+  --candidates   08'in çıktısı (ozet.tsv, ayirt_edilemez.tsv, *.log)
   --final  09'un çıktısı (primer_final.tsv)
-  --bol    05'in çıktısı (isteğe bağlı, *_bolme.json)
-  --adlar  taxid ad tablosu
+  --splits    05'in çıktısı (isteğe bağlı, *_bolme.json)
+  --names  taxid ad tablosu
 """
 import argparse, csv, datetime, glob, json, os, re, sys
 from collections import OrderedDict
@@ -59,49 +59,49 @@ def genislik(ws, genislikler):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--aday", required=True)
+    p.add_argument("--candidates", required=True)
     p.add_argument("--final", required=True)
-    p.add_argument("--bol", default=None)
-    p.add_argument("--dis", default=None,
+    p.add_argument("--splits", default=None)
+    p.add_argument("--external", default=None,
                    help="output of the external-databases step (dis_veritabani.tsv)")
-    p.add_argument("--referans", default=None,
+    p.add_argument("--reference", default=None,
                    help="output of the design-from-reference step (primer_referans.tsv)")
-    p.add_argument("--adlar", default=None)
-    p.add_argument("--hedefler", default="hedefler.tsv")
-    p.add_argument("--kimlik", default=None,
+    p.add_argument("--names", default=None)
+    p.add_argument("--targets", default="hedefler.tsv")
+    p.add_argument("--identity", default=None,
                    help="output of the target-identity step (hedef_kimlik.tsv); if given, every "
                         "satira olculen kimlik sutunu eklenir")
-    p.add_argument("--kons", default=None,
+    p.add_argument("--consensus", default=None,
                    help="baskin alel consensus directory; alan tutarliligi "
                         "denetimi icin gerekir")
     p.add_argument("--out", required=True)
-    p.add_argument("--not-metni", default="")
+    p.add_argument("--note", default="")
     return p.parse_args()
 
 
 def main():
     a = get_args()
     ad = {}
-    if a.adlar and os.path.exists(a.adlar):
-        for l in open(a.adlar, encoding="utf-8"):
+    if a.names and os.path.exists(a.names):
+        for l in open(a.names, encoding="utf-8"):
             q = l.rstrip("\n").split("\t")
             if len(q) > 1:
                 ad[q[0]] = q[1]
     # Rather than producing an Excel that looks valid but is silently empty when the
     # input is missing, it stops plainly; an empty workbook was reading as "not one
     # candidate passed".
-    eksik = [y for y in (os.path.join(a.aday, "ozet.tsv"),
+    eksik = [y for y in (os.path.join(a.candidates, "ozet.tsv"),
                          os.path.join(a.final, "primer_final.tsv"))
              if not os.path.exists(y)]
     if eksik:
         sys.exit(u'The input file was not found, so no Excel was produced:\n   %s'
                  % "\n   ".join(eksik))
-    ozet = tsv(os.path.join(a.aday, "ozet.tsv"))
-    ayirt = tsv(os.path.join(a.aday, "ayirt_edilemez.tsv"))
+    ozet = tsv(os.path.join(a.candidates, "ozet.tsv"))
+    ayirt = tsv(os.path.join(a.candidates, "ayirt_edilemez.tsv"))
     final = tsv(os.path.join(a.final, "primer_final.tsv"))
-    hedefler = tsv(a.hedefler) if os.path.exists(a.hedefler) else []
-    ref_ham = tsv(a.referans) if a.referans else []
-    dis_yolu = a.dis or os.path.join(a.final, "dis_veritabani.tsv")
+    hedefler = tsv(a.targets) if os.path.exists(a.targets) else []
+    ref_ham = tsv(a.reference) if a.reference else []
+    dis_yolu = a.external or os.path.join(a.final, "dis_veritabani.tsv")
     dis_ham = tsv(dis_yolu)
     # (target, class, forward, reverse) -> total off target products
     dis = {}
@@ -118,7 +118,7 @@ def main():
     # if they do not sit side by side in the table, the reader takes the name to be
     # confirmed by sequence evidence.
     kimlik = {}
-    kyol = a.kimlik or os.path.join(a.final, "hedef_kimlik.tsv")
+    kyol = a.identity or os.path.join(a.final, "hedef_kimlik.tsv")
     for r in tsv(kyol):
         kimlik[r["hedef"]] = r
     if kimlik:
@@ -186,8 +186,8 @@ def main():
     # belong to ARE TAKEN OUT of the delivery. They break no rule, but they do not
     # represent the target; if they stay in the table that target looks covered when
     # it is not.
-    _ta = field_audit.taxid_alanlari(a.kons)
-    _ht = field_audit.hedef_taxidleri(a.hedefler)
+    _ta = field_audit.taxid_alanlari(a.consensus)
+    _ht = field_audit.hedef_taxidleri(a.targets)
     alan_disi = []
     temiz = []
     for x in gecen:
@@ -212,7 +212,7 @@ def main():
     kapsanan = sorted(set(x["hedef"] for x in gecen))
     satirlar = [
         ("Üretim zamanı", datetime.datetime.now().strftime("%d.%m.%Y %H:%M")),
-        ("Aday klasörü", a.aday),
+        ("Aday klasörü", a.candidates),
         ("Doğrulama klasörü", a.final),
         ("Toplam hedef", str(len(set(x["hedef"] for x in ozet)))),
         ("Aday üreten hedef", str(len(set(x["hedef"] for x in ozet
@@ -261,8 +261,8 @@ def main():
          "hem ham okuma ile ölçülür. Ölçümler ayrışırsa aday reddedilir ve "
          "ayrışma log'lanır."),
     ]
-    if a.not_metni:
-        satirlar.append(("Not", a.not_metni))
+    if a.note:
+        satirlar.append(("Not", a.note))
     for k, v in satirlar:
         ws.cell(row=r, column=1, value=k).font = KALIN if k else NORMAL
         c = ws.cell(row=r, column=2, value=v)
@@ -489,7 +489,7 @@ def main():
         ws.cell(row=4, column=1, value="Ayırt edilemez çift bulunmadı").font = NORMAL
 
     # ---------------- 5. The subset split ----------------
-    if a.bol and os.path.isdir(a.bol):
+    if a.splits and os.path.isdir(a.splits):
         ws = wb.create_sheet("Alt Küme Bölmesi")
         ws["A1"] = ("Tek primer çiftiyle kapsanamayan işlev grupları, "
                     "tasarlanabilirliğe göre alt kümelere bölündü. Bölme dizi "
@@ -503,7 +503,7 @@ def main():
                         "Üyeler"], satir=3)
         genislik(ws, [34, 11, 12, 14, 80])
         i = 4
-        for p in sorted(glob.glob(os.path.join(a.bol, "*_bolme.json"))):
+        for p in sorted(glob.glob(os.path.join(a.splits, "*_bolme.json"))):
             d = json.load(open(p, encoding="utf-8"))
             etiket = os.path.basename(p).replace("_bolme.json", "")
             for s in d.get("sets", []):
@@ -817,7 +817,7 @@ def main():
         (r"elenen, hetero-dimer dG\s*:\s*(\d+)", 10),
         (r"gecerli cift sayisi\s*:\s*(\d+)", 11),
     ]
-    for p in sorted(glob.glob(os.path.join(a.aday, "*__*.log"))):
+    for p in sorted(glob.glob(os.path.join(a.candidates, "*__*.log"))):
         t = open(p, encoding="utf-8", errors="replace").read()
         ws.cell(row=i, column=1,
                 value=os.path.basename(p)[:-4]).font = NORMAL

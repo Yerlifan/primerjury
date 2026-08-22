@@ -25,7 +25,7 @@ gercek bulgulari gurultuye gomer ve rapora guveni dusurur.
 KOSMA
 -----
     python3 tests/test_orientation_trap.py
-    python3 tests/test_orientation_trap.py --kok /baska/yol
+    python3 tests/test_orientation_trap.py --root /baska/yol
 
 Cikis kodu 0 = yedi sinamanin yedisi de beklendigi gibi.
 Yol GOMULU DEGILDIR: varsayilan olarak bu dosyanin bir ust dizini kok sayilir.
@@ -90,7 +90,7 @@ def ck_yukle(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default=VARSAYILAN_KOK)
+    p.add_argument('--root', dest='kok', default=VARSAYILAN_KOK)
     a = p.parse_args()
     ck = ck_yukle(a.kok)
 

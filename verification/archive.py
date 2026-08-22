@@ -20,8 +20,8 @@ Kodun okudugu hicbir dosyayi tasimaz. Tasimadan once her adayin adi butun
 sebebi yazilir. "Once tasi sonra kir" olmaz.
 
 Kosum:
-    python verification/archive.py --kok .            (yalniz plan)
-    python verification/archive.py --kok . --tasi     (gercekten tasi)
+    python verification/archive.py --root .            (yalniz plan)
+    python verification/archive.py --root . --move     (gercekten tasi)
 """
 from __future__ import print_function
 
@@ -142,8 +142,8 @@ def adaylar(kok):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--move', '--tasi', dest='tasi', action='store_true', help='gercekten tasi')
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--move', dest='tasi', action='store_true', help='gercekten tasi')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
     hedef = os.path.join(kok, '_SILINECEKLER', time.strftime('%Y-%m-%d') + '_arsiv')

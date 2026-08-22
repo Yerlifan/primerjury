@@ -8,7 +8,7 @@
 #   bash heavy_jobs.sh                # steps A, B, C, D, E
 #   bash heavy_jobs.sh --kraken       # adds step F as well (minutes)
 #   SECILEN_ESIK=0.02 bash heavy_jobs.sh --kraken   # apply the threshold directly
-#   bash heavy_jobs.sh --yalniz C     # one step only
+#   bash heavy_jobs.sh --only C     # one step only
 #
 # The steps:
 #   A  bin recovery            builds the B-1_2233851 consensus from the reads
@@ -22,7 +22,7 @@
 #      threshold               (the threshold scan first, then the chosen threshold)
 #   G  the Excel delivery      with the measured identity columns, after B
 #   H  the broad external      SILVA, UNITE, ROD, PR2; it takes HOURS and runs
-#      database scan           only with "--yalniz H"
+#      database scan           only with "--only H"
 #
 # Every step writes its own log under $PT/agir_log and none of them deletes
 # another's output. If a step fails the script DOES NOT STOP, it marks the failure
@@ -50,7 +50,7 @@ KRAKEN=0; YALNIZ=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --kraken) KRAKEN=1; shift;;
-    --yalniz) YALNIZ="$2"; shift 2;;
+    --only) YALNIZ="$2"; shift 2;;
     --pt) PT="$2"; shift 2;;
     *) echo "unknown option: $1" >&2; exit 2;;
   esac
@@ -110,16 +110,16 @@ KURT_FQ="$PT/fastq files/B-1/B-1-reads_2233851.fastq"
 if [ -f "$KURT_FQ" ] && [ ! -s "$KONS/B-1_2233851_baskin_konsensus.fasta" ]; then
   calistir A "bin recovery: B-1_2233851" \
     python3 "$HERE/recover_bins.py" --fastq "$KURT_FQ" \
-      --etiket B-1_2233851 --out "$KONS"
+      --label B-1_2233851 --out "$KONS"
 else
   say "STEP A was skipped (there is no fastq, or the consensus is there already)"
 fi
 
 # --- B. target identity -----------------------------------------------
 calistir B "target identity: the name against what the sequence shows" \
-  python3 "$HERE/target_identity.py" --kons "$KONS" --db "$PT/REFERANS_DB" \
-    --hedefler "$HERE/hedefler.tsv" --adlar "$HERE/taxid_adlari.tsv" \
-    --is-parcacigi "$IS" --out "$FINAL/hedef_kimlik.tsv"
+  python3 "$HERE/target_identity.py" --consensus "$KONS" --db "$PT/REFERANS_DB" \
+    --targets "$HERE/hedefler.tsv" --names "$HERE/taxid_adlari.tsv" \
+    --threads "$IS" --out "$FINAL/hedef_kimlik.tsv"
 
 # --- C. mfeprimer -----------------------------------------------------
 # In a small container the bacteria.16S step ran out of memory. There is 16 GB
@@ -127,7 +127,7 @@ calistir B "target identity: the name against what the sequence shows" \
 # marked "olculemedi" rather than being counted clean silently.
 calistir C "mfeprimer: the second measurement of external specificity" \
   python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" --db "$PT/REFERANS_DB" \
-    --mfe "$MFE" --cpu "$IS" --zaman-asimi 7200 \
+    --mfe "$MFE" --cpu "$IS" --timeout 7200 \
     --out "$FINAL/mfeprimer.tsv"
 
 # --- D. topluluk trendi -----------------------------------------------
@@ -150,21 +150,21 @@ if [ -d "$PT/kraken_c${SECILEN_ESIK:-0.02}" ]; then
     python3 "$HERE/abundance_rank.py" \
       --kraken "$PT/kraken_c${SECILEN_ESIK:-0.02}" \
       --out "$PT/bolluk_rutbe"
-  [ -s "$PT/bolluk_rutbe/ozet.tsv" ] && RUTBEARG="--rutbe $PT/bolluk_rutbe"
+  [ -s "$PT/bolluk_rutbe/ozet.tsv" ] && RUTBEARG="--rank $PT/bolluk_rutbe"
 else
   say "  NOTE: there is no kraken_c${SECILEN_ESIK:-0.02}, the rank coverage was skipped."
-  say "       First: SECILEN_ESIK=0.02 bash heavy_jobs.sh --yalniz F"
+  say "       First: SECILEN_ESIK=0.02 bash heavy_jobs.sh --only F"
 fi
 calistir D "the community trend: a rank aware abundance workbook" \
   python3 "$HERE/community_trends.py" --bracken "$PT/bracken results" \
-    --ayirt "$ADAY/ayirt_edilemez.tsv" \
-    ${KIMLIK[@]+--kimlik "${KIMLIK[@]}"} \
-    --adlar "$HERE/taxid_adlari.tsv" $RUTBEARG \
+    --distinguishable "$ADAY/ayirt_edilemez.tsv" \
+    ${KIMLIK[@]+--identity "${KIMLIK[@]}"} \
+    --names "$HERE/taxid_adlari.tsv" $RUTBEARG \
     --out "$PT/PrimerJury_Community_Trends.xlsx"
 
 # --- E. the self audit ------------------------------------------------
 calistir E "the self audit: the regression suite" \
-  python3 "$HERE/regression_test.py" --gercek-veri --aday "$ADAY" --kons "$KONS"
+  python3 "$HERE/regression_test.py" --real-data --candidates "$ADAY" --consensus "$KONS"
 # check_deliverables.py returns exit code 1 when it finds a CRITICAL item. That IS
 # NOT A CRASH, it is A FINDING: the raw primer_final.tsv holds mixed domain rows and
 # the Excel already leaves them out. Without separating the two, every run says "a
@@ -172,8 +172,8 @@ calistir E "the self audit: the regression suite" \
 say "----------------------------------------------------------------"
 say "STEP E2  the self audit: the delivery audit"
 T0E2=$(date +%s)
-python3 "$HERE/check_deliverables.py" --final "$FINAL" --kons "$KONS" \
-  --hedefler "$HERE/hedefler.tsv" --out "$FINAL/teslim_denetimi.tsv" \
+python3 "$HERE/check_deliverables.py" --final "$FINAL" --consensus "$KONS" \
+  --targets "$HERE/hedefler.tsv" --out "$FINAL/teslim_denetimi.tsv" \
   2>&1 | tee -a "$LOGD/adim_E2.log" | tail -n 40
 RCE2=${PIPESTATUS[0]}
 say "STEP E2 finished, exit=$RCE2, time=$(( ($(date +%s)-T0E2)/60 )) minutes"
@@ -205,7 +205,7 @@ if [ "$KRAKEN" = 1 ] || [ "$YALNIZ" = "F" ]; then
   else
     calistir F "the Kraken2 confidence threshold scan" \
       python3 "$HERE/reassign_confidence.py" --kraken "$PT/kraken results" \
-        --tarama 0,0.002,0.005,0.01,0.02,0.05,0.1 --tarama-okuma 20000 \
+        --scan 0,0.002,0.005,0.01,0.02,0.05,0.1 --scan-reads 20000 \
         --out "$PT/kraken_guven"
     say "  The scan table: $PT/kraken_guven/esik_taramasi.tsv"
     say "  Choose a threshold and run this command:"
@@ -226,12 +226,12 @@ fi
 if [ -z "$YALNIZ" ] || [ "$YALNIZ" = "G" ]; then
   REFC="$PT/primer_referans"
   REFARG=""
-  [ -s "$REFC/primer_referans.tsv" ] && REFARG="--referans $REFC/primer_referans.tsv"
+  [ -s "$REFC/primer_referans.tsv" ] && REFARG="--reference $REFC/primer_referans.tsv"
   calistir G "the Excel delivery, with the measured identity columns" \
     python3 "$HERE/export_excel.py" \
-      --aday "$ADAY" --final "$FINAL" --bol "$ADAY/kume_setleri" \
-      --adlar "$HERE/taxid_adlari.tsv" --hedefler "$HERE/hedefler.tsv" \
-      --kons "$KONS" --kimlik "$FINAL/hedef_kimlik.tsv" $REFARG \
+      --candidates "$ADAY" --final "$FINAL" --splits "$ADAY/kume_setleri" \
+      --names "$HERE/taxid_adlari.tsv" --targets "$HERE/hedefler.tsv" \
+      --consensus "$KONS" --identity "$FINAL/hedef_kimlik.tsv" $REFARG \
       --out "$PT/PrimerJury_Primer_Tasarimi.xlsx"
 fi
 
@@ -243,16 +243,16 @@ fi
 # SILVA SSU NR99, UNITE, ROD and PR2 carry environmental sequences too.
 # IT TAKES A LONG TIME (hours), which is why it is a separate step started by hand.
 if [ "$YALNIZ" = "H" ]; then
-  calistir H "the broad external database scan (external_databases.py --genis)" \
+  calistir H "the broad external database scan (external_databases.py --wide)" \
     python3 "$HERE/external_databases.py" --final "$FINAL" \
-      --db "$PT/REFERANS_DB" --genis --is-parcacigi "$IS" --kons "$KONS" \
-      --hedefler "$HERE/hedefler.tsv" --adlar "$HERE/taxid_adlari.tsv" \
-      --kimlik "$FINAL/hedef_kimlik.tsv" \
-      --zaman-asimi 21600 --out "$FINAL/dis_veritabani_genis.tsv"
-  calistir H2 "the broad set, the second measurement (mfeprimer_layer.py --genis)" \
+      --db "$PT/REFERANS_DB" --wide --threads "$IS" --consensus "$KONS" \
+      --targets "$HERE/hedefler.tsv" --names "$HERE/taxid_adlari.tsv" \
+      --identity "$FINAL/hedef_kimlik.tsv" \
+      --timeout 21600 --out "$FINAL/dis_veritabani_genis.tsv"
+  calistir H2 "the broad set, the second measurement (mfeprimer_layer.py --wide)" \
     python3 "$HERE/mfeprimer_layer.py" --final "$FINAL" \
-      --db "$PT/REFERANS_DB" --mfe "$MFE" --genis --cpu "$IS" \
-      --zaman-asimi 21600 --blast "$FINAL/dis_veritabani_genis.tsv" \
+      --db "$PT/REFERANS_DB" --mfe "$MFE" --wide --cpu "$IS" \
+      --timeout 21600 --blast "$FINAL/dis_veritabani_genis.tsv" \
       --out "$FINAL/mfeprimer_genis.tsv"
 fi
 

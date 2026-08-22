@@ -17,11 +17,11 @@ katman 2'de de olup olmadigi bu betikle olculur.
 
 KOSMA
 -----
-    python3 tests/measure_layer2_taxonomy.py --kucuk
-    python3 tests/measure_layer2_taxonomy.py --vtb SILVA_138.2_SSURef_NR99.fasta
-    python3 tests/measure_layer2_taxonomy.py --hedef Bakteri_universal
+    python3 tests/measure_layer2_taxonomy.py --small
+    python3 tests/measure_layer2_taxonomy.py --db SILVA_138.2_SSURef_NR99.fasta
+    python3 tests/measure_layer2_taxonomy.py --target Bakteri_universal
 
---kucuk : yalniz kucuk RefSeq kumeleri (~75 MB, dakikalar). Kapsam degil,
+--small : yalniz kucuk RefSeq kumeleri (~75 MB, dakikalar). Kapsam degil,
           YONTEMIN CALISTIGININ kaniti ve ilk buyukluk mertebesi.
 Tam kapsam icin SILVA/UNITE gibi buyuk kumeler ayrica verilmelidir; suresi
 saatlerdir ve bu betik onu SESSIZCE yapmaz.
@@ -70,9 +70,9 @@ def ciftleri_oku():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--small', '--kucuk', dest='kucuk', action='store_true')
-    p.add_argument('--db', '--vtb', dest='vtb', nargs='*', default=None)
-    p.add_argument('--target', '--hedef', dest='hedef', default=None)
+    p.add_argument('--small', dest='kucuk', action='store_true')
+    p.add_argument('--db', dest='vtb', nargs='*', default=None)
+    p.add_argument('--target', dest='hedef', default=None)
     a = p.parse_args()
 
     ciftler = ciftleri_oku()

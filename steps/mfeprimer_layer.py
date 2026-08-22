@@ -87,10 +87,10 @@ def get_args():
                         "secici, 9 (mfeprimer varsayilani) asiri gevsek ve "
                         "cok yavas. Bu deger toplanti kararindaki 3' uc "
                         "kuralini UYGULAMAZ, betik basindaki nota bakin.")
-    p.add_argument("--genis", action="store_true",
+    p.add_argument("--wide", action="store_true",
                    help="also scan the same wide database set as the external-databases step")
     p.add_argument("--cpu", type=int, default=4)
-    p.add_argument("--zaman-asimi", type=int, default=3600)
+    p.add_argument("--timeout", type=int, default=3600)
     return p.parse_args()
 
 
@@ -151,7 +151,7 @@ def main():
 
     for sinif, ciftler in sorted(sinif_cift.items()):
         dblist = list(SINIF_DB.get(sinif, []))
-        if a.genis:
+        if a.wide:
             dblist += SINIF_DB_GENIS.get(sinif, [])
         for dbad in dblist:
             fna = os.path.join(a.db, dbad)
@@ -196,9 +196,9 @@ def main():
                   % (sinif, dbad, len(ciftler)))
             try:
                 p = subprocess.run(cmd, capture_output=True, text=True,
-                                   timeout=a.zaman_asimi)
+                                   timeout=a.timeout)
             except subprocess.TimeoutExpired:
-                print(u'      TIMEOUT (%d s), skipped' % a.zaman_asimi)
+                print(u'      TIMEOUT (%d s), skipped' % a.timeout)
                 continue
             ciktisi = (p.stdout or "") + (p.stderr or "")
             if p.returncode != 0:

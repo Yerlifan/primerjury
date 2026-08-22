@@ -19,7 +19,7 @@ The group and year mapping is built from the barcode NUMBER rather than from the
 directory name: F1 and F2 had been swapped in the source study's directory names.
 
 Usage:
-  python3 community_trends.py --bracken "bracken results"       --ayirt primer_adaylari/ayirt_edilemez.tsv       --kimlik t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv       --adlar taxid_adlari.tsv --out Topluluk_Trend.xlsx
+  python3 community_trends.py --bracken "bracken results"       --distinguishable primer_adaylari/ayirt_edilemez.tsv       --identity t_kimlik/kimlik_A.tsv t_kimlik/kimlik_B.tsv       --names taxid_adlari.tsv --out Topluluk_Trend.xlsx
 
 """
 import argparse, csv, datetime, glob, math, os, re, sys
@@ -61,15 +61,15 @@ RUTBE_ADI = {"D": "alem üstü", "K": "alem", "P": "şube", "C": "sınıf",
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--bracken", required=True, help="'bracken results' directory")
-    p.add_argument("--ayirt", default=None, help="ayirt_edilemez.tsv")
-    p.add_argument("--kimlik", nargs="*", default=[], help="kimlik_*.tsv")
-    p.add_argument("--adlar", default=None, help="taxid_adlari.tsv")
+    p.add_argument("--distinguishable", default=None, help="ayirt_edilemez.tsv")
+    p.add_argument("--identity", nargs="*", default=[], help="kimlik_*.tsv")
+    p.add_argument("--names", default=None, help="taxid_adlari.tsv")
     p.add_argument("--out", required=True)
-    p.add_argument("--ust", type=int, default=10, help="taxon shown on the page")
-    p.add_argument("--rutbe", default=None,
+    p.add_argument("--top", type=int, default=10, help="taxon shown on the page")
+    p.add_argument("--rank", default=None,
                    help="abundance_rank.py'nin output directory; if given "
                         "'Rutbe Kapsamasi' ve 'Guvenilir Bolluk' sayfalari eklenir")
-    p.add_argument("--kimlik-esik", type=float, default=50.0,
+    p.add_argument("--identity-threshold", type=float, default=50.0,
                    help="bin identity is suspect when the dominant fraction is below this value")
     return p.parse_args()
 
@@ -144,8 +144,8 @@ def guvenilirlik_kur(a):
     """Olculmus dosyalardan supheli TUR ve CINS kumelerini turetir.
     Doner: (supheli_tur -> gerekce, supheli_cins -> gerekce)"""
     ad = {}
-    if a.adlar and os.path.exists(a.adlar):
-        for l in open(a.adlar, encoding="utf-8"):
+    if a.names and os.path.exists(a.names):
+        for l in open(a.names, encoding="utf-8"):
             q = l.rstrip("\n").split("\t")
             if len(q) > 1:
                 ad[q[0]] = q[1]
@@ -158,8 +158,8 @@ def guvenilirlik_kur(a):
         if metin not in sozluk[anahtar]:
             sozluk[anahtar].append(metin)
 
-    if a.ayirt and os.path.exists(a.ayirt):
-        for r in csv.DictReader(open(a.ayirt, encoding="utf-8"), delimiter="\t"):
+    if a.distinguishable and os.path.exists(a.distinguishable):
+        for r in csv.DictReader(open(a.distinguishable, encoding="utf-8"), delimiter="\t"):
             t1, t2 = r.get("taxid1", ""), r.get("taxid2", "")
             a1, a2 = ad.get(t1, t1), ad.get(t2, t2)
             oz = r.get("kati_ozdeslik", r.get("ozdeslik_yuzde", ""))
@@ -171,7 +171,7 @@ def guvenilirlik_kur(a):
                 ekle(cins, cins_adi(x),
                      u'there is an indistinguishable species pair in this genus')
 
-    for yol in a.kimlik:
+    for yol in a.identity:
         if not os.path.exists(yol):
             continue
         for r in csv.DictReader(open(yol, encoding="utf-8"), delimiter="\t"):
@@ -190,7 +190,7 @@ def guvenilirlik_kur(a):
             #  (a) the reads go to another GENUS   -> the bin identity is wrong
             #  (b) no reference reaches a majority -> the bin is undefined
             yanlis_cins = bool(kendi) and kendi not in bref
-            cogunluk_yok = oran < a.kimlik_esik
+            cogunluk_yok = oran < a.identity_threshold
             if yanlis_cins:
                 ekle(tur, adi,
                      u'the bin\'s raw reads go to another genus (in bin %s the dominant reference is %s, %%%.1f)'
@@ -389,7 +389,7 @@ def main():
         # threshold WAS NOT APPLIED. If the rank coverage was measured, which
         # sheet to look at is written plainly; otherwise two different genus
         # tables sit side by side and the reader cannot tell which one holds.
-        if a.rutbe and os.path.exists(os.path.join(a.rutbe, "ozet.tsv")):
+        if a.rank and os.path.exists(os.path.join(a.rank, "ozet.tsv")):
             c = ws.cell(row=1, column=1,
                         value="BU SAYFA GÜVEN EŞİĞİ UYGULANMAMIŞ Bracken "
                               "çıktısındandır ve karşılaştırma için "
@@ -435,7 +435,7 @@ def main():
                             key=lambda t: -sum(veri[b].get(t, 0.0) for b in bcs))
             tablo = [(t, [veri[b].get(t, 0.0) for b in bcs]) for t in sirali]
             supheli = s_tur if duzey == "tur" else s_cins
-            r, ilk, son = bolum_yaz(ws, r, tablo, a.ust, supheli, duzey)
+            r, ilk, son = bolum_yaz(ws, r, tablo, a.top, supheli, duzey)
             grafik_yeri.setdefault(ad_sayfa, []).append((g, ilk, son))
         # grafikler
         for g, ilk, son in grafik_yeri.get(ad_sayfa, []):
@@ -520,9 +520,9 @@ def main():
     # what stays at an upper rank downward by the database's priors; if the
     # real organism is not in the database that is manufacturing numbers
     # rather than measuring.
-    rk = os.path.join(a.rutbe, "rutbe_kapsamasi.tsv") if a.rutbe else None
-    ro = os.path.join(a.rutbe, "ozet.tsv") if a.rutbe else None
-    rb = os.path.join(a.rutbe, "bolluk.tsv") if a.rutbe else None
+    rk = os.path.join(a.rank, "rutbe_kapsamasi.tsv") if a.rank else None
+    ro = os.path.join(a.rank, "ozet.tsv") if a.rank else None
+    rb = os.path.join(a.rank, "bolluk.tsv") if a.rank else None
     if rk and os.path.exists(ro):
         ozetler = list(csv.DictReader(open(ro, encoding="utf-8"), delimiter="\t"))
         ws = wb.create_sheet("Rütbe Kapsaması")
@@ -586,8 +586,8 @@ def main():
                     for j in range(1, 9):
                         ws.cell(row=r, column=j).fill = SARI
                 r += 1
-    elif a.rutbe:
-        print(u'WARNING: --rutbe was given but there is no ozet.tsv: %s' % ro)
+    elif a.rank:
+        print(u'WARNING: --rank was given but there is no ozet.tsv: %s' % ro)
 
     # ---------------- Guvenilirlik kaniti ----------------
     ws = wb.create_sheet("Tür Düzeyi Güvenilirlik")

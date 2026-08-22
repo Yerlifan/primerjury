@@ -22,7 +22,7 @@ THE DESIGN RULES (every one learned from a bug, none of them decoration)
 -----------------------------------------------------------------------
 1. THE PRE-CHECK IS A GATE. If something is missing, WHAT is missing is written
    out and the run STOPS. There is no half run. (It can be passed deliberately
-   with --on-kontrol-atla, and that is printed to the screen.)
+   with --skip-precheck, and that is printed to the screen.)
 2. THE EXIT CODE IS NOT MASKED. If rc != 0 the stage FAILED. In the past
    full_chain.py ignored stage T returning 3 and wrote "BITTI"; the summary came
    out misleading. Here rc AND the output audit are TWO SEPARATE filters and both
@@ -273,14 +273,14 @@ def ASAMALAR(ayar):
     karac = ayar.get('karac')
 
     def d_argv(kok, a):
-        arg = [os.path.join('verification', 'specificity_round.py'), '--kok', '.']
-        arg += ['--tumu'] if a.get('tumu', True) else ['--siparis']
+        arg = [os.path.join('verification', 'specificity_round.py'), '--root', '.']
+        arg += ['--all'] if a.get('tumu', True) else ['--order']
         if ncbi == 'yok':
-            arg += ['--yalniz-yerel']
+            arg += ['--local-only']
         else:
             arg += ['--ncbi', ncbi]
             if org:
-                arg += ['--organizma', org]
+                arg += ['--organism', org]
         return [_py(*arg)]
 
     def kraken_argv(kod):
@@ -289,7 +289,7 @@ def ASAMALAR(ayar):
     L = [
         dict(kod='8', ad=u'KENDINI SINA - kod kendini dogrular, olcum yapmaz',
              grup=u'Grup 4', betik='screening/__main__.py',
-             argv=lambda kok, a: [_py('-m', 'screening', '--sina')],
+             argv=lambda kok, a: [_py('-m', 'screening', '--selftest')],
              girdi=['screening'], cikti=[], bagimli=[],
              sure_sn=4.6, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06 kosusu',
              denet=d_selftest, hep_kos=True),
@@ -302,7 +302,7 @@ def ASAMALAR(ayar):
         dict(kod='N', ad=u'DENETIM - tablolar, referanslar ve muhurler her kosuda bakilir',
              grup=u'Grup 4', betik='verification/audit_all.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'audit_all.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              girdi=['verification/audit_all.py',
                     'screening/hedef_taxid.tsv',
                     'TEK_PROTOKOL_SONUC/SIPARIS_LISTESI.tsv'],
@@ -320,7 +320,7 @@ def ASAMALAR(ayar):
         dict(kod='H', ad=u'HIZLI TUTARLILIK TESTI - uzun kosudan ONCE gerileme kapisi',
              grup=u'Grup 4', betik='verification/quick_consistency_test.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'quick_consistency_test.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              girdi=['verification/quick_consistency_test.py',
                     'TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv'],
              cikti=['HIZLI_TEST/HIZLI_TEST_RAPORU.md'], bagimli=[],
@@ -330,7 +330,7 @@ def ASAMALAR(ayar):
         dict(kod='E', ad=u'VERITABANI ERISIM DOGRULAMASI - her VT gercekten okunuyor mu',
              grup=u'Grup 2', betik='verification/access_check.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'access_check.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              girdi=['verification/access_check.py'],
              cikti=['ERISIM_SONUC/erisim_dogrulama.tsv'], bagimli=[],
              sure_sn=None,
@@ -341,7 +341,7 @@ def ASAMALAR(ayar):
              grup=u'Grup 4', betik='engine/rederive_membership.py',
              argv=lambda kok, a: [_py(os.path.join('engine',
                                                    'rederive_membership.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              girdi=['engine/rederive_membership.py', 'consensus sequences'],
              cikti=['GLOB:uyelik_yeniden_turetme_uyelik_*.tsv'], bagimli=[],
              sure_sn=None,
@@ -351,7 +351,7 @@ def ASAMALAR(ayar):
         dict(kod='P', ad=u'TEK PROTOKOL - panelin tamami TEK kuralla olculur',
              grup=u'Grup 1', betik='protocol/single_protocol_measure.py',
              argv=lambda kok, a: [_py(os.path.join('protocol', 'single_protocol_measure.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              # 2026-08-09: ciftler.tsv eklendi, gerekce D asamasindaki notta.
              girdi=['protocol/single_protocol_measure.py', 'primer_final',
                     'screening/ciftler.tsv',
@@ -368,7 +368,7 @@ def ASAMALAR(ayar):
         dict(kod='K', ad=u'verification - esik alti satirlar dort yolla kurtarilir',
              grup=u'Grup 1', betik='verification/recovery_round.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'recovery_round.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              # 2026-08-09: ciftler.tsv eklendi, gerekce D asamasindaki notta.
              girdi=['verification/recovery_round.py',
                     'screening/ciftler.tsv',
@@ -403,7 +403,7 @@ def ASAMALAR(ayar):
         dict(kod='I', ad=u'KIMLIK DOGRULAMA - rapora giren iddialar bagimsiz sinanir',
              grup=u'Grup 2', betik='verification/identity_verification.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'identity_verification.py'),
-                                      '--kok', '.')],
+                                      '--root', '.')],
              girdi=['verification/identity_verification.py'],
              cikti=['KIMLIK_SONUC/kimlik_iddialari.tsv'], bagimli=[],
              sure_sn=12007.0,
@@ -413,7 +413,7 @@ def ASAMALAR(ayar):
         dict(kod='G', ad=u'TUM KUTU KIMLIKLERI - panele giren HER kutu dogrulanir',
              grup=u'Grup 2', betik='verification/all_bin_identities.py',
              argv=lambda kok, a: [_py(os.path.join('verification', 'all_bin_identities.py'),
-                                      '--kok', '.', '--nt', 'yok')],
+                                      '--root', '.', '--nt', 'yok')],
              girdi=['verification/all_bin_identities.py'],
              cikti=['TUM_KIMLIK_SONUC/tum_kutu_kimlikleri.tsv'], bagimli=['I'],
              sure_sn=17038.0,
@@ -441,7 +441,7 @@ def ASAMALAR(ayar):
 
         dict(kod='S', ad=u'OZETI YENILE - olcum yapmaz, mevcut dosyalari okur',
              grup=u'Grup 4', betik='screening/__main__.py',
-             argv=lambda kok, a: [_py('-m', 'screening', '--mod', 'ozet')],
+             argv=lambda kok, a: [_py('-m', 'screening', '--mode', 'ozet')],
              girdi=[], cikti=['KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md'], bagimli=[],
              sure_sn=0.7, kaynak=u'TAM_ZINCIR_SONUC/durum.json, 2026-08-06',
              denet=d_tsv_dolu(['KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md']),
@@ -1114,24 +1114,24 @@ def _ing_deger(a):
 def main():
     global CANLILIK_SN
     p = argparse.ArgumentParser(description=u'TEK TUS - butun zinciri sirayla kosar')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--plan', action='store_true', help=u'only plani yaz, kosma')
-    p.add_argument('--confirm', '--onayla', dest='onayla', action='store_true',
+    p.add_argument('--confirm', dest='onayla', action='store_true',
                    help=u'plani gosterip onay BEKLEMEDEN kos (bat bunu verir)')
-    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
+    p.add_argument('--rerun', dest='yeniden', action='store_true',
                    help=u're-run finished stages as well')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default='', help=u'these stages only, e.g. 8HS')
-    p.add_argument('--skip', '--atla', dest='atla', default='', help=u'skip these stages, e.g. IG')
+    p.add_argument('--only', dest='yalniz', default='', help=u'these stages only, e.g. 8HS')
+    p.add_argument('--skip', dest='atla', default='', help=u'skip these stages, e.g. IG')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto')
-    p.add_argument('--organism', '--organizma', dest='organizma',
+    p.add_argument('--organism', dest='organizma',
                    default='Bacteria (taxid:2) OR Archaea (taxid:2157) OR Fungi (taxid:4751)')
-    p.add_argument('--order-16', '--siparis-16', dest='siparis_16', action='store_true',
+    p.add_argument('--order-16', dest='siparis_16', action='store_true',
                    help=u'D asamasi 22 cift yerine only 16 siparis ciftini sinar')
-    p.add_argument('--db-path', '--vt', dest='vt', default=os.environ.get('VT_A', ''),
+    p.add_argument('--db-path', dest='vt', default=os.environ.get('VT_A', ''),
                    help=u'Kraken2 veritabani yolu')
-    p.add_argument('--skip-precheck', '--on-kontrol-atla', dest='on_kontrol_atla', action='store_true',
+    p.add_argument('--skip-precheck', dest='on_kontrol_atla', action='store_true',
                    help=u'skip the pre-check - not recommended; it is reported on screen')
-    p.add_argument('--liveness', '--canlilik', dest='canlilik', type=int, default=CANLILIK_SN,
+    p.add_argument('--liveness', dest='canlilik', type=int, default=CANLILIK_SN,
                    help=u'seconds between liveness messages')
     A = p.parse_args()
     CANLILIK_SN = max(2, A.canlilik)

@@ -713,7 +713,7 @@ def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
     uyari = None
     if kazanan_sira is not None and kazanan_sira > SIRA_UYARI_ESIGI:
         uyari = (u'KAZANAN %d. SIRADAN GELDI (esik %d, liste %d). Kesme noktasi '
-                 u'BAGLAYICI olmaya baslamis olabilir - --kisa-liste degerini '
+                 u'BAGLAYICI olmaya baslamis olabilir - --shortlist degerini '
                  u'buyutup tekrarlayin.' % (kazanan_sira, SIRA_UYARI_ESIGI, kl_ust))
     if kazanan_kaynak == 'garanti':
         uyari = ((uyari + u'  ||  ') if uyari else u'') + (
@@ -1678,7 +1678,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                      u'yuzden dogrulanamadi sayildi, sessizce atlanmadi. Elle '
                      u'tamamlamak icin: KIMLIK_SONUC/nt_elle/ altindaki sorgu '
                      u'dosyasini BLAST edip NT_SONUC_SABLONU.tsv icine yazin, '
-                     u'sonra --nt-yukle ile geri verin.'
+                     u'sonra --nt-load ile geri verin.'
                      % ((nt or {}).get('durum', 'kosulmadi')))
         # --- NAMING: merge the hits from every database, take the best five
         # and the defensible taxonomic level (the short lists are already in
@@ -1780,7 +1780,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
 # The "short list self calibration" section stands apart in the report: if every
 # winner came from inside the first 100 the cut off is NOT binding and that is said
 # openly; if any came from past 400 then 500 may not be enough either and raising
-# --kisa-liste is suggested. The adequacy of the list size therefore proves or
+# --shortlist is suggested. The adequacy of the list size therefore proves or
 # refutes itself on every run.
 #
 # The CORRECTION NEEDED rows stand at the TOP of the report: those are the ones
@@ -1943,7 +1943,7 @@ def raporla(CIKTI, sonuc, var, yaz):
                      % (SIRA_UYARI_ESIGI, n400, len(siralar)))
             fh.write(u'| winner entered via the "expected taxon guarantee" | %d queries |\n\n' % gar)
             if n400:
-                fh.write(u'> **WARNING.** In %d queries the winner came from beyond position %d. The cut off may still be binding; raise `--kisa-liste` (to %d, say) and repeat'
+                fh.write(u'> **WARNING.** In %d queries the winner came from beyond position %d. The cut off may still be binding; raise `--shortlist` (to %d, say) and repeat'
                          % (n400, SIRA_UYARI_ESIGI, boy * 2))
             elif n100:
                 fh.write(u'> %d of the winners came from outside the first %d, which '
@@ -2076,10 +2076,10 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# The command line: --yalniz a single claim, --vtb-ust how many databases,
-# --kisa-liste how many candidates are fully aligned (changing it invalidates the
-# old checkpoints), --nt the NCBI mode, --nt-yukle a hand filled template,
-# --literatur, --sifirla.
+# The command line: --only a single claim, --db-max how many databases,
+# --shortlist how many candidates are fully aligned (changing it invalidates the
+# old checkpoints), --nt the NCBI mode, --nt-load a hand filled template,
+# --literature, --reset.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
@@ -2100,10 +2100,10 @@ def _ing_deger(a):
 
 def main():
     p = argparse.ArgumentParser(description='Kimlik iddialarinin bagimsiz dogrulanmasi')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='iddia numarasi or metninden parca')
-    p.add_argument('--db-max', '--vtb-ust', dest='vtb_ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
-    p.add_argument('--shortlist', '--kisa-liste', type=int, default=KISA_LISTE, dest='kisa_liste',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--only', dest='yalniz', default=None, help='iddia numarasi or metninden parca')
+    p.add_argument('--db-max', dest='vtb_ust', type=int, default=len(VTB), help='kac veritabani kullanilsin')
+    p.add_argument('--shortlist', type=int, default=KISA_LISTE, dest='kisa_liste',
                    help=(u'her veritabanindan TAM HIZALANACAK aday sayisi (varsayilan %d). '
                          u'Buyuk deger kesme noktasini baglayici olmaktan cikarir; '
                          u'raporda "kazanan sira" sutunu yeterli olup olmadigini soyler. '
@@ -2111,18 +2111,18 @@ def main():
                          % KISA_LISTE))
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='oto',
                    help='NCBI nt layer: auto (URL API), manual (write a query file), none')
-    p.add_argument('--nt-load', '--nt-yukle', dest='nt_yukle', default=None,
+    p.add_argument('--nt-load', dest='nt_yukle', default=None,
                    help='doldurulmus NT_SONUC_SABLONU.tsv')
-    p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto',
+    p.add_argument('--literature', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto',
                    help='NCBI Taxonomy + PubMed literatur kontrolu')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
+    p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
     if not os.path.isdir(os.path.join(kok, 'screening')):
         sys.exit(u'ERROR: there is no screening directory inside %s.' % kok)
     if a.kisa_liste < 1:
-        sys.exit(u'ERROR: --kisa-liste must be at least 1.')
+        sys.exit(u'ERROR: --shortlist must be at least 1.')
     return calistir(kok, a.yalniz, a.sifirla, a.vtb_ust, a.nt, a.nt_yukle, a.literatur,
                     kl_ust=a.kisa_liste)
 

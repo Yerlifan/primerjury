@@ -49,7 +49,7 @@ The module tests BOTH and writes down which it is.
 # OUTPUT : KAPSAMLI_ARAMA_SONUC/UYELIK_DENETIMI.md and uyelik_duyarlilik.tsv
 #          (calistir returns those two paths as a list); plus a
 #          kontrol/uyelik_*.json checkpoint per target.
-# CALLED BY: verification/full_chain.py key 5 (--mod uyelik), key 7 -> choice "3"
+# CALLED BY: verification/full_chain.py key 5 (--mode uyelik), key 7 -> choice "3"
 #          (the membership audit of a single target) and the 6th stage inside key 9
 #          (hepsi.calistir -> uyelik_denetimi.calistir).
 #

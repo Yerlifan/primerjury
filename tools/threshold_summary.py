@@ -406,17 +406,17 @@ def selftest_sessiz():
 # ------------------------------------------------------------------ ana
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--is", dest="is1", default="")
-    ap.add_argument("--ad", default="veritabani 1")
-    ap.add_argument("--is2", default="")
-    ap.add_argument("--ad2", default="veritabani 2")
-    ap.add_argument("--root", "--kok", dest="kok", default="")
+    ap.add_argument("--job", dest="is1", default="")
+    ap.add_argument("--name", default="veritabani 1")
+    ap.add_argument("--job2", default="")
+    ap.add_argument("--name2", default="veritabani 2")
+    ap.add_argument("--root", dest="kok", default="")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         sys.exit(selftest())
     if not a.is1:
-        ap.error("--is gerekli")
+        ap.error("--job is required")
     if selftest_sessiz() != 0:
         print("THE TEST FAILED, stopped (project rule 2)")
         sys.exit(2)

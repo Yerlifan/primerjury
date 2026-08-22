@@ -19,7 +19,7 @@ neither is found, and the engine reports no product without raising anything.
 #                     is wrong" to a number: the same pair, the same consensus, the
 #                     only difference being orientation.
 #
-# INPUT  : the consensus directory given with --klasor under --kok (the default is
+# INPUT  : the consensus directory given with --dir under --root (the default is
 #          referans_konsensus/konsensus); the panel's universal pairs and three
 #          extra pairs are a fixed list inside the file. read_engine.py does the
 #          measuring, and engine/ispcr.py as well if it is present.
@@ -90,8 +90,8 @@ def ispcr_var(dizi, F, R, mm=3):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--root', '--kok', dest='kok', required=True)
-    ap.add_argument('--dir', '--klasor', dest='klasor', default='referans_konsensus/konsensus')
+    ap.add_argument('--root', dest='kok', required=True)
+    ap.add_argument('--dir', dest='klasor', default='referans_konsensus/konsensus')
     ap.add_argument('--mm', type=int, default=3)
     a = ap.parse_args()
 

@@ -280,7 +280,7 @@ def konsensusler():
     if not ix or not os.path.exists(ix):
         raise RuntimeError(
             'Kanonik konsensus indeksi yok: %s\n'
-            'Once uretin:  python screening/build_canonical.py --kok .\n'
+            'Once uretin:  python screening/build_canonical.py --root .\n'
             'Karisik yonlu "consensus sequences" klasorune DUSULMEZ - yon hatasi '
             'sessizce 0 urun verir.' % ix)
     kok = os.path.dirname(ix)

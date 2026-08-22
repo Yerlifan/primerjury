@@ -132,7 +132,7 @@ PROTOKOL VE NEDEN BOYLE SECILDI
    Karisik kutu, hedef organizmayi KISMEN tasidigi olculen kutudur. Uye saymak
    ayrimi yapay olarak yukseltir; tamamen dislamak gercek capraz sinyali gizler.
    RAKIP saymak en kotu durumu olcer - siparis karari icin dogru taraf budur.
-   Degistirilebilir (--karisik uye|rakip|disla) ama secim her ciktinin basina yazilir.
+   Degistirilebilir (--mixed uye|rakip|disla) ama secim her ciktinin basina yazilir.
 
 5) ESIK: dCq %(esik_dcq).1f = %(esik).2f kat, EN KOTU TEK RAKIP KUTU uzerinden
    (asgari %(enkotu_asgari_okuma)d okuma). Literatur olcutu; arac esigi DEGILDIR.
@@ -173,7 +173,7 @@ def vir(x, basamak=2):
 def kok_bul(arg):
     kok = os.path.abspath(arg or '.')
     if not os.path.isdir(os.path.join(kok, 'screening')):
-        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --kok.' % kok)
+        sys.exit(u'ERROR: there is no screening directory inside %s. Give the project directory with --root.' % kok)
     return kok
 
 
@@ -893,9 +893,9 @@ def girdi_denetle(yaz, ad, dosyalar):
     yaz('  ' + '!' * 70)
     return 5
 
-# The command line: --okuma the depth cap, --karisik what to do with mixed bins
-# (uye|rakip|disla; the default rakip measures the worst case), --yalniz a subset,
-# --sifirla deletes the checkpoints.
+# The command line: --reads the depth cap, --mixed what to do with mixed bins
+# (uye|rakip|disla; the default rakip measures the worst case), --only a subset,
+# --reset deletes the checkpoints.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
@@ -916,12 +916,12 @@ def _ing_deger(a):
 
 def main():
     p = argparse.ArgumentParser(description='Tek protokolle panel olcumu')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--reads', '--okuma', dest='okuma', type=int, default=PROTOKOL['okuma_tavani'],
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--reads', dest='okuma', type=int, default=PROTOKOL['okuma_tavani'],
                    help='cap on reads per bin (0 = all of them)')
-    p.add_argument('--mixed', '--karisik', dest='karisik', choices=['member', 'competitor', 'exclude', 'uye', 'rakip', 'disla'], default=PROTOKOL['karisik'])
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None, help='only targets whose name contains this (for testing)')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
+    p.add_argument('--mixed', dest='karisik', choices=['member', 'competitor', 'exclude', 'uye', 'rakip', 'disla'], default=PROTOKOL['karisik'])
+    p.add_argument('--only', dest='yalniz', default=None, help='only targets whose name contains this (for testing)')
+    p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)
     kok = kok_bul(a.kok)

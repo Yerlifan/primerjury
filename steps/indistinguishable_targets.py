@@ -19,8 +19,8 @@ If the two measurements diverge the pair is marked "ayrisan_olcum" and the decis
 is made on the cautious side (it counts as indistinguishable).
 
 Usage:
-  python3 indistinguishable_targets.py --kons <directory> [--out ayirt_edilemez.tsv]
-  python3 indistinguishable_targets.py --kons <directory> --adlar taxid_adlari.tsv
+  python3 indistinguishable_targets.py --consensus <directory> [--out ayirt_edilemez.tsv]
+  python3 indistinguishable_targets.py --consensus <directory> --names taxid_adlari.tsv
 
 """
 import argparse, csv, glob, os, re, sys
@@ -223,13 +223,13 @@ def ayirt_edilemezler(temsil, ozdeslik_esik=OZDESLIK_ESIK,
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--kons", required=True)
-    p.add_argument("--adlar", default=None,
+    p.add_argument("--consensus", required=True)
+    p.add_argument("--names", default=None,
                    help="taxid<TAB>ad file, only raporu okunakli kilar")
     p.add_argument("--out", default=None)
-    p.add_argument("--ozdeslik-esik", type=float, default=OZDESLIK_ESIK)
-    p.add_argument("--uzunluk-esik", type=int, default=UZUNLUK_ESIK)
-    p.add_argument("--kapsama-esik", type=float, default=KAPSAMA_ESIK)
+    p.add_argument("--identity-threshold", type=float, default=OZDESLIK_ESIK)
+    p.add_argument("--length-threshold", type=int, default=UZUNLUK_ESIK)
+    p.add_argument("--coverage-threshold", type=float, default=KAPSAMA_ESIK)
     return p.parse_args()
 
 
@@ -239,17 +239,17 @@ def main():
     if not MAPPY:
         print(u'WARNING: there is no alignment backend. Only k-mer containment will be used, which makes the measurement coarser.')
     ad = {}
-    if a.adlar and os.path.exists(a.adlar):
-        for line in open(a.adlar, encoding="utf-8"):
+    if a.names and os.path.exists(a.names):
+        for line in open(a.names, encoding="utf-8"):
             p = line.rstrip("\n").split("\t")
             if len(p) > 1:
                 ad[p[0]] = p[1]
-    temsil = envanter(a.kons)
+    temsil = envanter(a.consensus)
     print(u'representative consensus: %d (class, taxon) bins' % len(temsil))
-    rows = ayirt_edilemezler(temsil, a.ozdeslik_esik, a.uzunluk_esik,
-                             a.kapsama_esik)
+    rows = ayirt_edilemezler(temsil, a.identity_threshold, a.length_threshold,
+                             a.coverage_threshold)
     print(u'\nINDISTINGUISHABLE TAXON PAIRS (identity >= %%%.1f and aligned >= %d bp, or k-mer containment >= %.2f)'
-          % (a.ozdeslik_esik, a.uzunluk_esik, a.kapsama_esik))
+          % (a.identity_threshold, a.length_threshold, a.coverage_threshold))
     print("%-3s %-28s %-28s %8s %8s %8s %6s %8s  %s"
           % ("sn", "takson 1", "takson 2", "hizalanan", "kesisimli", "kati",
              "kapsam", "kmer", "gerekce"))

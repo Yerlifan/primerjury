@@ -777,15 +777,15 @@ bash sync.sh --dogrula
 ```
 
 ```bash
-bash heavy_jobs.sh --yalniz H
+bash heavy_jobs.sh --only H
 ```
 
 ```bash
-python3 check_taxonomic_level.py --hedefler hedefler.tsv --adlar taxid_adlari.tsv --final "$PT/primer_final" --referans "$PT/primer_referans/primer_referans.tsv" --db "$PT/REFERANS_DB" --kimlik "$PT/primer_final/hedef_kimlik.tsv" --is-parcacigi 4 --out "$PT/primer_final/duzey_denetimi.tsv"
+python3 check_taxonomic_level.py --targets hedefler.tsv --names taxid_adlari.tsv --final "$PT/primer_final" --reference "$PT/primer_referans/primer_referans.tsv" --db "$PT/REFERANS_DB" --identity "$PT/primer_final/hedef_kimlik.tsv" --threads 4 --out "$PT/primer_final/duzey_denetimi.tsv"
 ```
 
 ```bash
-python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" --hedefler-ref hedefler_referans.tsv --out "$PT/primer_referans"
+python3 design_from_reference.py --db "$PT/REFERANS_DB" --pt "$PT" --reference-targets hedefler_referans.tsv --out "$PT/primer_referans"
 ```
 
 The wide outside database sweep takes about 12 minutes, the level check about 5

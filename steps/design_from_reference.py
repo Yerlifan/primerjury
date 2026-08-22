@@ -11,7 +11,7 @@ türler ayrılabilir; oradan tasarlanan primer bilimsel olarak doğrudur ama bu
 numuneyle DOĞRULANAMAZ. Bu ayrım çıktıda açıkça taşınır: her satır
 `referanstan_tasarlandi` etiketi ve numunede ölçülen destek oranıyla gelir.
 
-Girdi tablosu (--hedefler-ref), sekmeyle ayrılmış:
+Girdi tablosu (--reference-targets), sekmeyle ayrılmış:
   ad            çıktı etiketi
   sinif         A1, A2, B, F1, F2   (numune desteği bu sınıfın okumalarında ölçülür)
   veritabani    REFERANS_DB içindeki dosya adı
@@ -21,7 +21,7 @@ Girdi tablosu (--hedefler-ref), sekmeyle ayrılmış:
 
 Kullanım:
   python3 design_from_reference.py --db REFERANS_DB --pt . \
-      --hedefler-ref hedefler_referans.tsv --out primer_referans
+      --reference-targets hedefler_referans.tsv --out primer_referans
 """
 import argparse, csv, glob, importlib.util, os, re, subprocess, sys, tempfile, datetime
 
@@ -170,22 +170,22 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--db", required=True, help="REFERANS_DB directory")
     p.add_argument("--pt", required=True, help="PrimerTasarlama kok directory")
-    p.add_argument("--hedefler-ref", required=True)
+    p.add_argument("--reference-targets", required=True)
     p.add_argument("--out", required=True)
-    p.add_argument("--max-okuma", type=int, default=3000)
+    p.add_argument("--max-reads", type=int, default=3000)
     p.add_argument("--top", type=int, default=5)
     p.add_argument("--extra", default="")
-    p.add_argument("--azami-uye", type=int, default=6,
+    p.add_argument("--max-members", type=int, default=6,
                    help="target ad basina alinacak en fazla reference dizi")
-    p.add_argument("--kardes-rakip", action="store_true", default=True,
+    p.add_argument("--sibling-competitors", action="store_true", default=True,
                    help="hedefin cinsindeki oteki turleri VERIDEN bulup "
                         "rakip kumesine ekler (varsayilan acik)")
-    p.add_argument("--kardes-rakip-kapali", dest="kardes_rakip",
+    p.add_argument("--no-sibling-competitors", dest="kardes_rakip",
                    action="store_false",
                    help="kardes tur rakiplerini kapatir (eski davranis)")
-    p.add_argument("--azami-kardes-tur", type=int, default=60,
+    p.add_argument("--max-sibling-species", type=int, default=60,
                    help="maximum number of sibling SPECIES taken as competitors")
-    p.add_argument("--azami-kardes-kayit", type=int, default=2,
+    p.add_argument("--max-sibling-records", type=int, default=2,
                    help="maximum sequences per sibling species")
     return p.parse_args()
 
@@ -198,7 +198,7 @@ def main():
     O = yukle("o09", os.path.join(HERE, "specificity.py"))
 
     hedefler = []
-    with open(a.hedefler_ref, encoding="utf-8") as fh:
+    with open(a.reference_targets, encoding="utf-8") as fh:
         for line in fh:
             if line.startswith("#") or not line.strip():
                 continue
@@ -234,7 +234,7 @@ def main():
                     % (h["ad"], os.path.basename(v)))
         ic_adlar = [x.strip() for x in h["ic"].split(",") if x.strip()]
         dis_adlar = [x.strip() for x in h["dis"].split(",") if x.strip()]
-        bul = sec(var_olan, ic_adlar + dis_adlar, a.azami_uye)
+        bul = sec(var_olan, ic_adlar + dis_adlar, a.max_members)
         eksik = [x for x in ic_adlar if not bul.get(x)]
         if eksik:
             log(u'SKIPPED %-34s a target name that is not in the database: %s'
@@ -246,12 +246,12 @@ def main():
                 % (h["ad"], ", ".join(yok_dis)))
 
         # VERIDEN TURETILEN KARDES TUR RAKIPLERI
-        if a.kardes_rakip:
+        if a.sibling_competitors:
             cinsler = {ad.split()[0] for ad in ic_adlar if ad.split()}
             hedef_turler = {ad for ad in ic_adlar if len(ad.split()) >= 2}
             kardes, kirpilan_tur = kardes_turleri_bul(
-                var_olan, cinsler, hedef_turler, a.azami_kardes_tur,
-                a.azami_kardes_kayit)
+                var_olan, cinsler, hedef_turler, a.max_sibling_species,
+                a.max_sibling_records)
             # The hand written competitors ARE KEPT, the sibling species are added on top.
             for tur, kayitlar in kardes.items():
                 if tur not in bul or not bul[tur]:
@@ -310,7 +310,7 @@ def main():
             destek, toplam_ok, urun_ok = 0, 0, 0
             for p in uye_fq:
                 tot, fh_, rh, both = O.okuma_taramasi(p, F, R, 50, 400,
-                                                      a.max_okuma)
+                                                      a.max_reads)
                 toplam_ok += tot
                 urun_ok += both
                 if both > 0:

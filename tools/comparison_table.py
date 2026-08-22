@@ -25,8 +25,8 @@ UC OLASI SONUC, UCU DE ACIKCA YAZILIR
 Tablo bizim aleyhimize cikarsa da oyle sunulur.
 
 Calistirma:
-  python3 comparison_table.py --kok <PROJE> --is-a <PlusPFP tarama> --ad-a PlusPFP \
-                               --is-b <eski VT tarama> --ad-b eski --esik 0.1
+  python3 comparison_table.py --root <PROJE> --job-a <PlusPFP tarama> --name-a PlusPFP \
+                               --job-b <eski VT tarama> --name-b eski --threshold 0.1
   python3 comparison_table.py --selftest
 """
 import argparse, ast, csv, glob, os, re, sys
@@ -478,12 +478,12 @@ def selftest_sessiz():
 # ------------------------------------------------------------------ ana
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", "--kok", dest="kok", default="")
-    ap.add_argument("--is-a", dest="is_a", default="")
-    ap.add_argument("--ad-a", dest="ad_a", default="PlusPFP")
-    ap.add_argument("--is-b", dest="is_b", default="")
-    ap.add_argument("--ad-b", dest="ad_b", default="eski VT")
-    ap.add_argument("--esik", type=float, default=0.1)
+    ap.add_argument("--root", dest="kok", default="")
+    ap.add_argument("--job-a", dest="is_a", default="")
+    ap.add_argument("--name-a", dest="ad_a", default="PlusPFP")
+    ap.add_argument("--job-b", dest="is_b", default="")
+    ap.add_argument("--name-b", dest="ad_b", default="eski VT")
+    ap.add_argument("--threshold", type=float, default=0.1)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -493,7 +493,7 @@ def main():
         sys.exit(2)
 
     satirlar, bilgi = tablo_kur(a.kok, a.is_a, a.ad_a,
-                                a.is_b if a.ad_b else "", a.ad_b, a.esik)
+                                a.is_b if a.ad_b else "", a.ad_b, a.threshold)
     if not satirlar:
         print(u'ERROR: there is no data to compare.')
         print(u'  The scan has to be run first:  bash kraken_tool.sh esik')
@@ -512,7 +512,7 @@ def main():
             print("  " + e)
         print(u'  A missing column must not be read as a column that was measured and came out empty.\n')
 
-    md = markdown(satirlar, bilgi, a.esik) + "\n" + yorum(satirlar, bilgi)
+    md = markdown(satirlar, bilgi, a.threshold) + "\n" + yorum(satirlar, bilgi)
     print(md)
 
     cikti = os.path.join(a.kok, "tools", "0_TESLIM_RAPOR") if a.kok else "."

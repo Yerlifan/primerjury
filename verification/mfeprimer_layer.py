@@ -30,7 +30,7 @@ Two traps this module handles, both measured the hard way:
 #          per pair and database. It writes no report of its own; the result is
 #          combined by specificity_round.py.
 # CALLED BY: verification/full_chain.py -> key D (indirectly: specificity_round.py
-#          loads this module as "LAYER 3"; it is skipped when --mfe-yok is given).
+#          loads this module as "LAYER 3"; it is skipped when --no-mfe is given).
 #
 # WHY AN INDEPENDENT TOOL IS REQUIRED: the sample measurement and the local database
 # scan use OUR same engine. If that engine has a bug, both layers go wrong in the

@@ -68,20 +68,20 @@ def ssu_sinir(dizi):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--target', '--hedef', dest='hedef', required=True)
+    ap.add_argument('--target', dest='hedef', required=True)
     ap.add_argument('--R', type=float, default=0.0)
-    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=150.0)
-    ap.add_argument('--status', '--durum', dest='durum', default='')
-    ap.add_argument('--primer-max', '--primer-ust', dest='primer_ust', type=int, default=1100)
-    ap.add_argument('--window-candidates', '--pencere-aday', dest='pencere_aday', type=int, default=6)
-    ap.add_argument('--arms-max', '--arms-ust', dest='arms_ust', type=int, default=8)
+    ap.add_argument('--duration', dest='sure', type=float, default=150.0)
+    ap.add_argument('--status', dest='durum', default='')
+    ap.add_argument('--primer-max', dest='primer_ust', type=int, default=1100)
+    ap.add_argument('--window-candidates', dest='pencere_aday', type=int, default=6)
+    ap.add_argument('--arms-max', dest='arms_ust', type=int, default=8)
     ap.add_argument('--sig', type=int, default=900)
-    ap.add_argument('--deep', '--derin', dest='derin', type=int, default=3000)
-    ap.add_argument('--stage', '--asama', dest='asama', default='tara', choices=['tara', 'derin'])
-    ap.add_argument('--member-taxid', '--uye-taxid', dest='uye_taxid', default='', help='set membership MANUALLY (comma-separated)')
-    ap.add_argument('--competitor-taxid', '--rakip-taxid', dest='rakip_taxid', default='', help='set competitors MANUALLY')
-    ap.add_argument('--class', '--sinif', dest='sinif', default='', help='bin class filter, e.g. F2')
-    ap.add_argument('--backbone', '--omurga', dest='omurga', default='',
+    ap.add_argument('--deep', dest='derin', type=int, default=3000)
+    ap.add_argument('--stage', dest='asama', default='tara', choices=['tara', 'derin'])
+    ap.add_argument('--member-taxid', dest='uye_taxid', default='', help='set membership MANUALLY (comma-separated)')
+    ap.add_argument('--competitor-taxid', dest='rakip_taxid', default='', help='set competitors MANUALLY')
+    ap.add_argument('--class', dest='sinif', default='', help='bin class filter, e.g. F2')
+    ap.add_argument('--backbone', dest='omurga', default='',
                     help='choose the template bin MANUALLY (a member bin with a solid consensus)')
     a = ap.parse_args()
     t0 = time.time()
@@ -127,20 +127,20 @@ def main():
         delimiter='\t')}
     # SUPPORT FOR A NEW TARGET (one with no row in the panel).
     # Most of the taxa in the requested list have no counterpart in the panel; the
-    # script used to crash here with StopIteration. When --uye-taxid is given the
+    # script used to crash here with StopIteration. When --member-taxid is given the
     # panel row is not needed at all: membership is supplied by hand. If there is a
     # panel row the existing pair is measured too and the comparison is printed; if
     # there is none, only the new design is done.
     ad = next((h for h in panel if a.hedef.lower() in h.lower()), None)
     if ad is None:
         if not a.uye_taxid:
-            sys.exit(u'ERROR: "%s" is not in the panel. For a new target give --uye-taxid.'
+            sys.exit(u'ERROR: "%s" is not in the panel. For a new target give --member-taxid.'
                      % a.hedef)
         sahte = {'hedef': a.hedef, 'sinif': (a.sinif or ''), 'F': '', 'R': ''}
         b = dict(hedef=a.hedef, siniflar=[a.sinif] if a.sinif else [],
                  uye_kutu=[], rakip_kutu=[], uye_kons=[], rakip_kons=[],
                  omurga=None, uye_tax=[], haric=[], anahtar='ELLE',
-                 uyelik_kaynagi='ELLE (--uye-taxid)', uyelik_notu='')
+                 uyelik_kaynagi='ELLE (--member-taxid)', uyelik_notu='')
         panel[a.hedef] = sahte
         ad = a.hedef
     else:
@@ -182,7 +182,7 @@ def main():
 
     if a.asama == 'tara':
         birim = []
-        # --omurga: choose the template BY HAND (2026-08-12).
+        # --backbone: choose the template BY HAND (2026-08-12).
         # The reason: omurgalar() picks the longest consensus, but the longest is not
         # necessarily the SOUND one. In the consensus health audit, in 30 of 99 bins the
         # consensus was measured not to represent the bin's own reads
@@ -193,7 +193,7 @@ def main():
         if a.omurga:
             zorla = [k for k in kons if k['kutu'] == a.omurga]
             if not zorla:
-                sys.exit(u'ERROR: there is no bin called --omurga %s.' % a.omurga)
+                sys.exit(u'ERROR: there is no bin called --backbone %s.' % a.omurga)
             om_liste = zorla
             print('OMURGA ELLE: %s (%d bp)' % (a.omurga, len(zorla[0]['dizi'])),
                   flush=True)

@@ -17,7 +17,7 @@ Iki bolum var:
 KOSMA
 -----
     python3 tests/test_taxonomy.py
-    python3 tests/test_taxonomy.py --ornek 5000
+    python3 tests/test_taxonomy.py --sample 5000
 """
 from __future__ import print_function
 import argparse
@@ -197,7 +197,7 @@ def bolum3(ornek):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--sample', '--ornek', dest='ornek', type=int, default=2000)
+    p.add_argument('--sample', dest='ornek', type=int, default=2000)
     a = p.parse_args()
     s = [bolum1(), bolum2(), bolum3(a.ornek)]
     print()

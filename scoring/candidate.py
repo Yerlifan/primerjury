@@ -52,10 +52,10 @@ def ucuz_gecti(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--target', '--hedef', dest='hedef', required=True)
-    ap.add_argument('--output', '--cikti', dest='cikti', required=True)
-    ap.add_argument('--sinama_F', default='')
-    ap.add_argument('--sinama_R', default='')
+    ap.add_argument('--target', dest='hedef', required=True)
+    ap.add_argument('--output', dest='cikti', required=True)
+    ap.add_argument('--test-forward', default='')
+    ap.add_argument('--test-reverse', default='')
     g = ap.parse_args()
 
     t0 = time.time()
@@ -91,10 +91,10 @@ def main():
     print('  tekil pencere (ucuz suzgec): %d   [%.1f sn]' % (len(pencere), time.time() - t0))
 
     # --- A TEST: is a pair known to work present in this window set?
-    if g.sinama_F:
-        rcR = motor.rc(g.sinama_R)
+    if g.test_forward:
+        rcR = motor.rc(g.test_reverse)
         print('  SINAMA  panel F pencerede: %s | panel rc(R) pencerede: %s'
-              % (g.sinama_F in pencere, rcR in pencere))
+              % (g.test_forward in pencere, rcR in pencere))
 
     ileri, geri, rakb = {}, {}, {}
     for w in pencere:
@@ -132,9 +132,9 @@ def main():
             rakb[w] = n
     print(u'  the competitor binding profile   [%.1f s]' % (time.time() - t0))
 
-    if g.sinama_F:
+    if g.test_forward:
         print('  SINAMA  panel F ileri-baglandi: %s | panel rc(R) geri-baglandi: %s'
-              % (g.sinama_F in ileri, motor.rc(g.sinama_R) in geri))
+              % (g.test_forward in ileri, motor.rc(g.test_reverse) in geri))
 
     json.dump(dict(hedef=g.hedef, uye_ad=uye_ad, rak_ad=rak_ad, ref=ref,
                    uye_uz=[len(x) for x in uye_sq], eksik_uye=eksik_uye,

@@ -7,8 +7,8 @@ Alan karisimi nedeniyle teslimden cikarilan ciftler burada da cikarilir;
 rapor ile Excel ayni kumeyi anlatmak zorundadir.
 
 Kullanim:
-  python3 rapor/veri_uret.py --final <FINAL> --kons <KONS> \
-      --hedefler hedefler.tsv --adlar taxid_adlari.tsv --out rapor/veri.json
+  python3 rapor/veri_uret.py --final <FINAL> --consensus <KONS> \
+      --targets hedefler.tsv --names taxid_adlari.tsv --out rapor/veri.json
 """
 import argparse, csv, json, os, sys
 
@@ -26,9 +26,9 @@ def vir(x, n=1):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--final", required=True)
-    p.add_argument("--kons", required=True)
-    p.add_argument("--hedefler", default="hedefler.tsv")
-    p.add_argument("--dis", default=None)
+    p.add_argument("--consensus", required=True)
+    p.add_argument("--targets", default="hedefler.tsv")
+    p.add_argument("--external", default=None)
     p.add_argument("--out", required=True)
     a = p.parse_args()
 
@@ -37,8 +37,8 @@ def main():
     toplam = len(rows)
     gecen = [r for r in rows if r.get("ozgulluk_durum") == "GECTI"]
 
-    ta = field_audit.taxid_alanlari(a.kons)
-    ht = field_audit.hedef_taxidleri(a.hedefler)
+    ta = field_audit.taxid_alanlari(a.consensus)
+    ht = field_audit.hedef_taxidleri(a.targets)
     cikarilan = []
     temiz = []
     for r in gecen:
@@ -47,7 +47,7 @@ def main():
         (cikarilan if uyumsuz else temiz).append(r)
     gecen = temiz
 
-    dis_yolu = a.dis or os.path.join(a.final, "dis_veritabani.tsv")
+    dis_yolu = a.external or os.path.join(a.final, "dis_veritabani.tsv")
     dis = {}
     if os.path.exists(dis_yolu):
         for x in csv.DictReader(open(dis_yolu, encoding="utf-8"), delimiter="\t"):

@@ -46,8 +46,8 @@ def beklenenler():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--start', '--bas', dest='bas', type=int, default=0)
-    p.add_argument('--count', '--adet', dest='adet', type=int, default=4)
+    p.add_argument('--start', dest='bas', type=int, default=0)
+    p.add_argument('--count', dest='adet', type=int, default=4)
     a = p.parse_args()
 
     bek = beklenenler()

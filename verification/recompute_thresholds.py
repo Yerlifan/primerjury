@@ -25,7 +25,7 @@ abundance weighted threshold) SIDE BY SIDE. Which one is applied is a scientific
 preference and not this script's business.
 
 To run:
-    python verification/recompute_thresholds.py --kok .
+    python verification/recompute_thresholds.py --root .
 Output:
     ESIK_IKI_KURAL.tsv  and  ESIK_IKI_KURAL.md
 
@@ -62,7 +62,7 @@ def _tsv(yol):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

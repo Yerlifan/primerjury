@@ -176,6 +176,6 @@ echo "Note: tools/linux-x64 is NOT MFEprimer. It need not be deleted, but it is 
 echo
 echo "Sinama:"
 echo "  cd $PROJE/WSL"
-echo "  python3 verification/specificity_round.py --kok \"$PROJE\""
+echo "  python3 verification/specificity_round.py --root \"$PROJE\""
 echo "Expected: on the 'MFEprimer bulundu' line the version must read MFEprimer, and"
 echo "the index build must succeed this time."

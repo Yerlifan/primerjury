@@ -17,7 +17,7 @@ Usage: python update_panel.py --xlsx ../PrimerJury_PCR_Paneli_2026-08-02_TESLIM.
 #                     and corrected value columns to the existing sheets).
 #
 # INPUT  : the delivery panel file given with --xlsx (opened with openpyxl) and the
-#          read engine fix table given with --tsv; optionally a --yedek path.
+#          read engine fix table given with --tsv; optionally a --backup path.
 # OUTPUT : it writes over the same xlsx file (wb.save) and takes a backup if asked;
 #          it also syncs the degerlendiriciya_ozet TSV. It prints the name of the
 #          file updated and the sheet count to the screen.
@@ -91,7 +91,7 @@ def sayfa16(wb, rows):
         "PIGEONHOLE SEEDING: the primer is split into max_mm+1 NON-OVERLAPPING blocks. If there are at most max_mm mismatches then AT LEAST ONE of those blocks must match exactly, so searching for an exact match of any block is LOSSLESS. Every candidate site is then verified one by one under the full rule (total mismatches plus the last 2 bases at the 3' end).",
         'LOSSLESSNESS WAS PROVEN: screening/engine_test.py compares the corrected engine against an independent brute force implementation that uses no seed and tries every position one at a time. T1 synthetic (2 439 binding sites, difference 0), T2 real reads (difference 0), T3 product count (difference 0). In the same test the OLD engine misses 1 386 sites on the synthetic data (56.8%) and 35.2% on the real reads.',
         'SPEED: for 400 reads per pair, brute force takes 0.30 s and the corrected engine 0.03 s (~10x). Since it gives the same answer as brute force, the speed gain costs no accuracy.',
-        'FILES: screening/read_engine.py (the engine), brute_force.py (the reference), engine_test.py (the evidence), measure_panel.py (the panel measurement), independent_check.py, python3 -m screening --mod panel-olc --full-depth',
+        'FILES: screening/read_engine.py (the engine), brute_force.py (the reference), engine_test.py (the evidence), measure_panel.py (the panel measurement), independent_check.py, python3 -m screening --mode panel-olc --full-depth',
     ]:
         yaz(ws, n, 1, s); ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9)
         ws.row_dimensions[n].height = 46; n += 1
@@ -112,7 +112,7 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'5. WHICH VALUES CHANGED (21 pairs, corrected engine, at most 3000 reads per bin)',
         bold=True, fill=GRI); n += 1
-    yaz(ws, n, 1, u'THIS IS A SUBSET MEASUREMENT: at most 3000 reads per bin (the panel\'s own protocol). Full depth verification is done with python3 -m screening --mod panel-olc --full-depth; if the trend changes, this page must be updated.', fill=SARI)
+    yaz(ws, n, 1, u'THIS IS A SUBSET MEASUREMENT: at most 3000 reads per bin (the panel\'s own protocol). Full depth verification is done with python3 -m screening --mode panel-olc --full-depth; if the trend changes, this page must be updated.', fill=SARI)
     ws.merge_cells(start_row=n, start_column=1, end_row=n, end_column=9); ws.row_dimensions[n].height = 30; n += 1
     bas = ['#', 'Hedef', 'Panelin olcutu', 'ESKI kat (en kotu/havuz)', 'YENI mm<=1 (en kotu/havuz)',
            'YENI mm<=3 (en kotu/havuz)', 'Uye kumesi', '10x alti?', 'Not']
@@ -172,7 +172,7 @@ def sayfa16(wb, rows):
 
     yaz(ws, n, 1, u'9. STILL OPEN - WHAT THE NEXT PERSON NEEDS TO KNOW', bold=True, fill=SARI); n += 1
     for s in [
-        'FULL DEPTH: the numbers on this page were produced from a subset of at most 3000 reads per bin. python3 -m screening --mod panel-olc --full-depth runs with no sampling. If the trend changes, this page must be updated.',
+        'FULL DEPTH: the numbers on this page were produced from a subset of at most 3000 reads per bin. python3 -m screening --mode panel-olc --full-depth runs with no sampling. If the trend changes, this page must be updated.',
         'MEMBER SETS: the panel\'s original member taxon sets were never stored in any script (they were a command line argument). They were rebuilt from the target names in screening/ciftler.tsv and from taxid_adlari.tsv. On rows marked "PANELLE_TUTUYOR" the rebuilt set reproduces the member % range the panel published; on rows marked "YENIDEN_KURULDU" it does not, and on those rows the old vs new DIFFERENCE is valid (both engines ran on the same bins) but the absolute values may not match the panel\'s original set definition. The Proteiniphilum (row 10) and Bacteroidales (row 12) sets in particular should be checked.',
         'THE CRITERION DECISION: the panel needs to settle on a single sample criterion. mm<=1 is the recommended one, since it is consistent with the published criterion label; mm<=3 is the design pipeline\'s criterion and is looser. Until that decision is made, the "Ayrim (x)" column cannot be compared across rows.',
         'CONSENSUS: this correction covers RAW READ measurements only, and no consensus file was touched. Consensus regeneration will be done separately (by two methods: quality weighted with a lowered threshold, plus a majority vote; positions that disagree will be masked and NO degenerate base will be used, by decision).',
@@ -211,7 +211,7 @@ def panel_sutunlari(wb, rows):
     # NOT satiri
     n = ws.max_row + 2
     yaz(ws, n, 1, 'NOT', bold=True)
-    yaz(ws, n, 3, u'READ ENGINE FIX (2026-08-02, the most recent item): a SILENT bug was found in the engine that produced the "Uye urun %", "Rakip maks %" and "Ayrim (x)" columns. The 13 base EXACT matching seed never saw a binding site when the mismatch fell inside the seed (174/400 instead of 2/400 under the same criterion). The engine was fixed and all 21 pairs were re-measured. ALSO: those three columns were not measured under a SINGLE CRITERION. Some rows used mm<=1 and some mm<=3, so values inside a column cannot be compared across rows. Detail, the changed values and the pairs that fell below 10x: the "16 Okuma Motoru Duzeltmesi" sheet. The new columns (see to the right) are a subset measurement; full depth will be verified with python3 -m screening --mod panel-olc --full-depth.')
+    yaz(ws, n, 3, u'READ ENGINE FIX (2026-08-02, the most recent item): a SILENT bug was found in the engine that produced the "Uye urun %", "Rakip maks %" and "Ayrim (x)" columns. The 13 base EXACT matching seed never saw a binding site when the mismatch fell inside the seed (174/400 instead of 2/400 under the same criterion). The engine was fixed and all 21 pairs were re-measured. ALSO: those three columns were not measured under a SINGLE CRITERION. Some rows used mm<=1 and some mm<=3, so values inside a column cannot be compared across rows. Detail, the changed values and the pairs that fell below 10x: the "16 Okuma Motoru Duzeltmesi" sheet. The new columns (see to the right) are a subset measurement; full depth will be verified with python3 -m screening --mode panel-olc --full-depth.')
     ws.cell(n, 3).fill = KIRMIZI
     ws.cell(n, 3).alignment = SAR
     ws.row_dimensions[n].height = 90
@@ -269,7 +269,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--xlsx', required=True)
     ap.add_argument('--tsv', required=True)
-    ap.add_argument('--backup', '--yedek', dest='yedek', default='')
+    ap.add_argument('--backup', dest='yedek', default='')
     a = ap.parse_args()
     yedek = a.yedek or a.xlsx.replace('.xlsx', '_YEDEK_motor_oncesi.xlsx')
     if not os.path.exists(yedek):

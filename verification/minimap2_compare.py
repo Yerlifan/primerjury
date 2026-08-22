@@ -52,7 +52,7 @@ def _kd_yukle(kok):
     import importlib.util as u
     y = os.path.join(kok, 'verification', 'identity_verification.py')
     if not os.path.exists(y):
-        sys.stderr.write(u'ERROR: %s does not exist. --kok must point at the project directory.\n' % y)
+        sys.stderr.write(u'ERROR: %s does not exist. --root must point at the project directory.\n' % y)
         return None
     sp = u.spec_from_file_location('kd', y)
     m = u.module_from_spec(sp)
@@ -85,11 +85,11 @@ def kutu_konsensuslari(kok, en_fazla):
 
 def main():
     p = argparse.ArgumentParser(description=u'Iki hizalayiciyi yan yana olcer')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--bin', '--kutu', dest='kutu', type=int, default=4, help=u'kac bin denenecek')
-    p.add_argument('--records', '--kayit', dest='kayit', type=int, default=120,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--bin', dest='kutu', type=int, default=4, help=u'kac bin denenecek')
+    p.add_argument('--records', dest='kayit', type=int, default=120,
                    help=u'veritabani basina kac kayit hizalanacak')
-    p.add_argument('--db', '--vtb', dest='vtb', default='', help=u'only databases whose name contains this')
+    p.add_argument('--db', dest='vtb', default='', help=u'only databases whose name contains this')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

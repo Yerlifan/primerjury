@@ -890,10 +890,10 @@ def raporla(K, CIKTI, sonuc, atlanan, var, yok, kapsam_kayit, uye, rakip, yaz,
         yaz(u'  >>> WARNING: database with INCOMPLETE coverage: %s' % ', '.join(eksik))
 
 
-# The command line: --kisa-liste (the same default as I), --kume how many bins per
+# The command line: --shortlist (the same default as I), --cluster how many bins per
 # pass, --nt the NCBI layer (the default is "yok": a separate BLAST queue per bin
-# would take days; the cache left over from stage I is still used), --yalniz and
-# --tavan-kutu a subset for testing.
+# would take days; the cache left over from stage I is still used), --only and
+# --cap-bins a subset for testing.
 
 # --- CLI value normalisation ------------------------------------------------
 # English option values are accepted alongside the original Turkish ones and
@@ -915,22 +915,22 @@ def _ing_deger(a):
 def main():
     p = argparse.ArgumentParser(
         description=u'Panel olcumlerine giren TUM kutularin kimligini bagimsiz dogrula')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--shortlist', '--kisa-liste', type=int, default=None, dest='kisa_liste',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--shortlist', type=int, default=None, dest='kisa_liste',
                    help=u'number of candidates to align fully (default: same as the identity stage)')
-    p.add_argument('--cluster', '--kume', dest='kume', type=int, default=24,
+    p.add_argument('--cluster', dest='kume', type=int, default=24,
                    help=u'how many bins to scan together in one database pass '
                         u'(bellek/hiz dengesi, varsayilan 24)')
     p.add_argument('--nt', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='yok',
                    help=u'NCBI nt layer (default none: a separate BLAST per bin '
                         u'kuyrugu gunlerce surer; I asamasindan kalan onbellek yine '
                         u'kullanilir)')
-    p.add_argument('--literature', '--literatur', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto')
-    p.add_argument('--only', '--yalniz', dest='yalniz', default=None,
+    p.add_argument('--literature', dest='literatur', choices=['auto', 'none', 'oto', 'yok'], default='oto')
+    p.add_argument('--only', dest='yalniz', default=None,
                    help=u'comma-separated ayrilmis bin adi parcalari (for testing)')
-    p.add_argument('--cap-bins', '--tavan-kutu', type=int, default=0, dest='tavan_kutu',
+    p.add_argument('--cap-bins', type=int, default=0, dest='tavan_kutu',
                    help=u'only ilk N bin (for testing)')
-    p.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true')
+    p.add_argument('--reset', dest='sifirla', action='store_true')
     a = p.parse_args()
     a = _ing_deger(a)
     kok = os.path.abspath(a.kok)

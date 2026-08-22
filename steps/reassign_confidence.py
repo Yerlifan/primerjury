@@ -25,14 +25,14 @@ def get_args():
                    help="'kraken results' directory (report and output files)")
     p.add_argument("--out", required=True)
     p.add_argument("--confidence", type=float, default=0.1)
-    p.add_argument("--desen-rapor", default="*_kraken2.report")
-    p.add_argument("--desen-cikti", default="*_output")
-    p.add_argument("--max-okuma", type=int, default=0,
+    p.add_argument("--report-pattern", default="*_kraken2.report")
+    p.add_argument("--output-pattern", default="*_output")
+    p.add_argument("--max-reads", type=int, default=0,
                    help="0 = all; deneme for kucultun")
-    p.add_argument("--tarama", default=None,
+    p.add_argument("--scan", default=None,
                    help="comma-separated ayrilmis esikler; if given only tarama "
                         "yapilir, rapor yazilmaz. Ornek: 0,0.005,0.01,0.02,0.05")
-    p.add_argument("--tarama-okuma", type=int, default=20000,
+    p.add_argument("--scan-reads", type=int, default=20000,
                    help="reads per file in scan mode")
     return p.parse_args()
 
@@ -72,7 +72,7 @@ def agac_kur(kraken_kok, desen):
 
 def main():
     a = get_args()
-    ebeveyn, rutbe, ad, nrep = agac_kur(a.kraken, a.desen_rapor)
+    ebeveyn, rutbe, ad, nrep = agac_kur(a.kraken, a.report_pattern)
     if not ebeveyn:
         sys.exit(u'the report was not found: %s' % a.kraken)
     print(u'reports: %d, taxa in the tree: %d' % (nrep, len(ebeveyn)))
@@ -98,16 +98,16 @@ def main():
         ata_onbellek[t] = tuple(zincir)
         return ata_onbellek[t]
 
-    ciktilar = sorted(glob.glob(os.path.join(a.kraken, "*", a.desen_cikti))
-                      + glob.glob(os.path.join(a.kraken, a.desen_cikti)))
+    ciktilar = sorted(glob.glob(os.path.join(a.kraken, "*", a.output_pattern))
+                      + glob.glob(os.path.join(a.kraken, a.output_pattern)))
     ciktilar = [c for c in ciktilar if not c.endswith(".report")]
     if not ciktilar:
-        sys.exit(u'no output file was found (pattern: %s)' % a.desen_cikti)
+        sys.exit(u'no output file was found (pattern: %s)' % a.output_pattern)
     print("output dosyasi: %d" % len(ciktilar))
     os.makedirs(a.out, exist_ok=True)
 
-    if a.tarama:
-        esikler = [float(x) for x in a.tarama.split(",") if x.strip()]
+    if a.scan:
+        esikler = [float(x) for x in a.scan.split(",") if x.strip()]
         return tarama_yap(a, ciktilar, esikler, atalar, rutbe)
 
     ozet, karsilastirma = [], []
@@ -123,7 +123,7 @@ def main():
                 if len(p) < 5:
                     continue
                 n += 1
-                if a.max_okuma and n > a.max_okuma:
+                if a.max_reads and n > a.max_reads:
                     n -= 1
                     break
                 eski = p[2]
@@ -271,7 +271,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
     Amac tur duzeyindeki sahte ayrimi cins duzeyinde toplamak, okuma
     kaybetmek degil; dolayisiyla cins_okuma artarken sinifsiz'in dusuk
     kaldigi en yuksek esik secilmelidir."""
-    print(u'\nTHRESHOLD SCAN (at most %d reads per file)' % a.tarama_okuma)
+    print(u'\nTHRESHOLD SCAN (at most %d reads per file)' % a.scan_reads)
     print("%8s %10s %10s %10s %10s %10s"
           % ("esik", "okuma", "tur(S)", "cins(G)", "ust_rutbe", "sinifsiz"))
     satirlar = []
@@ -286,7 +286,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
                     if len(p) < 5:
                         continue
                     n += 1
-                    if n > a.tarama_okuma:
+                    if n > a.scan_reads:
                         break
                     n_top += 1
                     m = re.search(r"taxid\s+(\d+)", p[2])
@@ -348,7 +348,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
                            delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(satirlar)
     print("\nyazildi: %s" % os.path.join(a.out, "esik_taramasi.tsv"))
-    print(u'Choose the threshold here: if the genus(G) column is rising while the unclassified column is still low, that threshold is suitable. Pass the value you chose with --confidence and run without --tarama.')
+    print(u'Choose the threshold here: if the genus(G) column is rising while the unclassified column is still low, that threshold is suitable. Pass the value you chose with --confidence and run without --scan.')
     return 0
 
 

@@ -49,7 +49,7 @@ produces its own output.
 
 USAGE
 -----
-    python3 rederive_membership.py [--root PROJECT_DIRECTORY] [--nmax 3000] [--sifirla]
+    python3 rederive_membership.py [--root PROJECT_DIRECTORY] [--nmax 3000] [--reset]
 
 """
 
@@ -359,9 +359,9 @@ def kutu_adi(dosya):
 # -------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--root', '--kok', dest='kok', default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ap.add_argument('--root', dest='kok', default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument('--nmax', type=int, default=3000)
-    ap.add_argument('--reset', '--sifirla', dest='sifirla', action='store_true', help='delete checkpoints and start over')
+    ap.add_argument('--reset', dest='sifirla', action='store_true', help='delete checkpoints and start over')
     a = ap.parse_args()
     KOK = a.kok
     CIK = os.path.join(KOK, 'engine_SONUC')

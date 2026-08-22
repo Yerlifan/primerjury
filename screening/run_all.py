@@ -36,8 +36,8 @@ report for every target; no change is made silently.
 # OUTPUT : KAPSAMLI_ARAMA_SONUC/00_OZET_HEPSI.md (the path ozet_yaz returns);
 #          kontrol/hepsi_durum.json (the stage state). calistir() returns an exit
 #          code: 0 fine, 1 the user stopped it, 2 a gate did not pass.
-# CALLED BY: verification/full_chain.py key 9 (--mod hepsi -> HP.calistir) and key
-#          S (--mod ozet -> HP.yalniz_ozet). Besides that, because the yon_kapisi()
+# CALLED BY: verification/full_chain.py key 9 (--mode hepsi -> HP.calistir) and key
+#          S (--mode ozet -> HP.yalniz_ozet). Besides that, because the yon_kapisi()
 #          function is called by __main__.py, panel_measurement.py,
 #          membership_check.py and build_consensus.py, it also runs indirectly on
 #          keys 1, 2, 3, 4, 5, 6 and 7.
@@ -85,7 +85,7 @@ def konsensus_kalite():
         NOTE: this function was deleted by accident during an intermediate edit while
         ozet_yaz() was still calling it, so the LAST step of a 5 hour run failed with
         NameError. It was put back, and ozet_yaz can now also be run on its own (a menu
-        option and --mod ozet).
+        option and --mode ozet).
 
     """
     tsv = os.path.join(C.CIKTI, 'konsensus_yeniden_uretim.tsv')
@@ -152,7 +152,7 @@ def yon_kapisi(yaz, asama):
     if ters:
         return False, ['%d konsensus TERS yonde: %s' % (len(ters), ', '.join(ters[:5])),
                        'Ters yonlu konsensuste urunlerin TAMAMI kaybolur.',
-                       'To fix it:  python3 screening/build_canonical.py --root . --yeniden']
+                       'To fix it:  python3 screening/build_canonical.py --root . --rerun']
     m.append('yon kapisi [%s]: %d kutu, hepsi SENSE - GECTI' % (asama, len(kons)))
     return True, m
 
@@ -163,7 +163,7 @@ def kanonik_kos(yaz, sure, oncelik='ozgun'):
     betik = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build_canonical.py')
     if not os.path.exists(betik):
         return False, 'build_canonical.py bulunamadi'
-    komut = [_sys.executable, betik, '--kok', C.KOK, '--oncelik', oncelik]
+    komut = [_sys.executable, betik, '--root', C.KOK, '--priority', oncelik]
     yaz('  > %s' % ' '.join(komut[1:]))
     t = time.time()
     try:

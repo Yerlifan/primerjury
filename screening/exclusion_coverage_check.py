@@ -182,7 +182,7 @@ def soy_zincirleri(taxidler, yaz):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
 

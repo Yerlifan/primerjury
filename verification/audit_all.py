@@ -39,7 +39,7 @@ network was skipped but the local audits are clean.
 
 Run:
     python verification/audit_all.py --root .
-    python verification/audit_all.py --root . --agsiz     (skip the NCBI steps)
+    python verification/audit_all.py --root . --offline     (skip the NCBI steps)
 
 """
 from __future__ import print_function
@@ -121,11 +121,11 @@ def d2_kapsama(kok, yaz, agsiz):
         ATLANAN.append(u'2 the coverage audit (no such script)')
         return
     if agsiz:
-        ATLANAN.append(u'2 the coverage audit (--agsiz was given; NCBI Taxonomy is needed)')
+        ATLANAN.append(u'2 the coverage audit (--offline was given; NCBI Taxonomy is needed)')
         return
     yaz(u'  [2] running the exclusion coverage check (NCBI Taxonomy)...')
     try:
-        p = subprocess.run([sys.executable, bet, '--kok', kok],
+        p = subprocess.run([sys.executable, bet, '--root', kok],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            timeout=900)
         cik = p.stdout.decode('utf-8', 'replace')
@@ -151,7 +151,7 @@ def d3_referans_bayat(kok, yaz):
     py_ = os.path.join(kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv')
     if not os.path.exists(ry):
         bulgu(u'The quick test reference file IS MISSING',
-              u'HIZLI_TEST/referans_degerler.tsv was not produced. The reference is then read from constants embedded in the code and which pair it was measured from is unknown. To produce it: python verification/refresh_reference.py --kok .')
+              u'HIZLI_TEST/referans_degerler.tsv was not produced. The reference is then read from constants embedded in the code and which pair it was measured from is unknown. To produce it: python verification/refresh_reference.py --root .')
         return
     if not os.path.exists(py_):
         ATLANAN.append(u'3 reference freshness (there is no panel_tek_protokol.tsv)')
@@ -172,7 +172,7 @@ def d3_referans_bayat(kok, yaz):
         % (len(ref), len(bayat)))
     if bayat:
         bulgu(u'The reference is STALE, the primer pair has changed',
-              u'%s\n      On these rows a number belonging to the old pair is compared against the new pair and produces a false regression. Refresh it: python verification/refresh_reference.py --kok .' % ', '.join(bayat), DIKKAT)
+              u'%s\n      On these rows a number belonging to the old pair is compared against the new pair and produces a false regression. Refresh it: python verification/refresh_reference.py --root .' % ', '.join(bayat), DIKKAT)
 
 
 # --- 4 ------------------------------------------------------------------
@@ -403,7 +403,7 @@ def d7_geometri_kapisi(kok, yaz):
         % (os.path.basename(gy), len(gecmemis)))
     if gecmemis:
         bulgu(u'A pair that DID NOT PASS the geometry gate',
-              u'%s\n      The sequence of these pairs changed after the last geometry audit. Length, GC, the Tm window, hairpin and dimer rules were NEVER measured for these sequences. Run: python verification/refresh_geometry.py --kok .' % ', '.join(gecmemis), BLOKE)
+              u'%s\n      The sequence of these pairs changed after the last geometry audit. Length, GC, the Tm window, hairpin and dimer rules were NEVER measured for these sequences. Run: python verification/refresh_geometry.py --root .' % ', '.join(gecmemis), BLOKE)
 
 
 
@@ -525,7 +525,7 @@ def d10_ad_kurali_sinavi(kok, yaz):
         ATLANAN.append(u'10 the name rule test (no such script)')
         return
     try:
-        p = subprocess.run([sys.executable, bet, '--sina'],
+        p = subprocess.run([sys.executable, bet, '--selftest'],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            timeout=120)
         cik = p.stdout.decode('utf-8', 'replace').strip()
@@ -900,7 +900,7 @@ def d15_konsensus_kalintilari(kok, yaz):
         return
     if not os.path.exists(ix):
         bulgu(u'The canonical consensus INDEX IS MISSING',
-              u'%s was not found. Without the index there is no telling which file is valid and the measurements fall back on file name order. Produce it: python screening/build_canonical.py --kok .' % ix)
+              u'%s was not found. Without the index there is no telling which file is valid and the measurements fall back on file name order. Produce it: python screening/build_canonical.py --root .' % ix)
         return
     gecerli = set()
     for r in _tsv(ix):
@@ -1195,10 +1195,10 @@ def d19_uyelik_icerigi(kok, yaz):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--offline', '--agsiz', dest='agsiz', action='store_true',
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--offline', dest='agsiz', action='store_true',
                    help='NCBI gerektiren denetimleri skip')
-    p.add_argument('--generate', '--uretilecek', dest='uretilecek', default='',
+    p.add_argument('--generate', dest='uretilecek', default='',
                    help='output paths to regenerate in this run (comma-separated); '
                         'bunlara tazelik denetimi uygulanmaz')
     a = p.parse_args()

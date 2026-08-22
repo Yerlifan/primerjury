@@ -30,18 +30,18 @@ def kapsam_orani(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--threads', '--is', dest='isler', action='append', required=True,
+    ap.add_argument('--threads', dest='isler', action='append', required=True,
                     help='target::shortlist_file::checkpoint_file')
-    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=36.0)
+    ap.add_argument('--duration', dest='sure', type=float, default=36.0)
     # MEMORY: KutuHavuzu (otorite=False) holds about 160 MB per bin (1.5 kb reads) up
     # to about 400 MB (3.7 kb reads); the dominant item is the seed index, because of
     # its int64 key array. 20 bins x 3000 reads goes over 3.9 GB of RAM in the F2, F1
     # and A2 classes and the process is SIGKILLed by the OOM killer (measured: 3.77 GB
     # RSS, 23 s). The fix: the scan runs at a SHALLOWER depth (the memory falls
     # linearly) while the DECISION is always made at panel depth with the panel's own
-    # engine (--otorite 1).
-    ap.add_argument('--depth', '--derinlik', dest='derinlik', type=int, default=3000)
-    ap.add_argument('--authority', '--otorite', dest='otorite', type=int, default=0)
+    # engine (--authority 1).
+    ap.add_argument('--depth', dest='derinlik', type=int, default=3000)
+    ap.add_argument('--authority', dest='otorite', type=int, default=0)
     g = ap.parse_args()
     t0 = time.time()
 

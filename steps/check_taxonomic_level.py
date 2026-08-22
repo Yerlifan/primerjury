@@ -38,7 +38,7 @@ THE VERDICT
               species of the same genus, TUR_OZGUL. Since the panel decision
               tolerates 1-2 cross reacting species, when the number of cross
               reacting SPECIES is below the threshold it is TUR_OZGUL_ESIKLI (the
-              threshold changes with --capraz-tur-esik, default 2). Above the
+              threshold changes with --cross-species-tolerance, default 2). Above the
               threshold it is TUR_AYRIMI_YOK. The measure is the number of cross
               reacting SPECIES, not the number of products formed in them.
               If the target species is absent from the panel altogether,
@@ -49,7 +49,7 @@ THE VERDICT
               external_databases.py's job and is not repeated here.
 
 Usage:
-  python3 check_taxonomic_level.py --hedefler hedefler.tsv       --adlar taxid_adlari.tsv --final primer_final --db REFERANS_DB       --kimlik primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
+  python3 check_taxonomic_level.py --targets hedefler.tsv       --names taxid_adlari.tsv --final primer_final --db REFERANS_DB       --identity primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
 
 """
 import argparse, collections, csv, os, re, shutil, subprocess, sys, tempfile
@@ -329,7 +329,7 @@ def urun_say(primerler, panel_fa, calisma, etiket, a):
            "-outfmt", "6 qseqid sseqid sstart send sstrand length "
                       "qstart qend qlen sseq qseq mismatch",
            "-evalue", str(a.evalue), "-max_target_seqs", "100000",
-           "-num_threads", str(a.is_parcacigi), "-dust", "no", "-out", cikti]
+           "-num_threads", str(a.threads), "-dust", "no", "-out", cikti]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         return None
@@ -370,22 +370,22 @@ def urun_say(primerler, panel_fa, calisma, etiket, a):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--hedefler", required=True)
-    p.add_argument("--adlar", required=True)
+    p.add_argument("--targets", required=True)
+    p.add_argument("--names", required=True)
     p.add_argument("--final", required=True, help="primer_final directory")
-    p.add_argument("--referans", default=None, help="primer_referans.tsv")
+    p.add_argument("--reference", default=None, help="primer_referans.tsv")
     p.add_argument("--db", required=True, help="REFERANS_DB directory")
-    p.add_argument("--kimlik", default=None, help="hedef_kimlik.tsv")
+    p.add_argument("--identity", default=None, help="hedef_kimlik.tsv")
     p.add_argument("--out", required=True)
     p.add_argument("--prod-min", type=int, default=50)
     p.add_argument("--prod-max", type=int, default=400)
     p.add_argument("--evalue", type=float, default=1000.0)
-    p.add_argument("--is-parcacigi", type=int, default=4)
-    p.add_argument("--tur-basina-en-fazla", type=int, default=200)
+    p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--max-per-species", type=int, default=200)
     # The panel decision: "where there are 1-2 cross reacting species, it still counts
     # as species specific". The value is not hard coded here but stands as an option; if
     # it is changed, which threshold the run used is written at the top of the output.
-    p.add_argument("--capraz-tur-esik", type=int, default=2,
+    p.add_argument("--cross-species-tolerance", type=int, default=2,
                    help="number of cross-reacting SPECIES tolerated at species-level specificity "
                         "(urun sayisi degil); varsayilan 2")
     return p.parse_args()
@@ -394,7 +394,7 @@ def get_args():
 def main():
     a = get_args()
     gunluk = []
-    hedefler = hedefleri_oku(a.hedefler, a.adlar, a.kimlik)
+    hedefler = hedefleri_oku(a.targets, a.names, a.identity)
     if not hedefler:
         sys.exit(u'hedefler.tsv holds no row with duzey=tur or duzey=cins')
     print(u'targets with a declared decision level: %d (species: %d, genus: %d)'
@@ -402,7 +402,7 @@ def main():
              sum(1 for h in hedefler if h["duzey"] == "tur"),
              sum(1 for h in hedefler if h["duzey"] == "cins")))
     print(u'cross reacting SPECIES tolerated under species specificity: %d'
-          % a.capraz_tur_esik)
+          % a.cross_species_tolerance)
 
     # ciftleri topla
     ciftler = collections.defaultdict(list)
@@ -411,18 +411,18 @@ def main():
         if r.get("ozgulluk_durum") == "GECTI":
             ciftler[r["hedef"]].append((r["ileri_dizi"], r["geri_dizi"],
                                         "de novo"))
-    if a.referans and os.path.exists(a.referans):
+    if a.reference and os.path.exists(a.reference):
         # ALL the names in hedefler.tsv (without distinguishing the level), because the
         # reference set also holds targets at level=group
         tum_ad = []
-        for line in open(a.hedefler, encoding="utf-8"):
+        for line in open(a.targets, encoding="utf-8"):
             if line.startswith("#") or not line.strip():
                 continue
             pp = line.rstrip("\n").split("\t")
             if len(pp) >= 2 and pp[0] != "karar":
                 tum_ad.append(pp[1])
         eslesmeyen = collections.Counter()
-        for r in csv.DictReader(open(a.referans, encoding="utf-8"),
+        for r in csv.DictReader(open(a.reference, encoding="utf-8"),
                                 delimiter="\t"):
             ham = r.get("hedef", "")
             ad = referans_esle(ham, tum_ad)
@@ -439,7 +439,7 @@ def main():
         if h["olculen_cins"]:
             tum_cins.add(h["olculen_cins"])
     print("panel kurulacak cins: %s" % ", ".join(sorted(tum_cins)))
-    panel = panelleri_topla(a.db, tum_cins, a.tur_basina_en_fazla, gunluk)
+    panel = panelleri_topla(a.db, tum_cins, a.max_per_species, gunluk)
     for g in gunluk:
         print("   " + g)
 
@@ -530,7 +530,7 @@ def main():
                     karar = "HEDEF_TURDE_URUN_YOK"
                 elif len(digerler) == 0:
                     karar = "TUR_OZGUL"
-                elif len(digerler) <= a.capraz_tur_esik:
+                elif len(digerler) <= a.cross_species_tolerance:
                     karar = "TUR_OZGUL_ESIKLI"
                 else:
                     karar = "TUR_AYRIMI_YOK"
@@ -613,7 +613,7 @@ def main():
     print(u'   at least one pair with NO CROSS-REACTION (SPECIES-SPECIFIC) : %d'
           % len(kati & tur_hedef))
     print(u'   at least one pair within the threshold (<= %d cross-reacting species) : %d'
-          % (a.capraz_tur_esik, len(esikli & tur_hedef)))
+          % (a.cross_species_tolerance, len(esikli & tur_hedef)))
 
 
 if __name__ == "__main__":

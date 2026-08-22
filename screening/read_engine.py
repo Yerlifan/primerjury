@@ -272,7 +272,7 @@ def main(argv=None):
     ap.add_argument('--seed', type=int, default=3)
     ap.add_argument('--minlen', type=int, default=MINL)
     ap.add_argument('--maxlen', type=int, default=MAXL)
-    ap.add_argument('--last-two', '--son2', dest='son2', type=int, default=1, help="1 = require an exact match at the last two 3' bases")
+    ap.add_argument('--last-two', dest='son2', type=int, default=1, help="1 = require an exact match at the last two 3' bases")
     ap.add_argument('--tsv', default='', help='write the result to this file as TSV')
     a = ap.parse_args(argv)
 

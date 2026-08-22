@@ -247,7 +247,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
     # --- P ---
     rc, _ = kos(yaz, 'P (TEK PROTOKOL, %d okuma)' % OKUMA,
                 [py, os.path.join(kok, 'protocol', 'single_protocol_measure.py'),
-                 '--kok', hizli_kok, '--okuma', str(OKUMA), '--yalniz', sec],
+                 '--root', hizli_kok, '--reads', str(OKUMA), '--only', sec],
                 tavan_dk * 60)
     P = tsv_oku(os.path.join(hizli_kok, 'TEK_PROTOKOL_SONUC', 'panel_tek_protokol.tsv'))
     sonuc['asama']['P'] = dict(rc=rc, satir=len(P))
@@ -364,11 +364,11 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 
     rc, _ = kos(yaz, 'K (verification)',
                 [py, os.path.join(kok, 'verification', 'recovery_round.py'),
-                 '--kok', hizli_kok, '--okuma', str(OKUMA),
+                 '--root', hizli_kok, '--reads', str(OKUMA),
                  # The test's SCOPE is kept narrow: the aim is not correctness but evidence
                  # that "the stage runs and produces rows". On a full run these caps come off.
-                 '--tarama-ust', '40', '--aday-ust', '5', '--arms-ust', '0',
-                 '--panelsiz-atla'],
+                 '--scan-max', '40', '--candidate-max', '5', '--arms-max', '0',
+                 '--skip-if-no-panel'],
                 tavan_dk * 60)
     K = tsv_oku(os.path.join(hizli_kok, 'KURTARMA_SONUC', 'kurtarma_satirlari.tsv'))
     sonuc['asama']['K'] = dict(rc=rc, satir=len(K))
@@ -380,7 +380,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 
     rc, _ = kos(yaz, 'D (DOGRULAMA, yalniz yerel katman)',
                 [py, os.path.join(kok, 'verification', 'specificity_round.py'),
-                 '--kok', hizli_kok, '--ncbi', 'elle'],
+                 '--root', hizli_kok, '--ncbi', 'elle'],
                 tavan_dk * 60)
     Dd = tsv_oku(os.path.join(hizli_kok, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))
     sonuc['asama']['D'] = dict(rc=rc, satir=len(Dd))
@@ -414,8 +414,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                          'EVET (yeni cift)', 'sentetik', ''])
         rc2, _ = kos(yaz, 'D (kendi sinamasi, sentetik girdi)',
                      [py, os.path.join(kok, 'verification', 'specificity_round.py'),
-                      '--kok', oz, '--ncbi', 'elle', '--mfe-yok',
-                      '--kume-ust', '1'], tavan_dk * 60)
+                      '--root', oz, '--ncbi', 'elle', '--no-mfe',
+                      '--cluster-max', '1'], tavan_dk * 60)
         D2 = tsv_oku(os.path.join(oz, 'DOGRULAMA_SONUC', 'dogrulama_uc_sutun.tsv'))
         sonuc['asama']['D'] = dict(rc=rc2, satir=len(D2), kendi_sinamasi=True)
         if len(D2) >= 1:
@@ -436,7 +436,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
             sonuc['hata'].append(u'stage D produced NO rows at all.')
     else:
         # The REQUIRED layers: our two measurements. MFEprimer and NCBI are
-        # DELIBERATELY skipped in the test (--mfe-yok, --ncbi elle: there is no
+        # DELIBERATELY skipped in the test (--no-mfe, --ncbi elle: there is no
         # network). Their being missing is not a chain error and is reported as a warning.
         eksik_sutun, yok_sutun, takma_ad, istege_bagli = katman_denetimi(Dd, sonuc)
         yaz(u'    D: %d rows | are the two mandatory sources filled: %s | skipped in the test: %s'
@@ -447,7 +447,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 
     rc, _ = kos(yaz, 'I (KIMLIK, 2 veritabani, nt yok)',
                 [py, os.path.join(kok, 'verification', 'identity_verification.py'),
-                 '--kok', hizli_kok, '--yalniz', '10', '--nt', 'yok', '--vtb-ust', '2'],
+                 '--root', hizli_kok, '--only', '10', '--nt', 'yok', '--db-max', '2'],
                 tavan_dk * 60)
     I = tsv_oku(os.path.join(hizli_kok, 'KIMLIK_SONUC', 'kimlik_iddialari.tsv'))
     sonuc['asama']['I'] = dict(rc=rc, satir=len(I))
@@ -487,7 +487,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 #                                                    "empty" as the same thing was
 #                                                    the bug itself
 #           The MFEprimer and NCBI layers were ALREADY warnings and were left that
-#           way: because the test runs with --mfe-yok and with '--ncbi elle' and no
+#           way: because the test runs with --no-mfe and with '--ncbi elle' and no
 #           network, their being empty is a gap created deliberately.
 # =========================================================================
 ZORUNLU_KATMAN = (('1_NUMUNE', u'1. kaynak (numune olcumu)'),
@@ -553,7 +553,7 @@ def katman_denetimi(Dd, sonuc):
             istege_bagli.append(ad)
     if istege_bagli:
         sonuc['uyari'].append(
-            u'these sources were not filled in during the test at stage D: %s. That is DELIBERATE (the test runs with --mfe-yok and with the network off, --ncbi elle); they are filled in on a full run.' % ', '.join(istege_bagli))
+            u'these sources were not filled in during the test at stage D: %s. That is DELIBERATE (the test runs with --no-mfe and with the network off, --ncbi elle); they are filled in on a full run.' % ', '.join(istege_bagli))
     return eksik_sutun, yok_sutun, takma_ad, istege_bagli
 
 
@@ -653,8 +653,8 @@ def raporla(hizli_kok, sonuc, yaz, gecen_sure):
 # OVERWRITE the long run results in the real output directories.
 def main():
     p = argparse.ArgumentParser(description='Zincirin hizli dogruluk testi')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
-    p.add_argument('--cap-minutes', '--tavan-dk', dest='tavan_dk', type=int, default=15,
+    p.add_argument('--root', dest='kok', default='.')
+    p.add_argument('--cap-minutes', dest='tavan_dk', type=int, default=15,
                    help='asama basina zaman tavani (dakika)')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)

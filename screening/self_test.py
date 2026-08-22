@@ -34,9 +34,9 @@ not started.
 #          calistir() returns a single True or False. yon_sinamasi() can also be
 #          called on its own and does not trip over optional dependencies like
 #          primer3.
-# CALLED BY: __main__.main() at the head of every mode (unless --sinama-atla is
+# CALLED BY: __main__.main() at the head of every mode (unless --skip-tests is
 #          given) and as the 1st stage of hepsi.calistir. That is full_chain.py
-#          stages 1, 2, 3, 4, 5, 6, 7, 9 and key 8 directly (--sina, the test only).
+#          stages 1, 2, 3, 4, 5, 6, 7, 9 and key 8 directly (--selftest, the test only).
 #
 # Item 4 of the test compares three engines: brute_force.py (the seedless
 # reference), read_engine.py (the pigeonhole seed) and the numpy pool route. All

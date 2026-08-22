@@ -31,7 +31,7 @@ It differs from route 5 on four points:
      the competitor set in the same way.
 
 A two stage measurement: the prefilter runs on a shallow pool (--sig) and the
-survivors are measured again at panel depth (--derin). The shallow numbers are for
+survivors are measured again at panel depth (--deep). The shallow numbers are for
 RANKING and do not enter the report.
 
 """
@@ -106,12 +106,12 @@ def baglanir(primer, diziler, geri=False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--duration', '--sure', dest='sure', type=float, default=34.0)
-    ap.add_argument('--status', '--durum', dest='durum', default=os.path.join(KOK, 'SONUCLAR', 'cok_lokus_durum.json'))
+    ap.add_argument('--duration', dest='sure', type=float, default=34.0)
+    ap.add_argument('--status', dest='durum', default=os.path.join(KOK, 'SONUCLAR', 'cok_lokus_durum.json'))
     ap.add_argument('--sig', type=int, default=900)
-    ap.add_argument('--pre-candidate', '--on-aday', dest='on_aday', type=int, default=8)
-    ap.add_argument('--primer-max', '--primer-ust', dest='primer_ust', type=int, default=1100)
-    ap.add_argument('--target', '--hedef', dest='hedef', default='')
+    ap.add_argument('--pre-candidate', dest='on_aday', type=int, default=8)
+    ap.add_argument('--primer-max', dest='primer_ust', type=int, default=1100)
+    ap.add_argument('--target', dest='hedef', default='')
     a = ap.parse_args()
     t0 = time.time()
 

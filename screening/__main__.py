@@ -2,10 +2,10 @@
 """THE FULL SEARCH - the main flow.
 
 Usage (normally verification/full_chain.py calls it):
-    python3 -m screening --mod tam
-    python3 -m screening --mod sorunlu
-    python3 -m screening --mod devam
-    python3 -m screening --sina          (a self test; it measures nothing)
+    python3 -m screening --mode tam
+    python3 -m screening --mode sorunlu
+    python3 -m screening --mode devam
+    python3 -m screening --selftest          (a self test; it measures nothing)
 
 """
 # -------------------------------------------------------------------------
@@ -19,18 +19,18 @@ Usage (normally verification/full_chain.py calls it):
 #          hedefler.kutular(); the per bin raw read pools through numune.Numune;
 #          the SILVA/UNITE pools through reference.py; the previous run's
 #          checkpoints through checks.py. It takes its arguments with argparse
-#          (--mod, --hedef, --okuma, --hafif, --yeniden, --full-depth, --sina,
-#          --sinama-atla).
+#          (--mode, --target, --reads, --light, --rerun, --full-depth, --selftest,
+#          --skip-tests).
 # OUTPUT : the kontrol/hedef_*.json checkpoints under KAPSAMLI_ARAMA_SONUC/;
 #          adaylar.tsv, parametre_izgarasi.tsv and KAPSAMLI_ARAMA_RAPORU.md
 #          through report.uret(). main() returns the process exit code
 #          (0 = success, 2 = a gate or self test failed).
-# CALLED BY: the "python3 -m screening --mod <MOD>" line inside
-#          verification/full_chain.py. The keys: 1 (--mod tam), 2 (--mod sorunlu),
-#          3 (--mod devam), 4 (--mod panel-olc --full-depth), 5 (--mod uyelik),
-#          6 (--mod konsensus), 7 (a single target; sorunlu / panel-olc / uyelik
-#          plus --hedef, depending on the choice), 8 (--sina), 9 (--mod hepsi),
-#          S (--mod ozet). The keys P, K, D, T, I, G, E, R, U, H and W/X/Y/Z run
+# CALLED BY: the "python3 -m screening --mode <MOD>" line inside
+#          verification/full_chain.py. The keys: 1 (--mode tam), 2 (--mode sorunlu),
+#          3 (--mode devam), 4 (--mode panel-olc --full-depth), 5 (--mode uyelik),
+#          6 (--mode konsensus), 7 (a single target; sorunlu / panel-olc / uyelik
+#          plus --target, depending on the choice), 8 (--selftest), 9 (--mode hepsi),
+#          S (--mode ozet). The keys P, K, D, T, I, G, E, R, U, H and W/X/Y/Z run
 #          separate scripts under verification/, protocol/, engine/ and tools/;
 #          they do not call this package directly.
 # -------------------------------------------------------------------------
@@ -529,22 +529,22 @@ def aramayi_kos(a, yaz, sure, cizgi, mod=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument('--mode', '--mod', dest='mod', default='sorunlu',
+    ap.add_argument('--mode', dest='mod', default='sorunlu',
                     choices=['tam', 'sorunlu', 'devam', 'panel-olc', 'konsensus',
                              'uyelik', 'hepsi', 'ozet'])
-    ap.add_argument('--selftest', '--sina', dest='sina', action='store_true')
-    ap.add_argument('--list-targets', '--hedefleri-listele', dest='hedefleri_listele', action='store_true')
-    ap.add_argument('--skip-tests', '--sinama-atla', dest='sinama_atla', action='store_true',
+    ap.add_argument('--selftest', dest='sina', action='store_true')
+    ap.add_argument('--list-targets', dest='hedefleri_listele', action='store_true')
+    ap.add_argument('--skip-tests', dest='sinama_atla', action='store_true',
                     help='skip the self-test (development and testing only)')
-    ap.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true',
+    ap.add_argument('--rerun', dest='yeniden', action='store_true',
                     help='ignore checkpoints and recompute from scratch')
-    ap.add_argument('--light', '--hafif', dest='hafif', action='store_true', help='skip the reference and global scan steps')
-    ap.add_argument('--full-depth', '--tam-derinlik', dest='tam_derinlik', action='store_true',
+    ap.add_argument('--light', dest='hafif', action='store_true', help='skip the reference and global scan steps')
+    ap.add_argument('--full-depth', dest='tam_derinlik', action='store_true',
                     help='use EVERY read in the bin (same as --reads 0)')
-    ap.add_argument('--reads', '--okuma', dest='okuma', type=int, default=C.NUMUNE_OKUMA_SAYISI,
+    ap.add_argument('--reads', dest='okuma', type=int, default=C.NUMUNE_OKUMA_SAYISI,
                     help='reads per bin; 0 = EVERY read in the bin (slow but exact)')
-    ap.add_argument('--target', '--hedef', dest='hedef', default=None, help='this target only (for testing)')
-    ap.add_argument('--candidate-max', '--aday-ust', dest='aday_ust', type=int, default=None)
+    ap.add_argument('--target', dest='hedef', default=None, help='this target only (for testing)')
+    ap.add_argument('--candidate-max', dest='aday_ust', type=int, default=None)
     a = ap.parse_args(argv)
 
     if a.tam_derinlik:

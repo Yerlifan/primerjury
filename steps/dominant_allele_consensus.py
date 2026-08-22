@@ -22,7 +22,7 @@ The output:
   <out>/ozet.tsv
 
 Usage:
-  python3 dominant_allele_consensus.py       --kons referans_konsensus/self/konsensus       --fastq "fastq files" --out referans_konsensus/baskin
+  python3 dominant_allele_consensus.py       --consensus referans_konsensus/self/konsensus       --fastq "fastq files" --out referans_konsensus/baskin
 
 """
 import argparse, csv, glob, math, os, re, sys
@@ -74,17 +74,17 @@ def fastq_bul(kok, grp, taxid):
 
 def get_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--kons", required=True, help="self consensus directory")
+    p.add_argument("--consensus", required=True, help="self consensus directory")
     p.add_argument("--fastq", required=True, help="'fastq files' directory")
     p.add_argument("--out", required=True)
-    p.add_argument("--max-okuma", type=int, default=3000)
-    p.add_argument("--min-derinlik", type=int, default=20,
+    p.add_argument("--max-reads", type=int, default=3000)
+    p.add_argument("--min-depth", type=int, default=20,
                    help="below this depth no base is called and N is written")
-    p.add_argument("--min-oran", type=float, default=0.50,
+    p.add_argument("--min-fraction", type=float, default=0.50,
                    help="write N when the dominant allele is below this fraction")
-    p.add_argument("--min-uzunluk", type=int, default=400)
-    p.add_argument("--oran-yaz", type=int, default=1)
-    p.add_argument("--yigin", type=int, default=2000,
+    p.add_argument("--min-length", type=int, default=400)
+    p.add_argument("--write-fractions", type=int, default=1)
+    p.add_argument("--batch", type=int, default=2000,
                    help="single call on the minimap2 command-line backend "
                         "verilecek okuma sayisi")
     return p.parse_args()
@@ -93,12 +93,12 @@ def get_args():
 def main():
     a = get_args()
     os.makedirs(os.path.join(a.out, "konsensus"), exist_ok=True)
-    if a.oran_yaz:
+    if a.write_fractions:
         os.makedirs(os.path.join(a.out, "oran"), exist_ok=True)
     ozet = []
-    dosyalar = sorted(glob.glob(os.path.join(a.kons, "*_konsensus.fasta")))
+    dosyalar = sorted(glob.glob(os.path.join(a.consensus, "*_konsensus.fasta")))
     if not dosyalar:
-        sys.exit(u'no consensus found: %s' % a.kons)
+        sys.exit(u'no consensus found: %s' % a.consensus)
     print(alignment.durum())
     print(u'consensus files: %d' % len(dosyalar))
     for f in dosyalar:
@@ -146,17 +146,17 @@ def main():
                 if i % 4 != 1:
                     continue
                 r = line.strip().upper()   # a lower case FASTQ is accepted too
-                if len(r) < a.min_uzunluk:
+                if len(r) < a.min_length:
                     continue
                 n += 1
-                if n > a.max_okuma:
+                if n > a.max_reads:
                     break
                 okumalar["o%d" % n] = r
         hiz = 0
         # A bulk alignment: starting a process per read on the minimap2 command
         # line backend would be unacceptably slow.
-        for bas in range(0, len(okumalar), a.yigin):
-            parca = dict(list(okumalar.items())[bas:bas + a.yigin])
+        for bas in range(0, len(okumalar), a.batch):
+            parca = dict(list(okumalar.items())[bas:bas + a.batch])
             for adq, hl in A.map_toplu(parca):
                 if not hl:
                     continue
@@ -190,9 +190,9 @@ def main():
         oran_satir = []
         for i, c in enumerate(say):
             d = sum(c)
-            if d == 0 or d < a.min_derinlik:
+            if d == 0 or d < a.min_depth:
                 cikti.append("N"); dusuk += 1
-                if a.oran_yaz:
+                if a.write_fractions:
                     oran_satir.append([i + 1, d, c[0], c[1], c[2], c[3], "N", 0.0, 0.0])
                 continue
             en = max(c)
@@ -201,31 +201,31 @@ def main():
                 # On an exact tie the alphabetical order must not decide; if two alleles
                 # are at an equal ratio there is no dominant allele and an N is written.
                 cikti.append("N"); belirsiz += 1
-                if a.oran_yaz:
+                if a.write_fractions:
                     oran_satir.append([i + 1, d, c[0], c[1], c[2], c[3], "N",
                                        round(en / d, 4), 0.0])
                 continue
             j = esitler[0]
             oran = c[j] / d
             w = wilson_alt(c[j], d)
-            if oran < a.min_oran:
+            if oran < a.min_fraction:
                 cikti.append("N"); belirsiz += 1
                 baz = "N"
             else:
                 baz = BAZLAR[j]
                 cikti.append(baz)
-            if a.oran_yaz:
+            if a.write_fractions:
                 oran_satir.append([i + 1, d, c[0], c[1], c[2], c[3], baz,
                                    round(oran, 4), round(w, 4)])
         dizi = "".join(cikti)
         yol = os.path.join(a.out, "konsensus", "%s_baskin_konsensus.fasta" % etiket)
         with open(yol, "w", encoding="utf-8") as fh:
             fh.write(u'>%s dominant_allele reads=%d aligned=%d min_depth=%d min_fraction=%.2f trim=%d-%d inner_N_in_input=%d\n'
-                     % (etiket, n, hiz, a.min_derinlik, a.min_oran,
+                     % (etiket, n, hiz, a.min_depth, a.min_fraction,
                         bas + 1, son, ic_n))
             for k in range(0, len(dizi), 70):
                 fh.write(dizi[k:k + 70] + "\n")
-        if a.oran_yaz:
+        if a.write_fractions:
             with open(os.path.join(a.out, "oran", "%s_alel.tsv" % etiket), "w",
                       newline="", encoding="utf-8") as fh:
                 w = csv.writer(fh, delimiter="\t", lineterminator="\n")

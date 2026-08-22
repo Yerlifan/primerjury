@@ -152,9 +152,9 @@ def calistir(kok, ncbi, yeniden, atla):
         yaz('=' * 78)
         yaz(u'  STAGE %s STARTING: %s   (estimated %s)' % (k, ad, sure))
         yaz('=' * 78)
-        arg = [sys.executable, betik, '--kok', kok]
+        arg = [sys.executable, betik, '--root', kok]
         if k == 'D':
-            arg += (['--ncbi', ncbi] if ncbi != 'yok' else ['--yalniz-yerel'])
+            arg += (['--ncbi', ncbi] if ncbi != 'yok' else ['--local-only'])
         ta = time.time()
         rc = subprocess.call(arg)
         # O-14: rc==0 IS NOT ENOUGH. A stage can return zero and have produced no output; if
@@ -404,7 +404,7 @@ def ozet(kok, CIKTI, durum, yaz):
 
 
 # The command line: --root the project directory, --ncbi stage D's NCBI mode,
-# --yeniden re-runs the finished stages too, --atla skips particular stages
+# --rerun re-runs the finished stages too, --skip skips particular stages
 # ("DI", for example).
 
 # --- CLI value normalisation ------------------------------------------------
@@ -426,10 +426,10 @@ def _ing_deger(a):
 
 def main():
     p = argparse.ArgumentParser(description='P -> K -> D -> I sirayla')
-    p.add_argument('--root', '--kok', dest='kok', default='.')
+    p.add_argument('--root', dest='kok', default='.')
     p.add_argument('--ncbi', choices=['auto', 'manual', 'none', 'oto', 'elle', 'yok'], default='elle')
-    p.add_argument('--rerun', '--yeniden', dest='yeniden', action='store_true', help='re-run finished stages as well')
-    p.add_argument('--skip', '--atla', dest='atla', default='', help='stages to skip, e.g. I or DI')
+    p.add_argument('--rerun', dest='yeniden', action='store_true', help='re-run finished stages as well')
+    p.add_argument('--skip', dest='atla', default='', help='stages to skip, e.g. I or DI')
     a = p.parse_args()
     a = _ing_deger(a)
     kok = os.path.abspath(a.kok)
