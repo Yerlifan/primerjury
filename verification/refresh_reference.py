@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
-"""HIZLI TEST REFERANSLARINI TAM KOSUDAN YENILE.
+"""REFRESH THE QUICK TEST REFERENCES FROM A FULL RUN.
 
-NEDEN
------
-Hizli tutarlilik testinin karsilastirdigi "referans" degerler koda gomulu
-sabitlerdi ve hangi primer ciftinden olculdukleri hicbir yerde yazmiyordu.
-2026-08-10'da Bacteroidales cifti degistirildi; test eski cifte ait 0,74x'i
-yeni ciftin 14,23x'iyle karsilastirdi ve "ZINCIR TUTARSIZ" dedi. Zincir
-tutarsiz degildi, referans bayatti. Sabitler gozle guncellenirse ayni sey
-tekrar olur; bu yuzden referans artik TAM KOSUNUN CIKTISINDAN uretilir ve her
-satirda o olcumun yapildigi F/R dizisi yazar.
+WHY
+---
+The "reference" values the quick consistency test compares against were constants
+embedded in the code, and nowhere did it say which primer pair they had been measured
+from. On 2026-08-10 the Bacteroidales pair was changed; the test compared the old
+pair's 0.74x against the new pair's 14.23x and said "ZINCIR TUTARSIZ". The chain was
+not inconsistent, the reference was stale. Updating the constants by eye would let
+the same thing happen again, so the reference is now produced FROM THE OUTPUT OF A
+FULL RUN and every row carries the F and R sequences that measurement was made with.
 
-Kaynak: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (tam derinlikli kosu)
-Cikti : HIZLI_TEST/referans_degerler.tsv
+The source: TEK_PROTOKOL_SONUC/panel_tek_protokol.tsv (a full depth run)
+The output: HIZLI_TEST/referans_degerler.tsv
 
-Kosum:
+To run:
     python verification/refresh_reference.py --kok .
+
 """
 from __future__ import print_function
 

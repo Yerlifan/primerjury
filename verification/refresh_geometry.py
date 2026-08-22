@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
-"""GEOMETRI KAPISINI SU ANKI PANEL DIZILERIYLE YENIDEN KOS.
+"""RUN THE GEOMETRY GATE AGAIN WITH THE PANEL SEQUENCES AS THEY ARE NOW.
 
-NEDEN (2026-08-10, denetimde yakalandi)
----------------------------------------
-Paneldeki ALTI ciftin dizisi 2 Agustos'taki geometri denetiminden bu yana
-degisti; geometri dosyasi hala ESKI dizileri tasiyor. Yani bu alti cift
-panelin kendi geometri kurallarindan (uzunluk 18-25, GC %40-60, Tm 58-62,
-sac tokasi, dimer, 3' uc) HIC GECMEDI.
+WHY (2026-08-10, caught in an audit)
+------------------------------------
+The sequence of SIX pairs in the panel has changed since the geometry audit of 2
+August, and the geometry file still carries the OLD sequences. So those six pairs
+have NEVER PASSED the panel's own geometry rules (length 18-25, GC 40-60 percent, Tm
+58-62, hairpin, dimer, the 3' end).
 
-Dahasi, teslim tablosunun Tm sutunu bu bes yeni cift icin 48,9-51,1 yaziyor.
-Bu deger panelin motoruyla (primer3, mv=50 dv=1,5 dntp=0,6 dna=50) uyusmuyor:
-bagimsiz en yakin komsu hesabiyla ayni bes primer 55-58 cikiyor ve saglam 16
-ciftte tablo ile bagimsiz hesap arasindaki fark sabit +3,72 ± 0,22 C iken bu
-beste -6,38 C. Iki ayri kume; tek bir yontemle olusamaz.
+On top of that, the Tm column of the delivery table says 48.9 to 51.1 for these five
+new pairs. That does not agree with the panel's engine (primer3, mv=50 dv=1.5
+dntp=0.6 dna=50): an independent nearest neighbour calculation gives 55 to 58 for the
+same five primers, and while the difference between the table and the independent
+calculation is a steady +3.72 +- 0.22 C across the 16 sound pairs, on these five it
+is -6.38 C. Two separate populations; they cannot have come out of a single method.
 
-Neden onemli: teslim tablosunda "Ta = min(Tm) - 3" yaziyor. Yazili Tm'lerle
-P1 icin Ta 47 cikar; oysa plakada 55 yaziyor. Tabloyu okuyan biri Ta'yi
-yeniden hesaplarsa panelin tamami yanlis sicaklikta kosar. Tutarli Tm ile
-ayni kural bes plaka grubunun BESINDE de yazili Ta'yi 0,6 C icinde veriyor -
-yani TASARIM DOGRU, YAZILAN SAYI YANLIS.
+Why it matters: the delivery table says "Ta = min(Tm) - 3". With the Tm values as
+written, Ta comes out 47 for P1, while the plate says 55. Anyone reading the table
+and recomputing Ta would run the whole panel at the wrong temperature. With a
+consistent Tm the same rule gives the written Ta within 0.6 C on ALL FIVE plate
+groups: THE DESIGN IS RIGHT, THE NUMBER WRITTEN IS WRONG.
 
-Bu betik hukum vermez, OLCER: panelin kendi motoruyla butun primerleri
-yeniden hesaplar, kural ihlallerini listeler ve tabloda yazan degerle
-karsilastirir.
+This script gives no verdict, it MEASURES: it recomputes every primer with the
+panel's own engine, lists the rule violations and compares them against the value
+written in the table.
 
-Kosum:
+To run:
     python verification/refresh_geometry.py --kok .
-    python verification/refresh_geometry.py --kok . --yaz     (panel tablosunu da guncelle)
+    python verification/refresh_geometry.py --kok . --yaz  (update the panel table too)
+
 """
 from __future__ import print_function
 
@@ -41,8 +43,10 @@ PANEL = os.path.join('primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.ts
 
 
 def geo_yukle(kok):
-    """Panelin KENDI geometri modulunu getirir. Ayri bir kopya YAZILMAZ -
-    iki kopya zamanla ayrisir ve hangisinin dogru oldugu bilinmez."""
+    """Brings in the panel's OWN geometry module. A separate copy IS NOT WRITTEN: two
+    copies drift apart in time and there is no telling which one is right.
+
+    """
     for aday in ('engine', 'engine'):
         d = os.path.join(kok, aday)
         if os.path.exists(os.path.join(d, 'geometry_core.py')):
@@ -87,13 +91,15 @@ def _yer(p, d):
 
 
 def konsensus_yukle(kok):
-    """Kanonik konsensusler - GLOB DEGIL, INDEKS.tsv.
+    """The canonical consensuses, from INDEKS.tsv and NOT from a glob.
 
-    konsensus_kanonik klasorunde 250 dosya var, yalnizca 100'u gecerli.
-    Kalan 150'si bagli klasorde silinemeyen kalinti; 33 kutuda ayni kutunun
-    FARKLI icerikli iki-uc surumu duruyor. Glob ile okumak hangi surumun
-    kullanilacagini dosya adi sirasina birakir - panelin gormedigi bir diziyle
-    olcum yapmis oluruz. Panelin kendi yukleyicisi de bu yuzden indeks okur.
+    There are 250 files in the konsensus_kanonik directory and only 100 of them are
+    valid. The other 150 are leftovers that cannot be deleted on the mounted directory;
+    in 33 bins two or three versions of the same bin with DIFFERENT content sit side by
+    side. Reading with a glob leaves the choice of version to file name order, so we
+    would be measuring with a sequence the panel never saw. That is why the panel's own
+    loader reads the index too.
+
     """
     import csv as _csv
     d = os.path.join(kok, 'konsensus_kanonik')
@@ -349,9 +355,9 @@ def main():
             r[c['iTr']] = '%.2f' % tR
             if c['idT'] is not None and len(r) > c['idT']:
                 r[c['idT']] = '%.2f' % abs(tF - tR)
-            # Urun boyu yalniz TEK bir olculen deger varsa duzeltilir.
-            # Birden cok boy cikiyorsa (evrensel primerler) hangisinin
-            # yazilacagi bir KARARDIR ve betik karar vermez.
+            # The product length is corrected only if there is ONE measured value.
+            # If several lengths come out (the universal primers), which one to
+            # write is A DECISION and the script does not decide.
             if c.get('yeni_urun') and c.get('iU') is not None and len(r) > c['iU']:
                 print(u'  product length corrected: %s %s -> %d'
                       % (c['hedef'], r[c['iU']], c['yeni_urun']))
