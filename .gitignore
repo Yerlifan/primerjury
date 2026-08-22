@@ -29,10 +29,10 @@ examples/*.fa
 *.qza
 *.qzv
 # ...but keep the small curated tables the pipeline needs
-!steps/hedefler.tsv
-!steps/hedefler_referans.tsv
-!steps/taxid_adlari.tsv
-!steps/F2_ITS_penceresi.fa
+!steps/targets.tsv
+!steps/reference_targets.tsv
+!steps/taxid_names.tsv
+!steps/F2_ITS_window.fa
 !screening/*.tsv
 !examples/*.tsv
 

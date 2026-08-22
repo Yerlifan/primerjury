@@ -46,7 +46,7 @@ uret() {
   echo "[BETIK]"
   ozet "$HERE" '[0-9][0-9]_*.py' '[0-9][0-9]_*.sh' 'field_audit.py' \
        'alignment.py' 'run.sh' 'heavy_jobs.sh' 'sync.sh' \
-       'hedefler.tsv' 'hedefler_referans.tsv' 'taxid_adlari.tsv' \
+       'targets.tsv' 'reference_targets.tsv' 'taxid_names.tsv' \
        'bol_*.sh' 'bol2_*.sh' 'kimlik/kimlik_*.tsv' \
        'rapor/rapor_uret.js' 'rapor/veri_uret.py' 'rapor/veri.json' | sort -k2
   echo "[CIKTI]"

@@ -1355,7 +1355,7 @@ pageReporting=true
 # Gives idle memory back to Windows.
 autoMemoryReclaim=gradual"
 
-  local CIKTI="$PROJE/wslconfig_ONERILEN.txt"
+  local CIKTI="$PROJE/wslconfig_RECOMMENDED.txt"
   printf '%s\n' "$ICERIK" > "$CIKTI"
 
   echo "----------------------------------------------------------------------"

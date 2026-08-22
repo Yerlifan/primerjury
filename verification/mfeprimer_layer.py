@@ -477,8 +477,8 @@ ORGANEL_JETONLARI = ('Chloroplast', 'Mitochondria')
 
 
 def klad_tablosu(kok):
-    """screening/hedef_klad.tsv -> {target: (domain, [clade tokens], source)}"""
-    y = os.path.join(kok, 'screening', 'hedef_klad.tsv')
+    """screening/target_clades.tsv -> {target: (domain, [clade tokens], source)}"""
+    y = os.path.join(kok, 'screening', 'target_clades.tsv')
     if not os.path.exists(y):
         return {}
     out = {}
@@ -530,7 +530,7 @@ def klad_siniflandir(kok, CIKTI, ciftler, ta_panel, yaz=None):
     if not tab or not os.path.exists(yol):
         if yaz:
             yaz(u'    clade separation NOT POSSIBLE (%s missing); the raw count will be used'
-                % ('hedef_klad.tsv' if not tab else os.path.basename(yol)))
+                % ('target_clades.tsv' if not tab else os.path.basename(yol)))
         return {}
     out = {}
     for c in ciftler:
@@ -581,6 +581,6 @@ def klad_siniflandir(kok, CIKTI, ciftler, ta_panel, yaz=None):
                                       FpTm=r.get('FpTm'), RpTm=r.get('RpTm'),
                                       dTm=dtm))
     if eksik and yaz:
-        yaz(u'    WARNING: target(s) with no entry in hedef_klad.tsv: %s'
+        yaz(u'    WARNING: target(s) with no entry in target_clades.tsv: %s'
             % ', '.join(sorted(eksik))[:200])
     return out

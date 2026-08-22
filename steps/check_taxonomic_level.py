@@ -11,7 +11,7 @@ The decision:
                      Dictyostelium discoideum, Trichoderma asperellum
   genus specific   : Bacteroides, Alistipes, Proteiniphilum, Petrimonas
 This list is not written by hand; it is read from the "duzey" column of
-hedefler.tsv.
+targets.tsv.
 
 WHY A SEPARATE MEASUREMENT IS NEEDED
 steps/specificity.py tests against the competitors in the sample, and
@@ -49,7 +49,7 @@ THE VERDICT
               external_databases.py's job and is not repeated here.
 
 Usage:
-  python3 check_taxonomic_level.py --targets hedefler.tsv       --names taxid_adlari.tsv --final primer_final --db REFERANS_DB       --identity primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
+  python3 check_taxonomic_level.py --targets targets.tsv       --names taxid_names.tsv --final primer_final --db REFERANS_DB       --identity primer_final/hedef_kimlik.tsv       --out primer_final/duzey_denetimi.tsv
 
 """
 import argparse, collections, csv, os, re, shutil, subprocess, sys, tempfile
@@ -156,11 +156,11 @@ def ad_parcala(ad):
 
 
 def referans_esle(ref_hedef, hedef_adlari):
-    """Links the target name in primer_referans.tsv to the name in hedefler.tsv.
+    """Links the target name in primer_referans.tsv to the name in targets.tsv.
 
         STRIPPING THE '_referans' SUFFIX ALONE IS NOT ENOUGH.
           MEASURED (2026-08-01): 'Methanosarcina_barkeri_referans' strips to
-          'Methanosarcina_barkeri', while the name in hedefler.tsv is
+          'Methanosarcina_barkeri', while the name in targets.tsv is
           'Methanosarcina_barkeri_turu'. When the match fails, the target's ONLY
           primer set (it has no de novo pair at all) drops silently and the target
           appears as CIFT_YOK. A silent drop makes a target that was never measured
@@ -212,7 +212,7 @@ def hedefleri_oku(hedefler_tsv, adlar_tsv, kimlik_tsv):
                 turler.add("%s %s" % (c, t))
         # AN OPTIONAL 7TH COLUMN: hedef_tur
         # On some targets the declared taxid does not correspond to the organism found in
-        # the sample, and the right species may have no entry in our taxid_adlari.tsv. An
+        # the sample, and the right species may have no entry in our taxid_names.tsv. An
         # example: the measured identity of the target whose bins are labelled 101201
         # (Trichoderma asperellum) is Petriella musispora. A TAXID IS NEVER INVENTED; the
         # species name is written directly in this column and added to the target's own name
@@ -399,7 +399,7 @@ def main():
     gunluk = []
     hedefler = hedefleri_oku(a.targets, a.names, a.identity)
     if not hedefler:
-        sys.exit(u'hedefler.tsv holds no row with duzey=tur or duzey=cins')
+        sys.exit(u'targets.tsv holds no row with duzey=tur or duzey=cins')
     print(u'targets with a declared decision level: %d (species: %d, genus: %d)'
           % (len(hedefler),
              sum(1 for h in hedefler if h["duzey"] == "tur"),
@@ -415,7 +415,7 @@ def main():
             ciftler[r["hedef"]].append((r["ileri_dizi"], r["geri_dizi"],
                                         "de novo"))
     if a.reference and os.path.exists(a.reference):
-        # ALL the names in hedefler.tsv (without distinguishing the level), because the
+        # ALL the names in targets.tsv (without distinguishing the level), because the
         # reference set also holds targets at level=group
         tum_ad = []
         for line in open(a.targets, encoding="utf-8"):
@@ -434,7 +434,7 @@ def main():
                 continue
             ciftler[ad].append((r["ileri_dizi"], r["geri_dizi"], "referans"))
         for ham, n in eslesmeyen.items():
-            print(u'   WARNING: reference target \'%s\' (%d pairs) matched no name in hedefler.tsv and was LEFT OUT OF THE MEASUREMENT' % (ham, n))
+            print(u'   WARNING: reference target \'%s\' (%d pairs) matched no name in targets.tsv and was LEFT OUT OF THE MEASUREMENT' % (ham, n))
 
     tum_cins = set()
     for h in hedefler:

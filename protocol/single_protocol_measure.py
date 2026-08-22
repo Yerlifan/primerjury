@@ -16,7 +16,7 @@ must clear.
 # at one depth, and produces a single order list. There is no per-row exception.
 #
 # INPUT  : the panel table under primer_final/ (through
-#          screening.targets.panel_oku), protocol/ek_ciftler.tsv (pairs that are
+#          screening.targets.panel_oku), protocol/extra_pairs.tsv (pairs that are
 #          not in the panel), uyelik_yeniden_turetme_uyelik_*.tsv (stage U's
 #          MEASURED membership), the raw reads under "fastq files".
 # OUTPUT : ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the full table),
@@ -215,11 +215,11 @@ def uyelik_oku(yol):
 
 
 def ek_ciftler_oku(kok):
-    """protocol/ek_ciftler.tsv - pairs that are NOT IN the panel TSV.
+    """protocol/extra_pairs.tsv - pairs that are NOT IN the panel TSV.
         The user can edit it by hand. The columns: hedef, sinif, F, R, urun_bp, not
 
     """
-    yol = os.path.join(kok, 'protocol', 'ek_ciftler.tsv')
+    yol = os.path.join(kok, 'protocol', 'extra_pairs.tsv')
     if not os.path.exists(yol):
         return []
     out = []
@@ -304,7 +304,7 @@ def calistir(kok, okuma_tavani, karisik_kural, yalniz=None, sifirla=False):
                             duzey=d.get('duzey', ''), kaynak='PANEL',
                             panel_ayrim=d.get('ayrim', ''), not_=''))
     # The EXTRA pairs are for pairs NOT IN the panel TSV. If a pair is added to the
-    # panel and also stays in ek_ciftler.tsv, THE SAME TARGET IS MEASURED TWICE and
+    # panel and also stays in extra_pairs.tsv, THE SAME TARGET IS MEASURED TWICE and
     # produces two different numbers. That is exactly what happened on 2026-08-11:
     # Petriella_cinsi came both from the panel (0.88x with its own membership) and from
     # the EXTRA list (11.03x, because its membership target was Petriella_musispora),

@@ -373,7 +373,7 @@ def rapor_yaz(sonuclar, panel_yolu, top_okuma, okuma_sayisi):
     A('## Sinirlar')
     A('')
     A(u'- The numbers the panel published were measured at a different read depth and, on some rows, with a different subset of member bins; the **absolute** numbers are not expected to match exactly. The value of this table is that every row was measured **with the same engine, on the same bins, under the same criterion**.')
-    A(u'- The member and competitor bin definition comes from `screening/hedef_uyelik.tsv`. If a row\'s number comes out unexpectedly, **look at that file first**; the `uyelik_kaynagi` column names the source of each row.')
+    A(u'- The member and competitor bin definition comes from `screening/target_membership.tsv`. If a row\'s number comes out unexpectedly, **look at that file first**; the `uyelik_kaynagi` column names the source of each row.')
     A('')
     with open(md, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(L))

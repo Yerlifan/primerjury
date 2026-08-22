@@ -213,8 +213,8 @@ These are not style preferences; each was paid for with a real bug.
 Honest list; these are the gaps between "runs for the original study" and
 "general-purpose tool":
 
-- **Targets are still study-specific.** `steps/hedefler.tsv` and
-  `screening/hedef_klad.tsv` describe the original 20 targets and 5
+- **Targets are still study-specific.** `steps/targets.tsv` and
+  `screening/target_clades.tsv` describe the original 20 targets and 5
   amplicon groups. Samples in `examples/` show the format. Generalising the
   target definition is the main open work item.
 - **`screening/config.py` holds every path and constant** and is

@@ -186,7 +186,7 @@ def sinifla(baslik, vtb, hedef_klad, hedef_alan):
       'c'          A DIFFERENT domain                           -> a real cross reaction
       'bilinmiyor' IT COULD NOT BE DECIDED, IT DOES NOT COUNT AS EVIDENCE
 
-    hedef_klad : the target's clade tokens (screening/hedef_klad.tsv)
+    hedef_klad : the target's clade tokens (screening/target_clades.tsv)
     hedef_alan : the target's domain ('Bacteria' / 'Archaea' / 'Eukaryota')
 
     'bilinmiyor' is returned in THREE cases and none of them MEANS 'no cross reaction':

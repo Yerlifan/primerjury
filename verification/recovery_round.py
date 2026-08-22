@@ -36,7 +36,7 @@ RECOVERY_RESULT/.
 #
 # INPUT  : ONE_PROTOCOL_RESULT/panel_tek_protokol.tsv (the below-threshold rows),
 #          uyelik_yeniden_turetme_uyelik_*.tsv (stage U's measured membership),
-#          protocol/ek_ciftler.tsv (target name aliases),
+#          protocol/extra_pairs.tsv (target name aliases),
 #          konsensus_kanonik/ and "fastq files"/ (the measurement sources).
 # OUTPUT : RECOVERY_RESULT/kurtarma_satirlari.tsv (ONE row per target),
 #          RECOVERY_RESULT/yeni_adaylar.tsv (the candidates from the route 3 and
@@ -256,12 +256,12 @@ def uyelik_oku(yol):
     return out
 
 
-# The pair name in ek_ciftler.tsv and the target name in the membership table may
+# The pair name in extra_pairs.tsv and the target name in the membership table may
 # not be the same; this table maps the two. Without the mapping the extra pairs
 # would be skipped as "no membership".
 def takma_adlar(kok):
-    """protocol/ek_ciftler.tsv: target -> membership target (the name in the membership table)"""
-    yol = os.path.join(kok, 'protocol', 'ek_ciftler.tsv')
+    """protocol/extra_pairs.tsv: target -> membership target (the name in the membership table)"""
+    yol = os.path.join(kok, 'protocol', 'extra_pairs.tsv')
     out = {}
     if not os.path.exists(yol):
         return out

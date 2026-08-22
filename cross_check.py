@@ -597,10 +597,10 @@ class Kaynaklar(object):
         self.siparis_listesi = y('SIPARIS_LISTESI.tsv')
         self.hedef_disi = y('HEDEF_DISI_AYRINTI_2026-08-07.tsv')
         # --- panel tanimi
-        self.ciftler = y('screening', 'ciftler.tsv')
-        self.hedef_uyelik = y('screening', 'hedef_uyelik.tsv')
-        self.hedef_klad = y('screening', 'hedef_klad.tsv')
-        self.hedefler_wsl = y('steps', 'hedefler.tsv')
+        self.ciftler = y('screening', 'pairs.tsv')
+        self.hedef_uyelik = y('screening', 'target_membership.tsv')
+        self.hedef_klad = y('screening', 'target_clades.tsv')
+        self.hedefler_wsl = y('steps', 'targets.tsv')
         self.takson_esleme = y('screening', 'target_taxon_mapping.py')
         # --- excel
         # 2026-08-11: the delivery xlsx was moved to the archive (six of the pairs inside it
@@ -1760,7 +1760,7 @@ def modul_1_kimlik(kay, rap, kn, kip=u'hizli', yalniz=None, tavan=0):
 # giving different values for the same (target, field) are listed as a
 # CONTRADICTION. The field mapping is written OUT EXPLICITLY and is not matched
 # automatically by column NAME: the column "R", for example, means THE REVERSE
-# PRIMER in ciftler.tsv and THE ABUNDANCE RATIO in ESIK_VE_OLCUT, and matching those
+# PRIMER in pairs.tsv and THE ABUNDANCE RATIO in ESIK_VE_OLCUT, and matching those
 # two by name would produce a false contradiction.
 # -------------------------------------------------------------------------
 
@@ -1780,7 +1780,7 @@ def modul_2_ic_tutarlilik(kay, rap):
     # (source_name, path, key_column, {canonical_field: column_name}, type)
     # the type: 'primer' | 'sayi' | 'metin'
     ESLEME = [
-        (u'ciftler.tsv', kay.ciftler, u'hedef', {
+        (u'pairs.tsv', kay.ciftler, u'hedef', {
             u'ileri_primer': u'F', u'geri_primer': u'R'}, ),
         (u'NIHAI_SIPARIS', kay.nihai_siparis, u'hedef', {
             u'ileri_primer': u'F', u'geri_primer': u'R', u'urun_bp': u'urun_bp',
@@ -1918,7 +1918,7 @@ def modul_2_ic_tutarlilik(kay, rap):
     # --- IS THE SAME BIN BOTH A MEMBER AND A COMPETITOR (this happened before)
     uyelik = tsv_oku(kay.hedef_uyelik)
     if uyelik is None:
-        rap.atla(M, u'M2-UYE-RAKIP', u'hedef_uyelik.tsv must be readable', u'there is no such file',
+        rap.atla(M, u'M2-UYE-RAKIP', u'target_membership.tsv must be readable', u'there is no such file',
                  kay.hedef_uyelik)
     else:
         for r in uyelik:
@@ -1956,11 +1956,11 @@ def modul_3_uyelik(kay, rap):
     esik = tsv_oku(kay.esik_olcut)
 
     if ciftler is None:
-        rap.atla(M, u'M3-CIFTLER', u'screening/ciftler.tsv must be readable',
+        rap.atla(M, u'M3-CIFTLER', u'screening/pairs.tsv must be readable',
                  u'there is no such file', kay.ciftler)
         return
     if uyelik is None:
-        rap.atla(M, u'M3-UYELIK', u'screening/hedef_uyelik.tsv must be readable',
+        rap.atla(M, u'M3-UYELIK', u'screening/target_membership.tsv must be readable',
                  u'there is no such file', kay.hedef_uyelik)
         return
 
@@ -2028,7 +2028,7 @@ def modul_3_uyelik(kay, rap):
         if hn not in uyelik_indeks:
             agir = KRITIK if dcq is not None else CIDDI
             rap.ekle(M, u'M3-UYELIK-SATIRI-YOK', agir,
-                     u'every target must have ITS OWN row inside hedef_uyelik.tsv',
+                     u'every target must have ITS OWN row inside target_membership.tsv',
                      u'%s: it has NO membership row of its own%s'
                      % (h, u'; and yet a dCq of %s was reported, so that measurement may have been made with another target\'s membership' % vir(dcq)
                         if dcq is not None else u''),
@@ -2350,7 +2350,7 @@ def modul_5_desenler(kay, rap):
     # ---- PATTERN 2: COUNTING THE TARGET'S OWN MEMBERS AS OFF-TARGET ---
     if uyelik is None or hdisi is None:
         rap.atla(M, u'M5-D2', u'a target must not count its own members as off target',
-                 u'there is no hedef_uyelik.tsv or HEDEF_DISI_AYRINTI',
+                 u'there is no target_membership.tsv or HEDEF_DISI_AYRINTI',
                  kay.hedef_disi if uyelik else kay.hedef_uyelik)
     else:
         uye_harita = {}
@@ -2565,7 +2565,7 @@ def modul_5_desenler(kay, rap):
     # degenerate base as an N and silently discarded it.
     DEJ = set(u'RYSWKMBDHVN')
     if ciftler is None:
-        rap.atla(M, u'M5-D8', u'the degenerate base leak scan', u'there is no ciftler.tsv',
+        rap.atla(M, u'M5-D8', u'the degenerate base leak scan', u'there is no pairs.tsv',
                  kay.ciftler)
     else:
         dej_hedef = []
@@ -2918,7 +2918,7 @@ def modul_7_kapsam(kay, rap):
     panel_hedefleri = set(_ad_norm(r.get(u'hedef') or u'') for r in (ciftler or []))
     if ciftler is None:
         rap.atla(M, u'M7-PANEL-YOK', u'the panel pair list must be readable',
-                 u'there is no ciftler.tsv', kay.ciftler)
+                 u'there is no pairs.tsv', kay.ciftler)
 
     # The link between the panel targets and the meeting decisions is held in the KARAR
     # dictionary inside target_taxon_mapping.py. The file IS NOT EXECUTED, it is parsed
@@ -3182,11 +3182,11 @@ def _sinama_kok_kur(gecici, kay):
             fh.write(icerik)
 
     # --- the panel definition: two targets, both sound
-    d(y('screening', 'ciftler.tsv'),
+    d(y('screening', 'pairs.tsv'),
       u'satir\thedef\tsinif\tF\tR\tuye_taksonlar\tolcu_tipi\tuye_kumesi_durumu\n'
       u'2\tHedef_A\tA\tACGTACGTACGTACGTACGT\tTTGCATGCATGCATGCATGC\t111,222\tayrim\tPANELLE_TUTUYOR\n'
       u'3\tHedef_B\tB\tGGGTACGTACGTACGTACGT\tCCGCATGCATGCATGCATGC\t333\tkapsam\tPANELLE_TUTUYOR\n')
-    d(y('screening', 'hedef_uyelik.tsv'),
+    d(y('screening', 'target_membership.tsv'),
       u'hedef\tuye_taxid\tharic\tkaynak\tnot\n'
       u'Hedef_A\t111,222\t999\tPANEL\t-\n'
       u'Hedef_B\t333\t\tPANEL\t-\n')
@@ -3293,7 +3293,7 @@ def kendini_sina(kay, cikti):
 
     def kur_m3(g):
         # THE ERROR: a pair's member set was EMPTIED but its dCq is still there.
-        yol = os.path.join(g, 'screening', 'ciftler.tsv')
+        yol = os.path.join(g, 'screening', 'pairs.tsv')
         s = metin_oku(yol).replace(u'\t111,222\t', u'\t\t', 1)
         with io.open(yol, 'w', encoding='utf-8') as fh:
             fh.write(s)

@@ -28,7 +28,7 @@ Bu dosyanin onceki, daha uzun hali: `eski/README.md`.
 | `engine_test.py` / `independent_check.py` | motor esitlik testleri |
 | `geometry.py` | toplanti geometri kurallari (parametrelestirilmis) |
 | `targets.py` | panel / uyelik / kutu okuma |
-| `hedef_uyelik.tsv` | **uye-rakip tanimi - elle duzenlenebilir** |
+| `target_membership.tsv` | **uye-rakip tanimi - elle duzenlenebilir** |
 | `generator.py` | pencere, cift, ARMS, 144 hucreli izgara |
 | `sample.py` | ham okuma in-silico PCR + Wilson |
 | `reference.py` / `global_scan.py` | referans kapsam / kuresel ozgulluk |
@@ -38,5 +38,5 @@ Bu dosyanin onceki, daha uzun hali: `eski/README.md`.
 | `run_all.py` | secenek (9) her seyi sirayla kos |
 | `report.py` / `checks.py` | rapor uretimi / checkpoint |
 | `update_panel.py` | duzeltmeyi panel xlsx'ine isler - ELLE calistirilir, menude yok |
-| `ciftler.tsv` | diger oturumun uye tanimi; secenek (5) bunu karsilastirmaya alir |
+| `pairs.tsv` | diger oturumun uye tanimi; secenek (5) bunu karsilastirmaya alir |
 | `eski/` | yerini yenisi alan dosyalar (silinmedi) |

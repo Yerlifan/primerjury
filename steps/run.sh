@@ -111,7 +111,7 @@ say "STEP 2/7  the bulk design (batch_design.py)"
 T0=$(date +%s)
 python3 "$HERE/batch_design.py" \
     --consensus "$KONS" \
-    --targets "$HERE/hedefler.tsv" \
+    --targets "$HERE/targets.tsv" \
     --out "$ADAY" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
 say "STEP 2 finished, exit=$RC, time=$(( ($(date +%s)-T0)/60 )) minutes"
@@ -128,7 +128,7 @@ python3 "$HERE/specificity.py" \
     --candidates "$ADAY" \
     --pt "$PT" \
     --consensus "$KONS" \
-    --targets "$HERE/hedefler.tsv" \
+    --targets "$HERE/targets.tsv" \
     --out "$FINAL" \
     --top "$TOP" --max-reads "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 RC=${PIPESTATUS[0]}
@@ -157,13 +157,13 @@ say "----------------------------------------------------------------"
 say "STEP 5/7  the reference based design (design_from_reference.py)"
 T0=$(date +%s)
 REFC="$PT/primer_referans"
-if [ -f "$HERE/hedefler_referans.tsv" ]; then
+if [ -f "$HERE/reference_targets.tsv" ]; then
   python3 "$HERE/design_from_reference.py" \
       --db "$PT/REFERANS_DB" --pt "$PT" \
-      --reference-targets "$HERE/hedefler_referans.tsv" \
+      --reference-targets "$HERE/reference_targets.tsv" \
       --out "$REFC" --max-reads "$MAX_OKUMA" 2>&1 | tee -a "$ANA_LOG"
 else
-  say "  there is no hedefler_referans.tsv, the step was skipped"
+  say "  there is no reference_targets.tsv, the step was skipped"
 fi
 say "STEP 5 finished, time=$(( ($(date +%s)-T0)/60 )) minutes"
 
@@ -175,8 +175,8 @@ REFARG=""
 python3 "$HERE/export_excel.py" \
     --candidates "$ADAY" --final "$FINAL" \
     --splits "$ADAY/kume_setleri" \
-    --names "$HERE/taxid_adlari.tsv" \
-    --targets "$HERE/hedefler.tsv" --consensus "$KONS" $REFARG \
+    --names "$HERE/taxid_names.tsv" \
+    --targets "$HERE/targets.tsv" --consensus "$KONS" $REFARG \
     --out "$PT/PrimerJury_Primer_Tasarimi.xlsx" 2>&1 | tee -a "$ANA_LOG"
 
 # --- 7. the self audit ------------------------------------------------
@@ -193,7 +193,7 @@ python3 "$HERE/regression_test.py" \
 RC17=${PIPESTATUS[0]}
 if [ -s "$FINAL/primer_final.tsv" ]; then
   python3 "$HERE/check_deliverables.py" \
-      --final "$FINAL" --consensus "$KONS" --targets "$HERE/hedefler.tsv" \
+      --final "$FINAL" --consensus "$KONS" --targets "$HERE/targets.tsv" \
       --out "$FINAL/teslim_denetimi.tsv" 2>&1 | tee -a "$ANA_LOG"
   RC18=${PIPESTATUS[0]}
 else

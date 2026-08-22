@@ -506,7 +506,7 @@ def ozet_yaz(durum, sure, gecen):
     A('|---|---|---|')
     A(u'| read depth | **FULL** (a median of about 3 000 per bin, at most about 46 000) | **300 reads per bin** |')
     A(u'| mismatch criterion | `<=1` and `<=3` (two separate rows) | `<=1` |')
-    A(u'| membership definition | the same (`hedef_uyelik.tsv`) | the same |')
+    A(u'| membership definition | the same (`target_membership.tsv`) | the same |')
     A(u'| engine | the same (`read_engine.py`) | the same |')
     A('')
     A('**Farkin iki sebebi var:**')
@@ -695,7 +695,7 @@ def ozet_yaz(durum, sure, gecen):
             for k, v in tani.items():
                 A('| %s | %s |' % (k, v))
         A('')
-        A(u'Detail: `UYELIK_DENETIMI.md` . Where to correct it: `screening/hedef_uyelik.tsv`')
+        A(u'Detail: `UYELIK_DENETIMI.md` . Where to correct it: `screening/target_membership.tsv`')
     A('')
 
     # ============================================================ 5. konsensus

@@ -14,7 +14,7 @@ panel
 #
 # INPUT  : the measurement result pattern given with --r2, the json cross_coverage.py
 #          produces given with --cross, the pair table with --pairs,
-#          taxid_adlari.tsv with --taxid and the delivery panel with --xlsx. The
+#          taxid_names.tsv with --taxid and the delivery panel with --xlsx. The
 #          target to decision mapping (the KARAR dictionary) is fixed inside the
 #          file; the rows that do not come from a meeting decision are marked there
 #          plainly as "Karar 5 - derived from the measurement".

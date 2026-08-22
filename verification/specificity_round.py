@@ -313,7 +313,7 @@ def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
 
     _klad_yok = [c['hedef'] for c in ciftler if c['hedef'] not in _klad]
     if _klad and _klad_yok:
-        yaz(u'  WARNING: %d targets have no entry in hedef_klad.tsv, so NO taxonomic separation is done for them: %s'
+        yaz(u'  WARNING: %d targets have no entry in target_clades.tsv, so NO taxonomic separation is done for them: %s'
             % (len(_klad_yok), ', '.join(_klad_yok)[:160]))
 
     def _siniflandirici(aday_ad, baslik, db_ad):
@@ -675,7 +675,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
     # product it finds under "target templates" and leaves the "unintended" section
     # empty; measured on 22 of 22 pages. The fix: exclude the target's own taxon with
     # ENTREZ_QUERY, and then every remaining product is off-target by definition. The
-    # map file: screening/hedef_taxid.tsv
+    # map file: screening/target_taxids.tsv
     def _ent_of(_tx):
         # Several taxids can be given comma separated; each becomes a SEPARATE NOT term.
         # For universal primers (Metanojen_universal, for example) the target is not one
@@ -687,7 +687,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
 
     HARITA = {}
     _hy = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       'screening', 'hedef_taxid.tsv')
+                       'screening', 'target_taxids.tsv')
     if os.path.exists(_hy):
         for _l in open(_hy, encoding='utf-8'):
             _l = _l.rstrip('\n')
@@ -868,7 +868,7 @@ def katman2_oto(ciftler, cikti, yaz, organizma='', bekleme=20, tur_ust=60,
                         durum='BASARISIZ - DISLAMA HARITASINDA YOK',
                         ncbi_toplam_urun=n_target, ncbi_adsiz_klon=len(_adsiz),
                         not_=u'Sayfa %d urun listeledi ama bu hedef icin '
-                             u'screening/hedef_taxid.tsv icinde dislanacak takson '
+                             u'screening/target_taxids.tsv icinde dislanacak takson '
                              u'yazili degil. Hedefin kendi uyeleri de listede olabilir, '
                              u'ayirt edilemez. SINANMADI.' % n_target)
                     yaz(u'  [%s] NCBI: not in the exclusion map, not tested' % ad)
@@ -1742,7 +1742,7 @@ def main():
 
     # D-12: what should enter the verdict is not MFEprimer's raw (length based) count
     # but the TAXONOMICALLY filtered klad_disi. The filter reads
-    # mfe_hedef_disi_kimlikleri.tsv and screening/hedef_klad.tsv; if either is missing
+    # mfe_hedef_disi_kimlikleri.tsv and screening/target_clades.tsv; if either is missing
     # it returns EMPTY, the raw count is used, and the report says so openly.
     klad_sonuc = {}
     try:

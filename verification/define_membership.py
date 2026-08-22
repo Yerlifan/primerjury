@@ -16,7 +16,7 @@ Uyeligi ELLE YAZMAZ: hedefin sinifindaki (F1/F2/A1/A2/B) butun kutulari gezer,
 OLCULEN kimliginde verilen kalibi tasiyanlari UYE, kalanlari RAKIP yapar ve
 gerekcesini satir satir yazar. Sonra:
   1) uyelik_yeniden_turetme_uyelik_*.tsv dosyasina satir ekler (P ve K bunu okur)
-  2) screening/hedef_uyelik.tsv dosyasina acik tanimi ekler
+  2) screening/target_membership.tsv dosyasina acik tanimi ekler
   3) istenirse panel kaynagina plaka/Ta satiri ekler
 Her dosyanin once yedegini alir ve ne yaptigini basar.
 
@@ -155,8 +155,8 @@ def main():
         for r in sat:
             fh.write(u'\t'.join(r) + u'\n')
 
-    # ---- 2) hedef_uyelik.tsv (acik tanim) ----
-    hy = os.path.join(kok, 'screening', 'hedef_uyelik.tsv')
+    # ---- 2) target_membership.tsv (acik tanim) ----
+    hy = os.path.join(kok, 'screening', 'target_membership.tsv')
     if os.path.exists(hy):
         shutil.copy2(hy, hy + '.yedek_%s_uyelik' % time.strftime('%H%M'))
         metin = io.open(hy, encoding='utf-8').read()
@@ -170,9 +170,9 @@ def main():
                       % (a.hedef, ','.join(tx), a.kalip, sinif,
                          time.strftime('%Y-%m-%d')))
             io.open(hy, 'w', encoding='utf-8', newline='').write(metin)
-            print(u'  an explicit definition WAS ADDED: screening/hedef_uyelik.tsv')
+            print(u'  an explicit definition WAS ADDED: screening/target_membership.tsv')
         else:
-            print(u'  an explicit definition already exists: screening/hedef_uyelik.tsv')
+            print(u'  an explicit definition already exists: screening/target_membership.tsv')
 
     # ---- 3) panel kaynagina satir ----
     if a.panel_satiri:

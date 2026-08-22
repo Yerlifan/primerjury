@@ -84,7 +84,7 @@ def main():
     klad = MK.klad_tablosu(KOK)
     yok = [c['hedef'] for c in ciftler if c['hedef'] not in klad]
     if yok:
-        print(u'WARNING: %d targets have no definition in hedef_klad.tsv, so taxonomic separation CANNOT be made for them:' % len(yok))
+        print(u'WARNING: %d targets have no definition in target_clades.tsv, so taxonomic separation CANNOT be made for them:' % len(yok))
         for h in yok:
             print('   - %s' % h)
         print()

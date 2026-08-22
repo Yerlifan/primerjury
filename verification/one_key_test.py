@@ -289,10 +289,10 @@ def s2_devam(ana, s1_taban):
 
 def s3_bayat(ana, taban):
     print(u'\n--- S3: A STALE CHECKPOINT - when the input is newer than the output ---')
-    # We touch one of D's inputs: hedef_klad.tsv. This is the D-9 fault of
+    # We touch one of D's inputs: target_clades.tsv. This is the D-9 fault of
     # 2026-08-07 itself: the index was refreshed and the checkpoint read the old
     # zeros back.
-    hk = os.path.join(taban, 'screening', 'hedef_klad.tsv')
+    hk = os.path.join(taban, 'screening', 'target_clades.tsv')
     with io.open(hk, 'w', encoding='utf-8') as fh:
         fh.write(u'hedef\tklad\nX\tBacteria\n')
     os.utime(hk, (time.time() + 5, time.time() + 5))   # ciktidan KESIN yeni

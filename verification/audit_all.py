@@ -91,7 +91,7 @@ def _harita(yol):
 # --- 1 ------------------------------------------------------------------
 def d1_harita_anahtarlari(kok, yaz):
     sl = os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'SIPARIS_LISTESI.tsv')
-    hy = os.path.join(kok, 'screening', 'hedef_taxid.tsv')
+    hy = os.path.join(kok, 'screening', 'target_taxids.tsv')
     if not os.path.exists(sl) or not os.path.exists(hy):
         ATLANAN.append(u'1 map keys (no such file)')
         return
@@ -282,7 +282,7 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
          'QUICK_TEST/referans_degerler.tsv'),
         ('ONE_PROTOCOL_RESULT/SIPARIS_LISTESI.tsv',
          'VERIFICATION_RESULT/dogrulama_uc_sutun.tsv'),
-        ('screening/hedef_taxid.tsv',
+        ('screening/target_taxids.tsv',
          'VERIFICATION_RESULT/ncbi_katman4.tsv'),
         # 2026-08-11: when the membership table changes, stage G's table goes stale.
         # The identity columns in the order list (olculen_kimlik, ad_farkli_mi, the member
@@ -291,7 +291,7 @@ def d6_cikti_tazeligi(kok, yaz, uretilecek=()):
         # bins that ARE NO LONGER MEMBERS: the Petriella_musispora row said "10/10 bins" and
         # counted Microascus, Lomentospora and Graphium, when the measurement had been made
         # with 9 bins.
-        ('screening/hedef_uyelik.tsv',
+        ('screening/target_membership.tsv',
          'ALL_IDENTITIES_RESULT/tum_kutu_kimlikleri.tsv'),
     ]
     def _diziler(y2, ad_h='hedef', ad_f='F', ad_r='R'):
@@ -1101,7 +1101,7 @@ def d19_uyelik_icerigi(kok, yaz):
 
         Item 16 tests that two scripts read THE SAME FILE. But the project uses two
         SEPARATE membership files, and that is deliberate:
-            screening/hedef_uyelik.tsv          - the search and scan side
+            screening/target_membership.tsv          - the search and scan side
             uyelik_yeniden_turetme_uyelik_*.tsv - the single protocol measurement
         Because they are not the same file, item 16 never compares these two. If their
         contents diverge silently, the search optimises for one set while the measurement

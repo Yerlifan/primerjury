@@ -172,7 +172,7 @@ there. If you add consensus sequences by hand, normalise them first.
 
 This is currently the least generalised part of the tool. Two tables drive it:
 
-### `steps/hedefler.tsv`, what you want to amplify
+### `steps/targets.tsv`, what you want to amplify
 
 | column | meaning |
 |---|---|
@@ -183,11 +183,11 @@ This is currently the least generalised part of the tool. Two tables drive it:
 | `haric` | taxids deliberately excluded from the competitor set |
 | `hedef_tur` | human-readable organism name |
 
-### `screening/hedef_klad.tsv`, how to tell inside from outside
+### `screening/target_clades.tsv`, how to tell inside from outside
 
 | column | meaning |
 |---|---|
-| `hedef` | must match `hedefler.tsv` |
+| `hedef` | must match `targets.tsv` |
 | `alan` | domain: `Bacteria`, `Archaea`, `Eukaryota` |
 | `klad` | comma-separated clade tokens that mark "inside the target" |
 
@@ -438,8 +438,8 @@ tooling picks `nproc - 2` by default.
 
 Being honest about what is not yet general:
 
-- **Target definitions are still study-shaped.** `hedefler.tsv` and
-  `hedef_klad.tsv` work, but assume a structure close to the original study
+- **Target definitions are still study-shaped.** `targets.tsv` and
+  `target_clades.tsv` work, but assume a structure close to the original study
   (amplicon groups, bin naming). Generalising this is the main open work.
 - **`screening/config.py` holds every path and constant.** It is meant to
   be edited and is genuinely the only place paths are defined, moving it to

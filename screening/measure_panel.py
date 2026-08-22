@@ -5,7 +5,7 @@ What it did was moved to OPTION (4) in the verification/full_chain.py menu:
     panel_measurement.py  ->  python3 -m screening --mode panel-olc --full-depth
 
 Why it changed (the detail: eski/NEDEN_BURADALAR.md):
-  * the pairs are read from the PANEL TSV now, not from a hand kept ciftler.tsv
+  * the pairs are read from the PANEL TSV now, not from a hand kept pairs.tsv
   * mm<=1 and mm<=3 are measured in a single run and the criterion is written on
     every row
   * it survives interruption (checkpoints) and the membership source can be traced

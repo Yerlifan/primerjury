@@ -20,7 +20,7 @@ is made on the cautious side (it counts as indistinguishable).
 
 Usage:
   python3 indistinguishable_targets.py --consensus <directory> [--out ayirt_edilemez.tsv]
-  python3 indistinguishable_targets.py --consensus <directory> --names taxid_adlari.tsv
+  python3 indistinguishable_targets.py --consensus <directory> --names taxid_names.tsv
 
 """
 import argparse, csv, glob, os, re, sys

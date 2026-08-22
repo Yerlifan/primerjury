@@ -20,7 +20,7 @@ Conserved regions (18S, 28S) do not separate at genus level; the script writes o
 every row which region it measured from, so the level of confidence is not hidden.
 
 Usage:
-  python3 target_identity.py --consensus referans_konsensus/baskin/konsensus       --db REFERANS_DB --targets hedefler.tsv --names taxid_adlari.tsv       --out primer_final/hedef_kimlik.tsv
+  python3 target_identity.py --consensus referans_konsensus/baskin/konsensus       --db REFERANS_DB --targets targets.tsv --names taxid_names.tsv       --out primer_final/hedef_kimlik.tsv
 
 """
 import argparse, csv, collections, glob, os, re, subprocess, sys, tempfile, shutil
@@ -43,8 +43,8 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--consensus", required=True)
     p.add_argument("--db", required=True)
-    p.add_argument("--targets", default="hedefler.tsv")
-    p.add_argument("--names", default="taxid_adlari.tsv")
+    p.add_argument("--targets", default="targets.tsv")
+    p.add_argument("--names", default="taxid_names.tsv")
     p.add_argument("--out", required=True)
     p.add_argument("--min-alignment", type=int, default=250,
                    help='an alignment shorter than this does not count as an '

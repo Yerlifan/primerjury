@@ -269,9 +269,9 @@ def main():
     A(u'The phrase "six species plus four genera" describes **Decision 1 plus Decision 2** only (10 targets), not the whole meeting.')
     A('---\n')
 
-    # uye kumesi guvenilirligi - CANLI ciftler.tsv'den
+    # uye kumesi guvenilirligi - CANLI pairs.tsv'den
     uyedur = {}
-    cp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ciftler.tsv')
+    cp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pairs.tsv')
     if os.path.exists(cp):
         for c in csv.DictReader(open(cp, encoding='utf-8'), delimiter='\t'):
             uyedur[int(c['satir'])] = c['uye_kumesi_durumu']

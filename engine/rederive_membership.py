@@ -60,7 +60,7 @@ USAGE
 #
 # INPUT  : konsensus_kanonik/*.kanonik.fa (the bin consensuses),
 #          "fastq files"/*/*.fastq(.gz) (the raw reads),
-#          screening/hedef_uyelik.tsv (the current membership definition),
+#          screening/target_membership.tsv (the current membership definition),
 #          primer_final/devir_ciftleri_20260802_sonrotus_TESLIM.tsv (the panel pairs).
 # OUTPUT : engine_RESULT/engine_TURETME.md,
 #          engine_RESULT/ciftler_yeniden_olcum.tsv,
@@ -514,7 +514,7 @@ def main():
     # -----------------------------------------------------------------------
     # --- 3. re-deriving the membership
     print(u'  [3/4] Re-deriving membership')
-    uyelik_tsv = os.path.join(KOK, 'screening', 'hedef_uyelik.tsv')
+    uyelik_tsv = os.path.join(KOK, 'screening', 'target_membership.tsv')
     panel_tsv = os.path.join(KOK, 'primer_final', 'devir_ciftleri_20260802_sonrotus_TESLIM.tsv')
     if not os.path.exists(uyelik_tsv): sys.exit(u'ERROR: %s is missing' % uyelik_tsv)
     if not os.path.exists(panel_tsv): sys.exit(u'ERROR: %s is missing' % panel_tsv)
