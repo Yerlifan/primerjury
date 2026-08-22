@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
-r"""
-update_panel.py - okuma motoru duzeltmesini panele isler.
-
-  * yeni sayfa: "16 Okuma Motoru Duzeltmesi"
-  * "2 Panel"  : her satira olcut etiketi + duzeltilmis degerler sutunlari + NOT
-  * "1 Rapora Ozet" ve "6 Karar Durumu": degisen satirlar ve uyari
-  * degerlendiriciya_ozet TSV'si senkron
-
-Kullanim: python update_panel.py --xlsx ..\PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx
-                                   --tsv  ..\okuma_motoru_duzeltmesi_20260802.tsv
 """
-# ---------------------------------------------------------------------------
-# update_panel.py — okuma motoru duzeltmesinin sonuclarini teslim panelinin
-#                     xlsx dosyasina isler (yeni sayfa acar, mevcut sayfalara
-#                     olcut etiketi ve duzeltilmis deger sutunlari ekler).
+update_panel.py writes the read engine fix into the panel.
+
+  * a new sheet: "16 Okuma Motoru Duzeltmesi"
+  * "2 Panel"  : a criterion label plus corrected value columns and a NOTE on each row
+  * "1 Rapora Ozet" and "6 Karar Durumu": the rows that changed, and a warning
+  * the degerlendiriciya_ozet TSV is synced
+
+Usage: python update_panel.py --xlsx ../PrimerJury_PCR_Paneli_2026-08-02_TESLIM.xlsx
+                                   --tsv  ../okuma_motoru_duzeltmesi_20260802.tsv
+
+"""
+# -------------------------------------------------------------------------
+# update_panel.py writes the results of the read engine fix into the delivery
+#                     panel xlsx (it opens a new sheet and adds a criterion label
+#                     and corrected value columns to the existing sheets).
 #
-# GIRDI  : --xlsx ile verilen teslim panel dosyasi (openpyxl ile acilir) ve
-#          --tsv ile verilen okuma motoru duzeltmesi tablosu; istege bagli
-#          --yedek yolu.
-# CIKTI  : ayni xlsx dosyasinin uzerine yazar (wb.save) ve istenirse yedegini
-#          alir; ayrica degerlendiriciya_ozet TSV'sini senkronlar. Ekrana guncellenen
-#          dosya adini ve sayfa sayisini basar.
-# CAGRAN : MENUDE DEGILDIR - bilerek elle calistirilir. Sebep 00_OZET_HEPSI.md
-#          icinde yazili: teslim dosyasini DEGISTIRIR ve o dosyaya baska
-#          oturumlar da yaziyor, bu yuzden otomatik zincire baglanmamistir.
-# ---------------------------------------------------------------------------
+# INPUT  : the delivery panel file given with --xlsx (opened with openpyxl) and the
+#          read engine fix table given with --tsv; optionally a --yedek path.
+# OUTPUT : it writes over the same xlsx file (wb.save) and takes a backup if asked;
+#          it also syncs the degerlendiriciya_ozet TSV. It prints the name of the
+#          file updated and the sheet count to the screen.
+# CALLED BY: IT IS NOT IN THE MENU, it is run by hand on purpose. The reason is
+#          written in 00_OZET_HEPSI.md: it CHANGES the delivery file and other
+#          sessions write to that file too, so it is not wired into the automatic
+#          chain.
+# -------------------------------------------------------------------------
 import sys, os, csv, argparse, shutil, datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment

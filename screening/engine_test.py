@@ -1,45 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-engine_test.py - read_engine.py'nin KAYIPSIZ oldugunu kanitlar.
+engine_test.py proves that read_engine.py is LOSSLESS.
 
-Yontem: `okuma_motoru.Sonda` (guvercin yuvasi tohumlamasi + tam dogrulama) ile
-`kaba_kuvvet.yerler` (tohumsuz, her pozisyon tek tek) AYNI dizilerde, AYNI olcutle
-kosulur ve baglanma yerlerinin listesi BIREBIR karsilastirilir. Tek bir yer
-farki bile testi dusurur.
+The method: `okuma_motoru.Sonda` (pigeonhole seeding plus full verification) and
+`kaba_kuvvet.yerler` (seedless, every position one at a time) are run on the SAME
+sequences under the SAME criterion and the lists of binding sites are compared
+EXACTLY. A single site of difference fails the test.
 
-Uc katman:
-  T1  sentetik diziler - her primer pozisyonuna tek tek uyumsuzluk yerlestirilir
-      (tohumun icine dusen uyumsuzluk tam da eski motorun kacirdigi durumdur)
-  T2  gercek okumalar - panelin 21 cifti, verilen fastq dosyalarindan alt kume
-  T3  urun duzeyi - kutu_pcr sayilari iki uygulamada esit mi
-Ayrica ESKI motorun ayni testte KAC yer kacirdigi da raporlanir (hatanin kaniti).
+Three layers:
+  T1  synthetic sequences: a mismatch is placed at each primer position in turn
+      (a mismatch falling inside the seed is exactly the case the old engine missed)
+  T2  real reads: the panel's 21 pairs, on a subset of the given fastq files
+  T3  product level: are the kutu_pcr counts equal in the two implementations
+It also reports HOW MANY sites the OLD engine misses in the same test (the evidence
+for the fault).
 
-Kullanim:
-    python engine_test.py                          # yalniz T1 (sentetik, veri gerekmez)
+Usage:
+    python engine_test.py                          # T1 only (synthetic, no data needed)
     python engine_test.py "fastq files/A1-4/*.fastq" [--n 300] [--mm 1]
-Cikis kodu 0 = gecti, 1 = kaldi.
+Exit code 0 = passed, 1 = failed.
+
 """
-# ---------------------------------------------------------------------------
-# engine_test.py — read_engine.py'nin guvercin yuvasi tohumlamasinin KAYIPSIZ
-#                 oldugunu, tohumsuz kaba kuvvetle birebir karsilastirarak
-#                 kanitlar.
+# -------------------------------------------------------------------------
+# engine_test.py proves that read_engine.py's pigeonhole seeding is LOSSLESS by
+#                 comparing it exactly against seedless brute force.
 #
-# GIRDI  : T1 icin veri gerekmez (sentetik diziler uretilir); T2 ve T3 icin
-#          komut satirinda verilen fastq dosyalari ya da joker desen. Modul
-#          olarak read_engine.py ve brute_force.py'yi dogrudan ice aktarir;
-#          panelin 21 cifti dosyanin icinde sabit liste olarak durur.
-# CIKTI  : dosyaya yazmaz; sonucu ekrana basar. Cikis kodu 0 = gecti,
-#          1 = kaldi (tek bir baglanma yeri farki bile testi dusurur).
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir sinamadir. Ayni
-#          karsilastirmanin kucultulmus hali her kosuda self_test.py
-#          icinden otomatik yapilir (tus 8 ve butun olcum tuslarinin basi).
+# INPUT  : T1 needs no data (it produces synthetic sequences); T2 and T3 take the
+#          fastq files or a wildcard pattern given on the command line. It imports
+#          read_engine.py and brute_force.py directly as modules; the panel's 21
+#          pairs sit in the file as a fixed list.
+# OUTPUT : it writes no file; it prints the result to the screen. Exit code 0 =
+#          passed, 1 = failed (a single binding site difference fails the test).
+# CALLED BY: IT IS NOT IN THE MENU, it is a test run by hand. A reduced form of the
+#          same comparison is made automatically inside self_test.py on every run
+#          (key 8 and the head of every measuring key).
 #
-# GUVERCIN YUVASI ILKESI BURADA SINANIR: k uzunlugundaki bir primer, en fazla
-# m uyumsuzluk aranan bir taramada (m + 1) ortusmeyen parcaya bolunurse en az
-# bir parca tam eslesmek zorundadir - bu bir garantidir. T1 tam da bu garantiyi
-# hedefler: uyumsuzlugu primerin HER pozisyonuna tek tek yerlestirir, cunku
-# eski motorun kacirdigi durum uyumsuzlugun tohumun icine dusmesiydi.
-# ---------------------------------------------------------------------------
+# THE PIGEONHOLE PRINCIPLE IS TESTED HERE: if a primer of length k is split into
+# (m + 1) non-overlapping pieces in a scan allowing at most m mismatches, at least
+# one piece has to match exactly; that is a guarantee. T1 aims at exactly that
+# guarantee: it puts the mismatch at EVERY position of the primer one at a time,
+# because the case the old engine missed was the mismatch falling inside the seed.
+# -------------------------------------------------------------------------
 import sys, os, glob, random, argparse, itertools
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -71,7 +72,7 @@ CIFTLER = [
 ]
 
 
-# --- ESKI (hatali) motorun birebir kopyasi - yalniz karsilastirma icin -------
+# --- an exact copy of the OLD (faulty) engine, for the comparison only -------
 def eski_yerler(seq, primer, max_mm=1, uc5=False, SEED=13):
     """engine/reads.py -> Sonda.bul davranisinin birebir kopyasi."""
     sd = primer[:SEED] if uc5 else primer[-SEED:]
@@ -100,8 +101,10 @@ def eski_yerler(seq, primer, max_mm=1, uc5=False, SEED=13):
 
 
 def t1_sentetik(max_mm=1):
-    """Her primer icin, primerin her pozisyonuna tek uyumsuzluk konulmus sentetik
-    okumalar uretilir. Duzeltilmis motor kaba kuvvetle birebir tutmali."""
+    """For each primer, synthetic reads are produced with a single mismatch placed at
+    each position of the primer. The corrected engine has to match brute force exactly.
+
+    """
     random.seed(11)
     fark = 0; toplam = 0; eski_kacan = 0
     for ad, F, R in CIFTLER:
