@@ -79,7 +79,7 @@ if [ "$DOGRULA" = 1 ]; then
     | while read -r x; do echo "  EXTRA    $x (on disk, not in the manifest)"; done
   # the ones present in both whose digest differs
   join -j2 -o 0,1.1,2.1 "$ESKI_T" "$YENI_T" 2>/dev/null \
-    | awk '$2!=$3{printf "  FARKLI   %s\n     manifesto: %s\n     disk     : %s\n",$1,substr($2,1,16),substr($3,1,16); n++} END{if(!n) print "  butun dosyalar manifestoyla ayni"}'
+    | awk '$2!=$3{printf "  DIFFERENT %s\n     manifest: %s\n     disk    : %s\n",$1,substr($2,1,16),substr($3,1,16); n++} END{if(!n) print "  butun dosyalar manifestoyla ayni"}'
   rm -f "$YENI" "$ESKI_T" "$YENI_T"
   exit 0
 fi
