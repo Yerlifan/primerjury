@@ -1,37 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-orientation_impact_test.py - BILINEN CEVAPLI TEST: yonun yanlis olmasi hangi sayiyi ne kadar bozar.
+orientation_impact_test.py, A KNOWN ANSWER TEST: which number does a wrong
+orientation spoil, and by how much.
 
-Kurulum: ayni primer cifti, ayni konsensus, tek fark YON.
-  (a) konsensus SENSE yonde saklanmis   -> beklenen: urun bulunur
-  (b) ayni konsensusun TERS TUMLEYENI   -> beklenen: urun BULUNAMAZ (0)
+The setup: the same primer pair, the same consensus, the only difference being
+ORIENTATION.
+  (a) the consensus stored in the SENSE direction -> expected: a product is found
+  (b) the REVERSE COMPLEMENT of the same consensus -> expected: NO product (0)
 
-Sebep: projenin in-silico PCR motorlari (ispcr.amplify ve okuma_motoru) verilen diziyi
-YALNIZ ARTI IPLIKTE tarar - ileri primeri ve ters primerin tumleyenini arti iplikte arar.
-Ters saklanmis bir konsensuste ikisi de bulunamaz. Hata atilmaz; "urun yok" denir.
-Bu, panelin "10 Olcum Hatalari" #1 kaydinin sayisal kanitidir.
+The reason: this project's in-silico PCR engines (ispcr.amplify and okuma_motoru)
+scan the given sequence ON THE PLUS STRAND ONLY; they look there for the forward
+primer and for the complement of the reverse primer. On a sequence stored in reverse
+neither is found, and the engine reports no product without raising anything.
 
-Kullanim: python orientation_impact_test.py --kok ..
 """
-# ---------------------------------------------------------------------------
-# orientation_impact_test.py — "yon yanlissa ne kaybederiz" sorusunu sayiya baglar:
-#                     ayni cift, ayni konsensus, tek fark yon.
+# -------------------------------------------------------------------------
+# orientation_impact_test.py ties the question "what do we lose if the orientation
+#                     is wrong" to a number: the same pair, the same consensus, the
+#                     only difference being orientation.
 #
-# GIRDI  : --kok altindaki --klasor ile verilen konsensus klasoru (varsayilan
-#          referans_konsensus/konsensus); panelin evrensel ciftleri ve uc ek
-#          cift dosyanin icinde sabit listedir. Olcumu read_engine.py, varsa
-#          ayrica engine/ispcr.py yapar.
-# CIKTI  : dosyaya yazmaz; dogru yonde ve ters yonde bulunan urun sayilarini
-#          ekrana basar.
-# CAGRAN : MENUDE DEGILDIR - elle calistirilan bir kanit uretecidir. Urettigi
-#          sayi (dogru yonde 117 urun, ters yonde 0) config.py ve orientation.py
-#          icindeki aciklamalarda gerekce olarak anilir.
+# INPUT  : the consensus directory given with --klasor under --kok (the default is
+#          referans_konsensus/konsensus); the panel's universal pairs and three
+#          extra pairs are a fixed list inside the file. read_engine.py does the
+#          measuring, and engine/ispcr.py as well if it is present.
+# OUTPUT : it writes no file; it prints the product counts found in the right
+#          direction and in the reverse to the screen.
+# CALLED BY: IT IS NOT IN THE MENU, it is an evidence generator run by hand. The
+#          number it produces (117 products in the right direction, 0 in the
+#          reverse) is cited as the reason in the explanations inside config.py and
+#          orientation.py.
 #
-# NEDEN KAYIP %100: projenin in-silico PCR motorlari verilen diziyi YALNIZ arti
-# iplikte tarar - ileri primeri ve ters primerin tumleyenini orada arar. Ters
-# saklanmis bir konsensuste ikisi de bulunamaz. Motor hata atmaz, "urun yok"
-# der; yani hata sessizdir ve ancak boyle bilinen cevapli bir testle gorunur.
-# ---------------------------------------------------------------------------
+# WHY THE LOSS IS 100 PERCENT: this project's in-silico PCR engines scan the given
+# sequence ON THE PLUS STRAND ONLY; they look there for the forward primer and for
+# the complement of the reverse primer. On a consensus stored in reverse neither is
+# found. The engine raises nothing, it says "no product"; that is, the fault is
+# silent and shows only in a known answer test like this one.
+# -------------------------------------------------------------------------
 import sys, os, glob, argparse
 
 BURA = os.path.dirname(os.path.abspath(__file__))

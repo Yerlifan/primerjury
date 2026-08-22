@@ -1,33 +1,35 @@
 # -*- coding: utf-8 -*-
-"""BU DOSYA ARTIK KULLANILMIYOR.  Tam hali: eski/measure_panel.py
+"""THIS FILE IS NO LONGER IN USE.  The full version: eski/measure_panel.py
 
-Yaptigi is verification/full_chain.py menusundeki SECENEK (4)'e tasindi:
+What it did was moved to OPTION (4) in the verification/full_chain.py menu:
     panel_measurement.py  ->  python3 -m screening --mod panel-olc --tam-derinlik
 
-Neden degisti (ayrinti: eski/NEDEN_BURADALAR.md):
-  * ciftler artik elle tutulan ciftler.tsv'den degil, PANEL TSV'sinden okunuyor
-  * mm<=1 ve mm<=3 tek kosuda olculuyor, olcut her satirda yaziyor
-  * kesintiye dayanikli (checkpoint), uyelik kaynagi izlenebilir
-  * bu dosyanin en degerli ozelligi - eski/yeni motoru kutu kutu yan yana
-    olcmesi - secenek (4)'e AYNEN tasindi
+Why it changed (the detail: eski/NEDEN_BURADALAR.md):
+  * the pairs are read from the PANEL TSV now, not from a hand kept ciftler.tsv
+  * mm<=1 and mm<=3 are measured in a single run and the criterion is written on
+    every row
+  * it survives interruption (checkpoints) and the membership source can be traced
+  * this file's most valuable feature, measuring the old and the new engine bin by
+    bin side by side, was moved to option (4) UNCHANGED
 
-Tek giris noktasi: klasor kokundeki verification/full_chain.py
+The one entry point: verification/full_chain.py in the directory root
+
 """
-# ---------------------------------------------------------------------------
-# measure_panel.py — DEVRE DISI. Yalnizca eski cagri yollarini kibarca durdurmak
-#                icin duruyor; hicbir olcum yapmaz.
+# -------------------------------------------------------------------------
+# measure_panel.py, DISABLED. It stays only to stop old call routes politely; it
+#                makes no measurement.
 #
-# GIRDI  : yok. Tam hali eski/measure_panel.py icindedir.
-# CIKTI  : kendi docstring'ini ekrana basar ve sys.exit ile hata mesaji vererek
-#          sonlanir.
-# CAGRAN : hicbir menu tusu bu dosyayi calistirmaz. Yaptigi is
-#          verification/full_chain.py tusu 4'e (panel_measurement.py, --mod panel-olc
-#          --tam-derinlik) tasindi.
+# INPUT  : none. The full version is in eski/measure_panel.py.
+# OUTPUT : it prints its own docstring to the screen and ends with sys.exit and an
+#          error message.
+# CALLED BY: no menu key runs this file. What it did was moved to
+#          verification/full_chain.py key 4 (panel_measurement.py, --mod panel-olc
+#          --tam-derinlik).
 #
-# Dosya silinmek yerine birakildi: eski bir kisayol ya da not hala bu yolu
-# gosteriyor olabilir ve sessizce yanlis bir sey calistirmaktansa acikca
-# durup dogru tusa yonlendirmek dogrudur.
-# ---------------------------------------------------------------------------
+# The file was left rather than deleted: an old shortcut or note may still point at
+# this path, and stopping plainly and pointing at the right key is better than
+# silently running the wrong thing.
+# -------------------------------------------------------------------------
 import sys
 print(__doc__)
 sys.exit(u'This script is disabled. Use verification/full_chain.py -> option (4).')

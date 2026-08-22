@@ -1,40 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GUVEN ESIGI TARAMASI OZETI VE IKI VERITABANININ KARSILASTIRMASI
+THE SUMMARY OF THE CONFIDENCE THRESHOLD SCAN AND THE COMPARISON OF TWO DATABASES
 
-kraken_tool.sh'in urettigi esik_<C>.report ve esik_<C>.out dosyalarini okur.
+It reads the esik_<C>.report and esik_<C>.out files kraken_tool.sh produces.
 
-NE SORULUYOR
-Kraken2 bir okumayi ancak k-mer'lerinin belli bir bolumu ayni klada gidiyorsa
-atar. Esik 0 iken tek bir k-mer bile atamaya yeter. Esik yukseldikce zayif
-atamalar duser. Ne kadar dustugu, o atamalarin bastan ne kadar zayif oldugunun
-Kraken'in kendi agziyla olcusudur.
+WHAT IS BEING ASKED
+Kraken2 assigns a read only if a certain fraction of its k-mers go to the same
+clade. At threshold 0 a single k-mer is enough for an assignment. As the threshold
+rises, weak assignments drop out. How many drop is Kraken's own measure of how weak
+those assignments were to begin with.
 
-ASIL SORU (iki veritabani verildiginde)
-Eski veritabaninda esik yukselince coken atamalar, PlusPFP'de ayakta kaliyor mu?
-Kaliyorsa teshis dogrulanir: sorun kapsamdi, veritabani o organizmalari
-icermiyordu ve Kraken en yakin akrabaya atiyordu. Kalmiyorsa teshis yanlistir
-ve bu acikca yazilir.
+THE REAL QUESTION (when two databases are given)
+On the old database, when the threshold rises, do the assignments that collapse stay
+standing on the new one? If they do, the problem was the database's COVERAGE: the
+organism was not in the old database, Kraken assigned the read to the nearest
+relative, and that assignment was weak.
 
-IKI BAGIMSIZ OLCUM (proje kurali 1)
-Alan yuzdeleri iki ayri dosyadan, iki ayri kod yoluyla hesaplanir:
-  olcum 1: esik_<C>.report icindeki klad okuma sayilari
-  olcum 2: esik_<C>.out icindeki okuma basina atamalar, agac uzerinden toplanir
-Ikisi ayrilirsa satir AYRILIK olarak isaretlenir ve sessizce birine gecilmez.
-Bu, ayristirma hatasini yakalamak icindir; bu projede on hatanin hepsi
-"program hata vermeden yanlis cevap uretiyor" turundendi.
-
-Calistirma:
-  python3 threshold_summary.py --is <klasor> --kok <PROJE>
-  python3 threshold_summary.py --is <eski> --ad "eski VT" --is2 <yeni> --ad2 "PlusPFP" --kok <PROJE>
-  python3 threshold_summary.py --selftest
 """
 import argparse, csv, glob, os, re, sys
 from collections import Counter, defaultdict
 
-# Alan tanimlari. taxid NCBI icindir; ad, sentetik taksonomili ozel veritabani
-# icin yedektir. Mantar okaryotun ALTINDADIR, ikisi ayri sutun ama ic ice.
+# The domain definitions. taxid is for NCBI; the name is a fallback for the custom
+# database with a synthetic taxonomy. Fungi sit UNDER eukaryota, so the two are
+# separate columns but nested.
 ALANLAR = [
     ("arke",    "2157",  {"archaea"}),
     ("bakteri", "2",     {"bacteria"}),
@@ -44,15 +33,16 @@ ALANLAR = [
     ("virus",   "10239", {"viruses"}),
 ]
 
-# ------------------------------------------------------------------ okuma
+# ------------------------------------------------------------------ reading
 def rapor_oku(yol):
     """
-    Kraken2 raporunu okur.
-    Sutunlar: yuzde, klad_okuma, dugum_okuma, rank, taxid, girintili ad.
-    Doner: (dugumler, ebeveyn, toplam_okuma, siniflandirilmayan)
+    Reads a Kraken2 report.
+    The columns: percent, clade_reads, node_reads, rank, taxid, the indented name.
+    Returns: (nodes, parent, total_reads, unclassified)
 
-    Girinti agaci verir, iki bosluk bir duzey. Ebeveyn haritasi buradan cikar
-    ve olcum 2'nin toplamasi bu haritayla yapilir.
+    The indentation gives a tree, two spaces per level. The parent map comes out of it,
+    and measurement 2's summing is done with that map.
+
     """
     dugumler = []
     ebeveyn = {}
@@ -88,7 +78,7 @@ def rapor_oku(yol):
     return dugumler, ebeveyn, toplam, siniflandirilmayan
 
 def alan_dugumu(dugumler, taxid, adlar):
-    """Alanin dugumunu once taxid ile, bulamazsa adla arar."""
+    """Looks for the domain's node by taxid first and by name if that fails."""
     for d in dugumler:
         if d["taxid"] == taxid:
             return d
@@ -98,7 +88,7 @@ def alan_dugumu(dugumler, taxid, adlar):
     return None
 
 def alan_raporundan(dugumler, toplam):
-    """OLCUM 1: rapordaki klad okuma sayilarindan alan yuzdeleri."""
+    """MEASUREMENT 1: the domain percentages from the clade read counts in the report."""
     sonuc = {}
     for ad, tx, adlar in ALANLAR:
         d = alan_dugumu(dugumler, tx, adlar)
@@ -114,9 +104,10 @@ def taxid_cek(kimlik):
 
 def out_oku(yol):
     """
-    Kraken2 ciktisi: C/U, okuma adi, kimlik, uzunluk, k-mer haritasi.
-    Doner: (sayac_taxid, toplam, siniflandirilmayan, kutu_sayac)
-    kutu_sayac: kaynak taxid (@tx<taxid>_ oneki) -> Counter(atanan taxid)
+    The Kraken2 output: C/U, the read name, the identity, the length, the k-mer map.
+    Returns: (counter_taxid, total, unclassified, bin_counter)
+    bin_counter: the source taxid (the @tx<taxid>_ prefix) -> Counter(assigned taxid)
+
     """
     sayac = Counter()
     kutu = defaultdict(Counter)
@@ -148,7 +139,7 @@ def out_oku(yol):
     return sayac, toplam, sinifsiz, kutu
 
 def atalar(tx, ebeveyn, sinir=200):
-    """tx ve butun atalari. Dongu olusursa sinirda durur, sonsuza gitmez."""
+    """tx and all its ancestors. If a cycle forms it stops at the bound rather than running forever."""
     out = []
     g = tx
     n = 0
@@ -160,9 +151,10 @@ def atalar(tx, ebeveyn, sinir=200):
 
 def alan_outtan(sayac, ebeveyn, dugumler):
     """
-    OLCUM 2: okuma basina atamalari agac uzerinden alanlara toplar.
-    Rapordan tamamen bagimsiz bir yol degildir (agac rapordan gelir) ama
-    SAYIM bagimsizdir; bu, klad sayisi ayristirma hatalarini yakalar.
+    MEASUREMENT 2: it sums the per read assignments into domains over the tree.
+    It is not a route wholly independent of the report (the tree comes from the report),
+    but the COUNTING is independent; that catches clade count parsing faults.
+
     """
     hedef = {}
     for ad, tx, adlar in ALANLAR:
@@ -196,10 +188,11 @@ def esik_listesi(klasor):
 
 def tarama_oku(klasor):
     """
-    Bir tarama klasorunu okur.
-    Doner: (satirlar, kutular)
-      satirlar: [dict(esik, toplam, sinifsiz, sinifsiz_oran, alanlar, alanlar2, ayrilik)]
-      kutular : {esik_metni: {kaynak_taxid: Counter(atanan)}}
+    Reads one scan directory.
+    Returns: (rows, bins)
+      rows: [dict(esik, toplam, sinifsiz, sinifsiz_oran, alanlar, alanlar2, ayrilik)]
+      bins: {threshold_text: {source_taxid: Counter(assigned)}}
+
     """
     satirlar = []
     kutular = {}
@@ -211,8 +204,8 @@ def tarama_oku(klasor):
         a2 = alan_outtan(sayac, ebeveyn, dugumler) if sayac else {}
         if kutu:
             kutular[metin] = kutu
-        # Iki olcum karsilastirilir. Payda olarak raporun toplami kullanilir;
-        # out dosyasi varsa toplamlarin da esit olmasi beklenir.
+        # The two measurements are compared. The report's total is used as the
+        # denominator; if there is an out file the totals are expected to be equal too.
         ayrilik = []
         if toplam2 and toplam and toplam2 != toplam:
             ayrilik.append(f"read count report {toplam} / out {toplam2}")
@@ -265,8 +258,10 @@ def kutu_hakim(kutu_sayac):
 
 def cokme_esigi(kutular, kaynak, alt=0.20):
     """
-    Bir kutunun hakim atamasinin ilk defa %20'nin altina dustugu esik.
-    Hic dusmuyorsa None doner. "Coken atama" tam olarak budur.
+    The threshold at which a bin's dominant assignment first falls below 20 percent.
+    If it never falls, None is returned. That is exactly what "a collapsing assignment"
+    means.
+
     """
     for metin in sorted(kutular, key=lambda m: float(m)):
         k = kutular[metin].get(kaynak)
@@ -279,8 +274,10 @@ def cokme_esigi(kutular, kaynak, alt=0.20):
 
 def ayakta_kalma(kutular_a, kutular_b, ad_a, ad_b):
     """
-    ASIL SORU. Eski veritabaninda coken atamalar yeni veritabaninda ayakta mi?
-    Doner: (satirlar, ozet)
+    THE REAL QUESTION. Do the assignments that collapse on the old database stay
+    standing on the new one?
+    Returns: (rows, summary)
+
     """
     kaynaklar = set()
     for k in (kutular_a, kutular_b):
@@ -320,9 +317,9 @@ def selftest():
         print(f"  {'PASS' if ok else 'FAIL'}  {ad:<58} {bul} / {bek}")
 
     import tempfile
-    # Elle kurulmus, cevabi kagitta hesaplanmis bir rapor.
-    # 1000 okuma: 100 sinifsiz, 900 root. Arke 400, bakteri 300, okaryot 200,
-    # bunun 150'si mantar.
+    # A report built by hand whose answer was worked out on paper.
+    # 1000 reads: 100 unclassified, 900 root. Archaea 400, bacteria 300,
+    # eukaryota 200, of which 150 fungi.
     rap = ("  10.00\t100\t100\tU\t0\tunclassified\n"
            "  90.00\t900\t10\tR\t1\troot\n"
            "  89.00\t890\t0\tR1\t131567\t  cellular organisms\n"
@@ -349,7 +346,7 @@ def selftest():
         K("bulunmayan alan sifirdir, cokmez", a1["bitki"], 0)
         K("yuzde hesabi", round(yuzde(a1["arke"], top), 2), 40.0)
 
-        # OLCUM 2 icin ayni sayilari veren bir out dosyasi.
+        # An out file giving the same numbers for MEASUREMENT 2.
         oy = os.path.join(d, "esik_0.out")
         satir = []
         satir += ["C\ttx2209_r%d\tMethanosarcina mazei (taxid 2209)\t1500\t\n" % i for i in range(350)]
@@ -380,7 +377,7 @@ def selftest():
         s2, _ = tarama_oku(d)
         K(u'a corrupted file is caught as a DISAGREEMENT', s2[0]["ayrilik"] != "", True)
 
-    # Kutu cokmesi ve ayakta kalma.
+    # The collapse and survival of a bin.
     A = {"0":   {"K1": Counter({"9": 90, "U": 10})},
          "0.1": {"K1": Counter({"9": 10, "U": 90})}}
     B = {"0":   {"K1": Counter({"7": 95, "U": 5})},
