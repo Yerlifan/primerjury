@@ -411,7 +411,7 @@ def main():
             durum = "TAMAM" if n > 0 else "cift yok"
             if n > 0 and kademe != "kati":
                 durum = "TAMAM(%s)" % kademe
-            if "gecerli cift bulunamadi" in txt and n == 0:
+            if "no valid pair was found" in txt and n == 0:
                 durum = "cift yok"
             eng = ""
             me = re.search(r"the members blocking most:\s*(.+)", txt)
