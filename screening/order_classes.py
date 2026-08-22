@@ -44,39 +44,45 @@ def _f(v):
 
 
 def sinifla(kat, olculemedi=False):
-    """(sinif, dcq, esikten_uzaklik_dcq, laboratuvar_notu) dondurur."""
+    'Returns (class, dcq, how far it is from the threshold in dCq, the laboratory note).'
     if olculemedi or kat is None:
         return (u'EVRENSEL', None, None,
-                u'Ayrim orani tanimsiz (rakip kumesi bos). Karar KAPSAMA gore '
-                u'verilir. Laboratuvarda: erime egrisi + negatif kontrol (NTC) '
-                u'yeterli; tek urun tepesi bekleniyor.')
+                'The separation ratio is undefined, since the competitor set '
+                'is empty. The verdict goes by COVERAGE. In the laboratory a '
+                'melting curve plus a no template control is enough, and a '
+                'single product peak is expected.')
     d = C.kat_dcq(kat)
     if d is None:
         # fold = 0 -> the log is undefined. NO sentinel number IS PRODUCED (it used to
         # write -99 and that appeared in the output as "-99,00 dCq"); dCq is left empty.
         return (u'ONERILMEZ', None, None,
-                u'Ayrim orani SIFIR: rakip kutular hedef kadar - ya da daha iyi - '
-                u'cogaliyor, dCq hesaplanamiyor. Bu ciftle olculen sinyal hedefe '
-                u'ATFEDILEMEZ. Laboratuvar dogrulamasi bu satiri KURTARMAZ; '
-                u'primer yeniden tasarlanmali.')
+                'The separation ratio is ZERO: the competitor bins are '
+                'amplified as well as the target or better, and no dCq can be '
+                'computed. A signal measured with this pair CANNOT BE '
+                'ATTRIBUTED to the target. Laboratory confirmation WILL NOT '
+                'rescue this row; the primer has to be redesigned.')
     fark = round(d - C.ESIK_DCQ, 2)
     if kat >= C.AYRIM_ESIK:
         return (u'KESIN', d, fark,
-                u'Erime egrisi + NTC yeterli. Tek urun tepesi ve NTC temizse '
-                u'siparis dogrulanmis sayilir.')
+                'A melting curve plus a no template control is enough. With a '
+                'single product peak and a clean control, the order counts as '
+                'confirmed.')
     if kat >= KOSULLU_ALT_KAT:
         return (u'KOSULLU', d, fark,
-                u'ESIGE YAKIN (dCq %.2f, esikten %.2f dCq geride). Erime egrisi '
-                u'TEK BASINA YETMEZ: capraz urun ayni sicaklikta erir. JEL '
-                u'GEREKIYOR (urun boyu dogrulanmali) + NTC SART. Jelde tek bant '
-                u'cikmazsa ya da boy uymazsa amplikon DIZILEMESI gerekir.'
+                'CLOSE TO THE THRESHOLD (dCq %.2f, which is %.2f dCq short). '
+                'A melting curve IS NOT ENOUGH ON ITS OWN, because a cross '
+                'product melts at the same temperature. A GEL IS NEEDED to '
+                'confirm the product length, and a no template control is '
+                'required. If the gel does not give a single band, or the '
+                'length does not match, amplicon SEQUENCING is needed.'
                 % (d, fark))
     return (u'ONERILMEZ', d, fark,
-            u'Ayrim cok dusuk (dCq %.2f, esikten %.2f dCq geride) - rakip kutular '
-            u'hedef kadar iyi cogaliyor. Bu ciftle olculen sinyal hedefe '
-            u'ATFEDILEMEZ. Siparis edilecekse AMPLIKON DIZILEMESI zorunludur; '
-            u'jel ve erime egrisi bu satirda karar veremez. Onerimiz: once '
-            u'primer yeniden tasarlansin.' % (d, fark))
+            'The separation is far too low (dCq %.2f, which is %.2f dCq short '
+            'of the threshold): the competitor bins are amplified as well as '
+            'the target. A signal measured with this pair CANNOT BE '
+            'ATTRIBUTED to the target. If it is to be ordered, AMPLICON '
+            'SEQUENCING is mandatory; a gel and a melting curve cannot decide '
+            'this row. The advice: redesign the primer first.' % (d, fark))
 
 
 def kimlik_tablosu(kok):
@@ -155,10 +161,10 @@ def kimlik_sutunlari(tablo, hedef):
         # THE REASON is written instead of a silent '-': it means the target has no
         # membership definition at stage G (an example: the 'ek' pairs outside the panel).
         # Missing data and filled data must not be mixed up.
-        y = u'G asamasinda uyelik tanimi YOK'
+        y = 'there is NO membership definition at the membership stage'
         return [y, y, y, u'karsilastirilamadi']
     return [k['kraken'], k['olculen'], k['duzey'],
-            (u'%s (%d/%d kutu)' % (FARK_ISARETI, k['farkli_kutu'], k['uye_sayisi']))
+            ('%s (%d of %d bins)' % (FARK_ISARETI, k['farkli_kutu'], k['uye_sayisi']))
             if k['farkli_mi'] else u'ayni']
 
 
@@ -208,7 +214,8 @@ def _cins(ad):
 
 
 def vtb_ayristir(hucre):
-    """HER_VTB_NE_DEDI hucresi -> [(vtb, kayit_sayisi, sonuc_metni, yuzde), ...]"""
+    'The per database cell -> [(database, record_count, result_text, per '
+    'cent), ...]'
     out = []
     for m in _VTB_PAT.finditer(hucre or ''):
         vtb, kapsam, sonuc = m.group(1).strip(), m.group(2), m.group(3).strip()
@@ -256,7 +263,7 @@ def kaynak_sutunlari_kutu(d):
                  if not re.match(r'(SONUC YOK|SORULMADI|ELLE)', s)])
     return [kazanan, yuzde, uzun,
             u'%d / %d cevap veren' % (len(uy), cevap) if cevap else '-',
-            (u' || '.join(uym[:6]) if uym else u'yok - uyusmayan veritabani cikmadi')]
+            (u' || '.join(uym[:6]) if uym else 'none; no database disagreed')]
 
 
 def kaynak_tablosu(kok):
@@ -292,4 +299,5 @@ def kaynak_tablosu(kok):
 
 
 def kaynak_sutunlari(tablo, hedef):
-    return tablo.get(hedef, [u'G asamasinda uyelik tanimi YOK'] * 3 + ['-', '-'])
+    return tablo.get(hedef, ['there is NO membership definition at the '
+                             'membership stage'] * 3 + ['-', '-'])

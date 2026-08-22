@@ -84,7 +84,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     if om is None:
         yaz(u'  SKIPPED: no member consensus found for this target (membership source: %s).'
             % baglam['uyelik_kaynagi'])
-        return dict(hedef=ad, durum='ATLANDI - uye konsensusu yok',
+        return dict(hedef=ad, durum='SKIPPED, there is no member consensus',
                     uyelik_kaynagi=baglam['uyelik_kaynagi'])
 
     yaz(u'  backbone consensus : %s (%d bp)' % (om['kutu'], len(om['dizi'])))
@@ -126,7 +126,8 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
         % (len(ad_p['F']), len(ad_p['R']), sure(time.time() - ta)))
 
     if not ad_p['F'] or not ad_p['R']:
-        return dict(hedef=ad, durum='COZUM YOK - hicbir pencere degismez kurallari gecmedi',
+        return dict(hedef=ad, durum='NO SOLUTION: no window passed the '
+                                    'invariant rules',
                     pencere=ad_p['taranan_pencere'])
 
     # ---------------- ASAMA B: cift kurma + izgara
@@ -142,7 +143,8 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
     yaz(u'      pairs matching the rules : %d  (all counted, no upper limit)   (%s)'
         % (top['toplam'], sure(time.time() - tb)))
     if top['toplam'] == 0:
-        return dict(hedef=ad, durum='COZUM YOK - urun boyu penceresinde hic cift yok',
+        return dict(hedef=ad, durum='NO SOLUTION: there is no pair at all '
+                                    'inside the product length window',
                     pencere=ad_p['taranan_pencere'],
                     sayilar=dict(pencere=ad_p['taranan_pencere'], ileri=len(ad_p['F']),
                                  geri=len(ad_p['R']), cift=0))
@@ -193,7 +195,7 @@ def hedefi_isle(satir, baglam, numune, sira, toplam, hafif=False):
                         yeni_c['F'], yeni_c['mF'] = v, mv
                     else:
                         yeni_c['R'], yeni_c['mR'] = v, mv
-                    yeni_c['arms'] = '%s %s (uye_mm=%s rakip_mm=%s)' % (yon, et, umm, rmm)
+                    yeni_c['arms'] = '%s %s (member mm=%s, competitor mm=%s)' % (yon, et, umm, rmm)
                     yeni_c['arms_taban'] = '%s / %s' % (c['F'], c['R'])
                     arms.append(yeni_c)
         yaz(u'      ARMS variants produced: %d  (%s)' % (len(arms), sure(time.time() - tab)))
@@ -347,21 +349,23 @@ def uyelik_uyarisi(satir, taban):
                            taban.get('kat_havuz_kapsayan')) if x]
     if not olculen:
         return [' !! WARNING: the discrimination ratio for the current pair could NOT be measured at all, because the member bins',
-                '   hicbiri urun vermiyor. Uyelik tanimi yanlis olabilir:',
-                '   screening/target_membership.tsv -> satir "%s"' % satir['hedef']]
+                '   not one of them gives a product. The membership '
+                'definition may be wrong:',
+                '   screening/target_membership.tsv, row "%s"' % satir['hedef']]
     if any(0.34 * p <= o <= 3.0 * p for o in olculen):
         return []
     return [
         '!! WARNING: the panel published a separation of %.1fx and this run measured %s.' % (
             p, ' / '.join('%.1fx' % o for o in olculen)),
         '   The deviation is large. The most likely cause is the MEMBERSHIP DEFINITION (which bin is a member, which is a competitor).',
-        '   Once su dosyaya bakin: screening/target_membership.tsv  ->  satir "%s"' % satir['hedef'],
+        '   Look at this file first: screening/target_membership.tsv, row '
+        '"%s"' % satir['hedef'],
         '   (If the read count is low the Wilson interval widens, and part of the deviation comes from that.)',
     ]
 
 
 def numunede_olc(adaylar, numune, baglam, t0, yaz):
-    """Aday listesini ham okumalarda olc, ilerlemeyi ve tahmini kalan sureyi bas."""
+    'Measure the candidate list on the raw reads, printing the progress and an estimate of the time left.'
     out = []
     for i, c in enumerate(adaylar, 1):
         r = numune.olc(c['F'], c['R'], baglam['uye_kutu'], baglam['rakip_kutu'],
@@ -408,7 +412,7 @@ def sec_ornekle(adaylar, ust):
 
 
 def aramayi_kos(a, yaz, sure, cizgi, mod=None):
-    """Kapsamli arama akisi. run_all.py de bunu cagirir."""
+    'The full search flow. run_all.py calls this too.'
     # THE ORIENTATION GATE - this stage's first job. Nanopore reads are bidirectional and
     # a consensus may have been produced in reverse. Every in-silico PCR engine in this
     # project (ispcr.amplify, okuma_motoru.Sonda) scans the given sequence ONLY on the

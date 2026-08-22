@@ -143,31 +143,7 @@ BANT_ALT, BANT_UST = 0.5, 2.0
 # gives 11.03x at full depth and 8.93x at 300 reads for the Petriella LSU pair.
 # On these rows a class change produces a WARNING; going outside the band is an ERROR.
 SINIRDA_UST = ESIK * 1.5
-BANT_GEREKCESI = u"""
-BANT GEREKCESI - neden 0,5x - 2,0x
-
-Ayrim kati = (uye Wilson ALT siniri) / (rakip Wilson UST siniri). Wilson
-araliginin genisligi okuma sayisiyla daralir. Testte derinlik 3000'den 300'e
-indigi icin uye alt siniri DUSER, rakip ust siniri YUKSELIR; iki etki de orani
-KUCULTUR. Yani testte cikan sayinin referanstan dusuk olmasi BEKLENEN davranistir,
-hata degil.
-
-Projenin kendi olculmus ornegi: Petriella LSU cifti tam derinlikte 11,03x,
-panelin 300 okuma standardinda 8,93x -> 0,81x oran. Az okumali kutularda sapma
-daha buyuk olabilir. 0,5-2,0 bandi bu gozlenen sapmayi rahatca kapsar ama bir
-satirin esigin obur tarafina gecmesini yakalayacak kadar dardir.
-
-KARAR bandin kendisine degil, SINIFIN korunmasina baglanir: esik ustu olan esik
-ustu, esik alti olan esik alti kalmalidir. Bant disina cikan ama sinifi korunan
-satir UYARI uretir, testi dusurmez.
-
-TEK ISTISNA - ESIK SINIRINDAKI SATIRLAR: referans degeri 15x'in altinda olan bir
-satir, dusuk derinlikte esigin obur tarafina gecebilir ve bu zincir hatasi degil
-olcum derinliginin dogal sonucudur (olculmus ornek: Petriella LSU cifti tam
-derinlikte 11,03x, 300 okumada 8,93x). Boyle satirlarda sinif degisimi, oran
-bantta kaldigi surece UYARI olarak raporlanir. Oran bandin da disina cikarsa
-HATA sayilir.
-"""
+BANT_GEREKCESI = "\nWHY THE BAND IS 0.5x TO 2.0x\n\nThe separation fold is the member Wilson LOWER bound divided by the competitor\nWilson UPPER bound, and a Wilson interval narrows with the read count. Because\nthe test drops the depth from 3000 to 300, the member lower bound FALLS and the\ncompetitor upper bound RISES, and both effects SHRINK the ratio. So a number\nlower than the reference in the test is the EXPECTED behaviour and not a fault.\n\nThe project's own measured example: the Petriella LSU pair is 11.03x at full\ndepth and 8.93x at the panel's 300 read standard, a ratio of 0.81. On bins with\nfew reads the deviation can be larger. The 0.5 to 2.0 band covers that observed\ndeviation comfortably and is still narrow enough to catch a row crossing to the\nother side of the threshold.\n\nTHE VERDICT rests not on the band itself but on THE CLASS being preserved: what\nwas above the threshold has to stay above it, and what was below has to stay\nbelow. A row that leaves the band while keeping its class produces a WARNING and\ndoes not fail the test.\n\nTHE ONE EXCEPTION, THE ROWS AT THE THRESHOLD: a row whose reference value is\nbelow 15x can cross to the other side at a low depth, and that is not a fault in\nthe chain but the natural result of the measurement depth (the measured example:\nthe Petriella LSU pair is 11.03x at full depth and 8.93x at 300 reads). On such\nrows a change of class is reported as a WARNING as long as the ratio stays inside\nthe band. If the ratio leaves the band as well, it counts as a FAULT.\n"
 
 
 def sure_metni(sn):
@@ -245,7 +221,7 @@ def calistir(kok, hizli_kok, tavan_dk, yaz):
     sonuc = dict(asama={}, satir=[], uyari=[], hata=[])
 
     # --- P ---
-    rc, _ = kos(yaz, 'P (TEK PROTOKOL, %d okuma)' % OKUMA,
+    rc, _ = kos(yaz, 'P (THE SINGLE PROTOCOL, %d reads)' % OKUMA,
                 [py, os.path.join(kok, 'protocol', 'single_protocol_measure.py'),
                  '--root', hizli_kok, '--reads', str(OKUMA), '--only', sec],
                 tavan_dk * 60)
@@ -378,7 +354,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         yaz(u'    K: %d rows, %d of them recovered'
             % (len(K), sum(1 for r in K if (r.get('esigi_gecti_mi') or '').startswith('EVET'))))
 
-    rc, _ = kos(yaz, 'D (DOGRULAMA, yalniz yerel katman)',
+    rc, _ = kos(yaz, 'D (VERIFICATION, the local layer only)',
                 [py, os.path.join(kok, 'verification', 'specificity_round.py'),
                  '--root', hizli_kok, '--ncbi', 'elle'],
                 tavan_dk * 60)
@@ -411,8 +387,8 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
                          'yeni_deger', 'esigi_gecti_mi', 'UYELIK_GEREKCESI', 'sebep'])
             ww.writerow(['D_SINAMA_Petriella', '8,45', '9/9', 'sentetik', 'ayrim kati',
                          'YENI CIFT AAATCTGGCTGCCTGTGC / CTCTCACCCTCTATGGCGTC (101 bp) 11,03 x',
-                         'EVET (yeni cift)', 'sentetik', ''])
-        rc2, _ = kos(yaz, 'D (kendi sinamasi, sentetik girdi)',
+                         'YES, a new pair', 'sentetik', ''])
+        rc2, _ = kos(yaz, 'D (its own test, on synthetic input)',
                      [py, os.path.join(kok, 'verification', 'specificity_round.py'),
                       '--root', oz, '--ncbi', 'elle', '--no-mfe',
                       '--cluster-max', '1'], tavan_dk * 60)
@@ -445,7 +421,7 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
         for _ta in takma_ad:
             yaz(u'    D: (sema notu) %s' % _ta)
 
-    rc, _ = kos(yaz, 'I (KIMLIK, 2 veritabani, nt yok)',
+    rc, _ = kos(yaz, 'I (IDENTITY, 2 databases, no nt)',
                 [py, os.path.join(kok, 'verification', 'identity_verification.py'),
                  '--root', hizli_kok, '--only', '10', '--nt', 'yok', '--db-max', '2'],
                 tavan_dk * 60)
@@ -490,10 +466,10 @@ def sonraki_asamalar(kok, hizli_kok, tavan_dk, yaz, sonuc):
 #           way: because the test runs with --no-mfe and with '--ncbi elle' and no
 #           network, their being empty is a gap created deliberately.
 # =========================================================================
-ZORUNLU_KATMAN = (('1_NUMUNE', u'1. kaynak (numune olcumu)'),
-                  ('2_YEREL_DB', u'2. kaynak (yerel veritabani)'))
-ISTEGE_BAGLI_KATMAN = (('3_MFEPRIMER', u'3. kaynak (MFEprimer)'),
-                       ('4_NCBI', u'4. kaynak (NCBI)'))
+ZORUNLU_KATMAN = (('1_NUMUNE', 'source 1 (the in-sample measurement)'),
+                  ('2_YEREL_DB', 'source 2 (the local databases)'))
+ISTEGE_BAGLI_KATMAN = (('3_MFEPRIMER', 'source 3 (MFEprimer)'),
+                       ('4_NCBI', 'source 4 (NCBI)'))
 
 
 def sutun_coz(satirlar, ad):
