@@ -89,6 +89,22 @@ except Exception as _e:
     _ESIK_KAYNAK = 'A BACKUP COPY (%s)' % type(_e).__name__
 
 
+# The fungal combination rule lives in its own module: a bin of the F classes
+# carries a whole operon and its three loci can be combined by a vote rather than
+# a ladder. Losing the module only costs that one option.
+try:
+    import locus_decision as _LD
+except Exception:                              # pragma: no cover
+    _LD = None
+
+
+def cins_epitet(ad):
+    """(genus, epithet) out of a name; the epithet is empty when there is none."""
+    cins = cins_ayikla(ad)
+    p = (ad or '').split()
+    return cins, (p[-1] if len(p) > 1 and p[-1] != cins else '')
+
+
 # --------------------------------------------------- WHICH DATABASE IS ASKED
 # EVERY CLASS SEES EVERY rDNA DATABASE.
 #
@@ -394,6 +410,20 @@ def get_args():
     # discriminating. This option is for asking that fragment.
     p.add_argument("--class-db", default=None, dest="class_db",
                    help='a list of class=file:region, which overrides the default')
+    # --fungal-rule: how the three loci of a fungal bin are combined.
+    #   ladder (the default) is the method as reported: ITS first, then 28S, then
+    #     18S, and the first locus that answers supplies the name.
+    #   vote uses locus_decision.py: every locus is decided on its own and the
+    #     genus is settled by a vote across them, with the species taken only from
+    #     ITS or 28S. MEASURED (2026-08-27, 44 fungal bins): asking the three loci
+    #     separately produced information ITS alone could not give in 16 of them.
+    # The ladder stays the default because it is the method that was reported;
+    # changing the default would make the produced result and the reported result
+    # part company in silence.
+    p.add_argument("--fungal-rule", choices=["ladder", "vote"], default="ladder",
+                   dest="fungal_rule",
+                   help='how the three loci of a fungal bin are combined '
+                        '(default: ladder, the method as reported)')
     p.add_argument("--checkpoint", default=None,
                    help='the checkpoint file (default: <out directory>/'
                         'checkpoint/target_identity.json)')
@@ -526,6 +556,37 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
                 aciklama = (aciklama + u'; ' + ek) if aciklama else ek
         return adi, aciklama, pid, aln, bolge, dbad
     return None
+
+
+def oyla_mantar(lokus_isabet):
+    """The three loci of a fungal bin, combined by locus_decision.py.
+
+    Returns the same shape basamaktan_sec does, or None when no locus answered.
+    lokus_karari sorts by (identity, then the third field); the third field is the
+    alignment length here, because that is the tie break this project uses, and
+    the bitscore is not carried this far.
+    """
+    kararlar = {}
+    for bolge in (u'ITS', u'28S', u'18S'):
+        isb = lokus_isabet.get(bolge) or []
+        if not isb:
+            continue
+        kararlar[bolge] = _LD.lokus_karari(
+            [(pid, aln, aln, 0, tit) for pid, aln, tit, _db in isb],
+            lokus_duzelt(bolge, isb[0][2]), ad_ayikla, cins_epitet,
+            ADSIZ_JETONLARI)
+    if not kararlar:
+        return None
+    adi, _kimlik, notu = _LD.birlestir(kararlar)
+    if not adi or adi == u'cannot be named':
+        return None
+    # Report the locus the name came from, not the one that happened to be first.
+    en = max((v for v in kararlar.values() if v['cins']),
+             key=lambda v: v['hizalama'], default=None)
+    bolge = next((k for k, v in kararlar.items() if v is en), u'ITS')
+    isb = lokus_isabet.get(bolge) or [(0.0, 0, '', '')]
+    return (adi, notu, en['kimlik'] if en else isb[0][0],
+            en['hizalama'] if en else isb[0][1], bolge, isb[0][3])
 
 
 def main():
@@ -679,8 +740,13 @@ def main():
         for e in ilgili:
             sinif = kutular[e][0]
             basamak = SINIF_BASAMAK.get(sinif, VARSAYILAN_BASAMAK)
-            secim = basamaktan_sec(kutu_lokus.get(e) or {}, basamak,
-                                   a.species_threshold == "apply")
+            if a.fungal_rule == "vote" and sinif in ("F1", "F2") and _LD:
+                secim = oyla_mantar(kutu_lokus.get(e) or {})
+            else:
+                secim = None
+            if secim is None:
+                secim = basamaktan_sec(kutu_lokus.get(e) or {}, basamak,
+                                       a.species_threshold == "apply")
             if secim:
                 adi, aciklama, pid, aln, bolge, dbad = secim
                 guclu = True

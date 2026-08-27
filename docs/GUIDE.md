@@ -393,7 +393,7 @@ you insert a step. The order lives here instead:
 | 20 | `mfeprimer_layer.py` | MFEprimer layer |
 | 21 | `recover_bins.py` | recovers bins below threshold |
 | 22 | `community_trends.py` | community trends |
-| 23 | `target_identity.py` | target identity |
+| 23 | `target_identity.py` | target identity, against every rDNA database |
 | 24 | `reassign_confidence.py` | confidence reassignment |
 | 25 | `abundance_rank.py` | abundance-rank curves |
 | 26 | `reference_identity.py` | reference identity |
