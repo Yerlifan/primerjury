@@ -528,6 +528,86 @@ def kontrol_mutlak_yol(bulgu):
                               % satir.strip()[:80]))
 
 
+# ------------------------------------------------------- 11 OPTION HANDOFFS
+# A shell script that calls a Python script hands it long options by name, and
+# nothing binds the two sides. Rename a flag on one side and the call dies at run
+# time with "unrecognized arguments", which is only seen by whoever runs that
+# path, possibly months later.
+#
+# MEASURED: renaming the Turkish flags into English left three such calls broken.
+# kraken_tool.sh was passing --is2 and --ad2 where threshold_summary.py declares
+# --job2 and --name2, and --kume where custom_taxonomy.py declares --set. Both
+# the two database threshold path and the custom database build were dead.
+_CAGRI = re.compile(r'python3?[ \t]+("?[^\s"]*?([A-Za-z_][A-Za-z0-9_]*)\.py"?)')
+_SECENEK = re.compile(r'(?<![\w-])--([a-z][a-z0-9-]*)')
+_TANIM = re.compile(r'add_argument\(\s*["\']--([a-z][a-z0-9-]+)["\']')
+_DIZI = re.compile(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\[@\]\}')
+
+
+def _py_haritasi():
+    out = {}
+    for kok, dizinler, dosyalar in os.walk(KOK):
+        dizinler[:] = [d for d in dizinler if d not in ATLA_DIZIN]
+        for d in dosyalar:
+            if d.endswith('.py'):
+                out.setdefault(d[:-3], []).append(os.path.join(kok, d))
+    return out
+
+
+def _tanimli_secenekler(harita, modul):
+    """The long options a module declares, or None when it cannot be judged."""
+    yollar = harita.get(modul) or []
+    if not yollar:
+        return None
+    s = set()
+    for y in yollar:
+        t = oku(y)
+        # A script that reads sys.argv by hand, or takes unknown arguments on
+        # purpose, cannot be checked this way. Saying nothing is better than
+        # reporting a finding that is not one.
+        if 'parse_known_args' in t or 'add_argument' not in t:
+            return None
+        s |= set(_TANIM.findall(t))
+    return s
+
+
+def kontrol_secenek_devri(bulgu):
+    harita = _py_haritasi()
+    for y in metin_dosyalari():
+        if not (y.endswith('.sh') or os.path.basename(y) == 'primerjury'):
+            continue
+        satirlar = oku(y).split(chr(10))
+        i = 0
+        while i < len(satirlar):
+            m = _CAGRI.search(satirlar[i])
+            if not m:
+                i += 1
+                continue
+            modul = m.group(2)
+            blok = [satirlar[i][m.end():]]
+            j = i
+            while (satirlar[j].rstrip().endswith(chr(92))
+                   and j + 1 < len(satirlar)):
+                j += 1
+                blok.append(satirlar[j])
+            i = j + 1
+            tan = _tanimli_secenekler(harita, modul)
+            if tan is None:
+                continue
+            metin = ' '.join(blok)
+            # Options built into an array (args+=(--set ...)) are not on the
+            # call line; when the call expands one, its lines are read too.
+            for dz in _DIZI.findall(metin):
+                for l2 in satirlar:
+                    if re.search(r'(?<![A-Za-z0-9_])%s\+?=\(' % re.escape(dz),
+                                 l2):
+                        metin += ' ' + l2
+            for sec in _SECENEK.findall(metin):
+                if sec not in tan:
+                    bulgu.append(('OPTIONS', rel(y),
+                                  '%s.py does not declare --%s' % (modul, sec)))
+
+
 KONTROLLER = [
     ('PARSE',     'every Python file parses',            kontrol_parse),
     ('IMPORT',    'core packages import (side effects)', kontrol_import),
@@ -541,6 +621,7 @@ KONTROLLER = [
     ('PATH',      'no machine specific absolute paths',  kontrol_mutlak_yol),
     ('EOL',       'text files use LF, not CRLF',         kontrol_satir_sonu),
     ('PACKAGING', 'git ships enough to run',             kontrol_paketleme),
+    ('OPTIONS',   'shell calls pass declared options',   kontrol_secenek_devri),
 ]
 
 
