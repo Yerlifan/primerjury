@@ -497,6 +497,47 @@ time. It was changed to a word boundary match.
 
 ---
 
+### 3.28 Identification asked a hand picked shortlist of databases
+
+Each class was asked only of its own shortlist: archaea and bacteria of RefSeq
+16S alone, fungi of ITS and 28S. `archaea.16S.fna` holds 1,160 records and
+`bacteria.16S.fna` 26,877, while SILVA SSU NR99 sits in the same directory with
+510,495. Adding SILVA changed the name of three bins and all three came into line
+with Kraken or with the claim itself: an unnameable bin became *Synergistaceae*,
+*Nitrososphaera* sp. became *Candidatus Nitrosocosmicus*, and *Fermentimonas*
+became *Proteiniphilum*.
+
+The second half of the fault is worse. Limiting by domain assumes the label is
+right, and this step exists precisely to test whether the label is right. A bin
+labelled bacterial that is really fungal can only be caught by asking the fungal
+databases. Every class now sees all ten rDNA databases, which is the rule the
+specificity scan already followed for the same reason. `--databases narrow`
+reproduces the old behaviour when speed matters.
+
+Asking more databases brings hits from different loci, and 99 per cent in 28S is
+not 99 per cent in ITS. Raw identities are therefore never raced across loci:
+each locus is decided with its own threshold and the loci are walked in the
+ladder of the class. When a later locus reaches species level and the one taken
+did not, the row says so.
+
+### 3.29 The file manifest covered a quarter of the scripts
+
+`sync.sh` digests the step scripts so two machines can prove they hold the same
+code. It named them by the pattern they were called by at the time,
+`[0-9][0-9]_*.py` and `bol_*.sh`. Those files were renamed, the patterns went on
+matching nothing, and the script section quietly covered 9 of 37 scripts: a
+changed script passed the check in silence, which is the one thing `sync.sh`
+exists to prevent. It digests every `.py` and `.sh` in the directory now, and
+test group 19 compares the manifest against what is on disk.
+
+Three shell to Python option handoffs were broken the same way, by a rename that
+only touched one side: `--is2` and `--ad2` against `--job2` and `--name2`, and
+`--kume` against `--set`. Both calls died with "unrecognized arguments". The
+health test reads every `python3` call in every shell script now and requires the
+module to declare each option it is handed.
+
+---
+
 ## 4. The scientific findings
 
 ### 4.1 The dominant fungal organism
@@ -681,7 +722,7 @@ window, has been done.
 
 ## 7. The regression suite
 
-`regression_test.py`, **147 tests, 147 of 147 passing.** The expected result of
+`regression_test.py`, **149 tests, 149 of 149 passing.** The expected result of
 every test is derived from the design decisions or from known mathematics; the
 code's own helper functions are not trusted.
 
@@ -702,6 +743,7 @@ code's own helper functions are not trusted.
 | 16 | the decision level check, species and genus specificity |
 | 17 | the competitor set in reference design |
 | 18 | the log contract between the group engine and the four scripts that read its counters |
+| 19 | the file manifest covers every step script |
 
 ---
 
