@@ -704,7 +704,7 @@ def selftest():
 def main():
     global LOGF
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", dest="kok"); ap.add_argument("--primerler", nargs="*", default=[])
+    ap.add_argument("--root", dest="kok"); ap.add_argument("--primers", dest="primerler", nargs="*", default=[])
     ap.add_argument("--out", default=""); ap.add_argument("--reads", type=int, default=300)
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 1)
     ap.add_argument("--min-length", type=int, default=60)
@@ -716,7 +716,7 @@ def main():
     if not a.kok: ap.error("--root is required")
 
     zaman = time.strftime("%Y%m%d_%H%M%S")
-    cikti = a.out or os.path.join(a.kok, "tools", "0_TESLIM_RAPOR", "ICPCR_" + zaman)
+    cikti = a.out or os.path.join(a.kok, "tools", "delivery_report", "ICPCR_" + zaman)
     os.makedirs(cikti, exist_ok=True)
     LOGF = open(os.path.join(cikti, "log.txt"), "w", encoding="utf-8")
     log(f"output: {cikti}")
@@ -728,7 +728,7 @@ def main():
 
     primer_yollari = [p if os.path.isabs(p) else os.path.join(a.kok, p) for p in a.primerler]
     if not primer_yollari:
-        primer_yollari = [os.path.join(a.kok, "tools", "0_TESLIM_RAPOR", f) for f in
+        primer_yollari = [os.path.join(a.kok, "tools", "delivery_report", f) for f in
                           ("OLIGO_SIPARIS_GUNCEL_10ASSAY.csv", "OLIGO_SIPARIS_OPSIYONEL.csv",
                            "GRUP_VE_UNIVERSAL_PRIMERLER.csv")]
     ciftler = primerleri_oku(primer_yollari)

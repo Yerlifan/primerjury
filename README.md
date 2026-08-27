@@ -142,7 +142,7 @@ Prebuilt Kraken2 databases are fixed at `k=35, l=31`. To choose your own:
 
 Shorter *k* raises sensitivity on error-prone long reads (ONT) but pushes the
 LCA up the tree; longer *k* is more specific but loses hits to single errors.
-The build parameters are written to `$DB/KURULUM_BILGISI.txt`, because
+The build parameters are written to `$DB/BUILD_INFO.txt`, because
 `opts.k2d` is binary and six months later nobody remembers which *k* was used.
 
 **k-mer choice alone does not fix identification.** The disagreements at the top

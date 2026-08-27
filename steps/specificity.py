@@ -406,8 +406,8 @@ def get_args():
                    help='the largest difference allowed between the binding '
                         'rates of the two primers; a candidate that exceeds '
                         'it is penalised')
-    p.add_argument("--atla-mfe", action="store_true")
-    p.add_argument("--atla-blast", action="store_true")
+    p.add_argument("--skip-mfe", dest="atla_mfe", action="store_true")
+    p.add_argument("--skip-blast", dest="atla_blast", action="store_true")
     p.add_argument("--mfe", default=None, help='the path of the mfeprimer '
                                                'binary')
     p.add_argument("--rerun", action="store_true")

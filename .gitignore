@@ -117,3 +117,6 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# sync.sh produces this on each run; it is per machine state, not source.
+steps/MANIFEST.sha256

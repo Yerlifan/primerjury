@@ -60,7 +60,7 @@ MFE="$KOK/tools/mfeprimer"
 
 VARSAYILAN="SILVA_138.2_SSURef_NR99.fasta"   # a call with no argument = the old behaviour
 
-# ---- --list / --yardim (help)
+# ---- --list / --help
 if [ "${1:-}" = "--list" ] || [ "${1:-}" = "-l" ]; then
   echo "the indexable files inside REFERENCE_DB:"
   printf '%-42s %10s  %s\n' "FILE" "MB" "INDEX"
@@ -72,7 +72,7 @@ if [ "${1:-}" = "--list" ] || [ "${1:-}" = "-l" ]; then
   done
   exit 0
 fi
-if [ "${1:-}" = "--yardim" ] || [ "${1:-}" = "-h" ]; then
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   sed -n '2,40p' "${BASH_SOURCE[0]}"; exit 0
 fi
 

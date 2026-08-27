@@ -211,7 +211,7 @@ def hizalama_oku(kok):
                      eslesme_cins, SONUC
         Returns: {taxid: (name_to_show, result_text, matching_bases)}
 """
-    adaylar = [os.path.join(kok, "tools", "0_TESLIM_RAPOR", "kimlik_sonuc.csv"),
+    adaylar = [os.path.join(kok, "tools", "delivery_report", "kimlik_sonuc.csv"),
                os.path.join(kok, "VALIDASYON_v2", "primerler", "PIPELINE_TEMIZ",
                             "cikti", "NIHAI", "kimlik_sonuc.csv")]
     for y in adaylar:
@@ -519,7 +519,7 @@ def main():
     md = markdown(satirlar, bilgi, a.threshold) + "\n" + yorum(satirlar, bilgi)
     print(md)
 
-    cikti = os.path.join(a.kok, "tools", "0_TESLIM_RAPOR") if a.kok else "."
+    cikti = os.path.join(a.kok, "tools", "delivery_report") if a.kok else "."
     os.makedirs(cikti, exist_ok=True)
     mdy = os.path.join(cikti, "KRAKEN_KARSILASTIRMA.md")
     open(mdy, "w", encoding="utf-8").write(md + "\n")

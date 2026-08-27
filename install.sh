@@ -412,7 +412,7 @@ komut_veritabani() {
 
   renk "MFEPRIMER INDEXES"
   bilgi "Every downloaded FASTA needs an index:"
-  bilgi "   bash build_index.sh --liste          # see the candidate files"
+  bilgi "   bash build_index.sh --list           # see the candidate files"
   bilgi "   bash build_index.sh <file>          # build them one at a time"
   bilgi "U to T conversion is MANDATORY for SILVA. Without it the index is built SILENTLY broken."
 }
@@ -454,39 +454,40 @@ komut_kraken_kur() {
   done
   IS="${IS:-$(( $(nproc 2>/dev/null || echo 4) - 2 ))}"; [ "$IS" -lt 1 ] && IS=1
 
-  renk "KRAKEN2 DATABASE KURULUMU  (k-mer secilebilir)"
+  renk "BUILDING A KRAKEN2 DATABASE  (the k-mer is yours to choose)"
   cat <<EOF
-   k-mer uzunlugu (--kmer)      : $KMER
-   minimizer uzunlugu (--minimizer): $MINI
-   minimizer boslugu (--bosluk) : $BOSLUK
-   veritabani yolu (--db)       : $DB
-   threads (--threads)          : $IS
+   k-mer length (--kmer)           : $KMER
+   minimizer length (--minimizer)  : $MINI
+   minimizer spaces (--spaces)     : $BOSLUK
+   database path (--db)            : $DB
+   threads (--threads)             : $IS
 
-   K-MER SECIMI NE YAPAR
-   ---------------------
-   Kraken2 bir okumayi k uzunlugundaki parcalara boler ve her parcayi
-   in the taxonomy tree; the decision is the lowest common ancestor (LCA) of those
+   WHAT THE CHOICE OF k DOES
+   -------------------------
+   Kraken2 cuts a read into pieces of length k and looks each piece up in the
+   taxonomy tree; the decision is the lowest common ancestor (LCA) of those
    pieces.
      * a LARGER k -> the piece is more specific and wrong assignments fall, but the
                      sensitivity drops (a single error makes a piece fail to match;
                      on long read, high error rate ONT data that loss is large)
-     * k KUCUK  -> duyarlilik artar, ama parca birden cok taksonda bulunur ve
-                   LCA agacta YUKARI kayar: tur yerine cins, cins yerine aile.
-   The default k=35, l=31 was chosen for short, low error Illumina reads.
-   ONT verisinde k'yi dusurmek (ornegin 31) duyarliligi artirir.
+     * a SMALLER k -> the sensitivity rises, but a piece is found in more than one
+                     taxon and the LCA moves UP the tree: a genus instead of a
+                     species, a family instead of a genus.
+   The default k=35, l=31 was chosen for short, low error Illumina reads. On ONT
+   data, lowering k (to 31, say) raises the sensitivity.
 
-   DIKKAT: k-mer secimi TEK BASINA kimlik sorununu cozmez. Bu projede olculdu -
-   The Kraken2 label and the alignment based identity DISAGREE on many bins
-   (tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md). The cause is not the k-mer but
-   the LCA itself and the database's coverage. So whatever k you build with, the
-   identity claims have to be tested INDEPENDENTLY:
+   MIND THIS: the choice of k DOES NOT ON ITS OWN settle the identity problem. It
+   was measured in this project: the Kraken2 label and the alignment based identity
+   DISAGREE on many bins (tools/delivery_report/KRAKEN_KARSILASTIRMA.md). The cause
+   is not the k-mer but the LCA itself and the database's coverage. So whatever k
+   you build with, the identity claims have to be tested INDEPENDENTLY:
        python3 verification/identity_verification.py --root .
    That script uses the taxonomy tree NOT AT ALL; it does a seed plus full
    alignment against 12 separate reference databases and requires AT LEAST TWO
    sources to agree.
 
    BUILDING TWO DATABASES WITH DIFFERENT k AND COMPARING THEM
-   ------------------------------------------------
+   ---------------------------------------------------------
        bash install.sh kraken-build --kmer 35 --db ~/k2db_k35
        bash install.sh kraken-build --kmer 31 --db ~/k2db_k31
        bash tools/kraken_tool.sh threshold      # the threshold scan
@@ -516,14 +517,14 @@ EOF
     || { hata "could not build the database"; EKSIK+=("kraken build"); return 1; }
 
   if [ -f "$DB/hash.k2d" ]; then
-    bilgi "TAMAM: $DB  ($(du -sh "$DB" 2>/dev/null | cut -f1))"
+    bilgi "DONE: $DB  ($(du -sh "$DB" 2>/dev/null | cut -f1))"
     # RECORD the k-mer used: opts.k2d is binary and a person cannot read it. If
     # which k it was built with is not written down, in six months nobody will know
     # and the comparison becomes meaningless.
     printf 'built: %s\nkmer: %s\nminimizer: %s\nspaces: %s\nlibrary: %s\n' \
       "$(date '+%Y-%m-%d %H:%M')" "$KMER" "$MINI" "$BOSLUK" "$kutuphaneler" \
-      > "$DB/KURULUM_BILGISI.txt"
-    bilgi "build parameters written to: $DB/KURULUM_BILGISI.txt"
+      > "$DB/BUILD_INFO.txt"
+    bilgi "build parameters written to: $DB/BUILD_INFO.txt"
     bilgi "For Bracken: bracken-build -d $DB -t $IS -k $KMER -l <read_length>"
   else
     hata "hash.k2d was not created, so the build did not finish"; EKSIK+=("kraken build")

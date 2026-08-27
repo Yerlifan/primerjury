@@ -35,7 +35,7 @@ set -euo pipefail
 #   PROJE=/full/path/to/project bash <script>
 _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJE="${PROJE:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
-# MEASURED: 0_TESLIM_RAPOR IS NOT in this repository; the script used to stop at
+# MEASURED: delivery_report IS NOT in this repository; the script used to stop at
 # its very first check.
 if [ ! -d "$PROJE/tools" ] || [ ! -d "$PROJE/verification" ]; then
   echo "ERROR: the project root could not be verified ('$PROJE' holds no tools/ and verification/)."
