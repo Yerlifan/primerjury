@@ -130,6 +130,11 @@ def main():
     UYUM_METIN = {
         "tur_uyusuyor": "confirmed at species level",
         "cins_uyusuyor_tur_farkli": "the genus is right, the species differs",
+        "cins_uyusuyor_tur_ATANAMAZ": ("the genus is right, but the species "
+                                       "threshold was not passed, so NO SPECIES "
+                                       "CAN BE ASSIGNED"),
+        "ADLANDIRILAMIYOR": ("the sequence could not be named at any locus; the "
+                             "nearest record is in the evidence column"),
         "CINS_FARKLI": "A DIFFERENT GENUS",
         "YAKIN_AKRABA_YOK": "no close relative in the database",
         "vurus_yok": "no hit in the database",
@@ -167,8 +172,11 @@ def main():
             if r.get("diger"):
                 ad_metni += "  the others: " + r["diger"][:70]
             return ad_metni, "the bins do not agree on one identity", SARI
+        # The genus agreeing while no species can be assigned is not a failure:
+        # the measurement is honest and the reading is amber, not red.
         dolgu = (YESIL if u == "tur_uyusuyor" else
-                 SARI if u == "cins_uyusuyor_tur_farkli" else KIRMIZI)
+                 SARI if u in ("cins_uyusuyor_tur_farkli",
+                               "cins_uyusuyor_tur_ATANAMAZ") else KIRMIZI)
         return ad_metni, UYUM_METIN.get(u, u), dolgu
 
     wb = Workbook()
@@ -607,7 +615,8 @@ def main():
         u = r.get("uyum", "")
         if u in ("tur_uyusuyor", ""):
             continue
-        tur = "Dikkat" if u == "cins_uyusuyor_tur_farkli" else "Eksik"
+        tur = ("Dikkat" if u in ("cins_uyusuyor_tur_farkli",
+                                 "cins_uyusuyor_tur_ATANAMAZ") else "Eksik")
         uyarilar.append((tur, u'The target name and the measured identity disagree',
                          u'%s: Kraken2 says %s, the sequence shows %s (%s/%s bins)'
                          % (x, r.get("kraken_etiketi", "")[:40],

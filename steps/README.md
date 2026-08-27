@@ -175,6 +175,12 @@ knowing, because each item is a trap somebody else can walk into:
 - A Bun runtime under `tools`, which is not a primer tool at all, a stray Bracken
   report copy, and a single loose fasta.
 
+The directory is no longer called `_to_delete`. There were two separate archive
+directories at one point, and a name that says "to be deleted" invites exactly
+that: one of them really was deleted, and what it held went with it. The
+archiving script never deletes anything, it only moves, so the target is now a
+single directory called `ARCHIVE` under a name that says what it is.
+
 ## mfeprimer
 
 Do not use the Windows `mfeprimer.exe`. That build is from the 4.2 generation and
