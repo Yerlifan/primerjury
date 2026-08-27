@@ -1082,6 +1082,40 @@ def testler(a):
     finally:
         shutil.rmtree(g18, ignore_errors=True)
 
+    print(u'\n19. THE FILE MANIFEST COVERS EVERY STEP SCRIPT')
+    # sync.sh takes the sha256 of the scripts so that two machines can prove they
+    # hold the same code. It used to name them by the pattern they happened to be
+    # called by ('[0-9][0-9]_*.py', 'bol_*.sh'); when those files were renamed the
+    # patterns matched NOTHING and the SCRIPT section quietly covered 9 of 37
+    # scripts. A changed script then passed the check in silence, which is the one
+    # thing sync.sh exists to prevent. This test compares what the manifest holds
+    # against what is on disk, so a shrinking manifest fails here instead of
+    # passing there.
+    g19 = _tf.mkdtemp()
+    try:
+        r = _sp.run(["bash", os.path.join(HERE, "sync.sh")],
+                    capture_output=True, text=True, cwd=g19)
+        govde, icinde = [], False
+        for line in (r.stdout or "").splitlines():
+            if line.startswith("[BETIK]"):
+                icinde = True
+                continue
+            if line.startswith("[CIKTI]"):
+                icinde = False
+            if icinde and line.strip():
+                govde.append(line.split()[-1])
+        diskte = set(os.path.basename(x) for x in
+                     glob.glob(os.path.join(HERE, "*.py"))
+                     + glob.glob(os.path.join(HERE, "*.sh")))
+        manifestte = set(os.path.basename(x) for x in govde)
+        eksik = sorted(diskte - manifestte)
+        sina(u'sync.sh could produce a manifest', bool(govde),
+             (r.stderr or "")[:120])
+        sina(u'every step script is in the manifest', not eksik,
+             u'missing: %s' % (", ".join(eksik[:6]) if eksik else ""))
+    finally:
+        shutil.rmtree(g19, ignore_errors=True)
+
     if a.real_data:
         print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')
         tsvler = sorted(glob.glob(os.path.join(HERE, a.candidates, "*__*.tsv")))

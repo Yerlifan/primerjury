@@ -708,7 +708,7 @@ code's own helper functions are not trusted.
 ## 8. Synchronisation
 
 `sync.sh` produces a SHA256 manifest with a script section and an output section,
-and `--dogrula` compares the two sides. That it catches a difference was
+and `--verify` compares the two sides. That it catches a difference was
 confirmed by introducing one deliberately. All 42 script files are byte for byte
 identical on both sides.
 
@@ -774,7 +774,7 @@ python3 regression_test.py
 ```
 
 ```bash
-bash sync.sh --dogrula
+bash sync.sh --verify
 ```
 
 ```bash

@@ -1150,7 +1150,7 @@ tus_esik() {
     echo
     python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" \
       --job "$IS_A" --name "$(basename "$VT_A")" \
-      --is2 "$IS_B" --ad2 "$(basename "$VT_B")"
+      --job2 "$IS_B" --name2 "$(basename "$VT_B")"
   else
     echo
     python3 "$_BETIK_DIZIN/threshold_summary.py" --root "$PROJE" \
@@ -1190,7 +1190,7 @@ tus_esik() {
 # ---------------------------------------------------------------------------
 tus_tablo() {
   log_ac tablo
-  local hedef="$PROJE/tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md"
+  local hedef="$PROJE/tools/delivery_report/KRAKEN_KARSILASTIRMA.md"
   mkdir -p "$(dirname "$hedef")"
   if [ -f "$hedef" ]; then
     local yed="$hedef.yedek_$(date +%Y%m%d_%H%M%S)"
@@ -1260,7 +1260,7 @@ tus_ozelvt_kur() {
   local args=()
   for k in ${KUMELER:-silva_ssu unite pr2}; do
     local f; f=$(kume_dosya "$k") || continue
-    [ -s "$f" ] && args+=(--kume "$k=$f")
+    [ -s "$f" ] && args+=(--set "$k=$f")
   done
   python3 "$_BETIK_DIZIN/custom_taxonomy.py" --output "$OZELVT" "${args[@]}"
   echo; echo "2/2  kraken2-build --build  ($(date '+%H:%M:%S'))"

@@ -105,7 +105,7 @@ bash install.sh databases --only unite --url <URL-you-copied>
 MFEprimer needs an index per database:
 
 ```bash
-bash build_index.sh --liste          # show candidate files
+bash build_index.sh --list           # show candidate files
 bash build_index.sh SILVA_138.2_SSURef_NR99.fasta
 ```
 
@@ -128,7 +128,7 @@ Shorter *k* raises sensitivity on error-prone long reads (nanopore) but pushes
 the LCA up the tree, you get genus where you wanted species. Longer *k* is more
 specific but loses hits to single sequencing errors.
 
-Build parameters are written to `$DB/KURULUM_BILGISI.txt`, because `opts.k2d` is
+Build parameters are written to `$DB/BUILD_INFO.txt`, because `opts.k2d` is
 binary and six months later nobody remembers which *k* was used.
 
 **k-mer choice alone does not fix identification.** The label disagreements come

@@ -221,7 +221,7 @@ def d_tablo(kok, ayar):
             False   -> the table could not be produced at all; the chain stops
 
     """
-    y = os.path.join(ayar['arac'], '0_TESLIM_RAPOR', 'KRAKEN_KARSILASTIRMA.md')
+    y = os.path.join(ayar['arac'], 'delivery_report', 'KRAKEN_KARSILASTIRMA.md')
     if not os.path.exists(y):
         return False, u'KRAKEN_KARSILASTIRMA.md uretilmedi'
     if os.path.getsize(y) < 200:
@@ -718,7 +718,7 @@ def ozet_yaz(kok, CIKTI, ayar, secili, durum, kesildi):
         (u'What should I order', 'SIPARIS_LISTESI.tsv'),
         (u'The Kraken threshold curve',
          '../tools/RESULTS/kraken_esik_A/esik_egrisi.txt'),
-        ('The Kraken table that goes into the report', '../tools/0_TESLIM_RAPOR/KRAKEN_KARSILASTIRMA.md'),
+        ('The Kraken table that goes into the report', '../tools/delivery_report/KRAKEN_KARSILASTIRMA.md'),
     ]
     for soru, dy in bakilacak:
         t = os.path.join(kok, dy)

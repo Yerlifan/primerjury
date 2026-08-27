@@ -407,9 +407,9 @@ def selftest_sessiz():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--job", dest="is1", default="")
-    ap.add_argument("--name", default="veritabani 1")
+    ap.add_argument("--name", default="database 1")
     ap.add_argument("--job2", default="")
-    ap.add_argument("--name2", default="veritabani 2")
+    ap.add_argument("--name2", default="database 2")
     ap.add_argument("--root", dest="kok", default="")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
