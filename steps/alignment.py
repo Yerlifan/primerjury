@@ -69,9 +69,9 @@ class Hizalayici(object):
             return
         if not MINIMAP2:
             raise RuntimeError(
-                "Ne mappy kurulu ne de minimap2 bulundu. Birini saglayin:\n"
+                "Neither mappy nor minimap2 is here. Provide one of them:\n"
                 "  pip install --break-system-packages mappy\n"
-                "  ya da: sudo apt-get install -y minimap2")
+                "  or: sudo apt-get install -y minimap2")
         if fn_idx_in:
             self._ref_yolu = fn_idx_in
         else:

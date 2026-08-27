@@ -181,8 +181,8 @@ def main():
                 if s.get('bayat') else u'—'))
         fh.write(u'\n## What this table does not decide\n\nWhich rule to apply is a **choice of criterion**, not a measurement')
 
-    print('yazildi: %s' % ty)
-    print('yazildi: %s' % my)
+    print('written: %s' % ty)
+    print('written: %s' % my)
     print(u'  measurable rows: %d' % sum(1 for s in satir if s['dcq'] is not None))
     print('  iki kural ayrisan : %d' % len(ayrisan))
     for s in ayrisan:

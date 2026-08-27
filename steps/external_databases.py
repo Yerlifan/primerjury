@@ -470,11 +470,11 @@ def main():
             fna = os.path.join(a.db, dbad)
             if not os.path.exists(fna):
                 print(u'   no database, skipped: %s' % fna)
-                atlanan.append((sinif, dbad, "dosya yok"))
+                atlanan.append((sinif, dbad, "no such file"))
                 continue
             db = db_hazirla(fna, calisma)
             if not db:
-                atlanan.append((sinif, dbad, "indeks kurulamadi"))
+                atlanan.append((sinif, dbad, "the index could not be built"))
                 continue
             # THE COVERAGE AUDIT, before the scan. See kapsam_olc().
             kap_durum, kap_uz, kap_kim = kapsam_olc(
@@ -508,11 +508,11 @@ def main():
                 # Skipping silently would show that database as "clean".
                 print("      ZAMAN ASIMI (%d sn): %s OLCULEMEDI"
                       % (a.timeout, dbad))
-                atlanan.append((sinif, dbad, "zaman asimi"))
+                atlanan.append((sinif, dbad, "timed out"))
                 continue
             if r.returncode != 0:
                 print(u'      ERROR: %s' % r.stderr.strip()[:200])
-                atlanan.append((sinif, dbad, "blastn hatasi"))
+                atlanan.append((sinif, dbad, "blastn failed"))
                 continue
             # vuruslari referans basina topla
             vurus = collections.defaultdict(list)
@@ -645,7 +645,7 @@ def main():
             w = csv.DictWriter(fh, fieldnames=list(sonuc[0].keys()),
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(sonuc)
-        print("\nyazildi: %s" % a.out)
+        print("\nwritten: %s" % a.out)
     if atlanan:
         print(u'\nTHE DATABASES THAT COULD NOT BE MEASURED (they do not count as clean):')
         for sn, db, sb in atlanan:

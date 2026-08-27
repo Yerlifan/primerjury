@@ -116,7 +116,7 @@ def main():
                                       (r.get('ONERILEN_AD') or '')[:30],
                                       (r.get('SAVUNULABILIR_DUZEY') or '')[:18]))
     print()
-    print('  RAKIP (%d):' % len(rakip))
+    print('  COMPETITORS (%d):' % len(rakip))
     for r in rakip:
         print('    %-18s %s' % (r['kutu'], (r.get('ONERILEN_AD') or '')[:52]))
     if not uye:

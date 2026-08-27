@@ -552,7 +552,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(pairs[0].keys()), delimiter="\t")
         w.writeheader()
         w.writerows(pairs)
-    print("\nyazildi: %s" % a.out)
+    print("\nwritten: %s" % a.out)
     print(u'\nFive best candidates:')
     for p in pairs[:5]:
         print(u'  penalty=%.2f  product=%d bp (GC %.1f)  F=%s (Tm %.1f)  R=%s (Tm %.1f)'

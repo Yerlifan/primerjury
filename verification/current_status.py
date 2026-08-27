@@ -80,7 +80,7 @@ def main():
                             (r.get('dCq_karsiligi') or '—').strip()))
         fh.write(u'\n## What this number does not know\n\n')
         fh.write(u'This table is a verdict on **threshold and coverage**. A pair appearing here does not mean it passed the geometry gate, that in-plate gel separation is clean')
-    print('yazildi: %s' % y)
+    print('written: %s' % y)
     print(u'  to order: %d pairs (%d target-specific + %d universal), %d oligos'
           % (len(kesin) + len(evr), len(kesin), len(evr), 2 * (len(kesin) + len(evr))))
     print(u'  not ordered: %d' % len(disi))

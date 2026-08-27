@@ -259,7 +259,8 @@ def main():
                                % (c['hedef'], et, yazili, yeni, f))
 
     print()
-    print('  %-44s %-15s %-15s %s' % ('hedef', 'tablo F/R', 'motor F/R', 'ihlal'))
+    print('  %-44s %-15s %-15s %s'
+          % ('target', 'table F/R', 'engine F/R', 'violation'))
     for c, tF, tR, vF, vR, _het in sonuc:
         print('  %-44s %6s/%-6s %6.2f/%-6.2f %s'
               % (c['hedef'][:44], c['tmF'], c['tmR'], tF, tR,

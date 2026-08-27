@@ -141,7 +141,7 @@ def sorun_gerekceleri(d):
     elif 'kutu' in (d['ayrim'] or '').lower():
         m = re.match(r'\s*(\d+)\s*/\s*(\d+)\s*kutu', d['ayrim'])
         if m and int(m.group(1)) < int(m.group(2)):
-            g.append(('A', 'kapsam eksik: ' + d['ayrim'][:60]))
+            g.append(('A', 'the coverage is incomplete: ' + d['ayrim'][:60]))
     bp = d['urun_bp']
     if bp > C.URUN_ONERILMEZ:
         g.append(('U', 'the product is %d bp, above %d, which is not '

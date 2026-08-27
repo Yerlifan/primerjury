@@ -246,7 +246,7 @@ def main():
             w = csv.DictWriter(fh, fieldnames=list(ozet[0].keys()),
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(ozet)
-        print("\nyazildi: %s" % os.path.join(a.out, "ozet.tsv"))
+        print("\nwritten: %s" % os.path.join(a.out, "ozet.tsv"))
 
 
 if __name__ == "__main__":

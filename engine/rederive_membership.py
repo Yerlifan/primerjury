@@ -709,7 +709,7 @@ def main():
     p3 = os.path.join(CIK, 'engine_TURETME.md')
     with open(p3, 'w', encoding='utf-8') as fh:
         fh.write(u'# Re-deriving membership from measured identity\n\n')
-        fh.write('Uretim: %s\n\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
+        fh.write('Produced: %s\n\n' % time.strftime('%Y-%m-%d %H:%M:%S'))
         fh.write(u'Criterion: discriminating %d-mer, normalised threshold %.2f, member >=%%%.0f, mixed %%%.0f-%.0f.\n'
                  % (K, NORM_ESIK, UYE_ESIK, KARISIK_ESIK, UYE_ESIK))
         fh.write(u'In-silico PCR: <=1 and <=3 mismatches with an EXACT match at the last two 3\' bases, at most %d reads per bin.\n\n' % a.nmax)

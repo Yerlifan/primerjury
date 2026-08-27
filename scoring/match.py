@@ -130,7 +130,7 @@ def main():
                     if not (TM_ALT - 2.0 <= t <= TM_UST):
                         continue
                     d = dict(c); d[rol] = v; d['tm' + rol] = t
-                    d['arms'] = '%s %d. konum %s->%s' % (rol, konum, s[konum], yeni)
+                    d['arms'] = '%s position %d %s->%s' % (rol, konum, s[konum], yeni)
                     d['dtm'] = round(abs(d['tmF'] - d['tmR']), 2)
                     if d['dtm'] <= DTM_UST + 0.5:
                         arms.append(d)

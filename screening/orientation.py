@@ -182,7 +182,7 @@ def kendini_sina():
     # 4) idempotans: kanonigi tekrar kanoniklestirmek degistirmemeli
     k4, _, cev4 = kanonik(k2, 'A')
     if cev4 or k4 != k2:
-        hata.append('idempotans bozuk')
+        hata.append('idempotence is broken')
     # 5) sinif tespiti
     if sinifi('A1-4_2209_konsensus.fasta') != 'A' or sinifi('F2-1_101201.fasta') != 'F2':
         hata.append('the class detection is broken')

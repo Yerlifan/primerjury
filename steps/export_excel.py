@@ -605,7 +605,7 @@ def main():
                          'definitions overlap in the data.')
                 tur = "Dikkat"
             uyarilar.append((tur, u'The same primer pair on more than one target',
-                             "%s / %s" % k, yorum + "  Hedefler: " + ", ".join(sorted(v))))
+                             "%s / %s" % k, yorum + "  Targets: " + ", ".join(sorted(v))))
 
     # 1a. The target name and the measured identity disagree
     for x in sorted(set(z["hedef"] for z in gecen)):

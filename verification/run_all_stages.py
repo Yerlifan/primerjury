@@ -359,7 +359,7 @@ def ozet(kok, CIKTI, durum, yaz):
                 for r in duz:
                     fh.write(u'**%s. %s**\n\n' % (r['no'], r['iddia']))
                     fh.write(u'> %s\n\n' % r.get('DOGRU_IFADE (duzeltilmeliyse)', ''))
-                    fh.write(u'Kanit: %s\n\n' % r.get('kanit', ''))
+                    fh.write(u'Evidence: %s\n\n' % r.get('kanit', ''))
 
 
         # --- 5) TOPLANTI TALEPLERININ TAMAMI ---

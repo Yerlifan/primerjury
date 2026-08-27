@@ -77,7 +77,7 @@ def main():
                         (r.get('ASIL_kapsam_mm1') or '').strip()))
             n += 1
 
-    print('yazildi: %s' % cikti)
+    print('written: %s' % cikti)
     print(u'  %d rows recorded as the reference' % n)
     if atlanan:
         print(u'  skipped (the sequence or the measurement is empty): %s' % ', '.join(atlanan))

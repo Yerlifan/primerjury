@@ -268,7 +268,7 @@ def main():
             for sn, t1, t2, u, o, k, g, kp, kt in rows:
                 w.writerow([sn, t1, ad.get(t1, ""), t2, ad.get(t2, ""),
                             u, o, kt, kp, k, g])
-        print("yazildi: %s" % a.out)
+        print("written: %s" % a.out)
 
 
 if __name__ == "__main__":

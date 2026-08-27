@@ -264,7 +264,7 @@ def main():
         ws.row_dimensions[n].height = 56; n += 1
 
     wb.save(a.xlsx)
-    print('sayfa yazildi:', ad, '| satir', n)
+    print('sheet written:', ad, '| rows', n)
 
 
 if __name__ == '__main__':

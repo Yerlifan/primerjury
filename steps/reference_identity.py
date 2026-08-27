@@ -170,7 +170,7 @@ def main():
         if not dosyalar:
             sonuc.append(dict(hedef=hedef, sinif=sinif, ileri_dizi=F, geri_dizi=R,
                               urun_okuma=0, konsensus_uzunluk=0,
-                              amaclanan=ic, olculen="fastq bulunamadi",
+                              amaclanan=ic, olculen="no fastq found",
                               ozdeslik="", hizalanan="", uyum="olculemedi"))
             continue
         urunler = []
@@ -263,7 +263,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(sonuc[0].keys()),
                            delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(sonuc)
-    print("\nyazildi: %s" % a.out)
+    print("\nwritten: %s" % a.out)
     say = collections.Counter(x["uyum"] for x in sonuc)
     for k, v in say.most_common():
         print("   %-14s %d" % (k, v))

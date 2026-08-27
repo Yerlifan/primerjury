@@ -248,7 +248,7 @@ def main():
     def gun(s):
         print(s)
 
-    print("TAM KUME")
+    print("THE WHOLE SET")
     tam, hiz = kur(okumalar, a, gun)
     if not tam:
         sys.exit(u'the consensus could not be built')
@@ -291,7 +291,7 @@ def main():
                     len(tam), kapsanan, f, fi, kaps, uyum))
         for k in range(0, len(tam), 70):
             fh.write(tam[k:k + 70] + "\n")
-    print("yazildi: %s" % yol)
+    print("written: %s" % yol)
     print("uzunluk=%d kapsanan=%d" % (len(tam), kapsanan))
     if uyum.startswith("ayrisan_olcum"):
         print(u'\nCAUTION: the two halves split at the SUBSTITUTION level. This bin may not come from a single organism, and should be inspected before its consensus is used.')

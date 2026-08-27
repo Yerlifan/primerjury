@@ -85,7 +85,7 @@ def main():
 
     gecti = True
     print(u'=== 1) ad_coz: an unnamed record MUST NOT PRODUCE a name, and a real name MUST NOT BE BROKEN ===')
-    print('%-56s | %-24s | %s' % ('baslik', 'cozulen tur', 'sonuc'))
+    print('%-56s | %-24s | %s' % ('header', 'species resolved', 'result'))
     print('-' * 104)
     for baslik, ad_olmali, bek in ORNEKLER:
         _c, t, _tam = kd.ad_coz(baslik)
@@ -93,17 +93,17 @@ def main():
         gecti = gecti and ok
         print('%-56s | %-24s | %s'
               % (baslik[:56], str(t)[:24],
-                 'DOGRU' if ok else 'YANLIS (beklenen: %s)' % bek))
+                 'RIGHT' if ok else 'WRONG (expected: %s)' % bek))
 
     print()
-    print(u'=== 2) savunulabilir_duzey: 99%% identity MUST NOT PRODUCE a name (when the record is unnamed) ===')
-    print('%-30s | %-38s | %s' % ('durum', 'duzey', 'sonuc'))
+    print(u'=== 2) savunulabilir_duzey: 99 per cent identity MUST NOT PRODUCE a name (when the record is unnamed) ===')
+    print('%-38s | %-38s | %s' % ('case', 'level', 'result'))
     print('-' * 104)
     senaryo = [
-        ('adsiz klon, kimlik %99',
+        ('an unnamed clone, identity 99 per cent',
          'KJ734864.1 Uncultured prokaryote clone D5 16S ribosomal RNA gene',
          99.0, False),
-        ('gercek ad, kimlik %99',
+        ('a real name, identity 99 per cent',
          'CP073276.1 Petrimonas sulfuriphila strain BN3 16S ribosomal RNA',
          99.0, True),
     ]
@@ -114,7 +114,7 @@ def main():
         adlandirildi = duzey in ('TUR', 'CINS') or duzey.startswith('CINS (')
         ok = (adlandirildi == ad_olmali)
         gecti = gecti and ok
-        print('%-30s | %-38s | %s' % (ad, duzey[:38], 'DOGRU' if ok else 'YANLIS'))
+        print('%-38s | %-38s | %s' % (ad, duzey[:38], 'RIGHT' if ok else 'WRONG'))
 
     print()
     print(u'RESULT: ' + (u'EVERY TEST PASSED' if gecti else 'BASARISIZ'))

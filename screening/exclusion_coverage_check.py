@@ -269,7 +269,7 @@ def main():
                         continue
                     tx = ESD.get(kutu) or ESD.get(kim.strip())
                     if tx:
-                        notlar.append((kutu, kim[:50] + ' [esdeger tablosu]', tx))
+                        notlar.append((kutu, kim[:50] + ' [the equivalence table]', tx))
                         tl.append(tx)
                         gerek.add(tx)
                         continue
@@ -281,7 +281,7 @@ def main():
                     if tx:
                         tl.append(tx)
                     else:
-                        notlar.append((kutu, kim[:60] + ' (taxid bulunamadi)', None))
+                        notlar.append((kutu, kim[:60] + ' (no taxid found)', None))
                 icin[hedef] = (kk, tl)
                 kimlik_notu[hedef] = notlar
                 gerek.update(tl)

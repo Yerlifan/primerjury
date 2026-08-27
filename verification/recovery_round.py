@@ -615,7 +615,7 @@ def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
         for v, etiket in U.arms_varyantlari(c['F']):
             arms.append(dict(F=v, R=c['R'], urun=c['urun'], arms='F ' + etiket))
     for v, etiket in U.arms_varyantlari(mevcut_F):
-        arms.append(dict(F=v, R=mevcut_R, urun=0, arms='F ' + etiket + ' (mevcut cift)'))
+        arms.append(dict(F=v, R=mevcut_R, urun=0, arms='F ' + etiket + ' (the pair as it stands)'))
 
     # TWO STAGES: everything is first eliminated under THE PRIMARY criterion (mm<=1);
     # THE SECONDARY criterion (mm<=3) is measured only for the ones in front, so the

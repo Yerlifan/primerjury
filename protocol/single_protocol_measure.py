@@ -761,7 +761,7 @@ def raporla(CIKTI, sonuc, meta, yaz):
         duy = [r for r in gecen if karar(_o(r, Y))[0] == 'ESIK ALTI']
         fh.write(u'- Passing but SENSITIVE TO THE CRITERION (collapses at mm<=3): **%d**\n\n' % len(duy))
         fh.write(u'```\n' + GEREKCE + u'\n```\n\n')
-        fh.write(u'## Tablo\n\n')
+        fh.write(u'## The table\n\n')
         fh.write(u'| target | source | mm<=1 (main) | mm<=3 (secondary) | coverage | status |\n|---|---|---|---|---|---|\n')
         for r in sorted(sonuc, key=lambda x: -(karar(_o(x, A))[1] if karar(_o(x, A))[1] is not None else -1)):
             o1, o3 = _o(r, A), _o(r, Y)
