@@ -40,9 +40,14 @@ def yukle(ad, dosya):
 
 G = yukle("G", "design_group_primers.py")
 
-SINIF_DB = {"A1": "archaea.16S.fna", "A2": "archaea.16S.fna",
-            "B": "bacteria.16S.fna", "F1": "fungi.ITS.fna",
-            "F2": "fungi.ITS.fna"}
+# The identity rules live in ONE place. This step used to ask a single database
+# per class and take the highest bitscore as the answer, with no threshold at
+# all: whatever came back became the measured name. That is the same fault
+# target_identity.py had, and having two yardsticks in one project is how a match
+# below the species threshold ends up written as a species. It therefore borrows
+# the database map, the ladder and the naming rules from that module instead of
+# keeping a second copy of them.
+T = yukle("T", "target_identity.py")
 
 
 class Esik:
@@ -68,6 +73,14 @@ def get_args():
     p.add_argument("--min-product", type=int, default=30,
                    help="minimum number of products needed to build a consensus")
     p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--databases", choices=["all", "narrow"], default="all",
+                   help='ask every rDNA database, or only the discriminating set '
+                        'of the class (default: all)')
+    p.add_argument("--min-alignment", type=int, default=250,
+                   help='an alignment shorter than this does not count as an '
+                        'identity')
+    p.add_argument("--min-identity", type=float, default=90.0,
+                   help='a hit below this does not count')
     return p.parse_args()
 
 
@@ -205,42 +218,63 @@ def main():
         sorgu = os.path.join(calisma, "u%d.fa" % i)
         with open(sorgu, "w") as fh:
             fh.write(">u%d\n%s\n" % (i, kons))
-        dbad = SINIF_DB.get(sinif)
-        fna = os.path.join(a.db, dbad) if dbad else None
-        olculen = ozd = hiz = ""
-        if fna and os.path.exists(fna):
-            db = fna
-            if not (os.path.exists(fna + ".nin") or os.path.exists(fna + ".00.nin")):
-                db = os.path.join(calisma, dbad)
-                if not os.path.exists(db):
-                    os.symlink(os.path.abspath(fna), db)
-                subprocess.run(["makeblastdb", "-in", db, "-dbtype", "nucl"],
-                               capture_output=True, text=True)
+        vtb = (T.SINIF_DB_DAR if a.databases == "narrow"
+               else T.SINIF_DB_GENIS).get(sinif, [])
+        # bin -> region -> the hits that passed the filter
+        lokus_isabet = {}
+        for dbad, bolge in vtb:
+            fna = os.path.join(a.db, dbad)
+            if not os.path.exists(fna):
+                continue
+            db = T.db_hazirla(fna, calisma)
+            if not db:
+                continue
             pr = subprocess.run(
                 ["blastn", "-query", sorgu, "-db", db, "-outfmt",
-                 "6 pident length bitscore stitle", "-max_target_seqs", "5",
+                 "6 pident length bitscore stitle",
+                 # 5 -> 50: max_target_seqs cuts by BLAST's own bitscore order,
+                 # and bitscore grows with length, so a short but exact type
+                 # strain record could not get into the first five and never
+                 # appeared at all.
+                 "-max_target_seqs", "50",
                  "-evalue", "1e-5", "-num_threads", str(a.threads)],
                 capture_output=True, text=True)
-            en = None
             for line in pr.stdout.splitlines():
                 q = line.split("\t")
                 if len(q) < 4:
                     continue
-                if en is None or float(q[2]) > float(en[2]):
-                    en = q
-            if en:
-                m = re.match(r"\S+\s+(\S+\s+\S+)", en[3])
-                olculen = m.group(1) if m else en[3][:40]
-                ozd, hiz = en[0], en[1]
-        # Uyum DUZEYLI raporlanir. "Methanosarcina barkeri" hedefi icin
-        # "Methanosarcina thermophila" cikmasi cins duzeyinde uyum, tur
-        # duzeyinde uyumsuzluktur; ikisini "uyusuyor" diye birlestirmek,
-        # tur ozgul diye tasarlanmis bir cifti dogrulanmis gosterir.
+                pid, aln, tit = float(q[0]), int(q[1]), q[3]
+                if aln < a.min_alignment or pid < a.min_identity:
+                    continue
+                lokus_isabet.setdefault(bolge, []).append((pid, aln, tit, dbad))
+        # WITHIN a locus by identity, ties broken by the longer alignment. ACROSS
+        # loci nothing is ordered; the ladder of the class decides which one is
+        # used, because 99 per cent in 28S is not 99 per cent in ITS.
+        for bolge in lokus_isabet:
+            lokus_isabet[bolge].sort(key=lambda x: (-x[0], -x[1]))
+        olculen = ozd = hiz = ""
+        secim = T.basamaktan_sec(
+            lokus_isabet, T.SINIF_BASAMAK.get(sinif, T.VARSAYILAN_BASAMAK), True)
+        if secim:
+            olculen, _aciklama, _pid, _aln = secim[0], secim[1], secim[2], secim[3]
+            ozd, hiz = "%.3f" % _pid, str(_aln)
+        # The agreement is reported IN LEVELS. For a target of "Methanosarcina
+        # barkeri", getting "Methanosarcina thermophila" is agreement at genus
+        # level and disagreement at species level; folding the two into
+        # "uyusuyor" would show a pair designed to be species specific as
+        # verified.
         amac_turler = [x.strip() for x in ic.split(",") if x.strip()]
         amac_cinsler = set(x.split()[0] for x in amac_turler if x)
         olc_cins = olculen.split()[0] if olculen else ""
         if not olculen:
             uyum = "olculemedi"
+        elif olculen.startswith(u"cannot be named"):
+            uyum = "ADLANDIRILAMIYOR"
+        elif olculen.endswith(" sp."):
+            # The species threshold was not passed, so we stayed at genus level.
+            # Writing that down as agreement would say more than was measured.
+            uyum = ("cins_uyusuyor_tur_ATANAMAZ"
+                    if olc_cins and olc_cins in amac_cinsler else "CINS_FARKLI")
         elif any(olculen == t for t in amac_turler):
             uyum = "tur_uyusuyor"
         elif olc_cins and olc_cins in amac_cinsler:
