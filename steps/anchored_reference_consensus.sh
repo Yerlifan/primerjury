@@ -39,6 +39,7 @@ set -euo pipefail
 # CAREFUL: GROUPS is a bash builtin array (the user's group ids) and assigning to
 # it is silently ignored. That is why the name GRUP_SEC is used.
 PT=""; OUT=""; THREADS=""; SAMPLE=50; GRUP_SEC=""; MINDEPTH=""; DB_OVERRIDE=""
+DBKOK=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --pt) PT="$2"; shift 2;;
@@ -48,6 +49,13 @@ while [ $# -gt 0 ]; do
     --groups) GRUP_SEC="$2"; shift 2;;
     --min-depth) MINDEPTH="$2"; shift 2;;
     --db) DB_OVERRIDE="$2"; shift 2;;
+    # --db-root: the directory the reference databases sit in.
+    # MEASURED on 2026-08-25: with the reference databases on a Windows drive
+    # mounted into WSL, the SILVA SSU BLAST index of about 302 MB is read from
+    # scratch for every bin, and a bin took about 11 minutes. Copying the same
+    # files onto the WSL disk and pointing this option at them brings the step
+    # down to about 1 minute.
+    --db-root) DBKOK="$2"; shift 2;;
     *) echo "unknown option: $1" >&2; exit 2;;
   esac
 done
@@ -72,7 +80,7 @@ done
 log "araclar hazir, is parcacigi=$THREADS, blastdbcmd=$HAS_BDC"
 
 mkdir -p "$OUT"/{ref,bam,konsensus,pileup,maske,blast,log}
-DB="$PT/REFERENCE_DB"
+DB="${DBKOK:-$PT/REFERENCE_DB}"
 
 # --- choosing a database per group -------------------------------------
 # For the F groups ROD (full length rDNA operons, eukaryotes only) is tried first.
@@ -119,6 +127,12 @@ for fq in "$PT/fastq files"/*/*.fastq; do
   [ -n "$tid" ] || { echo "the taxid could not be extracted, skipped: $fq" >&2; continue; }
   tag="${grp}_${tid}"
   DONE=$((DONE+1))
+  # Resuming: a bin whose consensus has already been produced is not processed
+  # again, so a run that was interrupted carries on from where it stopped.
+  if [ -s "$OUT/konsensus/${tag}_ref_konsensus.fasta" ]; then
+    log "[$DONE] $tag is already there, skipped"
+    continue
+  fi
   log "[$DONE] $tag"
 
   reffa="$OUT/ref/${tag}_ref.fasta"
