@@ -109,7 +109,7 @@ def kos(ad, ek):
 
 def yardim():
     print(__doc__)
-    print('  alt komutlar:')
+    print('  sub commands:')
     for k in sorted(KOMUT):
         print('    %-10s %s%s' % (k, KOMUT[k][1],
                                   '' if KOMUT[k][2] else u'   [not included in \'all\']'))

@@ -247,7 +247,7 @@ def main():
             w = csv.DictWriter(fh, fieldnames=list(satirlar[0].keys()),
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(satirlar)
-    print("\nyazildi: %s" % a.out)
+    print("\nwritten: %s" % a.out)
     print('the confidence threshold: %g' % a.confidence)
     tt = sum(x["okuma"] for x in ozet)
     ts = sum(x["tasinan"] for x in ozet)
@@ -348,7 +348,7 @@ def tarama_yap(a, ciktilar, esikler, atalar, rutbe):
         w = csv.DictWriter(fh, fieldnames=list(satirlar[0].keys()),
                            delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(satirlar)
-    print("\nyazildi: %s" % os.path.join(a.out, "esik_taramasi.tsv"))
+    print("\nwritten: %s" % os.path.join(a.out, "esik_taramasi.tsv"))
     print(u'Choose the threshold here: if the genus(G) column is rising while the unclassified column is still low, that threshold is suitable. Pass the value you chose with --confidence and run without --scan.')
     return 0
 

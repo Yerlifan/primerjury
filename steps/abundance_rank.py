@@ -252,12 +252,13 @@ def main():
             w = csv.DictWriter(fh, fieldnames=list(satirlar[0].keys()),
                                delimiter="\t", lineterminator="\n")
             w.writeheader(); w.writerows(satirlar)
-    print("\nyazildi: %s" % a.out)
+    print("\nwritten: %s" % a.out)
 
     # a summary group by group
-    print("\nGRUP BAZINDA VERININ DESTEKLEDIGI RUTBE")
-    print("%-4s %-24s %-14s %10s %10s" % ("grup", "aciklama", "secilen rutbe",
-                                          "cins orani", "tur orani"))
+    print("\nTHE RANK THE DATA SUPPORTS, PER GROUP")
+    print("%-4s %-24s %-14s %10s %10s"
+          % ("group", "description", "rank chosen",
+             "genus share", "species share"))
     for g, b0, ac in GRUP_ARALIK:
         ilgili = [x for x in ozet_satir if x["grup"] == g]
         if not ilgili:

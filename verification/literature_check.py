@@ -172,7 +172,7 @@ def kontrol_et(baslik, onerilen_ad, lokus='', ag=True):
     try:
         t = taxid_al(acc)
         if not t:
-            sonuc['durum'] = 'taxid bulunamadi'
+            sonuc['durum'] = 'no taxid found'
             return sonuc
         time.sleep(0.34)                       # NCBI hiz siniri (3/sn)
         tx = taxonomy_cek(t)

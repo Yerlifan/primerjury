@@ -46,11 +46,11 @@ for pair in "kraken2 --help" "bracken --help" "samtools --version" "minimap2 --h
 done
 if command -v samtools >/dev/null 2>&1; then
   { echo "### samtools consensus --help"; samtools consensus --help; } > "$OUT/samtools_consensus_help.txt" 2>&1
-  echo "yazildi: $OUT/samtools_consensus_help.txt"
+  echo "written: $OUT/samtools_consensus_help.txt"
 fi
 if command -v est_abundance.py >/dev/null 2>&1; then
   { echo "### est_abundance.py -h"; est_abundance.py -h; } > "$OUT/est_abundance_help.txt" 2>&1
-  echo "yazildi: $OUT/est_abundance_help.txt"
+  echo "written: $OUT/est_abundance_help.txt"
 fi
 
 bar "4. Kraken2 databases (searched for automatically by the hash.k2d file)"

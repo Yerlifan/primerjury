@@ -117,7 +117,7 @@ def main():
                                delimiter="\t", lineterminator="\n")
             w.writeheader()
             w.writerows(satir)
-        print("\nyazildi: %s" % a.out)
+        print("\nwritten: %s" % a.out)
 
 
 if __name__ == "__main__":

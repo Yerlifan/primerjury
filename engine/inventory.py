@@ -136,7 +136,7 @@ def main():
 
     yol = os.environ.get('_FL_CIKTI') or os.path.join(KOK, 'RESULTS', 'envanter.json')
     json.dump(cikti, open(yol, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-    print('yazildi:', yol)
+    print('written:', yol)
 
 
 if __name__ == '__main__':

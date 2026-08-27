@@ -226,7 +226,7 @@ def main():
             w.writeheader()
         for s in satirlar:
             w.writerow({k: s.get(k, '') for k in w.fieldnames})
-    print('\nyazildi: %s' % yol)
+    print('\nwritten: %s' % yol)
     return 0
 
 

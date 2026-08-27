@@ -84,7 +84,7 @@ def main():
         onerilen=onerilen)
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump(veri, fh, ensure_ascii=False, indent=1)
-    print("yazildi: %s" % a.out)
+    print("written: %s" % a.out)
     print(u'  candidates tested=%d  passing=%d  targets covered=%d  recommended=%d'
           % (toplam, len(gecen), veri["hedef"], len(onerilen)))
     if cikarilan:

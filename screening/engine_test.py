@@ -179,7 +179,7 @@ if __name__ == '__main__':
     ap.add_argument('--n', type=int, default=300)
     ap.add_argument('--mm', type=int, default=1)
     a = ap.parse_args()
-    print(u'read engine version:', om.__version__, ' olcut mm<=%d' % a.mm)
+    print(u'read engine version:', om.__version__, ' criterion mm<=%d' % a.mm)
     ok1 = t1_sentetik(a.mm)
     ok2 = t2_t3_gercek(a.fastq, a.n, a.mm) if a.fastq else True
     print()

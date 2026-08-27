@@ -459,7 +459,7 @@ def main():
         for s in sat:
             w.writerow([s["kaynak"], s["cokme_a"] if s["cokme_a"] is not None else "cokmedi",
                         s["cokme_b"] if s["cokme_b"] is not None else "cokmedi", s["durum"]])
-    print(f"\nyazildi: {hedef}")
+    print(f"\nwritten: {hedef}")
 
 def yaz_csv(yol, satirlar, ad):
     with open(yol, "w", newline="", encoding="utf-8-sig") as fh:

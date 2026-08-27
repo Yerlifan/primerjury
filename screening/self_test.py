@@ -200,7 +200,7 @@ def calistir(yaz):
                         break
             if not boylar:
                 urunsuz += 1
-                ayrinti.append(('urun yok', d['hedef'], ''))
+                ayrinti.append(('no product', d['hedef'], ''))
                 continue
             if any(abs(bp - d['urun_bp']) <= TOLERANS for bp in boylar):
                 tutan += 1

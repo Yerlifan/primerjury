@@ -293,7 +293,7 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(sonuc[0].keys()),
                            delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(sonuc)
-    print("\nyazildi: %s" % a.out)
+    print("\nwritten: %s" % a.out)
 
     say_uyum = collections.Counter(x["uyum"] for x in sonuc)
     print(u'records: %d' % len(sonuc))

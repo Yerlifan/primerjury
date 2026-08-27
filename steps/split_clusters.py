@@ -167,7 +167,7 @@ def main():
               encoding="utf-8") as fh:
         json.dump(dict(sets=sets, kalan=kalan, cikarma_kaydi=log), fh,
                   ensure_ascii=False, indent=1)
-    print("\nyazildi: %s" % os.path.join(a.outdir, "%s_bolme.json" % a.label))
+    print("\nwritten: %s" % os.path.join(a.outdir, "%s_bolme.json" % a.label))
 
 
 if __name__ == "__main__":
