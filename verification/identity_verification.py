@@ -85,7 +85,17 @@ VERSIYON = '1.1 (2026-08-04)'
 # size or the ranking and selection logic changes: vtb_*.json files left over from
 # older runs then become invalid AUTOMATICALLY, instead of silently handing back
 # the old result produced with the smaller list.
-AYAR_IMZASI = 'idfbm25-kl500-v3'
+# 2026-08-26: v3 -> v4. The hit ordering changed (on equal identity the LONGER
+# alignment now comes first) and so did the naming rules (a minimum alignment
+# length, the fungal thresholds, the unnamed second hit). Because the ordering
+# affects the SCAN stage, the signature was raised: the old vtb_*.json files
+# become invalid on their own and the scan runs from scratch. That way THE
+# VERDICT is re-derived as well, not the naming alone.
+# v4 -> v5 (2026-08-26): the independence measurement moved into the verdict
+# path, and the nt search mode was changed from MEGABLAST to ordinary blastn.
+# Both are visible only in A FULL SCAN; a re-derivation takes the verdict from
+# the cache.
+AYAR_IMZASI = 'idfbm25-kl1200-v5'
 
 K_TOHUM = 16            # seed length
 
@@ -198,7 +208,10 @@ VTB = [
      '1,160 records'),
     ('RefSeq mantar ITS',  'fungi.ITS.fna',                 'ITS',    True,
      '20,394 records'),
-    ('RefSeq mantar 28S',  'fungi.28SrRNA.fna',             'LSU',    True,
+    # 2026-08-26: the locus went from 'LSU' to 'LSU_MANTAR'. This set is fungal
+    # throughout and the fungal LSU species threshold is 99.8 per cent (Vu et al.
+    # 2018); the 98.7 per cent of the prokaryotic 23S would be too loose here.
+    ('RefSeq mantar 28S',  'fungi.28SrRNA.fna',             'LSU_MANTAR', True,
      '12,890 records; Petriella: 2 records, measured'),
     ('RefSeq mantar 18S',  'fungi.18SrRNA.fna',             'SSU',    True,
      '4,037 records'),
@@ -437,8 +450,13 @@ def ortalama_uzunluk(yol):
             n, t = open(yan).read().split()
             if int(n) > 0:
                 return float(t) / int(n)
-    except Exception:
-        pass
+    # If the side file is corrupt or unreadable the length is counted again, so
+    # we fall onto the right path anyway. But WHICH error is expected should be
+    # written down: this used to be "except Exception", and a fault in the code
+    # would land here and stay hidden.
+    except (IOError, OSError, ValueError) as e:
+        print(u'  [note] %s could not be read (%s), the length is being counted again'
+              % (os.path.basename(yan), type(e).__name__))
     n = 0
     t = 0
     fai = yol + '.fai'
@@ -462,7 +480,7 @@ def ortalama_uzunluk(yol):
                 u'WARNING: %s contains %d malformed lines. The index was ignored and the average length is measured by scanning the FASTA.\n' % (fai, fai_bozuk))
             n = 0
             t = 0
-    if not n:                                # yoksa yalniz uzunluk sayan hizli tarama
+    if not n:                                # if absent, a fast pass that counts length alone
         u = 0
         with open(yol, 'rb') as f:
             for ham in f:
@@ -477,7 +495,9 @@ def ortalama_uzunluk(yol):
     ort = float(t) / max(1, n)
     try:
         open(yan, 'w').write('%d %d' % (n, t))
-    except Exception:
+    except (IOError, OSError):
+        # A read only directory or a full disk. The calculation has already been
+        # made; it simply cannot be kept for the next run. Not worth stopping for.
         pass
     return ort if ort > 0 else 1.0
 
@@ -709,7 +729,10 @@ def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
                            sira=c['sira'], kaynak=c['kaynak'], dizi=diz,
                            hiz_uzunluk=min(len(kutu_diz), len(diz))))
     hiz_sure = round(time.time() - t_hiz, 1)
-    isabet.sort(key=lambda x: (-x['kimlik'], x['baslik']))
+    # On equal identity the LONGER alignment comes first: 100 per cent over 2900
+    # bases is stronger evidence than 100 per cent over 484. Apart from ties the
+    # ordering is still by identity.
+    isabet.sort(key=lambda x: (-x['kimlik'], -(x.get('hiz_uzunluk') or 0), x['baslik']))
 
     # --- OZ KALIBRASYON: kazananin tohum sirasi ---
     kazanan_sira = isabet[0]['sira'] if isabet else None
@@ -765,8 +788,13 @@ def vtb_tarama(kok, kutu_diz, etiket, dosya, yaz, kontrol, garanti=(), kl_ust=KI
     if os.path.exists(kp):
         try:
             return json.load(open(kp, encoding='utf-8'))
-        except Exception:
-            pass
+        # A corrupt checkpoint IS NOT skipped SILENTLY. If it were, a scan that
+        # takes hours would run again and nobody would know why; the search for
+        # "why is the cache not working" would start in the wrong place.
+        except (ValueError, IOError, OSError) as e:
+            print(u'     [note] the checkpoint could not be read (%s: %s), '
+                  u'this database will be scanned AGAIN'
+                  % (type(e).__name__, os.path.basename(kp)))
     t0 = time.time()
 
     def ilerle(n):
@@ -868,8 +896,17 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
     if kip != 'oto':
         return elle_nt_girdi(kutu, q, CIKTI, yaz)
     try:
-        p = dict(CMD='Put', PROGRAM='blastn', DATABASE='nt', MEGABLAST='on',
-                 QUERY=q, HITLIST_SIZE='20', FORMAT_TYPE='Text')
+        # 2026-08-26 (the audit report, finding 5): MEGABLAST WAS TURNED OFF.
+        # MEGABLAST is tuned for very similar sequences (a long word size) and
+        # misses slightly more distant relatives; and because the result list is
+        # cut by bitscore, records that match SHORT but EXACTLY never entered the
+        # list at all. MEASURED: in the nt answer for the Petriella bin the number
+        # of lines carrying "Petriella" was ZERO, and all of the first 12 hits were
+        # long operon records at 92 per cent. Ordinary blastn (word size 11) and a
+        # wider list ease both of those. The price: the query takes longer at NCBI.
+        p = dict(CMD='Put', PROGRAM='blastn', DATABASE='nt',
+                 WORD_SIZE='11', QUERY=q, HITLIST_SIZE='100',
+                 FORMAT_TYPE='Text')
         with urllib.request.urlopen(NT_URL, urllib.parse.urlencode(p).encode(),
                                     timeout=90) as f:
             s = f.read().decode('utf-8', 'replace')
@@ -899,17 +936,60 @@ def nt_katmani(kutu, dizi, CIKTI, yaz, kip='oto', bekleme=25, tur_ust=40):
                 mm = re.match(r'^(\S.{20,70}?)\s{2,}[0-9.]+\s+[0-9.]+\s', satir)
                 if mm:
                     isabet.append(dict(baslik=mm.group(1).strip(), kimlik=None))
-        for mm in re.finditer(r'Identities\s*=\s*\d+/\d+\s*\((\d+)%\)', son):
-            if isabet:
-                isabet[0]['kimlik'] = float(mm.group(1))
-                break
+        # --- THE 2026-08-26 FIX (the audit report, findings 3 and 4) ---
+        # The old code made two mistakes:
+        #   (a) It took the whole number BLAST had ROUNDED ("(99%)"). That number
+        #       was then compared against thresholds with two decimals such as
+        #       98.70 per cent, so whether it passed the threshold came down to
+        #       rounding. MEASURED: all 11 of the 11 nt identities in the output
+        #       were whole numbers. Yet the numerator and denominator ("1234/1250")
+        #       sit on the same line and give the exact identity.
+        #   (b) It assigned an identity only to the FIRST hit (break). The identity
+        #       of the other nine stayed None, savunulabilir_duzey filtered them
+        #       out, and the "second hit" check NEVER ran in the nt layer.
+        # Now each alignment block's own Identities line is matched to that block's
+        # header. Blocks start with '>' and Identities sits inside the block.
+        bloklar = re.split(r'(?m)^>', son)
+        blok_kimlik = []
+        for b in bloklar[1:]:
+            m2 = re.search(r'Identities\s*=\s*(\d+)/(\d+)', b)
+            if m2 and int(m2.group(2)):
+                blok_kimlik.append((100.0 * int(m2.group(1)) / int(m2.group(2)),
+                                    int(m2.group(2))))
+            else:
+                blok_kimlik.append((None, None))
+        for i, (k, uz) in enumerate(blok_kimlik):
+            if i < len(isabet):
+                isabet[i]['kimlik'] = k
+                isabet[i]['hiz_uzunluk'] = uz
+        if isabet and isabet[0].get('kimlik') is None:
+            mm = re.search(r'Identities\s*=\s*(\d+)/(\d+)', son)
+            if mm and int(mm.group(2)):
+                isabet[0]['kimlik'] = 100.0 * int(mm.group(1)) / int(mm.group(2))
         if not isabet:
             yaz(u'     NCBI nt: could not parse the response, falling back to the manual route')
             g = elle_nt_girdi(kutu, q, CIKTI, yaz)
             g['not_'] = 'the automatic reply could not be parsed; the raw reply is under nt_ham/'
             return g
-        yaz(u'     NCBI nt: %d hits' % len(isabet))
-        return dict(durum='TAMAM', isabet=isabet[:10], kaynak='NCBI nt (URL API)')
+        # --- THE 2026-08-26 EVENING FIX (the other half of finding 5) ---
+        # The BLAST text report is in BITSCORE order, NOT in identity order.
+        # The code, though, took isabet[0] for "the best". Once the search moved
+        # from MEGABLAST to blastn, that silently produced a wrong vote: in bin
+        # F1-4_2093780 places one to four went to Lomentospora at 95.21 per cent
+        # because its alignment was longer, and Petriella at 96.49 per cent fell
+        # to fifth and did not count as "the best hit". We had already corrected
+        # the same length bias for the local databases; it had been left in the
+        # nt layer. The ordering goes by identity, and on a tie by the longer
+        # alignment.
+        isabet.sort(key=lambda h: (-(h.get('kimlik') if h.get('kimlik') is not None else -1),
+                                   -(h.get('hiz_uzunluk') or 0)))
+        yaz(u'     NCBI nt: %d hits (ordered by identity, best %s per cent)'
+            % (len(isabet),
+               ('%.4f' % isabet[0]['kimlik']) if isabet[0].get('kimlik') is not None else '?'))
+        # 25 are kept rather than 10: 100 hits are asked for, 50 came back, and
+        # trimming to the first 10 in bitscore order threw away records with a
+        # HIGH identity but a short alignment altogether.
+        return dict(durum='TAMAM', isabet=isabet[:25], kaynak='NCBI nt (URL API)')
     except Exception as e:
         yaz(u'     NCBI nt FAILED (%s), falling back to the manual route' % type(e).__name__)
         g = elle_nt_girdi(kutu, q, CIKTI, yaz)
@@ -943,6 +1023,19 @@ def elle_nt_girdi(kutu, q, CIKTI, yaz):
                 girdi=fa, sablon=sab)
 
 
+# "The best hit" is asked for in one place only. The list order used to be
+# trusted; that silently produced a wrong vote once a source whose order is
+# bitscore (NCBI nt) was added. Wherever the order comes from, the pick is now
+# by identity, and it is done on the consuming side as well so that old cache
+# files are read correctly too.
+def en_iyi_isabet(v):
+    isabetler = [h for h in (v.get('isabet') or []) if h.get('kimlik') is not None]
+    if not isabetler:
+        liste = v.get('isabet') or []
+        return liste[0] if liste else None
+    return max(isabetler, key=lambda h: (h['kimlik'], h.get('hiz_uzunluk') or 0))
+
+
 # Reads the hand filled NT_SONUC_SABLONU.tsv. A row left empty counts as "not
 # done"; zero and empty are not the same thing.
 def nt_yukle(yol):
@@ -969,10 +1062,98 @@ def nt_yukle(yol):
 # can still say "the nearest record is this one, at this percentage".
 #
 # The species and genus thresholds vary by locus, and using a single number would
-# be misleading:
-TUR_ESIGI = {'SSU': 98.7, 'LSU': 98.7, 'ITS': 98.5, 'OPERON': 98.7, 'KARISIK': 98.7}
-CINS_ESIGI = {'SSU': 94.5, 'LSU': 94.5, 'ITS': 90.0, 'OPERON': 94.5, 'KARISIK': 94.5}
+# be misleading.
+#
+# THE 2026-08-26 UPDATE: the values were checked against the literature and the
+# FUNGAL thresholds were CORRECTED.
+#
+#   PROKARYOTIC 16S (SSU) - UNCHANGED, confirmed
+#     Kim et al. 2014 (IJSEM), over a million comparisons: the species boundary
+#     is 98.65 per cent (which overlaps ANI 95 to 96 per cent). Our 98.70 is the
+#     same value in practice (Stackebrandt and Ebers 2006). For the genus figure
+#     of 94.5 per cent, Yarza et al. 2014.
+#     A WARNING: Hackmann 2025 (IJSEM), 191 million alignments over 19,556 type
+#     strains, puts the same species range at 97.2 to 100 and the genus range at
+#     90.1 to 99.0, and stresses that THE TWO RANGES OVERLAP. So a single sharp
+#     cut point is an approximation in principle; the AYRIM_PAYI rule exists for
+#     exactly that reason. Rossi-Tamisier et al. 2015: 57 per cent of valid
+#     species sit closer to one another than 98.7 per cent, and only 10.8 per
+#     cent of 158 genera obey both thresholds.
+#
+#   FUNGAL ITS AND LSU - CHANGED (the earlier values were too loose)
+#     Vu et al. 2018 (Studies in Mycology), 12,000 ex-type strains of 7,300
+#     species:
+#       ITS species 99.6 / genus 94.3 ; LSU species 99.8 / genus 98.2
+#     Here ITS was on 98.5 / 90.0 and the fungal LSU was using the prokaryotic
+#     value of 98.7. MEASURED: with the ITS threshold at 99.6 per cent, 4 of the
+#     12 bins that were given a species name in F1 and F2 drop to genus level
+#     (the ones between 98.55 and 99.17 per cent). The same study shows that 17
+#     to 18 per cent of species cannot be separated AT ALL by ITS or LSU; in
+#     fungi "we could not give a species" is usually the limit of the marker.
+#     Vu et al. 2022 (dnabarcoder) proposes a local threshold per clade instead
+#     of one global threshold; that is the next improvement to make.
+#
+#   NOTE: a SEPARATE key (LSU_MANTAR) is used for the fungal LSU; the
+#   prokaryotic 23S and the fungal 28S cannot share one threshold.
+#
+#   A KNOWN LIMIT (2026-08-26): the locus is a property of THE DATABASE, not of
+#   THE QUERY. SILVA LSU NR99 and Parc carry both prokaryotic and eukaryotic
+#   records, so when a fungal query is measured against those sets the
+#   prokaryotic threshold (98.7 per cent) is applied where 99.8 per cent would be
+#   needed. The sets that are fungal throughout (UNITE ITS, RefSeq fungal ITS and
+#   28S) were tied to the right threshold. The correct fix for SILVA LSU is to
+#   choose the threshold from the query's domain; that IS NOT DONE at the moment,
+#   which means the threshold stays LOOSE for fungal claims. It changes nothing
+#   in the present 12 claims (they all win at 100.00 per cent), but it could
+#   matter for a new one.
+TUR_ESIGI = {'SSU': 98.7, 'LSU': 98.7, 'LSU_MANTAR': 99.8,
+             'ITS': 99.6, 'OPERON': 98.7, 'KARISIK': 98.7}
+CINS_ESIGI = {'SSU': 94.5, 'LSU': 94.5, 'LSU_MANTAR': 98.2,
+              'ITS': 94.3, 'OPERON': 94.5, 'KARISIK': 94.5}
 AYRIM_PAYI = 0.5     # if the gap between the best and the second is under this, use "cf."
+
+# ------------------------------------------------- THE MINIMUM ALIGNMENT
+# 2026-08-26. The identity percentage ON ITS OWN is not enough: 100 per cent over
+# 484 bases and 100 per cent over 2900 bases are not the same evidence. All
+# through this module the hits were ordered by identity ALONE, and a short record
+# could beat a long one.
+#
+# MEASURED: claims 1, 2, 3 and 9 take the name "Petriella setifera" from record
+# AY882347.1.484, at 100.00 per cent but over ONLY 484 bases, while the query
+# consensus is 3,706 bases. The 13 per cent stretch the reference covers matches
+# exactly; that is evidence of a GENUS, not of a species.
+#
+# The answer IS NOT TO THROW THE SHORT HIT AWAY: Petriella's longest record in
+# SILVA LSU Parc is 484 bases in the first place, and throwing it away would lose
+# the taxon entirely. The answer is to give NO SPECIES NAME from a short
+# alignment, to stop at genus level, and to write down the reason. The evidence is
+# kept and the claim is not inflated.
+#
+# The thresholds come from the usual barcode lengths: species level identity in
+# 16S generally wants a near full length sequence (>=1200 bp); in the LSU the
+# measure is the D1/D2 region (about 600 bp); and because the ITS barcode is about
+# 500 to 700 bp, a floor of 400 bp was taken at first.
+# THE 2026-08-26 MEASUREMENT: a length sweep trimmed every bin's consensus from
+# the centre down to L = 200 to 1400 bases, aligned it again and compared it with
+# the name obtained at full length. The result:
+#   SSU : from L>=800 upwards the species agreement is 100 per cent and the number
+#         of WRONG species is ZERO (a plateau). At shorter lengths the agreement
+#         falls as far as 66.7 per cent.
+#   ITS : at L=500 three bins were given a WRONG species name; the wrong names
+#         only reach zero at L>=1000 and the agreement settles at a plateau of 80
+#         per cent.
+# That measurement tests THE QUERY length, not the alignment length; the two are
+# not the same thing. It still says one thing directly: producing a species name
+# from short ITS fragments carries a risk of a wrong name, and that risk WAS
+# MEASURED.
+# So the ITS floor went from 400 to 600 (the length of a full ITS barcode). It was
+# NOT set to 1000: that value comes from the query length, and carrying it over to
+# the alignment floor would also remove legitimate full ITS references.
+# The SSU floor was LEFT at 1200: the measurement shows 800 is enough, but 1200 is
+# the value in the literature (a near full length 16S) and sits well beyond the
+# plateau, on the safe side. In this data it costs one bin.
+EN_AZ_HIZALAMA = {'SSU': 1200, 'LSU': 600, 'LSU_MANTAR': 600,
+                  'ITS': 600, 'OPERON': 1200, 'KARISIK': 1200}
 
 
 # -------------------------------------------------------------------------
@@ -1073,7 +1254,45 @@ def ad_coz(baslik):
 # would be misleading. If the gap between the best and the second is smaller than
 # AYRIM_PAYI, a species assignment cannot be defended and "cf." is used.
 # -------------------------------------------------------------------------
+def erisim_no(baslik):
+    """The GenBank or EMBL accession number out of a reference header.
+
+        SILVA   'AY882347.1.484 Eukaryota;...'        -> AY882347
+        UNITE   'AY882347|k__Fungi;...'               -> AY882347
+        RefSeq  'NR_119564.1 Petriella setifera ...'  -> NR_119564
+
+    """
+    b = (baslik or '').strip()
+    if not b or b == '-':
+        return None
+    m = re.match(r'^([A-Z]{1,2}_?[0-9]{5,8})', b)
+    return m.group(1) if m else None
+
+
 def savunulabilir_duzey(isabetler, lokus='SSU'):
+    """A wrapper: the decision itself is made by _duzey_karar, and here THE LENGTH
+        OF THE ALIGNMENT THAT PRODUCED THE NAME is added.
+
+        WHY: the en_iyi_hiz_uzunluk column was writing the length of THE BEST hit.
+        When the name came from a different (named) hit, the column WAS NOT SHOWING
+        the alignment that produced the name; a reader saw 600 bases and took the
+        name to have come from there, while it had come from another record of 484
+        bases. Now, once the decision comes back, the header it used is looked up in
+        the hit list and its length is written into a separate key.
+
+    """
+    sonuc = _duzey_karar(isabetler, lokus)
+    hedef = (sonuc.get('en_iyi') or u'')[:60]
+    if hedef:
+        for h in (isabetler or []):
+            if (h.get('baslik') or u'').startswith(hedef[:40]):
+                sonuc['adi_ureten_uzunluk'] = h.get('hiz_uzunluk')
+                sonuc['adi_ureten_kimlik'] = h.get('kimlik')
+                break
+    return sonuc
+
+
+def _duzey_karar(isabetler, lokus='SSU'):
     """Work out the DEFENSIBLE taxonomic level from the best three hits.
 
         Returns: dict(duzey, onerilen_ad, gerekce, en_iyi, ikinci, ucuncu)
@@ -1083,8 +1302,11 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
           * identity >= species threshold BUT the second is another species,
             and close                                                   -> "cf." (species uncertain)
           * below the species threshold, above the genus threshold      -> GENUS level
+          * identity >= the species threshold BUT the alignment IS SHORT -> GENUS
+            level (a short record is not evidence of a species)
           * below the genus threshold                                   -> FAMILY or above;
             NO name is given, only "the nearest record"
+
 
     """
     say = [i for i in (isabetler or []) if isinstance(i.get('kimlik'), (int, float))]
@@ -1103,6 +1325,15 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
         c2, t2, tam2 = ad_coz(say[1]['baslik']); k2 = say[1]['kimlik']
     if len(say) > 2:
         _c3, _t3, tam3 = ad_coz(say[2]['baslik'])
+    # 2026-08-26: THE LOCUS THRESHOLD IS CORRECTED BY THE QUERY'S DOMAIN.
+    # The locus is a property of the database: SILVA LSU carries both prokaryotic
+    # and eukaryotic records and arrives under the label 'LSU', so a fungal query
+    # would have the prokaryotic threshold (98.7 per cent) applied to it, while
+    # the fungal LSU needs 99.8 per cent. The lineage of the best hit tells us the
+    # domain (SILVA headers start with "Eukaryota;..." or "Bacteria;/Archaea;...").
+    if lokus == 'LSU' and re.search(r'(Eukaryota|Fungi|Dikarya)',
+                                    ilk.get('baslik', '') or ''):
+        lokus = 'LSU_MANTAR'
     te = TUR_ESIGI.get(lokus, 98.7); ce = CINS_ESIGI.get(lokus, 94.5)
 
     # 2026-08-21: IF THE BEST HIT IS UNNAMED, NO NAME CAN BE GIVEN WHATEVER THE
@@ -1112,7 +1343,32 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
     # 99% while THE MATCHED RECORD ITSELF is unnamed. A wrong reason is more dangerous
     # than a wrong verdict: the reader concludes "so a better reference would produce a
     # name", when the problem is not the reference's CLOSENESS but its NAMELESSNESS.
+    # --- 2026-08-26: AN UNNAMED BEST HIT LEVEL WITH A NAMED ONE ---
+    # Once the length tie break was added, this came into view: several records
+    # sit at 100.00 per cent and the LONGEST of them is unnamed (JX501314.1.600).
+    # The old code refused to name outright. But when a NAMED record sits at the
+    # SAME closeness (AY882347 at 100.00 per cent), the existence of the unnamed
+    # record DOES NOT ERASE the named one; it only says the taxon is also present
+    # in unnamed environmental deposits, which is ordinary. So: when the best hit
+    # is unnamed, the FIRST NAMED hit within AYRIM_PAYI is looked up and the
+    # naming runs through that one, with the unnamed record carried as a note.
+    # When there is no named hit nearby, the old behaviour (no name) stands.
     if not t1 and not c1:
+        adli = next((h for h in say[1:]
+                     if (k1 - h['kimlik']) <= AYRIM_PAYI
+                     and any(ad_coz(h.get('baslik', ''))[:2])), None)
+        if adli is not None:
+            _c2, _t2, _tam2 = ad_coz(adli['baslik'])
+            yedek = dict(adli)
+            yedek['_adsiz_rakip'] = tam1
+            kalan = [adli] + [h for h in say if h is not adli]
+            alt = savunulabilir_duzey(kalan, lokus)
+            alt['gerekce'] = (u'THE BEST HIT IS UNNAMED (%s, %s per cent) but a named '
+                              u'record sits at the SAME closeness (%s per cent); the '
+                              u'naming was carried out through that one. || %s'
+                              % (tam1[:70], vir(k1), vir(adli['kimlik']),
+                                 alt.get('gerekce', '')))
+            return alt
         return dict(duzey='ADLANDIRILAMIYOR (referans adsiz)',
                     onerilen_ad='an unnameable lineage - THE NEAREST RECORD: %s (%s per cent)'
                                 % (tam1, vir(k1)),
@@ -1126,9 +1382,48 @@ def savunulabilir_duzey(isabetler, lokus='SSU'):
                             'can be built on it.'
                             % (vir(k1), vir(te)),
                     en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
+    # --- NO SPECIES NAME COMES FROM A SHORT ALIGNMENT (2026-08-26) ---
+    # 100 per cent over 484 bases and 100 per cent over 2900 bases are not the same
+    # evidence. The short hit IS NOT THROWN AWAY; it is only kept from rising to
+    # species level, and the reason is written down.
+    enaz = EN_AZ_HIZALAMA.get(lokus, 600)
+    uz1 = ilk.get('hiz_uzunluk') or 0
+    if k1 >= te and t1 and uz1 and uz1 < enaz:
+        return dict(duzey='CINS (hizalama kisa)',
+                    onerilen_ad='%s sp.' % (c1 or (t1 or '').split()[0]),
+                    gerekce=u'the identity of %s per cent passed the species threshold '
+                            u'of %s per cent BUT the alignment is only %d bases, and a '
+                            u'species name at the %s locus wants at least %d. A short '
+                            u'record is evidence of a GENUS, not of a SPECIES; the '
+                            u'nearest record is still shown.%s'
+                            % (vir(k1), vir(te), uz1, lokus, enaz,
+                               (u'  ON THE EDGE: %d bases short of the threshold, so this '
+                                u'decision rests on one threshold choice. Change '
+                                u'EN_AZ_HIZALAMA and test the sensitivity.' % (enaz - uz1))
+                               if (enaz - uz1) <= max(20, enaz * 0.05) else u''),
+                    en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
     if k1 >= te and t1:
         farkli_tur = bool(t2) and t2 != t1
         yakin = (k2 is not None and (k1 - k2) < AYRIM_PAYI)
+        # THE 2026-08-26 FIX (the audit report, finding 2).
+        # The old rule: if the second hit's NAME COULD NOT BE RESOLVED it did not
+        # count as a rival and the species name was handed out freely. But an
+        # UNNAMED second hit at the same identity is exactly the situation in which
+        # a species name cannot be defended: it says "there is another record
+        # standing just as close to this sequence, and we do not know its name".
+        # MEASURED: in 4 claims the reason read "there is a clear gap (0.00 per
+        # cent)" - we were reporting a gap of zero as a clear gap.
+        if (not t2) and yakin and tam2 and tam2 != '-':
+            return dict(duzey='CINS (ikinci isabet adsiz, ayni yakinlikta)',
+                        onerilen_ad='%s cf. %s' % (c1, t1.split()[-1]) if c1 else t1,
+                        gerekce=u'the identity of %s per cent is ABOVE the species '
+                                u'threshold of %s per cent, but the second hit is just as '
+                                u'close (%s per cent, %s per cent between them) and ITS '
+                                u'NAME CANNOT BE RESOLVED. An unnamed rival is the very '
+                                u'case in which a species name cannot be defended, so '
+                                u'"cf." was used. The second hit: %s'
+                                % (vir(k1), vir(te), vir(k2), vir(k1 - k2), tam2[:80]),
+                        en_iyi=tam1, ikinci=tam2, ucuncu=tam3)
         if farkli_tur and yakin:
             return dict(duzey='CINS (tur belirsiz)', onerilen_ad='%s cf. %s' % (c1, t1.split()[-1]),
                         gerekce='the identity of %s per cent is ABOVE the '
@@ -1215,6 +1510,11 @@ def adlandirmayi_turet(bulgular):
             vtb=h_['_vtb'])
         if sira >= 5:
             break
+    # The length of the alignment THAT PRODUCED THE NAME sits in its own key.
+    # en_iyi_hiz_uzunluk is the length of THE BEST hit; the name may have come from
+    # a different (named) hit, and then the two numbers part company. Both are
+    # written so that a reader knows which one to look at.
+    adl['adi_ureten_hizalama'] = adl.get('adi_ureten_uzunluk')
     return adl, lokus
 
 
@@ -1259,13 +1559,17 @@ def _en_yakin_etiket(isabet):
             derin = _jet[-1]
             ust = _jet[-2] if len(_jet) > 1 else ''
             return u'%s%s' % (derin, (u' (%s)' % ust) if ust and ust != derin else u'')
-    except Exception:
+    # When the screening package is missing or the taxonomy cannot be resolved, we
+    # fall onto the simple "adsiz: <description>" path below. The catch is narrow
+    # on purpose: a fault in the code INSIDE this module is no longer hidden, it
+    # comes back up.
+    except (ImportError, AttributeError, IndexError, KeyError, TypeError, ValueError):
         pass
     tanim = tam.split(' ', 1)[1] if ' ' in tam else tam
     return u'adsiz: %s' % tanim[:52]
 
 
-def _yeniden_turet(kayit, idd):
+def _yeniden_turet(kayit, idd, kons):
     """Re-derive the verdict from the RAW measurement in the checkpoint.
 
         The scan is not repeated (it would take hours); only the derivation, which
@@ -1276,12 +1580,68 @@ def _yeniden_turet(kayit, idd):
         organisms). Kept from the cache: the verdict, the literature check, the
         calibration and vtb_detay, which are outputs of the scan itself.
 
+        Re-derived: the naming, THE VERDICT, the evidence and vtb_detay. Kept from
+        the cache: the literature check (a network query) and the calibration (a
+        measurement).
+
+        THE 2026-08-26 EVENING FIX - THE RE-DERIVATION DID NOT GO DEEP ENOUGH.
+          At first only the naming was re-derived; the verdict, the evidence and
+          vtb_detay came from the cache. After the nt ordering fix that produced
+          rows CONTRADICTING each other: in one and the same claim the vote said
+          'Petriella guttulata' while vtb_detay still said 'Lomentospora
+          prolificans', because the detail had been frozen at the moment of the
+          scan.
+          The principle is unchanged: THE MEASUREMENT is stored (it is expensive),
+          THE DERIVATION is redone on every run (it is cheap). A verdict is a
+          derivation too - counting votes does not take even a second.
     """
     ham = kayit.get('bulgular') or {}
     try:
         adl, _lokus = adlandirmayi_turet(ham)
         yeni = dict(kayit)
         yeni['adlandirma'] = adl
+        # The verdict is counted again from the raw measurements. kons IS GENUINELY
+        # needed: claims of the "is this the same organism" kind align the bin
+        # consensuses against one another. Had an empty dictionary been passed,
+        # those claims would silently have become NOT VERIFIED - the fix would
+        # have given birth to a new fault.
+        try:
+            h, kanit, duzeltme = hukum_ver(idd, ham, kons)
+            # --- A MISSING nt LAYER MEANS NOT VERIFIED ---
+            # This rule stood apart in the scan path; when the re-derivation
+            # skipped it, claim 4 silently went from NOT VERIFIED to VERIFIED.
+            # Yet that claim's nt layer had ended in "NEEDS TO BE DONE BY HAND":
+            # missing evidence cannot count as verification. The rule was put
+            # here as well.
+            nt = ham.get(NT_ETIKET)
+            if (idd.get('tip') != 'gecici' and nt is not None
+                    and not str(nt.get('durum', '')).startswith('TAMAM')):
+                h = 'DOGRULANAMADI'
+                kanit = (kanit + u'  ||  THE NCBI nt LAYER DID NOT COMPLETE (%s), so the '
+                         u'claim was counted as not verified rather than silently '
+                         u'skipped.' % (nt.get('durum', 'kosulmadi')))
+            yeni['hukum'] = h
+            yeni['kanit'] = kanit
+            yeni['dogru_ifade'] = duzeltme
+            yeni['_hukum_turetme'] = 'again'
+        except Exception as e:
+            yeni['_hukum_turetme'] = ('FAILED (%s), the verdict in the cache was '
+                                      'kept' % type(e).__name__)
+        # vtb_detay is A REPORT, not a measurement: it is rebuilt from the raw hits
+        # on every run so that it points at the same record the vote does.
+        detay = {}
+        for et, v in ham.items():
+            if str(v.get('durum', '')).startswith('TAMAM') and v.get('isabet'):
+                en = en_iyi_isabet(v) or {}
+                detay[et] = dict(durum=v['durum'], en_iyi=(en.get('baslik') or '')[:120],
+                                 kimlik=en.get('kimlik'),
+                                 kazanan_sira=v.get('kazanan_sira'),
+                                 kazanan_kaynak=v.get('kazanan_kaynak'),
+                                 kisa_liste_boyu=v.get('kisa_liste_boyu'),
+                                 taranan_kayit=v.get('taranan_kayit'))
+            else:
+                detay[et] = dict(durum=v.get('durum', '?'), en_iyi='', kimlik=None)
+        yeni['vtb_detay'] = detay
         yeni['_turetme'] = 'again, with the raw measurement from the cache'
         return yeni
     except Exception as e:
@@ -1338,7 +1698,7 @@ def hukum_ver(idd, bulgular, kons):
     # her veritabaninin "oyu": en iyi isabetin cinsi/turu ve kimligi
     oylar = {}
     for et, v in calisan.items():
-        en = v['isabet'][0]
+        en = en_iyi_isabet(v)
         cins, tur = cins_cek(en['baslik'])
         oylar[et] = dict(cins=cins, tur=tur, kimlik=en['kimlik'], baslik=en['baslik'])
 
@@ -1358,6 +1718,26 @@ def hukum_ver(idd, bulgular, kons):
             uyan = list(oylar)
         kanit = '; '.join('%s: %s %%%s' % (e, oylar[e]['tur'] or oylar[e]['cins'] or '?',
                                            vir(oylar[e]['kimlik'])) for e in oylar)
+        # --- 2026-08-26 (the audit report, finding 1): INDEPENDENCE AT RECORD LEVEL ---
+        # The rule says "at least two INDEPENDENT databases", but the counter was
+        # counting databases. One and the same GenBank record can sit in several
+        # sets (MEASURED: AY882347 is in both SILVA LSU Parc and UNITE). Two
+        # "databases" are then two copies of the same record and do not count as
+        # independent testimony. THE VERDICT IS NOT CHANGED - changing it would
+        # break comparison with the older verdicts - but how many DIFFERENT records
+        # it rests on is measured and written into the evidence text.
+        _kayitlar = set()
+        for e in uyan:
+            en = erisim_no((oylar[e] or {}).get('baslik') or '')
+            _kayitlar.add(en or ('vtb:%s' % e))
+        if len(uyan) >= 2 and len(_kayitlar) < 2:
+            kanit = (u'[AN INDEPENDENCE WARNING: %d databases agree but all of them rest '
+                     u'on the SAME record (%s), which is not two independent '
+                     u'testimonies] '
+                     % (len(uyan), ', '.join(sorted(_kayitlar)))) + kanit
+        elif len(uyan) >= 2:
+            kanit = (u'[independence: %d databases, %d different records] '
+                     % (len(uyan), len(_kayitlar))) + kanit
         if len(uyan) >= 2:
             if bek_y is not None:
                 olculen = _say([oylar[e]['kimlik'] for e in uyan])
@@ -1578,7 +1958,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
     _kutular = {k for i in iddialar for k in (i.get('kutu') or []) + (i.get('karsi') or [])}
     _uz = [min(len(kons[k]), 4000) for k in _kutular if k in kons] or [1500]
     _oq = sum(_uz) / float(len(_uz))
-    _ref = 2000.0                      # tipik referans kayit uzunlugu (SSU/LSU karisik)
+    _ref = 2000.0                      # a typical reference record length (SSU and LSU mixed)
     _bir = 6.7e-6 * min(_oq, _ref) + 4.11e-9 * min(_oq, _ref) * max(_oq, _ref)
     _hiz_cift = _bir * kl_ust          # the alignment time of one bin and database pair
     _tara_cift = 420                   # akis taramasi (degismedi)
@@ -1636,7 +2016,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
                 _kayit = None
             if _kayit is not None and _kayit.get('_ham_isabet_var'):
                 # There is a raw measurement: the SCAN is skipped, the VERDICT is re-derived.
-                sonuc.append(_yeniden_turet(_kayit, idd))
+                sonuc.append(_yeniden_turet(_kayit, idd, kons))
                 yaz(u'[%2d/%2d] claim %d  (scan from cache, verdict RE-DERIVED)'
                     % (n, len(iddialar), idd['no']))
                 continue
@@ -1737,7 +2117,7 @@ def calistir(kok, yalniz, sifirla, vtb_ust, nt_kip='oto', nt_yukle_yolu=None,
         detay = {}
         for et, v in bulgular.items():
             if str(v.get('durum', '')).startswith('TAMAM') and v.get('isabet'):
-                en = v['isabet'][0]
+                en = en_iyi_isabet(v)
                 detay[et] = dict(durum=v['durum'], en_iyi=en.get('baslik', '')[:120],
                                  kimlik=en.get('kimlik'),
                                  kazanan_sira=v.get('kazanan_sira'),
@@ -1835,7 +2215,7 @@ def raporla(CIKTI, sonuc, var, yaz):
         w.writerow(['no', 'oncelik', 'iddia', 'HUKUM',
                     'SAVUNULABILIR_DUZEY', 'ONERILEN_AD', 'adlandirma_gerekcesi',
                     'en_iyi_isabet', 'en_iyi_cins', 'en_iyi_tur', 'en_iyi_kimlik_%',
-                    'en_iyi_hiz_uzunluk', 'en_iyi_vtb',
+                    'en_iyi_hiz_uzunluk', 'ADI_URETEN_HIZALAMA', 'en_iyi_vtb',
                     'ikinci_isabet', 'ikinci_tur', 'ikinci_kimlik_%', 'ikinci_vtb',
                     'ucuncu_isabet', 'ucuncu_tur', 'ucuncu_kimlik_%', 'ucuncu_vtb',
                     'dorduncu_isabet', 'dorduncu_tur', 'dorduncu_kimlik_%', 'dorduncu_vtb',
@@ -1878,7 +2258,13 @@ def raporla(CIKTI, sonuc, var, yaz):
             w.writerow([s['no'], s['oncelik'], s['iddia'], s['hukum'],
                         a.get('duzey', '-'), a.get('onerilen_ad', '-'), a.get('gerekce', '-'),
                         _i(1, 'tam_ad', '-'), _i(1, 'cins', '-'), _i(1, 'tur', '-'),
-                        vir(_i(1, 'kimlik', None)), _i(1, 'uzunluk', '-'), _i(1, 'vtb', '-'),
+                        vir(_i(1, 'kimlik', None)), _i(1, 'uzunluk', '-'),
+                        # The alignment THAT PRODUCED THE NAME can differ from the
+                        # best hit (when the best hit is unnamed the name comes
+                        # from the NAMED hit at the same closeness). If the two
+                        # numbers part company, a reader has to see it.
+                        a.get('adi_ureten_hizalama') or '-',
+                        _i(1, 'vtb', '-'),
                         _i(2, 'tam_ad', '-'), _i(2, 'tur', '-'),
                         vir(_i(2, 'kimlik', None)), _i(2, 'vtb', '-'),
                         _i(3, 'tam_ad', '-'), _i(3, 'tur', '-'),

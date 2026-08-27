@@ -1,27 +1,28 @@
 # -*- coding: utf-8 -*-
-"""ESKI DOSYALARI ARSIVE TASI  -  ve neyin nereye gittigini KAYDA GEC.
+"""MOVE THE OLD FILES INTO AN ARCHIVE, and PUT ON RECORD what went where.
 
-NEDEN
------
-Klasorde alti xlsx, elli kusur .yedek_/.orig_ dosyasi ve 1,1 GB ikiz FASTA
-duruyordu. Besinde eski primer dizisi vardi; birinden siparis verilseydi yirmi
-ciftin altisi yanlis oligo gelecekti. Karisikligin kendisi bir hata kaynagi.
+WHY
+---
+The directory held six workbooks, fifty odd backup and .orig files and 1.1 GB of
+twin FASTA. Five of them carried an old primer sequence; ordering from one of
+them would have brought six of the twenty pairs as the wrong oligo. The clutter
+itself is a source of faults.
 
-NE YAPAR
---------
-Adaylari _SILINECEKLER/2026-08-11_arsiv/ altina TASIR (silmez) ve her dosyanin
-nereden geldigini MANIFEST.tsv'ye yazar. Geri almak tek satirlik is olsun diye
-klasor yapisi korunur.
+WHAT IT DOES
+------------
+It MOVES the candidates under ARCHIVE/<date>_arsiv/ rather than deleting them,
+and writes where each file came from into MANIFEST.tsv. The directory structure
+is kept so that undoing it is a one line job.
 
-NE YAPMAZ
----------
-Kodun okudugu hicbir dosyayi tasimaz. Tasimadan once her adayin adi butun
-.py/.bat/.sh dosyalarinda ARANIR; gecen bir ad varsa o dosya BIRAKILIR ve
-sebebi yazilir. "Once tasi sonra kir" olmaz.
+WHAT IT DOES NOT DO
+-------------------
+It moves no file the code reads. Before a move, every candidate's name is
+SEARCHED for in all the .py, .bat and .sh files; when a name occurs, that file is
+LEFT ALONE and the reason is written down. There is no "move first, break later".
 
-Kosum:
-    python verification/archive.py --root .            (yalniz plan)
-    python verification/archive.py --root . --move     (gercekten tasi)
+To run it:
+    python verification/archive.py --root .            (the plan alone)
+    python verification/archive.py --root . --move     (actually move)
 """
 from __future__ import print_function
 
@@ -36,7 +37,7 @@ import time
 
 # Kod taramasinda GORMEZDEN gelinecek klasorler (arsivin kendisi, gecmis
 # kopyalar). Bunlarin icindeki bir gecis, dosyayi "kullaniliyor" yapmaz.
-YOKSAY = ('_SILINECEKLER', '_PREVIOUS', 'QUICK_TEST', '__pycache__', 'eski')
+YOKSAY = ('ARCHIVE', '_PREVIOUS', 'QUICK_TEST', '__pycache__', 'eski')
 
 
 def kod_dosyalari(kok):
@@ -149,7 +150,12 @@ def main():
     p.add_argument('--move', dest='tasi', action='store_true', help='gercekten tasi')
     a = p.parse_args()
     kok = os.path.abspath(a.kok)
-    hedef = os.path.join(kok, '_SILINECEKLER', time.strftime('%Y-%m-%d') + '_arsiv')
+    # The target moved from a directory named "to be deleted" to ARCHIVE. There
+    # were two separate archive directories, and the old name gave the
+    # impression that its contents could be deleted, while this script DELETES
+    # NOTHING and only moves. That wrong impression cost a directory: it really
+    # was deleted. One archive, under a name that says what it is.
+    hedef = os.path.join(kok, 'ARCHIVE', time.strftime('%Y-%m-%d') + '_arsiv')
 
     ad_listesi = adaylar(kok)
     kodlar = kod_dosyalari(kok)

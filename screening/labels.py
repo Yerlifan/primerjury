@@ -64,6 +64,9 @@ DUZEY = {
     'TUR':                  'SPECIES',
     'CINS':                 'GENUS',
     'CINS (tur belirsiz)':  'GENUS (species uncertain)',
+    'CINS (hizalama kisa)': 'GENUS (the alignment is short)',
+    'CINS (ikinci isabet adsiz, ayni yakinlikta)':
+        'GENUS (the second hit is unnamed and just as close)',
     'AILE ve USTU (ad VERILEMEZ)': 'FAMILY OR ABOVE (cannot be named)',
     'ADLANDIRILAMIYOR (referans adsiz)': 'CANNOT BE NAMED (reference is unnamed)',
     'BELIRLENEMEDI':        'UNDETERMINED',
