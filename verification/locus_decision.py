@@ -86,7 +86,11 @@ def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
                hizalama=0, duzey=u'yok', notu=u'no hit at this locus')
     if not isabetler:
         return bos
-    h = sorted(isabetler, key=lambda x: (-x[0], -x[2]))
+    # Identity first, then the LONGER alignment, and the header last so that
+    # two hits with the same identity and length always sort the same way. The
+    # second criterion used to be the bitscore, which grows with length and so
+    # said the same thing twice while hiding a short exact match.
+    h = sorted(isabetler, key=lambda x: (-x[0], -x[1], x[4]))
     pid, aln, _b, _q, tit = h[0]
     if aln < EN_AZ_KANIT:
         return dict(bos, ad=u'cannot be named', kimlik=pid, hizalama=aln,
@@ -240,7 +244,8 @@ def raporlanan_yontem(lokus_isabet, ad_ayikla, cins_epitet, adsiz_izler,
     for lok in (basamak or BASAMAK):
         isb = lokus_isabet.get(lok) or []
         adli = []
-        for pid, aln, _bit, _q, tit in sorted(isb, key=lambda x: (-x[0], -x[1])):
+        for pid, aln, _bit, _q, tit in sorted(
+                isb, key=lambda x: (-x[0], -x[1], x[4])):
             if aln < EN_AZ_KANIT or pid < EN_AZ_OZDESLIK:
                 continue
             ad = ad_ayikla(tit)
@@ -253,7 +258,52 @@ def raporlanan_yontem(lokus_isabet, ad_ayikla, cins_epitet, adsiz_izler,
             continue
         pid, aln, ad = adli[0]
         ikinci = next((x for x in adli[1:] if x[2] != ad), None)
-        return (ad, pid, aln, lok,
+        _uyari = _daha_guclu_lokus(lokus_isabet, lok, pid, aln,
+                                   ad_ayikla, cins_epitet, adsiz_izler)
+        return (ad, pid, aln, lok + (_uyari or u''),
                 ikinci[2] if ikinci else None,
                 (pid - ikinci[0]) if ikinci else None)
     return None, 0.0, 0, None, None, None
+
+
+def _daha_guclu_lokus(lokus_isabet, secilen, s_pid, s_aln,
+                      ad_ayikla, cins_epitet, adsiz_izler,
+                      pid_farki=2.0, aln_kati=1.5):
+    """FLAGS the case where the ladder took the weaker evidence. It changes
+        nothing.
+
+        WHY IT DOES NOT CHANGE ANYTHING
+          The order of the ladder (ITS, then 28S, then 18S) is deliberate and it
+          is right: ITS is the primary barcode of fungi (Schoch et al. 2012). 18S
+          is too conserved to separate SPECIES, which is exactly why a Petriella
+          bin came out as Lomentospora through its 18S. So even when 18S looks
+          numerically stronger, breaking the order would be WRONG.
+
+        WHY IT FLAGS
+          But 28S (LSU D1/D2) is a locus that CAN separate species, and its
+          thresholds are defined that way (99.8 and 98.2 per cent). When ITS gives
+          a weak hit and 28S a far stronger one, a silent choice hides the
+          concession from the reader. MEASURED: in 5 bins the 28S offers at least
+          2 points more identity and an alignment 1.5 times longer than the ITS.
+
+          Only the loci that CAN give a species are compared; 18S is left out.
+    """
+    if secilen not in TUR_VEREBILEN:
+        return None
+    for lok, isb in (lokus_isabet or {}).items():
+        if lok == secilen or lok not in TUR_VEREBILEN:
+            continue
+        for pid, aln, _b, _q, tit in sorted(isb or [],
+                                            key=lambda x: (-x[0], -x[1], x[4])):
+            if aln < EN_AZ_KANIT or pid < EN_AZ_OZDESLIK:
+                continue
+            ad = ad_ayikla(tit)
+            if not ad or not cins_epitet(ad)[1]:
+                continue
+            if any(j in ad.lower() for j in adsiz_izler):
+                continue
+            if pid >= s_pid + pid_farki and aln >= s_aln * aln_kati:
+                return (u' [mind this: %s is stronger, %s at %.2f per cent over '
+                        u'%d bp]' % (lok, ad, pid, aln))
+            break
+    return None

@@ -569,9 +569,10 @@ def oyla_mantar(lokus_isabet):
     """The three loci of a fungal bin, combined by locus_decision.py.
 
     Returns the same shape basamaktan_sec does, or None when no locus answered.
-    lokus_karari sorts by (identity, then the third field); the third field is the
-    alignment length here, because that is the tie break this project uses, and
-    the bitscore is not carried this far.
+    The hits go in as (identity, alignment, bitscore, query length, header).
+    The bitscore is not carried this far and is passed as zero: locus_decision.py
+    breaks a tie by the alignment length and then by the header, so nothing reads
+    it.
     """
     kararlar = {}
     for bolge in (u'ITS', u'28S', u'18S'):
@@ -579,7 +580,7 @@ def oyla_mantar(lokus_isabet):
         if not isb:
             continue
         kararlar[bolge] = _LD.lokus_karari(
-            [(pid, aln, aln, 0, tit) for pid, aln, tit, _db in isb],
+            [(pid, aln, 0, 0, tit) for pid, aln, tit, _db in isb],
             lokus_duzelt(bolge, isb[0][2]), ad_ayikla, cins_epitet,
             ADSIZ_JETONLARI)
     if not kararlar:
@@ -731,7 +732,10 @@ def main():
     # ACROSS loci nothing is ordered: the ladder decides which locus is used.
     for et in kutu_lokus:
         for bolge in kutu_lokus[et]:
-            kutu_lokus[et][bolge].sort(key=lambda x: (-x[0], -x[1]))
+            # The header is the last tie break so that two hits with the same
+            # identity and the same length always sort the same way, on every
+            # run and on every machine.
+            kutu_lokus[et][bolge].sort(key=lambda x: (-x[0], -x[1], x[2]))
 
     # collect per target
     sonuc = []
