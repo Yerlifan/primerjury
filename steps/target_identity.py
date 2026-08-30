@@ -288,12 +288,23 @@ def ad_ayikla(baslik):
 UST_RANK_SONU = ('ota', 'aceae', 'ales', 'ineae', 'mycota', 'mycetes',
                  'bacteria', 'archaeota', 'phyta', 'idae')
 
+# The suffixes do not catch a domain or a kingdom, and those are exactly the
+# elements a SILVA or PR2 lineage falls back to once the deeper ones turn out to
+# be unnamed. MEASURED: "ZZ999 Bacteria;uncultured bacterium" was giving the name
+# "Bacteria", which passed for a genus and reached the species threshold.
+UST_RANK_ADLARI = frozenset((
+    'bacteria', 'archaea', 'eukaryota', 'eukarya', 'fungi', 'metazoa',
+    'viridiplantae', 'chloroplastida', 'dikarya', 'opisthokonta', 'obazoa',
+    'amorphea', 'holozoa', 'nucletmycea', 'sar', 'tsar', 'excavata',
+    'protozoa', 'chromista', 'plantae', 'animalia',
+))
+
 
 def ust_rank_mi(ad):
     """Is this name a rank ABOVE genus? A binomial never is."""
     if not ad or ' ' in ad:
         return False
-    return ad.endswith(UST_RANK_SONU)
+    return ad.lower() in UST_RANK_ADLARI or ad.endswith(UST_RANK_SONU)
 
 
 def tur_adi(baslik):
@@ -475,6 +486,19 @@ def adsiz_mi(ad):
     return bool(ad) and any(j in ad.lower() for j in ADSIZ_JETONLARI)
 
 
+def _adli_mi(baslik):
+    """Does this header yield a name AT GENUS LEVEL OR BELOW?
+
+        A rank above genus does not count. ad_ayikla walks a SILVA lineage from
+        the end backwards: in "...;Halobacteriota;uncultured archaeon" it skips
+        the unnamed element and returns the PHYLUM. adsiz_mi accepts that,
+        because the string carries no unnamed token, and the record then passes
+        for named although nobody can be identified from it.
+    """
+    ad = ad_ayikla(baslik)
+    return bool(ad) and not adsiz_mi(ad) and not ust_rank_mi(ad)
+
+
 def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
     """Walk the ladder of the class and take the name from the first locus that
     gives a usable answer.
@@ -492,26 +516,39 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         adi = ad_ayikla(tit)
         if adi and adsiz_mi(adi):
             adi = None
-        if not adi:
-            # 2026-08-26: IF THE BEST HIT GIVES NO NAME, fall back to the first
-            # NAMED hit within the separation margin. After SILVA was added, the
-            # best hit in many bins became an unnamed environmental record and the
-            # bin was left with no name at all, while a named record sat at almost
-            # the same closeness. The same rule is in identity_verification.py.
+        on_not = u''
+        # 2026-08-26: IF THE BEST HIT GIVES NO USABLE NAME, fall back to the
+        # first hit within the separation margin that names a GENUS or a SPECIES.
+        # After SILVA was added, the best hit in many bins became an unnamed
+        # environmental record while a named record sat at almost the same
+        # closeness. The same rule is in identity_verification.py.
+        #
+        # "No usable name" covers three cases and not two. Besides a missing name
+        # and an unnamed record, A RANK ABOVE GENUS counts as well: in a lineage
+        # like "...;Halobacteriota;uncultured archaeon" ad_ayikla skips the
+        # unnamed element and returns the PHYLUM, which passes adsiz_mi and used
+        # to stop the fallback in exactly the case it was built for. MEASURED on
+        # a synthetic pair: the bin was named "Halobacteriota" while
+        # Methanosarcina mazei stood at the same identity over the same length.
+        if (not adi) or ust_rank_mi(adi):
             yakin = None
             for rpid, raln, rtit, rdb in isb[1:]:
                 rad = ad_ayikla(rtit)
-                if rad and not adsiz_mi(rad) and (pid - rpid) <= AYRIM_PAYI:
+                if (rad and not adsiz_mi(rad) and not ust_rank_mi(rad)
+                        and (pid - rpid) <= AYRIM_PAYI):
                     yakin = (rpid, raln, rad, rtit, rdb)
                     break
-            if not yakin:
+            if yakin:
+                rpid, raln, rad, tit, dbad = yakin
+                on_not = (u'the best hit gives no name below genus (%s), so a '
+                          u'named record at %.2f per cent was used'
+                          % (adi or u'none', rpid))
+                adi, pid, aln = rad, rpid, raln
+            elif not adi:
+                # No name anywhere near, so this locus cannot answer; the ladder
+                # moves on. A rank above genus IS kept, because "the reference
+                # goes no deeper than this" is still worth reporting.
                 continue
-            rpid, raln, rad, tit, dbad = yakin
-            adi, pid, aln = rad, rpid, raln
-            on_not = (u'the best hit gives no name, so a named record at %.2f per '
-                      u'cent was used' % rpid)
-        else:
-            on_not = u''
         lokus = lokus_duzelt(bolge, tit)
         # A rival counts only when it is A SPECIES DIFFERENT from ours. Comparing
         # a binomial against a family name says nothing about whether the species
@@ -732,10 +769,19 @@ def main():
     # ACROSS loci nothing is ordered: the ladder decides which locus is used.
     for et in kutu_lokus:
         for bolge in kutu_lokus[et]:
-            # The header is the last tie break so that two hits with the same
-            # identity and the same length always sort the same way, on every
-            # run and on every machine.
-            kutu_lokus[et][bolge].sort(key=lambda x: (-x[0], -x[1], x[2]))
+            # Identity, then the longer alignment, then A HIT THAT YIELDS A
+            # NAME before one that does not, and the header last.
+            #
+            # The name step matters: an unnamed environmental record and a named
+            # type strain record can sit at exactly the same identity over
+            # exactly the same length, and then the order decided which database
+            # the row credited. MEASURED on a synthetic pair, RefSeq's
+            # NR_041956.1 lost the tie to a SILVA record purely because "C" sorts
+            # before "N". The name is what the reader is being shown; the record
+            # that supplies it should be the one credited. The header stays as
+            # the final step so the order is the same on every run and machine.
+            kutu_lokus[et][bolge].sort(
+                key=lambda x: (-x[0], -x[1], 0 if _adli_mi(x[2]) else 1, x[2]))
 
     # collect per target
     sonuc = []

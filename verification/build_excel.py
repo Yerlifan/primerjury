@@ -495,32 +495,46 @@ def main():
                 'lokus': lokus,
                 'tur esigi': '%.1f' % te,
                 'neden tur adi verilmedi': neden})
+    # THE THRESHOLD TEXT IS PRODUCED FROM THE SOURCE, NOT TYPED BY HAND.
+    # It used to read "ITS 98.5%" and "genus 94.5% / 90.0%" here. The real
+    # values in the source are ITS species 99.6 and ITS genus 94.3, so THE
+    # DELIVERED WORKBOOK WAS SHOWING THE WRONG THRESHOLDS. The file imports
+    # TE, CE and AP already; the "one source" rule had been applied to the
+    # numbers and not to the sentence about them.
+    #
+    # The text is built BEFORE the call, and the values are read with .get():
+    # this sheet is written even when identity_verification could not be
+    # imported, and reaching into an empty dictionary there would stop the
+    # whole workbook. When the thresholds are not to hand the caption says so
+    # rather than printing a number nobody measured.
+    if TE and CE:
+        _esik = ('The thresholds are the panel\'s own rules: SSU species %s per cent, '
+                 'ITS species %s per cent, fungal 28S species %s per cent; genus '
+                 'SSU %s per cent / ITS %s per cent; and if the gap between the '
+                 'best and the second is smaller than %s a species assignment is '
+                 'not defensible.'
+                 % (TE.get('SSU', '?'), TE.get('ITS', '?'),
+                    TE.get('LSU_MANTAR', '?'), CE.get('SSU', '?'),
+                    CE.get('ITS', '?'), AP))
+    else:
+        _esik = ('The thresholds could not be read from '
+                 'verification/identity_verification.py, so they are not stated '
+                 'here; the numbers in the columns still come from the run that '
+                 'produced them.')
+    _renk = (lambda s: IYI if (_f(s['kimlik %']) or 0) >= TE.get('SSU', 98.7)
+             and (_f(s['marj']) or 0) >= AP else None)
     sayfa(wb, '4 Genus and species',
           ['kutu', 'olculen duzey', 'su an yazan ad', 'EN YUKSEK YUZDELI TUR ADAYI',
            'ad kaynagi', 'kimlik %', 'ikinci aday', 'ikinci %', 'marj', 'lokus',
            'tur esigi', 'neden tur adi verilmedi'],
           ct, {'su an yazan ad': 34, 'EN YUKSEK YUZDELI TUR ADAYI': 30,
                'neden tur adi verilmedi': 46, 'ikinci aday': 24},
-          # THE THRESHOLD TEXT IS PRODUCED FROM THE SOURCE, NOT TYPED BY HAND.
-          # It used to read "ITS 98.5%" and "genus 94.5% / 90.0%" here. The real
-          # values in the source are ITS species 99.6 and ITS genus 94.3, so THE
-          # DELIVERED WORKBOOK WAS SHOWING THE WRONG THRESHOLDS. The file imports
-          # TE, CE and AP already; the "one source" rule had been applied to the
-          # numbers and not to the sentence about them. The colour rule was
-          # hard coded the same way and is read from the source too.
           ['For bins that CANNOT be given a species name, this is the species '
            'candidate with the highest percentage. This column is NOT AN IDENTITY '
            'CLAIM; it says "the nearest record is this one, at this percentage". '
-           'The thresholds are the panel\'s own rules: SSU species %s per cent, '
-           'ITS species %s per cent, fungal 28S species %s per cent; genus SSU '
-           '%s per cent / ITS %s per cent; and if the gap between the best and '
-           'the second is smaller than %s a species assignment is not '
-           'defensible. The names were extracted with the panel\'s own ad_coz() '
-           'function, and no new rule was introduced.'
-           % (TE['SSU'], TE['ITS'], TE['LSU_MANTAR'],
-              CE['SSU'], CE['ITS'], AP)],
-          renk=lambda s: IYI if (_f(s['kimlik %']) or 0) >= TE['SSU']
-          and (_f(s['marj']) or 0) >= AP else None)
+           + _esik + ' The names were extracted with the panel\'s own ad_coz() '
+           'function, and no new rule was introduced.'],
+          renk=_renk)
 
     # ================= 5 THE THRESHOLD =================
     es = []
