@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Tests the pairs that passed verification against outside reference databases.
+# INPUT            : the primer pairs, REFERENCE_DB
+# OUTPUT           : a report of off target products
+# HOW TO RUN IT    : python3 external_databases.py --final final_primers --db REFERENCE_DB
+# WHY IT IS LIKE THIS : It shows whether a product forms in relatives that are absent from the sample but could be present in the environment. Every hit is checked against the binding rule as well: the last two bases exact, at most one mismatch in the last five, at most three in total.
+# =======================
 """
 external_databases.py
 Tests the primer pairs that passed verification against EXTERNAL reference
@@ -632,7 +639,10 @@ def main():
                     kapsam_kimlik=("%.1f" % kap_kim) if kap_uz else ""))
     try:
         shutil.rmtree(calisma, ignore_errors=True)
-    except Exception:
+    except OSError:
+        # ignore_errors already swallows most of it, and an OSError that gets
+        # through is a cleanup failure that does not touch the result. Catching
+        # wider would hide a fault in the code.
         pass
     if not sonuc:
         print(u'no database could be scanned; no output was written')

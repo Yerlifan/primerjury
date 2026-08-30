@@ -524,7 +524,9 @@ def on_kontrol(kok, ayar, yaz):
             if w:
                 mfe = w
                 break
-        except Exception:
+        except (IOError, OSError):
+            # Probing for a binary: a candidate that cannot be found or run is
+            # skipped.
             pass
     satir(u'MFEprimer ikilisi', bool(mfe),
           mfe or u'tools/mfeprimer IS MISSING or is not executable')
@@ -1156,7 +1158,9 @@ def main():
     signal.signal(signal.SIGINT, sig)
     try:
         signal.signal(signal.SIGTERM, sig)
-    except Exception:
+    except (ValueError, OSError, AttributeError):
+        # SIGTERM cannot be installed in some environments (off the main
+        # thread, on Windows).
         pass
 
     baslangic = time.time()

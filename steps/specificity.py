@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Measures how much product a primer pair gives inside and outside its target set.
+# INPUT            : the primer pairs and the consensus sets
+# OUTPUT           : the coverage and the separation values
+# HOW TO RUN IT    : python3 specificity.py --help
+# WHY IT IS LIKE THIS : The separation factor comes out at this step: the share of members giving a product is divided by the share of non-members giving one.
+# =======================
 """
 specificity.py
 Puts the candidate pairs produced by batch_design.py through the specificity and

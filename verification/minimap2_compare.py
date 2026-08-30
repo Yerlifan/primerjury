@@ -200,8 +200,11 @@ def main():
     with io.open(tsv, 'w', encoding='utf-8', newline='') as fh:
         fh.write(u'\t'.join(bas) + u'\n')
         for s in satirlar:
-            fh.write(u'\t'.join(unicode(s[k]) if sys.version_info[0] < 3
-                                else str(s[k]) for k in bas) + u'\n')
+            # THE PYTHON 2 BRANCH WAS REMOVED. The condition was never true on
+            # Python 3, so it was dead code, but pyflakes reported "undefined
+            # name: unicode" and that counted as a serious finding in the audit.
+            # It was cleaned out so that no noise is left to hide a real defect.
+            fh.write(u'\t'.join(str(s[k]) for k in bas) + u'\n')
 
     md = os.path.join(kok, 'MINIMAP2_KARSILASTIRMA.md')
     L = []

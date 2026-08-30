@@ -442,8 +442,16 @@ def main():
     try:
         import identity_verification as KD
         ad_coz, TE, CE, AP = KD.ad_coz, KD.TUR_ESIGI, KD.CINS_ESIGI, KD.AYRIM_PAYI
-    except Exception:                       # panelin fonksiyonu yoksa sayfa uretilmez
+    except (ImportError, AttributeError) as _e:
+        # The module is missing or does not export what is wanted, and then this
+        # sheet is not produced. The catch is narrow on purpose: a fault inside
+        # identity_verification.py must not be swallowed here and reported as
+        # "the sheet could not be produced".
+        print(u'   the genus and species sheet was skipped (%s)'
+              % type(_e).__name__)
         ad_coz = None
+        TE = CE = {}
+        AP = 0.5
     ct = []
     if ad_coz:
         for r in K:
@@ -493,8 +501,26 @@ def main():
            'tur esigi', 'neden tur adi verilmedi'],
           ct, {'su an yazan ad': 34, 'EN YUKSEK YUZDELI TUR ADAYI': 30,
                'neden tur adi verilmedi': 46, 'ikinci aday': 24},
-          ['For bins that CANNOT be given a species name, this is the species candidate with the highest percentage. This column is NOT AN IDENTITY CLAIM; it says "the nearest record is this one, at this percentage". The thresholds are the panel\'s own rules: SSU/LSU species 98.7%, ITS 98.5%; genus 94.5% / 90.0%; and if the gap between the best and the second is smaller than 0.5% a species assignment is not defensible. The names were extracted with the panel\'s own ad_coz() function, and no new rule was introduced.'],
-          renk=lambda s: IYI if (_f(s['kimlik %']) or 0) >= 98.7 and (_f(s['marj']) or 0) >= 0.5 else None)
+          # THE THRESHOLD TEXT IS PRODUCED FROM THE SOURCE, NOT TYPED BY HAND.
+          # It used to read "ITS 98.5%" and "genus 94.5% / 90.0%" here. The real
+          # values in the source are ITS species 99.6 and ITS genus 94.3, so THE
+          # DELIVERED WORKBOOK WAS SHOWING THE WRONG THRESHOLDS. The file imports
+          # TE, CE and AP already; the "one source" rule had been applied to the
+          # numbers and not to the sentence about them. The colour rule was
+          # hard coded the same way and is read from the source too.
+          ['For bins that CANNOT be given a species name, this is the species '
+           'candidate with the highest percentage. This column is NOT AN IDENTITY '
+           'CLAIM; it says "the nearest record is this one, at this percentage". '
+           'The thresholds are the panel\'s own rules: SSU species %s per cent, '
+           'ITS species %s per cent, fungal 28S species %s per cent; genus SSU '
+           '%s per cent / ITS %s per cent; and if the gap between the best and '
+           'the second is smaller than %s a species assignment is not '
+           'defensible. The names were extracted with the panel\'s own ad_coz() '
+           'function, and no new rule was introduced.'
+           % (TE['SSU'], TE['ITS'], TE['LSU_MANTAR'],
+              CE['SSU'], CE['ITS'], AP)],
+          renk=lambda s: IYI if (_f(s['kimlik %']) or 0) >= TE['SSU']
+          and (_f(s['marj']) or 0) >= AP else None)
 
     # ================= 5 THE THRESHOLD =================
     es = []

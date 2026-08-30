@@ -94,7 +94,9 @@ class Hizalayici(object):
         try:
             if self._gecici and os.path.exists(self._gecici):
                 os.unlink(self._gecici)
-        except Exception:
+        except OSError:
+            # During teardown the temporary file may refuse to go (a lock, a
+            # race). Only a filesystem error is swallowed here.
             pass
 
     # ---- tek dizi ----

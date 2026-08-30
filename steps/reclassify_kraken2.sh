@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Reclassifies the raw barcode fastq files against a 106 GB Kraken2 database.
+# INPUT            : --in the raw fastq directory, --db the kraken2 database
+# OUTPUT           : a .report and a per read output file for every barcode
+# HOW TO RUN IT    : bash reclassify_kraken2.sh --db <db> --in <fastq> --out <out> [--confidence 0.1]
+# WHY IT IS LIKE THIS : Kraken2 does not abstain under its default setting; if the real organism is not in the database it labels the read with the nearest leaf. The script looks every flag it uses up in the output of kraken2 --help first, it assumes nothing from memory. It measures on the smallest file first and prints an estimate of the time, and does not start the full run without approval.
+# =======================
 # =====================================================================
 # reclassify_kraken2.sh
 # The aim: to reclassify the raw barcode fastq files with a large Kraken2

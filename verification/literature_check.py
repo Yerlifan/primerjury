@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Asks whether the proposed organism name is valid, whether it has a synonym, and whether its genus was revised recently.
+# INPUT            : the identity claims, NCBI Taxonomy E-utilities, MycoBank and LPSN, PubMed
+# OUTPUT           : the current name, the synonyms, the rank, the lineage and a revision warning; a list to check by hand when the network cannot be reached
+# HOW TO RUN IT    : it is a library: identity_verification.py and all_bin_identities.py load it, there is no command line of its own
+# WHY IT IS LIKE THIS : The Parascedosporium case showed that the name in a database and the name currently accepted need not be the same. NCBI Taxonomy is not a nomenclatural authority but a practical classification, so MycoBank and Index Fungorum are asked separately for fungi and LPSN for bacteria and archaea. The PubMed search decides nothing, it only flags the row.
+# =======================
 """THE LITERATURE CHECK: is the suggested name valid, does it have a synonym, has
 its genus been revised recently?
 

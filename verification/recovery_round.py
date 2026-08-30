@@ -733,7 +733,12 @@ def bolgeler_kur(motor, dizi, yaz):
         # part of the operon outside (in the archaeal A2 consensus, for instance,
         # only the SSU anchor matches and 1.6 kb of the 4.3 kb is covered), the
         # remaining pieces are added under the name "kapsanmayan".
-        kapsanan = sorted((x, y) for _a, x, y, _k in b)
+        # key= is given EXPLICITLY: comparing tuples raises TypeError in
+        # Python 3 as soon as one element is None, and the error then surfaces
+        # far from here, in some other place. Giving a key also documents the
+        # intent: sort by position.
+        kapsanan = sorted(((x, y) for _a, x, y, _k in b),
+                          key=lambda t: (t[0], t[1]))
         bosluk, imlec = [], 0
         for x, y in kapsanan:
             if x - imlec >= 400:
@@ -1002,7 +1007,11 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
                     continue
                 yaz(u'[%2d/%2d] %-44s (settings changed, re-measuring)'
                     % (i, len(hedefler), hedef[:44]))
-            except Exception:
+            except (ValueError, IOError, OSError, KeyError):
+                # A corrupt or missing cache means NO MEASUREMENT, and it is
+                # measured again below. A bare "except Exception" swallows a
+                # fault in the code as well, and then the cache always looks
+                # empty and nobody finds out why.
                 pass
 
         eski = _f(r.get('ASIL_ayrim_mm1'))
