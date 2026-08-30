@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Builds the consensus of every taxon in the coordinate system of one shared reference.
+# INPUT            : the fastq of each bin, REFERENCE_DB
+# OUTPUT           : a consensus in reference coordinates, the pileup, and a record of the reference that was chosen
+# HOW TO RUN IT    : bash anchored_reference_consensus.sh --pt <project> --out <out> --groups A1,A2,B,F1,F2 --sample 200
+# WHY IT IS LIKE THIS : In consensuses built from a chosen seed read, different years fell on different regions: the consensuses of one taxon across four years covered three separate regions. Anchored to a reference, the four years sit in the same window.
+# =======================
 # =====================================================================
 # anchored_reference_consensus.sh
 # The aim: to build each taxon's consensus in the coordinate system of A SHARED

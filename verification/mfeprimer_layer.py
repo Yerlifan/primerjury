@@ -220,7 +220,13 @@ def spec_kos(kok, mfe, ciftler, CIKTI, yaz, kontrol, sure_tavani=1800):
                     try:
                         sonuc[c['hedef']][dosya] = json.load(open(kp, encoding='utf-8'))
                         continue
-                    except Exception:
+                    except (ValueError, IOError, OSError):
+                        # A CACHE READ FAILURE IS CAUGHT NARROWLY. A bare
+                        # "except Exception" swallows a fault in the code too,
+                        # and then the cache always looks empty and nobody
+                        # notices. The same fix was made in
+                        # identity_verification.py and had not been carried to
+                        # the files that read a cache the same way.
                         pass
             co = os.path.join(d, 'spec_%s_%s.txt' % (ad, re.sub(r'\W+', '_', dosya)))
             # THE D-10 BUG FIX (2026-08-07): MFEprimer 4.4.0 REFUSES TO RUN when the output

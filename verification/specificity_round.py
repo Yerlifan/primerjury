@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Tests every pair with independent layers of evidence before it goes to order.
+# INPUT            : the pairs of the recovery round, REFERENCE_DB, NCBI
+# OUTPUT           : a table putting the in-sample measurement, the local databases and NCBI side by side
+# HOW TO RUN IT    : python3 verification/specificity_round.py
+# WHY IT IS LIKE THIS : A pair that looks good in the sample may not hold in the laboratory, because the sample is 99 bins, not the world. If the three results diverge the row is marked contradictory and does not count as orderable. The script writes to no panel file, it only reads.
+# =======================
 """Specificity verification, four independent evidence layers before ordering.
 
 WHY A SEPARATE STAGE

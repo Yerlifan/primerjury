@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Splits a target set that one universal pair cannot cover into the fewest possible subsets.
+# INPUT            : the consensuses of the target set
+# OUTPUT           : the subsets and their primer candidates
+# HOW TO RUN IT    : python3 split_clusters.py --in-group "..." --label <name> --outdir <out>
+# WHY IT IS LIKE THIS : The split is made by designability, not by sequence similarity. In regions that diverge as much as ITS the k-mer similarity stays meaninglessly low; in the F1 group the pairwise Jaccard is between 0.028 and 0.035.
+# =======================
 """
 split_clusters.py
 Splits a target set that cannot be covered by a single universal primer into the

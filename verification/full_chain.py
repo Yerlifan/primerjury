@@ -453,7 +453,9 @@ def kraken_ortami(kok, pluspfp, vt_a, ortam=''):
                         if os.path.exists(os.path.join(aday, 'hash.k2d')):
                             vt = aday
                             break
-            except Exception:
+            except (IOError, OSError):
+                # A filesystem sweep; a directory that cannot be reached is
+                # skipped. Catching wider would hide a fault in the code.
                 pass
         if not os.path.exists(os.path.join(vt, 'hash.k2d')):
             sebep.append(u'There is no Kraken2 database (hash.k2d was looked for inside %s; the tool also swept the disk with vt-ara)' % vt)

@@ -202,7 +202,9 @@ def kos(taban, ek=(), zaman_asimi=180, sinyal_sn=None):
             time.sleep(sinyal_sn)
             try:
                 p.send_signal(_s.SIGINT)
-            except Exception:
+            except (OSError, ProcessLookupError):
+                # The process may have finished before the signal, which is not
+                # a fault.
                 pass
         th = _t.Thread(target=kes)
         th.daemon = True

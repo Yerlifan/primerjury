@@ -506,7 +506,10 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
             try:
                 sonuc.append(json.load(open(kp, encoding='utf-8')))
                 continue
-            except Exception:
+            except (ValueError, IOError, OSError):
+                # A corrupt or missing cache means NO MEASUREMENT, so it is
+                # measured again. A bare "except Exception" swallowed a fault in
+                # the code as well.
                 pass
         bekleyen.append(k)
     yaz(u'  taken from the previous run: %d bins | to scan: %d bins'
@@ -530,7 +533,10 @@ def calistir(kok, kl_ust, kume_boyu, nt_kip, lit_kip, sifirla, yalniz, tavan_kut
                     try:
                         bulgular[k][et] = json.load(open(kp, encoding='utf-8'))
                         continue
-                    except Exception:
+                    except (ValueError, IOError, OSError):
+                        # A CACHE READ FAILURE IS CAUGHT NARROWLY, for the same
+                        # reason as in mfeprimer_layer.py: a wide catch hides a
+                        # fault in the code and the cache silently looks empty.
                         pass
                 kalan[k] = q
             if not kalan:
@@ -624,7 +630,8 @@ def kutu_kaydi(K, kok, kutu, q, bulgular, lokus_tab, uye, rakip, H, nt_kip, lit_
     if os.path.exists(ntk):
         try:
             bulgular[K.NT_ETIKET] = json.load(open(ntk, encoding='utf-8'))
-        except Exception:
+        except (ValueError, IOError, OSError):
+            # A corrupt nt cache is not a result; it is asked again below.
             pass
     if K.NT_ETIKET not in bulgular:
         if nt_kip == 'yok':

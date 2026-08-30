@@ -2209,7 +2209,11 @@ def raporla(CIKTI, sonuc, var, yaz):
             fh.write(_L2.verdict_legend(_L2.KIMLIK, 'VERDICTS'))
             fh.write(_L2.verdict_legend(_L2.DUZEY, 'DEFENSIBLE TAXONOMIC LEVEL'))
             fh.write(_L2.legend(_L2.SUTUN.keys()))
-        except Exception:
+        except (ImportError, AttributeError, IOError, OSError):
+            # The label module is missing, or does not export what is wanted, or
+            # the file cannot be written to. The legend is then left out and the
+            # table itself still goes out. The catch is narrow so that a fault in
+            # labels.py is not swallowed here.
             pass
         w = csv.writer(fh, delimiter='\t')
         w.writerow(['no', 'oncelik', 'iddia', 'HUKUM',

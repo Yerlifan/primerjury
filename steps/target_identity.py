@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Asks the bin consensuses of the reference databases with blastn and gives the measured identity.
+# INPUT            : the dominant allele consensuses, REFERENCE_DB
+# OUTPUT           : the target name, the Kraken label and the measured identity side by side
+# HOW TO RUN IT    : python3 target_identity.py --consensus <consensus> --db REFERENCE_DB --targets targets.tsv --names taxid_names.tsv --out <out>
+# WHY IT IS LIKE THIS : The discriminating region is asked first: 16S in archaea and bacteria, ITS in fungi. If ITS comes back empty then 28S is used, and if that is empty too then 18S, because conserved regions do not separate at genus level. Which region it was measured from is written on every row. The filters: an alignment of at least 250 bases, an identity of at least 90 per cent.
+# =======================
 """
 target_identity.py
 COMPARES THE TARGET NAME WITH THE ORGANISM THE DATA SHOWS.

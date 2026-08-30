@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ==== MEETING NOTE ====
+# WHAT IT IS FOR   : Brings the ambiguous IUPAC letters in a consensus down to the dominant allele, using the raw reads.
+# INPUT            : the consensus directory and the fastq directory
+# OUTPUT           : the dominant allele consensus and the allele shares per position
+# HOW TO RUN IT    : python3 dominant_allele_consensus.py --consensus <consensus> --fastq "fastq files" --out <out>
+# WHY IT IS LIKE THIS : Because the binding rule evaluates by set intersection, IUPAC ambiguity was making a primer look as though it matched both alleles. MEASURED: two consensuses are 79.8 per cent identical character by character but 99.9 per cent by the intersection criterion.
+# =======================
 """
 dominant_allele_consensus.py
 For each consensus it produces the DOMINANT ALLELE sequence from that bin's own raw
