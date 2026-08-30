@@ -251,9 +251,11 @@ def main():
         # loci nothing is ordered; the ladder of the class decides which one is
         # used, because 99 per cent in 28S is not 99 per cent in ITS.
         for bolge in lokus_isabet:
-            # The header is the last tie break, so equal hits keep a stable
-            # order between runs.
-            lokus_isabet[bolge].sort(key=lambda x: (-x[0], -x[1], x[2]))
+            # Identity, then the longer alignment, then a hit that yields a
+            # NAME before one that does not, and the header last. See the same
+            # sort in target_identity.py for why the name step is there.
+            lokus_isabet[bolge].sort(
+                key=lambda x: (-x[0], -x[1], 0 if T._adli_mi(x[2]) else 1, x[2]))
         olculen = ozd = hiz = ""
         secim = T.basamaktan_sec(
             lokus_isabet, T.SINIF_BASAMAK.get(sinif, T.VARSAYILAN_BASAMAK), True)

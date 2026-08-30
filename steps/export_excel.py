@@ -401,9 +401,15 @@ def main():
         # It is called "the same organism" only if MORE THAN HALF of the bins go to the
         # same identity. Settling for a plurality would make group targets whose members
         # spread across different species look merged as well.
+        # The filter goes by THE AGREEMENT TOKEN, not by the wording of the
+        # measured identity. It used to look for "vurus yok" and "esik alti"
+        # inside the text; when that text was translated the filter stopped
+        # matching anything, and targets with no identity at all were grouped
+        # together and reported as aiming at THE SAME organism. A token is data
+        # and survives rewording; a sentence does not.
         if r and cog and r.get("olculen_kimlik") \
-                and "vurus yok" not in r["olculen_kimlik"] \
-                and "esik alti" not in r["olculen_kimlik"]:
+                and r.get("uyum") not in ("vurus_yok", "YAKIN_AKRABA_YOK",
+                                          "ADLANDIRILAMIYOR"):
             ayni_kimlik.setdefault(r["olculen_kimlik"], set()).add(k[0])
     cakisan = {kk: vv for kk, vv in ayni_kimlik.items() if len(vv) > 1}
     if cakisan:

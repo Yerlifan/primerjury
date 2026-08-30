@@ -11,6 +11,7 @@ Usage:
   python3 regression_test.py --real-data   # with real consensuses and reads
 
 """
+import ast
 import argparse, importlib.util, itertools, math, os, random, shutil, subprocess, sys, glob, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1115,6 +1116,82 @@ def testler(a):
              u'missing: %s' % (", ".join(eksik[:6]) if eksik else ""))
     finally:
         shutil.rmtree(g19, ignore_errors=True)
+
+    print(u'\n20. NAMING FROM A LINEAGE, AND THE AGREEMENT TOKEN CONTRACT')
+    # Two faults this group holds down.
+    #
+    # ONE. ad_ayikla walks a SILVA lineage from the end backwards. In
+    # "...;Halobacteriota;uncultured archaeon" it skips the unnamed element and
+    # returns the PHYLUM, which adsiz_mi accepts because the string carries no
+    # unnamed token. The record then passed for named, the "fall back to a named
+    # record nearby" rule never fired in exactly the case it was built for, and a
+    # bin was labelled "Halobacteriota" while Methanosarcina mazei stood at the
+    # same identity over the same length. A domain name got through the same way.
+    #
+    # TWO. target_identity.py writes an agreement token into hedef_kimlik.tsv and
+    # export_excel.py reads it back. The reader used to filter on the WORDING of
+    # the measured identity ("vurus yok"); when that text was translated the
+    # filter matched nothing and targets with no identity at all were grouped
+    # together as aiming at THE SAME organism. Nothing binds producer to reader,
+    # so this test does.
+    sys.path.insert(0, os.path.join(HERE, '..', 'verification'))
+    sys.path.insert(0, HERE)
+    import target_identity as _TI
+
+    ADSIZ_SOY = 'JX501314.1.600 Archaea;Halobacteriota;uncultured archaeon'
+    ADLI = 'NR_041956.1 Methanosarcina mazei strain DSM 2053 16S ribosomal RNA'
+
+    sina(u'a lineage falling back to a phylum does not count as a name',
+         not _TI._adli_mi(ADSIZ_SOY), _TI.ad_ayikla(ADSIZ_SOY))
+    sina(u'a domain name does not count as a genus',
+         _TI.ust_rank_mi('Bacteria') and _TI.ust_rank_mi('Eukaryota'))
+    sina(u'a real genus still counts as one',
+         not _TI.ust_rank_mi('Methanosarcina')
+         and not _TI.ust_rank_mi('Candidatus Nitrosocosmicus'))
+
+    _li = {'16S': [(100.0, 1500, ADSIZ_SOY, 'SILVA_138.2_SSURef_NR99.fasta'),
+                   (100.0, 1500, ADLI, 'archaea.16S.fna')]}
+    _li['16S'].sort(key=lambda x: (-x[0], -x[1],
+                                   0 if _TI._adli_mi(x[2]) else 1, x[2]))
+    _s = _TI.basamaktan_sec(_li, _TI.SINIF_BASAMAK['A1'], True)
+    sina(u'a named record at the same closeness beats an unnamed lineage',
+         _s is not None and _s[0] == 'Methanosarcina mazei',
+         _s[0] if _s else 'None')
+
+    # with no named record nearby the supra-genus label is KEPT, not dropped
+    _li2 = {'16S': [(100.0, 1500, ADSIZ_SOY, 'SILVA_138.2_SSURef_NR99.fasta'),
+                    (91.0, 1500, ADLI, 'archaea.16S.fna')]}
+    _s2 = _TI.basamaktan_sec(_li2, _TI.SINIF_BASAMAK['A1'], True)
+    sina(u'with nothing named nearby the rank above genus is still reported',
+         _s2 is not None and _s2[0] == 'Halobacteriota'
+         and 'above genus' in (_s2[1] or ''),
+         _s2[0] if _s2 else 'None')
+
+    # --- the agreement token contract -------------------------------------
+    # The keys of UYUM_METIN are read WITH THE PARSER, not with a regular
+    # expression: the token also appears in the colour rule and in the warning
+    # branch, so a loose text search still finds it after it has been dropped
+    # from the lookup, and the test would pass while the reader printed the raw
+    # token instead of the sentence.
+    _kaynak = open(os.path.join(HERE, 'target_identity.py'),
+                   encoding='utf-8').read()
+    _uretilen = set(_re.findall(r'uyum = \(?["' + "'" + r']([A-Za-z_]+)["'
+                                + "'" + r']', _kaynak))
+    _bilinen = set()
+    for _n in ast.walk(ast.parse(open(os.path.join(HERE, 'export_excel.py'),
+                                      encoding='utf-8').read())):
+        if (isinstance(_n, ast.Assign) and len(_n.targets) == 1
+                and isinstance(_n.targets[0], ast.Name)
+                and _n.targets[0].id == 'UYUM_METIN'
+                and isinstance(_n.value, ast.Dict)):
+            _bilinen = set(k.value for k in _n.value.keys
+                           if isinstance(k, ast.Constant))
+    sina(u'export_excel still has a UYUM_METIN lookup', bool(_bilinen))
+    sina(u'target_identity emits at least five agreement tokens',
+         len(_uretilen) >= 5, sorted(_uretilen))
+    _eksik = sorted(t for t in _uretilen if t not in _bilinen)
+    sina(u'every agreement token target_identity writes has an English wording',
+         not _eksik, 'missing from UYUM_METIN: %s' % ', '.join(_eksik))
 
     if a.real_data:
         print(u'\n13. REAL DATA: THE GEOMETRY OF THE PAIRS PRODUCED')

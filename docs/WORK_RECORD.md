@@ -722,7 +722,7 @@ window, has been done.
 
 ## 7. The regression suite
 
-`regression_test.py`, **149 tests, 149 of 149 passing.** The expected result of
+`regression_test.py`, **157 tests, 157 of 157 passing.** The expected result of
 every test is derived from the design decisions or from known mathematics; the
 code's own helper functions are not trusted.
 
@@ -744,6 +744,7 @@ code's own helper functions are not trusted.
 | 17 | the competitor set in reference design |
 | 18 | the log contract between the group engine and the four scripts that read its counters |
 | 19 | the file manifest covers every step script |
+| 20 | naming from a lineage, and the agreement token contract between the identity step and the workbook |
 
 ---
 
