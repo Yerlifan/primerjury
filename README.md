@@ -83,6 +83,32 @@ If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
   rather than by record, so the list shows what else is close instead of the
   same species from five databases.
 
+### Measuring what a bin really is
+
+`steps/target_identity.py` puts the name a decision carries next to the organism
+the sequence shows. Two rules govern it.
+
+**Every class sees every rDNA database.** Each class used to be asked only its
+own shortlist: archaea and bacteria of RefSeq 16S alone. That set holds 1,160 and
+26,877 records while SILVA SSU NR99, in the same directory, holds 510,495. Worse,
+limiting by domain assumes the label is right, which is the very thing this step
+exists to test: a bin labelled bacterial that is really fungal can only be caught
+by asking the fungal databases. `--databases narrow` restores the old, faster
+coverage.
+
+**Identities from different loci are never raced against each other.** 99 per
+cent in 28S and 99 per cent in ITS are not the same measurement. Each locus is
+decided with its own threshold, and the loci are walked in the ladder of the
+class, the discriminating region first: 16S for archaea and bacteria, then ITS,
+28S, 18S for fungi. When a later locus reaches species level and the one taken
+did not, the row says so rather than looking more settled than the data is.
+
+The thresholds come from one place, `verification/identity_verification.py`, and
+follow the locus: 98.7 per cent for SSU (Kim et al. 2014), 99.6 for ITS and 99.8
+for the fungal LSU (Vu et al. 2018). A species name is also refused when the
+alignment is too short to carry it: 100 per cent over 484 bases and 100 per cent
+over 2,900 are not the same evidence.
+
 ---
 
 ## Requirements
@@ -173,17 +199,38 @@ Individual stages:
 ./primerjury specificity       # four-layer specificity
 ./primerjury panel             # single-protocol panel measurement
 ./primerjury audit             # independent read-only audit
+./primerjury status            # current panel state
+./primerjury check             # what is installed; changes nothing
 ```
 
 ### Tests
 
 ```bash
+./primerjury test      # every suite: 157 regression tests plus the four
+                       # test files. Exits non-zero if anything fails.
+./primerjury doctor    # the repository checks itself
+```
+
+Or individually:
+
+```bash
+python3 steps/regression_test.py       # 157 tests, expectations derived from
+                                       # the design decisions or known maths
+python3 tests/test_repo_health.py      # imports, names, format strings, line
+                                       # endings, packaging, option handoffs
 python3 tests/test_taxonomy.py         # 5 header formats, real DBs
-python3 tests/test_unnamed_records.py       # unnamed records cannot become names
+python3 tests/test_unnamed_records.py  # unnamed records cannot become names
 python3 tests/test_orientation_trap.py # orientation-trap detector
 ```
 
 Each exits non-zero on failure and prints what it measured.
+
+Several groups exist to hold down a **contract between two files** that nothing
+in the language enforces: one script prints a counter and four others read it
+back with a regular expression, one writes a verdict token into a TSV and the
+workbook builder looks it up. Rewording either side breaks the link in silence,
+which has happened, so a test now fails instead. Each of those tests was
+confirmed by breaking the contract on purpose and watching it fail.
 
 ---
 
@@ -222,11 +269,16 @@ Honest list; these are the gaps between "runs for the original study" and
   it is genuinely the only place paths are defined.
 - **Layer 2 taxonomic discrimination is new** and its effect on verdicts is
   still being measured; the size-based criterion remains the one that votes.
-- **The Windows `.bat` menu is legacy** (2000 lines) and will be replaced by a
-  proper CLI.
-- Code comments and internal reports are in Turkish. Interface, docs and issues
-  are in English. Renaming 57k lines of identifiers was judged too risky to be
-  worth it.
+- **Some internal names are Turkish, on purpose.** Everything a reader meets is
+  English: screen messages, help text, comments, file and directory names, and
+  command line options. What stays Turkish is the layer underneath, and only
+  because it is DATA rather than wording: TSV column names, verdict values such
+  as `DOGRULANDI` and `CELISKILI`, and the taxonomic level tokens. Those are
+  compared as strings across the pipeline, written into files later stages read
+  back, and stored inside checkpoints from earlier runs. Renaming them would be
+  a schema migration disguised as a translation, and it would fail as an empty
+  table rather than as an error. `screening/labels.py` supplies the English
+  wording wherever a person reads one.
 
 ---
 
@@ -236,7 +288,7 @@ Honest list; these are the gaps between "runs for the original study" and
 |---|---|
 | `screening/` | search engine, in-silico PCR, scoring, configuration |
 | `verification/` | orchestration, identity verification, the four layers |
-| `steps/` | numbered pipeline, in dependency order |
+| `steps/` | the pipeline steps, run in dependency order |
 | `protocol/` | single-protocol panel measurement |
 | `scoring/` | shared scoring |
 | `tests/` | tests |

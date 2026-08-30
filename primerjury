@@ -192,6 +192,22 @@ cmd_test() {
             basarisiz=$((basarisiz + 1))
         fi
     done
+
+    # THE REGRESSION SUITE RUNS HERE TOO. It used to be left out, so the
+    # documented command reported "all tests passed" while the largest body of
+    # tests in the project, the one holding down the contracts between files,
+    # had not been run at all.
+    printf '  %-34s ' "regression_test.py"
+    _reg=$("$PY" steps/regression_test.py 2>&1)
+    _ozet=$(printf '%s' "$_reg" | grep -oE '[0-9]+ of [0-9]+ tests passed' | tail -1)
+    if printf '%s' "$_reg" | grep -q "0 failed"; then
+        printf '\033[32m%s\033[0m\n' "${_ozet:-passed}"
+    else
+        printf '\033[31mFAIL\033[0m\n'
+        printf '%s\n' "$_reg" | grep "KALDI" | head -8
+        basarisiz=$((basarisiz + 1))
+    fi
+
     [ "$basarisiz" -eq 0 ] || { no "$basarisiz test(s) failed"; return 1; }
     ok "all tests passed"
 }
