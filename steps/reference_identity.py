@@ -251,7 +251,9 @@ def main():
         # loci nothing is ordered; the ladder of the class decides which one is
         # used, because 99 per cent in 28S is not 99 per cent in ITS.
         for bolge in lokus_isabet:
-            lokus_isabet[bolge].sort(key=lambda x: (-x[0], -x[1]))
+            # The header is the last tie break, so equal hits keep a stable
+            # order between runs.
+            lokus_isabet[bolge].sort(key=lambda x: (-x[0], -x[1], x[2]))
         olculen = ozd = hiz = ""
         secim = T.basamaktan_sec(
             lokus_isabet, T.SINIF_BASAMAK.get(sinif, T.VARSAYILAN_BASAMAK), True)
