@@ -1056,3 +1056,20 @@ a step's output must be checked by its record count, not by the presence of a
 file.
 
 The design-stage scripts (`design_group_primers.py`, `specificity.py`, `design_from_reference.py`, `community_trends.py`, `reference_identity.py`, `analyze_ambiguous_bases.sh`) parsed the same numeric id; they accept `BIN<n>` as well now, and the class prefix is no longer a fixed list.
+
+---
+
+## 19. The QIIME2 route joins the repository (2026-09-05)
+
+The study ran QIIME2 + PICRUSt2 beside the identity chain from the start, as an
+independent opinion. Three scripts carry it now, generalised: `qiime2_profile.sh`
+(the profile; the library groups are read from the bin folders, or given),
+`qiime2_classify.sh` with `qiime2_reference_taxonomy.py` (the reference-based
+consensus taxonomy, with the identity chain's alignment floor and species
+thresholds imported from one place), and `picrust2_run.sh` (functional
+prediction with the memory guard). Every design decision in them was measured
+during the study and is written in the script headers: the random subsample
+instead of the first N reads, the per-sample length window, the two feature
+thresholds, the one-reference rule in the consensus, the longer-alignment
+tie-break, and the SSU cut for operon-length features. The study's target
+EC/KO list is not built in; `--targets` takes a two-column file.

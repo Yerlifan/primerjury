@@ -69,6 +69,7 @@ sequences/  (your .fasta / .fastq, or demultiplexed BAMs)
      │                         NO taxonomy tree, ≥2 databases must agree
      ├─ 4. primer design       species / genus / functional-group / universal
      ├─ 5. specificity         4 independent layers (below)
+     ├─ 5b. qiime2 route       profile + reference taxonomy + PICRUSt2 (optional, independent)
      └─ 6. report              ranked order list + evidence tables
 ```
 
@@ -154,6 +155,28 @@ covers at least 90 per cent of the record counts in full, because more than
 half of the ITS references are shorter than the ITS floor (measured). Hits
 under 250 bases are removed before ranking, so a short junk hit cannot veto
 the genus a long one would give.
+
+### The QIIME2 route
+
+`./primerjury qiime2 all` runs an independent community profile beside the
+identity chain, so that the two can be compared rather than one trusted:
+
+1. `steps/qiime2_profile.sh`: per library, a length window from the sample's
+   own read-length distribution (10th to 90th percentile; a 4.3 kb operon and a
+   1.5 kb 16S library do not share a threshold), a random subsample with a fixed
+   seed (the first reads of a nanopore file are the first minutes of the run,
+   not the sample), de novo clustering, chimera removal, two feature thresholds
+   (min 2 and min 10 reads, exported separately), phylogeny and diversity. Every
+   step's count goes to `STEP_COUNTS.tsv`.
+2. `steps/qiime2_classify.sh`: the ready-made classifier is trained for 16S and
+   gave meaningless labels on fungi and on the long archaeal operon, so each
+   library is aligned to the reference that fits it (SILVA SSU, SILVA LSU,
+   UNITE) and `qiime2_reference_taxonomy.py` takes the taxonomy the best hits
+   agree on, with the identity chain's alignment-length rule and thresholds.
+3. `steps/picrust2_run.sh`: functional prediction for the archaeal and bacterial
+   libraries, an operon cut down to its SSU part first, every step under a
+   memory guard (the trait-table check at start-up is what eats memory, not the
+   calculation; measured on a 16 GB machine).
 
 ### Starting from raw reads
 
@@ -340,9 +363,6 @@ These are not style preferences; each was paid for with a real bug.
 Honest list; these are the gaps between "runs for the original study" and
 "general-purpose tool":
 
-- **QIIME2 and PICRUSt2 are installed but not yet driven by the chain.** The
-  study ran them beside the identity chain as an independent opinion; the
-  scripts are being generalised and will land as an optional stage.
 - **Targets are still study-specific.** `steps/targets.tsv` and
   `screening/target_clades.tsv` describe the original 20 targets and 5
   amplicon groups. Samples in `examples/` show the format. Generalising the
