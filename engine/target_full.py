@@ -74,7 +74,7 @@ def main():
     ap.add_argument('--status', dest='durum', default='')
     ap.add_argument('--primer-max', dest='primer_ust', type=int, default=1100)
     ap.add_argument('--window-candidates', dest='pencere_aday', type=int, default=6)
-    ap.add_argument('--arms-max', dest='arms_ust', type=int, default=8)
+    ap.add_argument('--arms-max', dest='arms_ust', type=int, default=0)  # ARMS off by default: the -2/-3 variants scored artificially high under the mm<=1 rule (WORK_RECORD 15.2)
     ap.add_argument('--sig', type=int, default=900)
     ap.add_argument('--deep', dest='derin', type=int, default=3000)
     ap.add_argument('--stage', dest='asama', default='tara', choices=['tara', 'derin'])
