@@ -334,6 +334,68 @@ def best_hits(reads_fa, dbs, root, threads=1, db_dir=None, blast_fn=None):
     return best
 
 
+def mmi_path(db, threads=1):
+    u"""The minimap2 index of a database (<db>.mmi), built once if missing (UNITE: 75 s, 2.8 GB)."""
+    mmi = db + '.mmi'
+    if not os.path.exists(mmi) or os.path.getmtime(mmi) < os.path.getmtime(db):
+        run(['minimap2', '-t', str(threads), '-x', 'map-ont', '-d', mmi + '.building', db])
+        os.replace(mmi + '.building', mmi)
+    return mmi
+
+
+def best_hits_mm2(reads_fa, dbs, root, threads=1, db_dir=None, secondaries=10):
+    u"""Best record per read with minimap2 -c (base-level alignment; identity = 1 - de, the
+    gap-compressed divergence). Same shape as best_hits: {read: (pid, aln, title, db)}.
+    WHY minimap2 (measured 2026-09-06 on 401 ITS windows):
+      * blastn -max_target_seqs 5 MISSED the best record (the known truncation): a read was
+        written as Microascus 96.63 per cent while the true best record was Acaulium 98.27
+        (confirmed with blastn -subject); max_target_seqs 50 and 500 find different records
+        again. UNITE holds hundreds of near-identical records per species, and the truncation
+        bites exactly in that pile-up.
+      * time: 401 windows in 9 s against 26 min for BLAST on 2 threads.
+      * on the same record the identity differs by a median of +0.16 points; every one of the
+        53 reads with a different genus had a higher-identity (real) record found by minimap2."""
+    best = {}
+    for name in dbs:
+        db = db_path(root, name, db_dir) if root is not None else name
+        if not db:
+            continue
+        mmi = mmi_path(db, threads)
+        paf = run(['minimap2', '-t', str(threads), '-c', '-x', 'map-ont', '--secondary=yes',
+                   '-N', str(secondaries), mmi, reads_fa])
+        cand, needed = {}, set()
+        for line in paf.splitlines():
+            p = line.split('\t')
+            if len(p) < 12:
+                continue
+            k, tname, blen = p[0], p[5], int(p[10])
+            if blen < EN_AZ_KANIT:
+                continue
+            de = None
+            for x in p[12:]:
+                if x.startswith('de:f:'):
+                    de = float(x[5:])
+                    break
+            if de is None:
+                continue
+            pid = round((1.0 - de) * 100.0, 2)
+            if k not in cand or (pid, blen) > cand[k][:2]:
+                cand[k] = (pid, blen, tname)
+                needed.add(tname)
+        titles = {}
+        if needed:
+            with io.open(db, encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    if line.startswith(u'>'):
+                        nm = line[1:].split()[0]
+                        if nm in needed:
+                            titles[nm] = line[1:].strip()
+        for k, (pid, blen, tname) in cand.items():
+            if k not in best or (pid, blen) > best[k][:2]:
+                best[k] = (pid, blen, titles.get(tname, tname), os.path.basename(name))
+    return best
+
+
 def unnamed(name):
     low = name.lower()
     return any(t in low for t in ADSIZ_JETONLARI)
@@ -390,7 +452,8 @@ def batch_hits(bin_reads, root, a, tmp, blast_fn=None):
     print(u'  ITS window: %d/%d reads (%.0f s)' % (n_window, len(allreads), time.time() - t0))
     sys.stdout.flush()
     t0 = time.time()
-    best = best_hits(win_fa, ITS_DB, root, a.threads, a.db_dir, blast_fn)
+    best = (best_hits(win_fa, ITS_DB, root, a.threads, a.db_dir, blast_fn) if blast_fn
+            else best_hits_mm2(win_fa, ITS_DB, root, a.threads, a.db_dir))
     print(u'  ITS hits: %d/%d reads (%.0f s, %s)' % (len(best), len(allreads), time.time() - t0,
                                                    u' + '.join(os.path.basename(d) for d in ITS_DB)))
     sys.stdout.flush()
@@ -479,7 +542,9 @@ def batch_decide(results, root, a, tmp, blast_fn=None):
             db = db_path(root, name, a.db_dir) if root is not None else name
             if not db:
                 continue
-            for k, v in (blast_fn or blast)(query, db, threads=a.threads).items():
+            # top=500: UNITE holds hundreds of near-identical records per species; at 50 the
+            # best record can be cut off (measured, see best_hits_mm2).
+            for k, v in (blast_fn or blast)(query, db, threads=a.threads, top=500).items():
                 hits.setdefault(k, {}).setdefault(lok, []).extend(v)
         print(u'  %s searched (%.0f s)' % (lok, time.time() - t0))
         sys.stdout.flush()
@@ -713,6 +778,14 @@ def self_test(a=None):
             errors.append(u'population counts unexpected: %s' % dict(count))
         if scount.most_common(1)[0][0] != u'Aus alpha':
             errors.append(u'species counter: %s' % scount.most_common(2))
+        # the minimap2 route (the one a real run takes): same database, same populations
+        best2 = best_hits_mm2(reads_fa, [db], None, 1)
+        count2, _m2, scount2, _s2 = populations(best2)
+        if dict(count2) != dict(count) or scount2.most_common(1)[0][0] != u'Aus alpha':
+            errors.append(u'minimap2 route disagrees with BLAST: %s / %s' % (dict(count2), dict(count)))
+        p2 = sorted(v[0] for v in best2.values())
+        if p2 and (p2[0] < 90.0 or p2[-1] > 100.0):
+            errors.append(u'minimap2 identity range unexpected: %.2f-%.2f' % (p2[0], p2[-1]))
         A_fa = os.path.join(tmp, 'A.fa')
         write_fasta(A_fa, [(u'A', A)])
         seq_of = dict(rA + rB)
