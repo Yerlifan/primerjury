@@ -45,7 +45,7 @@ _BURA = os.path.dirname(os.path.abspath(__file__))
 if _BURA not in sys.path:
     sys.path.insert(0, _BURA)
 from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,   # noqa: E402
-                                   EN_AZ_HIZALAMA, EN_AZ_KANIT,
+                                   EN_AZ_HIZALAMA, EN_AZ_KANIT, EPITET_DEGIL,
                                    hizalama_yeterli)
 
 # The loci of a fungal bin: (label, database files, threshold key). The order does
@@ -80,6 +80,14 @@ LOKUS_GUCU = {u'ITS': 3, u'28S': 2, u'18S': 1}
 TUR_VEREBILEN = (u'ITS', u'28S')
 
 
+def _tur_epiteti(epitet):
+    u"""An epithet that names a species; placeholders such as 'sp', 'cf', 'aff' give None
+    (EPITET_DEGIL, one place)."""
+    if not epitet or epitet.lower() in EPITET_DEGIL:
+        return None
+    return epitet
+
+
 def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
     """The decision one locus reaches with its own threshold.
 
@@ -104,14 +112,41 @@ def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
         return dict(bos, ad=u'cannot be named', kimlik=en[0], hizalama=en[1],
                     notu=u'the evidence is %d bp, the floor is %d bp'
                          % (en[1], EN_AZ_KANIT))
-    pid, aln, _b, _q, tit = h[0][:5]
-    kayit_uz = h[0][5] if len(h[0]) > 5 else None     # record length, when known
-    ad = ad_ayikla(tit)
-    if not ad or any(j in ad.lower() for j in adsiz_izler):
+    te, ce = TUR_ESIGI.get(anahtar, 98.7), CINS_ESIGI.get(anahtar, 94.5)
+
+    def _adli(x):
+        u"""Can the record name anything: (name, genus, epithet) or None (unnamed)."""
+        _ad = ad_ayikla(x[4])
+        if not _ad or any(j in _ad.lower() for j in adsiz_izler):
+            return None
+        _c, _e = cins_epitet(_ad)
+        return (_ad, _c, _tur_epiteti(_e)) if _c else None
+
+    # 2026-09-06: WHEN THE TOP RECORD CANNOT NAME A SPECIES (unnamed, or genus only) and a
+    # species-named record sits within AYRIM_PAYI, the decision rests on THAT record and the
+    # top one goes into the note. Measured: a UNITE "Petriella sp." at 100.00/600 bp sat above
+    # the RefSeq TYPE "Petriella musispora" at 100.00/500 bp and the bin was left at genus. A
+    # genus-only record leading by more than the margin means the nearest reference is an
+    # undescribed lineage; then the old behaviour stands (genus / unnamed).
+    secili, bilgi = h[0], _adli(h[0])
+    atlanan_notu = u''
+    if not (bilgi and bilgi[2]):
+        for x in h[1:]:
+            if h[0][0] - x[0] >= AYRIM_PAYI:
+                break
+            _b2 = _adli(x)
+            if _b2 and _b2[2]:
+                secili, bilgi = x, _b2
+                atlanan_notu = (u'the top record names no species (%s %.2f per cent, %d bp); '
+                                u'the species-named record within %.2f taken'
+                                % ((ad_ayikla(h[0][4]) or u'unnamed'), h[0][0], h[0][1], AYRIM_PAYI))
+                break
+    pid, aln, _b, _q, tit = secili[:5]
+    kayit_uz = secili[5] if len(secili) > 5 else None     # record length, when known
+    if not bilgi:
         return dict(bos, ad=u'cannot be named', kimlik=pid, hizalama=aln,
                     notu=u'the record matched is unnamed')
-    te, ce = TUR_ESIGI.get(anahtar, 98.7), CINS_ESIGI.get(anahtar, 94.5)
-    cins, epitet = cins_epitet(ad)
+    ad, cins, epitet = bilgi
     if pid < ce:
         return dict(bos, ad=u'cannot be named', kimlik=pid, hizalama=aln,
                     notu=u'the identity is %.2f per cent, below the genus threshold '
@@ -119,22 +154,27 @@ def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
     if pid < te or not epitet:
         return dict(ad=u'%s sp.' % cins, cins=cins, tur=None, kimlik=pid,
                     hizalama=aln, duzey=u'cins',
-                    notu=u'below the species threshold of %.2f per cent' % te)
+                    notu=u'; '.join(x for x in (u'below the species threshold of %.2f per cent' % te
+                                                if pid < te else u'the record carries no species name',
+                                                atlanan_notu) if x))
     if not hizalama_yeterli(anahtar, aln, kayit_uz)[0]:
         return dict(ad=u'%s sp.' % cins, cins=cins, tur=None, kimlik=pid,
                     hizalama=aln, duzey=u'cins',
                     notu=u'the alignment is %d bp and the floor for %s is %d bp'
                          % (aln, anahtar, EN_AZ_HIZALAMA.get(anahtar, 600)))
     # species level; a close rival WITHIN THE SAME LOCUS means "cf."
-    for x in h[1:]:
-        a2 = ad_ayikla(x[4])
-        if a2 and a2 != ad and cins_epitet(a2)[1] and (pid - x[0]) < AYRIM_PAYI:
+    for x in h:
+        if x is secili:
+            continue
+        _r = _adli(x)                      # adsiz kayit rakip tur olamaz
+        a2 = _r[0] if _r else None
+        if a2 and a2 != ad and _r[2] and (pid - x[0]) < AYRIM_PAYI:
             return dict(ad=u'%s cf. %s' % (cins, epitet), cins=cins, tur=None,
                         kimlik=pid, hizalama=aln, duzey=u'cins',
                         notu=u'%s is only %.2f per cent behind, at %.2f per cent'
                              % (a2, pid - x[0], x[0]))
     return dict(ad=ad, cins=cins, tur=ad, kimlik=pid, hizalama=aln,
-                duzey=u'tur', notu=u'')
+                duzey=u'tur', notu=atlanan_notu)
 
 
 def birlestir(kararlar):
@@ -259,7 +299,7 @@ def raporlanan_yontem(lokus_isabet, ad_ayikla, cins_epitet, adsiz_izler,
             if aln < EN_AZ_KANIT or pid < EN_AZ_OZDESLIK:
                 continue
             ad = ad_ayikla(tit)
-            if not ad or not cins_epitet(ad)[1]:
+            if not ad or not _tur_epiteti(cins_epitet(ad)[1]):
                 continue
             if any(j in ad.lower() for j in adsiz_izler):
                 continue
@@ -308,7 +348,7 @@ def _daha_guclu_lokus(lokus_isabet, secilen, s_pid, s_aln,
             if aln < EN_AZ_KANIT or pid < EN_AZ_OZDESLIK:
                 continue
             ad = ad_ayikla(tit)
-            if not ad or not cins_epitet(ad)[1]:
+            if not ad or not _tur_epiteti(cins_epitet(ad)[1]):
                 continue
             if any(j in ad.lower() for j in adsiz_izler):
                 continue
