@@ -45,7 +45,8 @@ _BURA = os.path.dirname(os.path.abspath(__file__))
 if _BURA not in sys.path:
     sys.path.insert(0, _BURA)
 from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,   # noqa: E402
-                                   EN_AZ_HIZALAMA)
+                                   EN_AZ_HIZALAMA, EN_AZ_KANIT,
+                                   hizalama_yeterli)
 
 # The loci of a fungal bin: (label, database files, threshold key). The order does
 # not matter; the decision goes by length and by vote, not by position.
@@ -54,7 +55,7 @@ MANTAR_LOKUSLARI = [
     (u'ITS', ['fungi.ITS.fna', 'UNITE_ITS.fasta'], 'ITS'),
     (u'28S', ['fungi.28SrRNA.fna'], 'LSU_MANTAR'),
 ]
-EN_AZ_KANIT = 250       # below this many bases no name is given at all
+# EN_AZ_KANIT (250 bp, below which nothing is named) comes from identity_verification.
 
 # THE DISCRIMINATING POWER OF A LOCUS, WHICH IS NOT THE ALIGNMENT LENGTH.
 #
@@ -90,12 +91,18 @@ def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
     # two hits with the same identity and length always sort the same way. The
     # second criterion used to be the bitscore, which grows with length and so
     # said the same thing twice while hiding a short exact match.
-    h = sorted(isabetler, key=lambda x: (-x[0], -x[1], x[4]))
-    pid, aln, _b, _q, tit = h[0]
-    if aln < EN_AZ_KANIT:
-        return dict(bos, ad=u'cannot be named', kimlik=pid, hizalama=aln,
+    # Hits under the evidence floor are removed BEFORE ranking (2026-09-03).
+    # They used to veto: a 72 bp junk hit at 100 per cent sorted first and the
+    # bin was 'cannot be named' while a 1,400 bp hit at 99 per cent sat below it.
+    h = sorted((x for x in isabetler if x[1] >= EN_AZ_KANIT),
+               key=lambda x: (-x[0], -x[1], x[4]))
+    if not h:
+        en = max(isabetler, key=lambda x: (x[0], x[1]))
+        return dict(bos, ad=u'cannot be named', kimlik=en[0], hizalama=en[1],
                     notu=u'the evidence is %d bp, the floor is %d bp'
-                         % (aln, EN_AZ_KANIT))
+                         % (en[1], EN_AZ_KANIT))
+    pid, aln, _b, _q, tit = h[0][:5]
+    kayit_uz = h[0][5] if len(h[0]) > 5 else None     # record length, when known
     ad = ad_ayikla(tit)
     if not ad or any(j in ad.lower() for j in adsiz_izler):
         return dict(bos, ad=u'cannot be named', kimlik=pid, hizalama=aln,
@@ -110,7 +117,7 @@ def lokus_karari(isabetler, anahtar, ad_ayikla, cins_epitet, adsiz_izler):
         return dict(ad=u'%s sp.' % cins, cins=cins, tur=None, kimlik=pid,
                     hizalama=aln, duzey=u'cins',
                     notu=u'below the species threshold of %.2f per cent' % te)
-    if aln < EN_AZ_HIZALAMA.get(anahtar, 600):
+    if not hizalama_yeterli(anahtar, aln, kayit_uz)[0]:
         return dict(ad=u'%s sp.' % cins, cins=cins, tur=None, kimlik=pid,
                     hizalama=aln, duzey=u'cins',
                     notu=u'the alignment is %d bp and the floor for %s is %d bp'

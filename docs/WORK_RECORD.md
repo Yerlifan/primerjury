@@ -980,3 +980,33 @@ nothing downstream could tell. The independent measurement showed no
 difference. The rule that catches it: mm0 over the members equal to zero while
 mm1 amplifies is a systematic mismatch and is written into the verdict. The
 deliberate variants are off by default in the generator (`--arms-max 0`).
+
+---
+
+## 16. The alignment floor became coverage-aware, and short hits stopped vetoing (2026-09-02/03)
+
+**The floor.** A species name needs a long enough alignment: 1,200 bases for SSU,
+600 for ITS and the fungal LSU. Measured on the local sets: 57 to 71 per cent
+of the ITS references are shorter than 600 bases, so an ITS record matched end
+to end over 520 of its 540 bases was refused a species name for a floor it
+could never reach. `hizalama_yeterli()` in `verification/identity_verification.py`
+is now the one place the rule lives: an alignment passes when it reaches the
+floor, or when it is at least 250 bases and covers at least 90 per cent of the
+record. The record length travels with every hit (`slen` in the BLAST layout,
+`kayit_uz` in the aligner's hits); the target-identity cache key changed with
+the layout so no stale six-column output is read as "no hits". On the study
+data the exception named no new species (measured); it exists so that the next
+data set is judged by evidence rather than by a number chosen for 16S.
+
+**Short hits do not veto.** A 72 bp hit at 100 per cent used to win the sort
+and the bin was "cannot be named" while a 1,400 bp hit at 99 per cent sat
+below it. Hits under 250 bases are removed before ranking in
+`steps/target_identity.py` and `verification/locus_decision.py`; when nothing
+is left the list stays as it was, so the nearest record is still shown. One
+fungal bin recovered its genus on the study data.
+
+**A NameError found by pyflakes.** `verification/recovery_round.py` route 5
+called `bolgeler_kur(motor, ...)` in a function that never defined `motor`;
+the engine is imported there as `engine_gateway`. Every test had passed
+because none reached a backbone. `tests/test_alignment_floor.py` covers the
+floor, the veto and the tuple layouts.

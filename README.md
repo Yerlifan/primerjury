@@ -123,7 +123,11 @@ The thresholds come from one place, `verification/identity_verification.py`, and
 follow the locus: 98.7 per cent for SSU (Kim et al. 2014), 99.6 for ITS and 99.8
 for the fungal LSU (Vu et al. 2018). A species name is also refused when the
 alignment is too short to carry it: 100 per cent over 484 bases and 100 per cent
-over 2,900 are not the same evidence.
+over 2,900 are not the same evidence. A record matched over at least 250 bases that
+covers at least 90 per cent of the record counts in full, because more than
+half of the ITS references are shorter than the ITS floor (measured). Hits
+under 250 bases are removed before ranking, so a short junk hit cannot veto
+the genus a long one would give.
 
 ### Starting from raw reads
 

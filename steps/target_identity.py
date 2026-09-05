@@ -81,7 +81,8 @@ except Exception as _e2:                       # pragma: no cover
 # no silent return to the old behaviour.
 try:
     from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,
-                                       EN_AZ_HIZALAMA, ADSIZ_JETONLARI)
+                                       EN_AZ_HIZALAMA, ADSIZ_JETONLARI,
+                                       EN_AZ_KANIT, hizalama_yeterli)
     _ESIK_KAYNAK = 'verification/identity_verification.py'
 except Exception as _e:
     TUR_ESIGI = {'SSU': 98.7, 'LSU': 98.7, 'LSU_MANTAR': 99.8,
@@ -93,6 +94,15 @@ except Exception as _e:
     ADSIZ_JETONLARI = ('uncultured', 'unclassified', 'unidentified',
                        'environmental', 'metagenome', 'enrichment', 'clone')
     AYRIM_PAYI = 0.5
+    EN_AZ_KANIT = 250
+
+    def hizalama_yeterli(lokus, aln, kayit_uz=None):
+        aln = aln or 0
+        if aln >= EN_AZ_HIZALAMA.get(lokus, 600):
+            return True, u''
+        if kayit_uz and aln >= EN_AZ_KANIT and aln >= 0.90 * kayit_uz:
+            return True, u'covers %d of the record\'s %d bases' % (aln, kayit_uz)
+        return False, u''
     _ESIK_KAYNAK = 'A BACKUP COPY (%s)' % type(_e).__name__
 
 
@@ -339,7 +349,7 @@ def lokus_duzelt(bolge, baslik):
     return lokus
 
 
-def esik_uygula(adi, pid, lokus, aln=0, rakip=None):
+def esik_uygula(adi, pid, lokus, aln=0, rakip=None, kayit_uz=None):
     """A species name is given only if the SPECIES THRESHOLD of the locus is passed.
 
     Returns (name, note). If the threshold is not passed the name comes down to
@@ -353,6 +363,7 @@ def esik_uygula(adi, pid, lokus, aln=0, rakip=None):
     te = TUR_ESIGI.get(lokus, 98.7)
     ce = CINS_ESIGI.get(lokus, 94.5)
     enaz = EN_AZ_HIZALAMA.get(lokus, 600)
+    _yeterli, _kapsama_notu = hizalama_yeterli(lokus, aln, kayit_uz)
     if ust_rank_mi(adi):
         # A rank above genus. Neither the species threshold nor "cf." applies to
         # it: there is no species claim here to qualify. The genus threshold is
@@ -366,7 +377,7 @@ def esik_uygula(adi, pid, lokus, aln=0, rakip=None):
         # A short alignment is not evidence of a species. 100 per cent over 484
         # bases and 100 per cent over 2900 bases are not the same evidence; the
         # hit is not thrown away, it is only kept from rising to species level.
-        if aln and aln < enaz:
+        if aln and not _yeterli:
             cins = cins_ayikla(adi)
             return (cins + ' sp.' if cins else adi,
                     u'the alignment is only %d bases and the %s locus wants at least '
@@ -387,7 +398,7 @@ def esik_uygula(adi, pid, lokus, aln=0, rakip=None):
                         u'%.2f per cent, against a separation margin of %.2f, so the '
                         u'species name was given with "cf."'
                         % (rad, pid - rpid, rpid, AYRIM_PAYI))
-        return adi, ''
+        return adi, _kapsama_notu
     cins = cins_ayikla(adi)
     if pid >= ce and cins:
         return cins + ' sp.', (u'below the species threshold of %.2f per cent (%s), '
@@ -512,7 +523,8 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         isb = lokus_isabet.get(bolge) or []
         if not isb:
             continue
-        pid, aln, tit, dbad = isb[0]
+        pid, aln, tit, dbad = isb[0][:4]
+        kayit_uz = isb[0][4] if len(isb[0]) > 4 else None   # record length (slen)
         adi = ad_ayikla(tit)
         if adi and adsiz_mi(adi):
             adi = None
@@ -532,14 +544,15 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         # Methanosarcina mazei stood at the same identity over the same length.
         if (not adi) or ust_rank_mi(adi):
             yakin = None
-            for rpid, raln, rtit, rdb in isb[1:]:
+            for _x in isb[1:]:
+                rpid, raln, rtit, rdb = _x[:4]
                 rad = ad_ayikla(rtit)
                 if (rad and not adsiz_mi(rad) and not ust_rank_mi(rad)
                         and (pid - rpid) <= AYRIM_PAYI):
-                    yakin = (rpid, raln, rad, rtit, rdb)
+                    yakin = (rpid, raln, rad, rtit, rdb, _x[4] if len(_x) > 4 else None)
                     break
             if yakin:
-                rpid, raln, rad, tit, dbad = yakin
+                rpid, raln, rad, tit, dbad, kayit_uz = yakin
                 on_not = (u'the best hit gives no name below genus (%s), so a '
                           u'named record at %.2f per cent was used'
                           % (adi or u'none', rpid))
@@ -556,14 +569,15 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         # inventing an uncertainty that was not measured.
         rakip = None
         if ' ' in (adi or ''):
-            for rpid, _raln, rtit, _rdb in isb:
+            for _x in isb:
+                rpid, rtit = _x[0], _x[2]
                 rad = ad_ayikla(rtit)
                 if (rad and not adsiz_mi(rad) and rad != adi and ' ' in rad
                         and not ust_rank_mi(rad)):
                     rakip = (rpid, rad)
                     break
         if esik_uygula_mi:
-            adi, aciklama = esik_uygula(adi, pid, lokus, aln, rakip)
+            adi, aciklama = esik_uygula(adi, pid, lokus, aln, rakip, kayit_uz)
         else:
             aciklama = u''
         if on_not:
@@ -585,13 +599,14 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
                 i2 = lokus_isabet.get(b2) or []
                 if not i2:
                     continue
-                p2, a2, t2, _d2 = i2[0]
+                p2, a2, t2, _d2 = i2[0][:4]
+                s2 = i2[0][4] if len(i2[0]) > 4 else None
                 ad2 = ad_ayikla(t2)
                 if not ad2 or adsiz_mi(ad2) or ust_rank_mi(ad2) or ' ' not in ad2:
                     continue
                 l2 = lokus_duzelt(b2, t2)
                 if (p2 >= TUR_ESIGI.get(l2, 98.7)
-                        and a2 >= EN_AZ_HIZALAMA.get(l2, 600)):
+                        and hizalama_yeterli(l2, a2, s2)[0]):
                     derin.append(u'%s says %s at %.2f per cent over %d bp'
                                  % (b2, ad2, p2, a2))
             if derin:
@@ -617,7 +632,7 @@ def oyla_mantar(lokus_isabet):
         if not isb:
             continue
         kararlar[bolge] = _LD.lokus_karari(
-            [(pid, aln, 0, 0, tit) for pid, aln, tit, _db in isb],
+            [(x[0], x[1], 0, 0, x[2], x[4] if len(x) > 4 else None) for x in isb],
             lokus_duzelt(bolge, isb[0][2]), ad_ayikla, cins_epitet,
             ADSIZ_JETONLARI)
     if not kararlar:
@@ -688,7 +703,7 @@ def main():
         "target_identity.json")
     defter = Defter(kp, imza={"sinif_db": SINIF_DB, "db": a.db,
                               "blast": "blastn -evalue 1e-20 -max_target_seqs 50",
-                              "min_hizalama": a.min_alignment, "surum": "v2"})
+                              "min_hizalama": a.min_alignment, "surum": "v3-slen"})
 
     # one blastn call per class and database
     # kutu_lokus: {bin: {region: [(pid, aln, title, database), ...]}}
@@ -710,7 +725,7 @@ def main():
             # blastn and makeblastdb are skipped. makeblastdb is more expensive
             # than blastn on some databases, and doing it the other way round
             # would eat most of the benefit of the rescue.
-            ck = u"%s|%s|%s" % (sinif, dbad, a.min_alignment)
+            ck = u"%s|%s|%s|slen" % (sinif, dbad, a.min_alignment)   # the layout changed: slen added
             onbellekten = defter.al(ck) if defter.var(ck) else None
             if onbellekten is not None:
                 open(cikti, "w", encoding="utf-8").write(onbellekten)
@@ -722,7 +737,7 @@ def main():
                     continue
                 r = subprocess.run(
                     ["blastn", "-query", sorgu, "-db", db, "-outfmt",
-                     "6 qseqid pident length bitscore qlen stitle",
+                     "6 qseqid pident length bitscore qlen stitle slen",
                      # 5 -> 50 (2026-08-25). max_target_seqs cuts by BLAST's OWN
                      # bitscore ordering. Because bitscore grows with length, a
                      # short but exactly matching type strain record could not get
@@ -749,10 +764,11 @@ def main():
                           % type(e).__name__)
             for line in open(cikti, encoding="utf-8"):
                 q = line.rstrip("\n").split("\t")
-                if len(q) < 6:
+                if len(q) < 7:
                     continue
                 et, pid, aln, bit, qlen, tit = (q[0], float(q[1]), int(q[2]),
                                                 float(q[3]), int(q[4]), q[5])
+                slen = int(q[6])          # the record's length, for the coverage exception
                 if aln < a.min_alignment or pid < a.min_identity:
                     # The best hit that fails the filter is kept too. "No match"
                     # and "the nearest relative is at 88 per cent" are not the same
@@ -761,7 +777,7 @@ def main():
                     if et not in zayif_en or bit > zayif_en[et][0]:
                         zayif_en[et] = (bit, pid, aln, tit, bolge, dbad)
                     continue
-                kutu_lokus[et][bolge].append((pid, aln, tit, dbad))
+                kutu_lokus[et][bolge].append((pid, aln, tit, dbad, slen))
 
     shutil.rmtree(calisma, ignore_errors=True)
 
@@ -780,6 +796,12 @@ def main():
             # before "N". The name is what the reader is being shown; the record
             # that supplies it should be the one credited. The header stays as
             # the final step so the order is the same on every run and machine.
+            # Hits under the evidence floor are removed BEFORE ranking (2026-09-03):
+            # a 72 bp junk hit at 100 per cent used to win the sort and veto the
+            # genus a 1,400 bp hit at 99 per cent would have given. If nothing
+            # is left the list stays as it was, so the nearest record is still shown.
+            kutu_lokus[et][bolge] = ([x for x in kutu_lokus[et][bolge] if x[1] >= EN_AZ_KANIT]
+                                     or kutu_lokus[et][bolge])
             kutu_lokus[et][bolge].sort(
                 key=lambda x: (-x[0], -x[1], 0 if _adli_mi(x[2]) else 1, x[2]))
 
