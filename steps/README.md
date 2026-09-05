@@ -6,6 +6,16 @@ Kraken2 branch reclassifies the raw reads. The ambiguous base branch measures th
 N positions and produces a mask, and it works from the consensus and fastq files
 that are already there.
 
+## Binning without a classifier
+
+`from_raw.sh` drives `split_barcodes.py`, `bin_reads.py` and `select_bins.py`:
+demultiplexed BAMs to per-barcode fastq, per-barcode bins by length peak and
+minimap2 clustering, then the subset that enters the chain. Barcodes are binned
+`--parallel` at a time, each with `--threads` minimap2 threads; a barcode that
+already has its table and bin files is skipped, and one that another process is
+binning is waited for, so an interrupted run continues with the same command.
+The bins are `BIN<n>` and the consensus steps read them like taxids.
+
 ## Kraken2, a 106 GB database and 16 GB of RAM
 
 `reclassify_kraken2.sh` compares the database size against the available RAM and

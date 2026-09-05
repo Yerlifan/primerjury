@@ -101,6 +101,7 @@ cat <<'EOF'
   ------------------------------------------------------------------- RUNNING
 
     ./primerjury run                   The full chain, ten stages, in order
+    ./primerjury bins --map M --bam-dir D   Bins from raw reads, no classifier
     ./primerjury identity              Identity verification only
     ./primerjury specificity           Four-layer specificity only
     ./primerjury panel                 Single-protocol panel measurement
@@ -165,6 +166,7 @@ cmd_install() {
     esac
 }
 
+cmd_bins()        { kos bash steps/from_raw.sh "$@"; }
 cmd_run()         { kos "$PY" verification/full_chain.py --root . --confirm "$@"; }
 cmd_identity()    { kos "$PY" verification/identity_verification.py --root . "$@"; }
 cmd_specificity() { kos "$PY" verification/specificity_round.py --root . "$@"; }
@@ -223,6 +225,7 @@ case "$KOMUT" in
     install)            platform_check "$KOMUT"; cmd_install "$@" ;;
     index)              platform_check "$KOMUT"; cmd_index "$@" ;;
     run)                platform_check "$KOMUT"; cmd_run "$@" ;;
+    bins)               platform_check "$KOMUT"; cmd_bins "$@" ;;
     identity)           platform_check "$KOMUT"; cmd_identity "$@" ;;
     specificity)        platform_check "$KOMUT"; cmd_specificity "$@" ;;
     panel)              platform_check "$KOMUT"; cmd_panel "$@" ;;
