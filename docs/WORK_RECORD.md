@@ -948,3 +948,35 @@ machine froze). `steps/bin_reads.py` defines bins from the reads instead.
 They go beside the output, not to `/tmp`: on WSL `/tmp` lives in the virtual
 disk, which grows and does not shrink when files are deleted (C: fell from 43
 to 20 GB before this was understood).
+
+---
+
+## 15. Consensus selection floor and the read-level primer check (2026-09-02/05)
+
+### 15.1 `steps/select_consensus.py`
+
+A bin can have several consensuses. The choice is made by the bin's own reads
+(what fraction of the consensus's k-mers occur in a read sample), never by the
+reference (circular) and never by "fewest N": measured, a zero-N anchored
+consensus sat fourteen identity points further from the reference than the
+dominant-allele one with 0.5 per cent N. New on 2026-09-04: a chosen consensus
+with read support below 60 per cent is marked `trusted = NO`. Two bins had been
+"chosen" at 2.2 and 3.0 per cent, the visible face of section 13.1; the floor
+does not hide the fault, it names it.
+
+### 15.2 `verification/read_level_primer_check.py`
+
+An in silico PCR over the raw reads that shares no code with the panel:
+pigeonhole search, at most one mismatch per primer, the two 3' bases exact,
+both orientations, 40-700 bp products, at most 4,000 reads per bin, four
+workers. The verdict rule is unchanged from the study (worst member bin at
+least 8x the worst competitor bin, then the pooled ratio), with one addition:
+
+**The ARMS trap.** Two oligos of the ordered panel disagreed with the template
+at the third base from the 3' end in 100 per cent of the target reads. The
+candidate generator's deliberate -2/-3 variants had scored 81.5x against 70.9x
+for the plain candidate under the panel's "at most one mismatch" rule, and
+nothing downstream could tell. The independent measurement showed no
+difference. The rule that catches it: mm0 over the members equal to zero while
+mm1 amplifies is a systematic mismatch and is written into the verdict. The
+deliberate variants are off by default in the generator (`--arms-max 0`).

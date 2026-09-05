@@ -102,6 +102,8 @@ cat <<'EOF'
 
     ./primerjury run                   The full chain, ten stages, in order
     ./primerjury bins --map M --bam-dir D   Bins from raw reads, no classifier
+    ./primerjury consensus             Choose each bin's consensus by read support
+    ./primerjury readcheck --pairs P   Read-level in silico PCR with mm0 (ARMS trap)
     ./primerjury identity              Identity verification only
     ./primerjury specificity           Four-layer specificity only
     ./primerjury panel                 Single-protocol panel measurement
@@ -167,6 +169,8 @@ cmd_install() {
 }
 
 cmd_bins()        { kos bash steps/from_raw.sh "$@"; }
+cmd_readcheck()   { kos "$PY" verification/read_level_primer_check.py --root . "$@"; }
+cmd_consensus()   { kos "$PY" steps/select_consensus.py --root . "$@"; }
 cmd_run()         { kos "$PY" verification/full_chain.py --root . --confirm "$@"; }
 cmd_identity()    { kos "$PY" verification/identity_verification.py --root . "$@"; }
 cmd_specificity() { kos "$PY" verification/specificity_round.py --root . "$@"; }
@@ -225,6 +229,8 @@ case "$KOMUT" in
     install)            platform_check "$KOMUT"; cmd_install "$@" ;;
     index)              platform_check "$KOMUT"; cmd_index "$@" ;;
     run)                platform_check "$KOMUT"; cmd_run "$@" ;;
+    consensus)          platform_check "$KOMUT"; cmd_consensus "$@" ;;
+    readcheck)          platform_check "$KOMUT"; cmd_readcheck "$@" ;;
     bins)               platform_check "$KOMUT"; cmd_bins "$@" ;;
     identity)           platform_check "$KOMUT"; cmd_identity "$@" ;;
     specificity)        platform_check "$KOMUT"; cmd_specificity "$@" ;;

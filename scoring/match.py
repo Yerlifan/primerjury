@@ -26,7 +26,7 @@ def main():
     ap.add_argument('--input', dest='girdi', required=True)
     ap.add_argument('--output', dest='cikti', required=True)
     ap.add_argument('--short', dest='kisa', type=int, default=70)
-    ap.add_argument('--arms', type=int, default=16)
+    ap.add_argument('--arms', type=int, default=0)  # ARMS off by default: the -2/-3 variants scored artificially high under the mm<=1 rule (WORK_RECORD 15.2)
     ap.add_argument('--check', dest='kontrol', type=int, default=150)
     g = ap.parse_args()
 

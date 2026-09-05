@@ -62,6 +62,20 @@ silently confirm itself in another:
 If the layers disagree, the pair is marked `CELISKILI` (contradictory) and is
 **not** orderable. Disagreement is treated as information, not as noise.
 
+### The exact-match rate is reported, not only "at most one mismatch"
+
+Two oligos of the delivered panel disagreed with the template at the third
+base from the 3' end in **100 per cent** of the target reads. Not a typo: the
+candidate generator had produced deliberate -2/-3 variants (ARMS-style), the
+panel criterion "at most one mismatch" could not see them, and the variant
+scored artificially high. Nothing in the delivery said ARMS.
+
+`verification/read_level_primer_check.py` therefore reports **mm0** (both
+primers exact) next to mm1 for every pair and every bin, and flags a pair as
+carrying a SYSTEMATIC MISMATCH when its members amplify at mm1 but the pooled
+mm0 rate is zero. The deliberate-mismatch variants are off by default in the
+generator.
+
 ### Identity verification
 
 `verification/identity_verification.py` deliberately shares no mechanism with Kraken2:

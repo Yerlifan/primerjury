@@ -520,7 +520,7 @@ def _ayirt_onbellekli(U, uye_diz, rak_diz):
 # -------------------------------------------------------------------------
 def yol3_yeniden_tasarim(kok, nm, hedef, uye, rakip, kons, mevcut_F, mevcut_R,
                          yalniz_ileri=False, aday_ust=400, tarama_ust=3000,
-                         arms_ust=5, yaz=print):
+                         arms_ust=0, yaz=print):
     'Look for a new pair plus its ARMS variants. Without primer3 it skips cleanly.'
     import importlib.util
     if importlib.util.find_spec('primer3') is None:
@@ -849,7 +849,7 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
 # taken as the backbone and at least one design attempt is made.
 # -------------------------------------------------------------------------
 def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI,
-             arms_ust=5, panelsiz_atla=False):
+             arms_ust=0, panelsiz_atla=False):
     os.environ['_RECOVERY_ROOT'] = kok
     sys.path.insert(0, kok)
     from screening import sample as N, hedefler as H
@@ -969,7 +969,7 @@ def calistir(kok, aday_ust, yalniz, sifirla, tarama_ust=3000, okuma=OKUMA_TAVANI
 # measured at a different depth is the very mistake this chain is trying to correct.
 # -------------------------------------------------------------------------
 def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
-         aday_ust, gunluk, alias=None, tarama_ust=3000, arms_ust=5,
+         aday_ust, gunluk, alias=None, tarama_ust=3000, arms_ust=0,
          okuma=OKUMA_TAVANI):
     alias = alias or {}
     def kp(ad):
@@ -1429,7 +1429,7 @@ def main():
                    help='at most this many primer candidates sampled from the '
                         'backbone in the third route scan')
     p.add_argument('--only', dest='yalniz', default=None, help='only targets whose name contains this (test)')
-    p.add_argument('--arms-max', dest='arms_ust', type=int, default=5,
+    p.add_argument('--arms-max', dest='arms_ust', type=int, default=0,  # ARMS off by default: the -2/-3 variants scored artificially high under the mm<=1 rule (WORK_RECORD 15.2)
                    help='for how many candidates the ARMS variants are '
                         'produced')
     p.add_argument('--reads', dest='okuma', type=int, default=OKUMA_TAVANI,

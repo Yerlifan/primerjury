@@ -155,7 +155,7 @@ HUNI = dict(
     cift_ust        = 400000,   # asama B: sayilan en fazla cift (izgara tablosu bunun uzerinden)
     numuneye_giden  = 1200,     # stage C: the candidate pairs going to the raw read scan
     referansa_giden = 120,      # stage D: the ones going to reference coverage and competitor separation
-    arms_taban      = 25,       # the number of 'best' candidates ARMS is tried on
+    arms_taban      = 0,        # ARMS off by default (2026-09-02 trap, WORK_RECORD 15.2); was 25
     arms_ust        = 400,      # numunede olculen en fazla ARMS varyanti
     kusele_giden    = 12,       # asama E: kuresel taramaya giden (EN PAHALI)
 )
