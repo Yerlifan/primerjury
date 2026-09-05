@@ -53,7 +53,10 @@ from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,   # noqa: 
 MANTAR_LOKUSLARI = [
     (u'18S', ['fungi.18SrRNA.fna'], 'SSU'),
     (u'ITS', ['fungi.ITS.fna', 'UNITE_ITS.fasta'], 'ITS'),
-    (u'28S', ['fungi.28SrRNA.fna'], 'LSU_MANTAR'),
+    # SILVA LSU NR99 (a DNA copy, indexed) beside RefSeq's 12,890 fungal 28S records; a
+    # missing database is reported by the resolver, never skipped silently. LSU Parc is
+    # deliberately out: uncurated short records (a 484 bp Petriella came from there).
+    (u'28S', ['fungi.28SrRNA.fna', 'SILVA_138.2_LSURef_NR99_DNA.fasta'], 'LSU_MANTAR'),
 ]
 # EN_AZ_KANIT (250 bp, below which nothing is named) comes from identity_verification.
 
