@@ -39,6 +39,7 @@
 #        --pt  /path/to/project \
 #        --out /path/to/project/referans_konsensus \
 #        [--groups F1,F2] [--threads N] [--sample 50] [--min-depth N]
+#        [--word-size 64] [--max-reads 60000]
 #        [--db ROD_v1.2_operon_variants.fasta]   inside REFERENCE_DB, comma separated
 # =====================================================================
 set -euo pipefail
@@ -46,6 +47,16 @@ set -euo pipefail
 # CAREFUL: GROUPS is a bash builtin array (the user's group ids) and assigning to
 # it is silently ignored. That is why the name GRUP_SEC is used.
 PT=""; OUT=""; THREADS=""; SAMPLE=50; GRUP_SEC=""; MINDEPTH=""; DB_OVERRIDE=""
+# --word-size: BLAST seed length for the reference search. MEASURED 2026-09-05 on a
+# bacterial bin against SILVA SSU NR99 (510,495 records): 20 reads took 107 s at the
+# default 28 and 4 s at 64, with the same five best records and the same summed
+# bitscores. Bacterial 16S queries seed on tens of thousands of near-identical
+# records, and the seeds, not the disk, were the cost. A 64-base exact run is common
+# in a nanopore read at 1 per cent error, so 64 is the default.
+# --max-reads: reads used per bin for the alignment and the consensus. A 2.6 GB bin
+# (1.09 million reads) took samtools consensus to 7.6 GB of memory on a 16 GB
+# machine; 60,000 reads give depth in the thousands, which is all a consensus uses.
+WORD_SIZE=64; MAX_READS=60000
 DBKOK=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -53,6 +64,8 @@ while [ $# -gt 0 ]; do
     --out) OUT="$2"; shift 2;;
     --threads) THREADS="$2"; shift 2;;
     --sample) SAMPLE="$2"; shift 2;;
+    --word-size) WORD_SIZE="$2"; shift 2;;
+    --max-reads) MAX_READS="$2"; shift 2;;
     --groups) GRUP_SEC="$2"; shift 2;;
     --min-depth) MINDEPTH="$2"; shift 2;;
     --db) DB_OVERRIDE="$2"; shift 2;;
@@ -112,7 +125,8 @@ if [ -n "$DB_OVERRIDE" ]; then
 fi
 
 MAP="$OUT/referans_secimi.tsv"
-printf 'grup\ttaxid\tfastq\tveritabani\treferans_id\tref_uzunluk\tbit_toplam\thit_okuma\n' > "$MAP"
+# On a resumed run the map is appended to, not truncated: the earlier rows are the record.
+[ -s "$MAP" ] || printf 'grup\ttaxid\tfastq\tveritabani\treferans_id\tref_uzunluk\tbit_toplam\thit_okuma\n' > "$MAP"
 
 shopt -s nullglob
 TOTAL=0; DONE=0; SKIPPED=0
@@ -152,6 +166,15 @@ for fq in "$PT/fastq files"/*/*.fastq; do
     continue
   fi
   log "[$DONE] $tag"
+  # The read cap: the first MAX_READS reads are used; the raw file is untouched and the
+  # subsample sits under log/ so the number that made the consensus is on record.
+  _n=$(( $(wc -l < "$fq") / 4 ))
+  if [ "$MAX_READS" -gt 0 ] && [ "$_n" -gt "$MAX_READS" ]; then
+    _alt="$OUT/log/${tag}_subsample_${MAX_READS}.fastq"
+    head -n $(( MAX_READS * 4 )) "$fq" > "$_alt"
+    log "    $tag: $_n reads > $MAX_READS, the first $MAX_READS are used ($(basename "$_alt"))"
+    fq="$_alt"
+  fi
 
   reffa="$OUT/ref/${tag}_ref.fasta"
   if [ ! -s "$reffa" ]; then
@@ -166,7 +189,7 @@ for fq in "$PT/fastq files"/*/*.fastq; do
       [ -e "$d.nin" ] || { echo "  no index, skipped: $d" >&2; continue; }
       bo="$OUT/blast/${tag}_$(basename "$d").tsv"
       blastn -query "$q" -db "$d" -outfmt '6 qseqid sseqid bitscore pident length' \
-             -max_target_seqs 5 -evalue 1e-20 -num_threads "$THREADS" \
+             -max_target_seqs 5 -evalue 1e-20 -num_threads "$THREADS" -word_size "$WORD_SIZE" \
              > "$bo" 2> "$OUT/log/${tag}_blast.log" || true
       [ -s "$bo" ] || continue
       read -r sid bit nq < <(awk -F'\t' '{b[$2]+=$3; q[$2"|"$1]=1}

@@ -1010,3 +1010,27 @@ called `bolgeler_kur(motor, ...)` in a function that never defined `motor`;
 the engine is imported there as `engine_gateway`. Every test had passed
 because none reached a backbone. `tests/test_alignment_floor.py` covers the
 floor, the veto and the tuple layouts.
+
+---
+
+## 17. The reference search was seed-bound, and a bin could eat the memory (2026-09-05)
+
+Re-running the anchored consensus step over 468 Kraken-free bins: archaeal bins
+took 0.4 minutes each and bacterial bins 3.9 (up to 12.9). The first suspicion
+was the disk (the databases sat on a Windows drive mounted into WSL); moving
+them onto the WSL disk changed nothing. Measured directly: 20 bacterial reads
+against SILVA SSU NR99 took 107 s with the default BLAST word size of 28,
+15.7 s at 48, **4.0 s at 64** and 0.75 s at 96, and at every word size the five
+best records and their summed bitscores were identical. Bacterial 16S queries
+seed on tens of thousands of near-identical SILVA records; the seeds were the
+cost. `--word-size` defaults to 64. With it, bacterial and fungal bins take
+about a minute each instead of four to thirteen.
+
+A 2.6 GB bin (1,088,958 reads) took `samtools consensus` to 7.6 GB of resident
+memory on a 16 GB machine with 11 GB given to WSL. `--max-reads` (60,000)
+caps the reads used for the alignment and the consensus; the subsample is
+written under `log/` so the number that made the consensus is on record.
+
+The reference map was also being truncated on every resumed run, so a run that
+stopped and continued lost the rows of the bins it had already done; it is
+appended to now.
