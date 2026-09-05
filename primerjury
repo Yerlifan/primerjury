@@ -103,6 +103,7 @@ cat <<'EOF'
     ./primerjury run                   The full chain, ten stages, in order
     ./primerjury bins --map M --bam-dir D   Bins from raw reads, no classifier
     ./primerjury consensus             Choose each bin's consensus by read support
+    ./primerjury fungi                 Fungal bins: split by ITS population, polish the dominant one
     ./primerjury qiime2 [profile|classify|picrust|all]   The independent QIIME2 route
     ./primerjury readcheck --pairs P   Read-level in silico PCR with mm0 (ARMS trap)
     ./primerjury identity              Identity verification only
@@ -172,6 +173,7 @@ cmd_install() {
 cmd_bins()        { kos bash steps/from_raw.sh "$@"; }
 cmd_readcheck()   { kos "$PY" verification/read_level_primer_check.py --root . "$@"; }
 cmd_consensus()   { kos "$PY" steps/select_consensus.py --root . "$@"; }
+cmd_fungi()       { kos "$PY" verification/fungal_bin_identity.py --root . "$@"; }
 cmd_qiime2() {
     local ne="${1:-profile}"; shift 2>/dev/null || true
     case "$ne" in
@@ -242,6 +244,7 @@ case "$KOMUT" in
     run)                platform_check "$KOMUT"; cmd_run "$@" ;;
     qiime2)             platform_check "$KOMUT"; cmd_qiime2 "$@" ;;
     consensus)          platform_check "$KOMUT"; cmd_consensus "$@" ;;
+    fungi)              platform_check "$KOMUT"; cmd_fungi "$@" ;;
     readcheck)          platform_check "$KOMUT"; cmd_readcheck "$@" ;;
     bins)               platform_check "$KOMUT"; cmd_bins "$@" ;;
     identity)           platform_check "$KOMUT"; cmd_identity "$@" ;;

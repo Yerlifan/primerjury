@@ -1073,3 +1073,27 @@ instead of the first N reads, the per-sample length window, the two feature
 thresholds, the one-reference rule in the consensus, the longer-alignment
 tie-break, and the SSU cut for operon-length features. The study's target
 EC/KO list is not built in; `--targets` takes a two-column file.
+
+---
+
+## 20. A mixed fungal bin has no single consensus (2026-09-05)
+
+The read-level witness and the consensus route disagreed on eight fungal bins:
+the consensus said *Scedosporium* sp. (ITS 97.66 per cent, under the 99.6
+species threshold), the reads said *Petriella musispora*. Measured against the
+*P. musispora* TYPE ITS record: the chain's consensus 97.25 per cent over 509 bp;
+the bin's single reads a median of 98.20 and a best of 100.00; 47 of 60 reads
+best-matched *Petriella*, the rest other Microascaceae. Two causes: the bins are
+mixed, so a per-position majority is a blend of two organisms; and the anchoring
+reference was another genus, so the ITS alignment was gapped.
+
+`verification/fungal_bin_identity.py` splits the bin by ITS population, chooses
+the dominant population's medoid read (k-mer similarity among the reads, no
+reference involved) as the template and polishes it in two rounds with minimap2
+and `samtools consensus`. The result is one more candidate set weighed by
+`select_consensus` with the same read-support rule; it wins where it represents
+the reads better and nowhere by decree. The read witness (`OKUMA_KANITI` in the
+study) now looks at the same databases as the consensus route (UNITE and SILVA
+LSU added), so a disagreement can no longer be a database artefact. Tests:
+`tests/test_fungal_bin_identity.py` (pure parts always; the tool-bound self-test
+with synthetic 70/30 mixtures when blastn, minimap2 and samtools are present).

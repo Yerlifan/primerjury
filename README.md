@@ -64,6 +64,7 @@ sequences/  (your .fasta / .fastq, or demultiplexed BAMs)
      │                         (steps/from_raw.sh; replaces step 1 when there is no Kraken2)
      ├─ 1. classify            Kraken2 + Bracken           (optional, see below)
      ├─ 2. consensus           per-bin consensus, N-analysis
+     ├─ 2b. fungal polish      split a mixed bin by ITS population, polish the dominant one
      │                         distinguishes low coverage from real strain variation
      ├─ 3. identity            12 reference databases, seed + full alignment,
      │                         NO taxonomy tree, ≥2 databases must agree
@@ -155,6 +156,27 @@ covers at least 90 per cent of the record counts in full, because more than
 half of the ITS references are shorter than the ITS floor (measured). Hits
 under 250 bases are removed before ranking, so a short junk hit cannot veto
 the genus a long one would give.
+
+### Fungal bins: a mixed bin has no single consensus
+
+Fungal amplicon bins are mixed. Measured on the study's data (2026-09-05): in
+one bin 78 per cent of the reads went to *Petriella* by ITS and the rest to
+other Microascaceae; the chain's blended consensus sat at 97.25 per cent to the
+*P. musispora* type record while the bin's own single reads reached a median of
+98.20 and a best of 100.00. A per-position majority over two organisms is a
+sequence between them, and in ITS that is close to nothing; the bin stayed at
+genus while its reads said species.
+
+`./primerjury fungi` (`verification/fungal_bin_identity.py`) splits each fungal
+bin read by read (best ITS record over RefSeq ITS and UNITE), keeps the dominant
+genus population, picks that population's medoid read as the template (chosen by
+k-mer similarity among the reads, not by any reference) and polishes it with
+minimap2 and `samtools consensus` in two rounds. The polished sequence is decided
+over the three loci with the same thresholds as everything else and lands as one
+more candidate set: `select_consensus` weighs it with the same read-support
+criterion, so it is used only where it represents the reads better. The per-read
+table doubles as the read-level witness, from the same databases as the
+consensus route. Self-test: `./primerjury fungi --self-test`.
 
 ### The QIIME2 route
 
