@@ -507,6 +507,11 @@ def polish_bin(root, label, reads, best, n_window, a, tmp):
         pop = list(reads)
         r.update(genus=u'-', share=0.0, genus2=u'-', share2=0.0)
         pop_note = u'no ITS hit above the genus threshold; all reads form one population'
+    if len(pop) < MIN_POPULATION and total < 0.1 * len(reads):
+        # fewer than 10 per cent of the reads reach an ITS record: a new lineage. All reads
+        # form one population (a new lineage); a consensus is still made, the name stays unnamed.
+        pop = list(reads)
+        pop_note = u'%s; ITS hits %d/%d (<10%%), all reads form one population' % (pop_note, total, len(reads))
     if len(pop) < MIN_POPULATION:
         r['note'] = u'%s: %d reads < %d, no consensus made' % (pop_note, len(pop), MIN_POPULATION)
         return r

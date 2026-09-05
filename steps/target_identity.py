@@ -82,7 +82,7 @@ except Exception as _e2:                       # pragma: no cover
 try:
     from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,
                                        EN_AZ_HIZALAMA, ADSIZ_JETONLARI,
-                                       EN_AZ_KANIT, hizalama_yeterli)
+                                       EN_AZ_KANIT, hizalama_yeterli, EPITET_DEGIL)
     _ESIK_KAYNAK = 'verification/identity_verification.py'
 except Exception as _e:
     TUR_ESIGI = {'SSU': 98.7, 'LSU': 98.7, 'LSU_MANTAR': 99.8,
@@ -95,6 +95,8 @@ except Exception as _e:
                        'environmental', 'metagenome', 'enrichment', 'clone')
     AYRIM_PAYI = 0.5
     EN_AZ_KANIT = 250
+    EPITET_DEGIL = frozenset(('sp', 'spp', 'cf', 'aff', 'nov', 'gen', 'genomosp', 'sp.', 'cf.', 'aff.',
+                          'strain', 'str', 'str.', 'isolate', 'clone', 'culture'))
 
     def hizalama_yeterli(lokus, aln, kayit_uz=None):
         aln = aln or 0
@@ -116,10 +118,23 @@ except Exception:                              # pragma: no cover
 
 
 def cins_epitet(ad):
-    """(genus, epithet) out of a name; the epithet is empty when there is none."""
+    """(genus, epithet) out of a name; the epithet is empty when there is none.
+    The epithet is what FOLLOWS the genus: 'Candidatus Methanofastidiosum' is a two
+    word genus with no epithet (the last token used to be taken, and the genus's own
+    second word became a 'species')."""
     cins = cins_ayikla(ad)
-    p = (ad or '').split()
-    return cins, (p[-1] if len(p) > 1 and p[-1] != cins else '')
+    rest = (ad or '')[len(cins):].split() if cins and (ad or '').startswith(cins) else []
+    return cins, (rest[0] if rest else '')
+
+
+def tur_epiteti_var(ad):
+    """Does the name carry a REAL species epithet? 'Petrimonas sp. IBARAKI' does not
+    ('sp' is a placeholder, EPITET_DEGIL), 'Candidatus Methanofastidiosum' does not
+    (genus only), 'Methanosarcina mazei' does."""
+    if not ad or adsiz_mi(ad) or ust_rank_mi(ad):
+        return False
+    _c, e = cins_epitet(ad)
+    return bool(_c) and bool(e) and e.lower() not in EPITET_DEGIL
 
 
 # --------------------------------------------------- WHICH DATABASE IS ASKED
@@ -373,6 +388,13 @@ def esik_uygula(adi, pid, lokus, aln=0, rakip=None, kayit_uz=None):
                          u'name, so this is as deep as the reference goes')
         return u'cannot be named', (u'below the genus threshold of %.2f per cent '
                                     u'(%s), no name can be given' % (ce, lokus))
+    if pid >= te and not tur_epiteti_var(adi):
+        # 'Candidatus Methanofastidiosum' or 'Petrimonas sp. IBARAKI' above the species
+        # threshold: the record carries no species name, so genus level is the ceiling.
+        cins = cins_ayikla(adi)
+        return (cins + ' sp.' if cins else adi,
+                u'the identity passes the species threshold but the record carries no '
+                u'species name, so genus level is as deep as it goes')
     if pid >= te:
         # A short alignment is not evidence of a species. 100 per cent over 484
         # bases and 100 per cent over 2900 bases are not the same evidence; the
@@ -390,9 +412,7 @@ def esik_uygula(adi, pid, lokus, aln=0, rakip=None, kayit_uz=None):
         if rakip:
             rpid, rad = rakip
             if rad and rpid is not None and (pid - rpid) < AYRIM_PAYI:
-                cins = cins_ayikla(adi)
-                _p = (adi or '').split()
-                epitet = _p[-1] if len(_p) > 1 else ''
+                cins, epitet = cins_epitet(adi)
                 return ('%s cf. %s' % (cins, epitet) if cins and epitet else adi,
                         u'the second species %s is only %.2f per cent behind at '
                         u'%.2f per cent, against a separation margin of %.2f, so the '
@@ -542,12 +562,19 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         # to stop the fallback in exactly the case it was built for. MEASURED on
         # a synthetic pair: the bin was named "Halobacteriota" while
         # Methanosarcina mazei stood at the same identity over the same length.
-        if (not adi) or ust_rank_mi(adi):
+        # 2026-09-06 (rule 2b): the fallback also fires when the top record names a GENUS
+        # only ('Petrimonas sp. IBARAKI', 'Candidatus Methanofastidiosum'): a record that
+        # names a SPECIES within the margin is taken instead. Measured in the study:
+        # 'Petrimonas sp. IBARAKI' on top left the bin at genus while P. sulfuriphila sat
+        # 0.10 behind; a genus name with a space was even written as a species.
+        _tur_gerek = bool(adi) and not ust_rank_mi(adi) and not tur_epiteti_var(adi)
+        if (not adi) or ust_rank_mi(adi) or _tur_gerek:
             yakin = None
             for _x in isb[1:]:
                 rpid, raln, rtit, rdb = _x[:4]
                 rad = ad_ayikla(rtit)
                 if (rad and not adsiz_mi(rad) and not ust_rank_mi(rad)
+                        and (not _tur_gerek or tur_epiteti_var(rad))
                         and (pid - rpid) <= AYRIM_PAYI):
                     yakin = (rpid, raln, rad, rtit, rdb, _x[4] if len(_x) > 4 else None)
                     break
@@ -568,12 +595,11 @@ def basamaktan_sec(lokus_isabet, basamak, esik_uygula_mi):
         # can be defended, and putting "cf." on the strength of one would be
         # inventing an uncertainty that was not measured.
         rakip = None
-        if ' ' in (adi or ''):
+        if tur_epiteti_var(adi):
             for _x in isb:
                 rpid, rtit = _x[0], _x[2]
                 rad = ad_ayikla(rtit)
-                if (rad and not adsiz_mi(rad) and rad != adi and ' ' in rad
-                        and not ust_rank_mi(rad)):
+                if (rad and rad != adi and tur_epiteti_var(rad)):   # a rival names a SPECIES
                     rakip = (rpid, rad)
                     break
         if esik_uygula_mi:

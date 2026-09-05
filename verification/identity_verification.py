@@ -1169,7 +1169,8 @@ EN_AZ_KANIT = 250          # below this many bases nothing is named at all
 # Epithets that do NOT name a species. 'Petriella sp. CBS 3' parses to the epithet 'sp' and the
 # locus decision took it for a species; in the rival loop an 'X sp.' record counted as a close
 # rival species and produced a false 'cf.'. One place; locus_decision reads it.
-EPITET_DEGIL = frozenset(('sp', 'spp', 'cf', 'aff', 'nov', 'gen', 'genomosp', 'sp.', 'cf.', 'aff.'))
+EPITET_DEGIL = frozenset(('sp', 'spp', 'cf', 'aff', 'nov', 'gen', 'genomosp', 'sp.', 'cf.', 'aff.',
+                          'strain', 'str', 'str.', 'isolate', 'clone', 'culture'))
 KAYIT_KAPSAMA = 0.90       # share of the record the alignment must cover
 
 
