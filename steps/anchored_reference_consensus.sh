@@ -130,8 +130,19 @@ for fq in "$PT/fastq files"/*/*.fastq; do
       *) SKIPPED=$((SKIPPED+1)); continue;;
     esac
   fi
-  tid=$(echo "$base" | sed -n 's/.*reads[-_]\([0-9]\+\).*/\1/p')
-  [ -n "$tid" ] || { echo "the taxid could not be extracted, skipped: $fq" >&2; continue; }
+  # The bin name is verified FROM THE FILE: the file prefix (A1-1 or A1_1) must
+  # match the folder. Five files of another group had been left in a folder and
+  # produced phantom bins named after the folder; one of them shared a taxid with
+  # a real file and, being first in glob order, its reads built that bin's
+  # consensus (measured 2026-09-04). A mismatching file is skipped and reported.
+  onek=$(echo "$base" | sed -n 's/^\(.*\)[-_]reads[-_].*/\1/p' | tr '_' '-')
+  if [ -n "$onek" ] && [ "$onek" != "$grp" ]; then
+    echo "FOLDER/PREFIX MISMATCH, skipped: $fq (prefix $onek, folder $grp)" >&2
+    SKIPPED=$((SKIPPED+1)); continue
+  fi
+  # The id is a taxid or a Kraken-free bin id (BIN<n> / OBEK<n>).
+  tid=$(echo "$base" | sed -n 's/.*reads[-_]\(BIN[0-9]\+\|OBEK[0-9]\+\|[0-9]\+\).*/\1/p')
+  [ -n "$tid" ] || { echo "the taxid/bin id could not be extracted, skipped: $fq" >&2; continue; }
   tag="${grp}_${tid}"
   DONE=$((DONE+1))
   # Resuming: a bin whose consensus has already been produced is not processed

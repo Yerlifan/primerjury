@@ -1361,7 +1361,12 @@ def _duzey_karar(isabetler, lokus='SSU'):
             _c2, _t2, _tam2 = ad_coz(adli['baslik'])
             yedek = dict(adli)
             yedek['_adsiz_rakip'] = tam1
-            kalan = [adli] + [h for h in say if h is not adli]
+            # The hits ABOVE the named one are all unnamed (adli is the first
+            # named hit inside the margin) and are dropped. Keeping them let the
+            # recursive call re-sort by identity, put the unnamed record back on
+            # top and recurse forever (RecursionError, measured 2026-09-05).
+            kalan = [adli] + [h for h in say
+                              if h is not adli and h['kimlik'] <= adli['kimlik']]
             alt = savunulabilir_duzey(kalan, lokus)
             alt['gerekce'] = (u'THE BEST HIT IS UNNAMED (%s, %s per cent) but a named '
                               u'record sits at the SAME closeness (%s per cent); the '
