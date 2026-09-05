@@ -1034,3 +1034,23 @@ written under `log/` so the number that made the consensus is on record.
 The reference map was also being truncated on every resumed run, so a run that
 stopped and continued lost the rows of the bins it had already done; it is
 appended to now.
+
+---
+
+## 18. A bin id is not a number (2026-09-05)
+
+With the Kraken-free bins in place the identity chain ran end to end in five
+minutes and reported "done" with an empty table. Five scripts parsed the bin
+label as `<library>_<digits>`: the dominant-allele step skipped all 420 bins
+("label could not be resolved"), the identity table scanned its consensus
+directory with the same pattern and found nothing, and two steps took their
+bin list from the identity table itself, which is produced two steps later, so
+on a fresh root the list was empty. Every output-existence check passed,
+because a table with a header line is "not empty".
+
+Fixes: one inventory function lists the bins from the read files (id numeric or
+`BIN<n>`, prefix must match the folder); the two early steps use it; the
+label patterns accept `BIN<n>` in the dominant-allele step, the identity table
+and `screening/targets.kutular()`. The lesson from section 11 applies again:
+a step's output must be checked by its record count, not by the presence of a
+file.

@@ -686,7 +686,10 @@ def main():
     for p in sorted(glob.glob(os.path.join(a.consensus, "*.fasta"))):
         et = re.sub(r"_(baskin|ref|self)?_?konsensus\.fasta$", "",
                     os.path.basename(p))
-        m = re.match(r"((?:A1|A2|B|F1|F2))-\d+_(\d+)$", et)
+        # <class>-<n>_<id>; the id is a taxid or a Kraken-free bin id (BIN<n>). The
+        # numeric-only form skipped every classifier-free bin (measured 2026-09-05:
+        # 420 of 420 bins, and the chain reported "done" with an empty table).
+        m = re.match(r"^([A-Z0-9]+)-\d+_(BIN\d+|OBEK\d+|\d+)$", et)
         if m:
             kutular[et] = (m.group(1), m.group(2), oku_fasta(p))
     if not kutular:
