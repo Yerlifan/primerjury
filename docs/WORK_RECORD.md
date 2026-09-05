@@ -850,3 +850,52 @@ report can still be traced to the file it came from.
 | the level check, first round | made while the reference match fault and the "sp" fault were still there |
 | the level check, no genus variant | made before the genus verdict was added |
 | the reference primers, narrow competitor variant | designed with the narrow competitor set |
+
+---
+
+## 13. Three silent faults found while re-running the study from raw reads (2026-09-05)
+
+All three passed syntax checking, the regression test and the repository health
+check. Each was found by measuring, not by reading.
+
+### 13.1 The dominant-allele step could not align reads to its own template
+
+`steps/dominant_allele_consensus.py` aligned the reads against the anchored
+consensus, which writes every variable column as an IUPAC letter. minimap2
+cannot seed on a k-mer that contains an IUPAC letter. In a mixed bacterial bin
+the template was 16.5 per cent IUPAC and **0 of 3,001 reads aligned**; the same
+200 reads gave 206 alignments against the plain reference (mean identity 0.938).
+A bin with a 25.8 per cent IUPAC template still aligned 2,870 reads, but the
+consensus carried twenty wrong bases (97.6 per cent to the nearest reference
+instead of 99.0), because the surviving seeds pulled the alignment sideways
+inside the IUPAC-dense regions. Over 99 bins the fix raised the covered
+columns from 172,285 to 175,588 and halved the ambiguous columns (565 to 316).
+Four bins changed taxonomic level, all upward, one from unnamed to species.
+
+Fix: the alignment template is built from the anchored step's reference (IUPAC
+and N take the reference base at the same coordinate; the anchored step keeps
+the lengths equal with `--show-ins no --show-del yes`). The counted bases still
+come from the reads. `--reference` names the directory; it defaults to `ref/`
+beside `--consensus`. The summary gains a `template` column. The same file
+reused the leading-N trim variable as the batch offset, so every bin with more
+than one batch reported `trim=2001-...`; the loop variable is now separate.
+
+### 13.2 The naming decision recursed forever
+
+`verification/identity_verification.py`: when the best hit is unnamed and a
+named record sits inside the margin, the decision is retaken through the named
+record. The recursive call re-sorted the list by identity, which put the
+unnamed record back on top, and the function called itself until Python gave
+up. The hits above the named one are all unnamed by construction and are now
+dropped before the recursive call. `tests/test_consensus_template.py` holds
+the four-hit case that reproduced it.
+
+### 13.3 Files of another group left in a bin folder became phantom bins
+
+`steps/anchored_reference_consensus.sh` named each bin after its folder. Five
+files of one library had been left in another library's folder (byte-identical
+twins, md5 verified). Four became phantom bins that copied the other library's
+rows into the table; the fifth shared a taxid with a real file and, being first
+in glob order, its reads built the real bin's consensus. The script now derives
+the prefix from the file name and skips, with a message, any file whose prefix
+does not match its folder. It also accepts Kraken-free bin ids (`BIN<n>`).

@@ -42,6 +42,51 @@ if alignment.ARKA_UC is None:
     sys.exit(alignment.durum())
 
 BAZLAR = "ACGT"
+IUPAC = {"R": "AG", "Y": "CT", "S": "CG", "W": "AT", "K": "GT", "M": "AC",
+         "B": "CGT", "D": "AGT", "H": "ACT", "V": "ACG"}
+
+
+def reference_for(ref_dir, label):
+    """The reference the anchored consensus step chose: <ref_dir>/<label>_ref.fasta."""
+    if not ref_dir:
+        return None
+    path = os.path.join(ref_dir, "%s_ref.fasta" % label)
+    return oku_fasta(path) if os.path.exists(path) else None
+
+
+def alignment_template(core, reference):
+    """Build the sequence the reads are aligned AGAINST; its coordinates equal the core's.
+
+    WHY: the anchored consensus writes every variable column as an IUPAC letter,
+    and minimap2 cannot seed on a k-mer that contains an IUPAC letter or an N.
+    MEASURED (2026-09-04): in a mixed bacterial bin the template was 16.5 per
+    cent IUPAC and 0 of 3,001 reads aligned to it, while 206 of 200 alignments
+    came back against the plain reference for the same reads. A second bin with
+    a 25.8 per cent IUPAC template looked healthy (2,870 aligned) yet carried
+    twenty wrong bases, because the few seeds that survived pulled the
+    alignment sideways inside the IUPAC-dense regions. The fault does not
+    announce itself; it only shows as "aligned=0" in the worst bins.
+
+    The template is used for ALIGNMENT ONLY. Every base that is counted comes
+    from the reads, so what the template carries decides alignability and
+    nothing else. When the reference has the same length as the core (the
+    anchored step keeps it so with --show-ins no --show-del yes), IUPAC letters
+    and N's take the reference base; otherwise the first base of the IUPAC
+    code is used and N's stay.
+
+    Returns (template, source) with source in {"reference", "first_base"}.
+    """
+    if reference is not None and len(reference) == len(core):
+        out = []
+        for i, c in enumerate(core):
+            if c in BAZLAR:
+                out.append(c)
+            else:
+                r = reference[i]
+                out.append(r if r in BAZLAR else IUPAC.get(r, "N")[0])
+        return "".join(out), "reference"
+    return ("".join(c if c in BAZLAR or c == "N" else IUPAC.get(c, "N")[0]
+                    for c in core), "first_base")
 
 
 def oku_fasta(f):
@@ -84,6 +129,9 @@ def get_args():
     p.add_argument("--consensus", required=True, help="self consensus directory")
     p.add_argument("--fastq", required=True, help="'fastq files' directory")
     p.add_argument("--out", required=True)
+    p.add_argument("--reference", default=None,
+                   help="directory of the anchored step's <label>_ref.fasta files; "
+                        "defaults to the ref/ directory beside --consensus")
     p.add_argument("--max-reads", type=int, default=3000)
     p.add_argument("--min-depth", type=int, default=20,
                    help="below this depth no base is called and N is written")
@@ -108,9 +156,16 @@ def main():
         sys.exit(u'no consensus found: %s' % a.consensus)
     print(alignment.durum())
     print(u'consensus files: %d' % len(dosyalar))
+    ref_dir = a.reference or os.path.join(
+        os.path.dirname(os.path.abspath(a.consensus.rstrip('/'))), 'ref')
+    if not os.path.isdir(ref_dir):
+        print(u'   NOTE: no reference directory (%s); templates fall back to the '
+              u'first base of each IUPAC code' % ref_dir)
+        ref_dir = None
     for f in dosyalar:
         etiket = re.sub(r"_(ref|self)_konsensus\.fasta$", "", os.path.basename(f))
-        m = re.match(r"((?:A1|A2|B|F1|F2)-\d+)_(\d+)$", etiket)
+        # <group>_<id>; the id is a taxid or a Kraken-free bin id (BIN<n>).
+        m = re.match(r"^(.+)_([A-Za-z]*\d+)$", etiket)
         if not m:
             print(u'   SKIPPED, the label could not be resolved: %s' % etiket)
             continue
@@ -138,8 +193,12 @@ def main():
         if not fq:
             print(u'   SKIPPED, no fastq: %s' % etiket)
             continue
+        reference = reference_for(ref_dir, etiket)
+        if reference is not None and len(reference) == len(ref):
+            reference = reference[bas:son]      # the same trim as the core
+        sablon, template_source = alignment_template(cekirdek, reference)
         try:
-            A = alignment.Hizalayici(seq=cekirdek, preset="map-ont")
+            A = alignment.Hizalayici(seq=sablon, preset="map-ont")
         except RuntimeError as e:
             sys.exit(str(e))
         if not A:
@@ -162,8 +221,11 @@ def main():
         hiz = 0
         # A bulk alignment: starting a process per read on the minimap2 command
         # line backend would be unacceptably slow.
-        for bas in range(0, len(okumalar), a.batch):
-            parca = dict(list(okumalar.items())[bas:bas + a.batch])
+        # `bas` is the leading-N trim and is reported in the header; it must
+        # not be reused as the batch offset (it was, and every bin with
+        # more than one batch reported trim=2001-...).
+        for start in range(0, len(okumalar), a.batch):
+            parca = dict(list(okumalar.items())[start:start + a.batch])
             for adq, hl in A.map_toplu(parca):
                 if not hl:
                     continue
@@ -227,9 +289,9 @@ def main():
         dizi = "".join(cikti)
         yol = os.path.join(a.out, "konsensus", "%s_baskin_konsensus.fasta" % etiket)
         with open(yol, "w", encoding="utf-8") as fh:
-            fh.write(u'>%s dominant_allele reads=%d aligned=%d min_depth=%d min_fraction=%.2f trim=%d-%d inner_N_in_input=%d\n'
+            fh.write(u'>%s dominant_allele reads=%d aligned=%d min_depth=%d min_fraction=%.2f trim=%d-%d inner_N_in_input=%d template=%s\n'
                      % (etiket, n, hiz, a.min_depth, a.min_fraction,
-                        bas + 1, son, ic_n))
+                        bas + 1, son, ic_n, template_source))
             for k in range(0, len(dizi), 70):
                 fh.write(dizi[k:k + 70] + "\n")
         if a.write_fractions:
@@ -244,7 +306,7 @@ def main():
                          hizalanan=hiz, uzunluk=len(dizi), kapsanan=kaps,
                          dusuk_derinlik=dusuk, belirsiz_cogunluk=belirsiz,
                          kirpma_bas=bas + 1, kirpma_son=son,
-                         girdideki_ic_N=ic_n))
+                         girdideki_ic_N=ic_n, template=template_source))
         print(u'   %-26s reads=%5d aligned=%5d length=%5d covered=%5d low_depth=%4d ambiguous=%4d'
               % (etiket, n, hiz, len(dizi), kaps, dusuk, belirsiz))
     if ozet:
