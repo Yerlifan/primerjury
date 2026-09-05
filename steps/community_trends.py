@@ -177,7 +177,7 @@ def guvenilirlik_kur(a):
         if not os.path.exists(yol):
             continue
         for r in csv.DictReader(open(yol, encoding="utf-8"), delimiter="\t"):
-            m = re.search(r"reads[-_](\d+)\.fastq", r.get("dosya", ""))
+            m = re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)\.fastq", r.get("dosya", ""))
             if not m:
                 continue
             tx = m.group(1)

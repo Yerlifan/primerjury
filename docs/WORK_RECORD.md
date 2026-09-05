@@ -1054,3 +1054,5 @@ label patterns accept `BIN<n>` in the dominant-allele step, the identity table
 and `screening/targets.kutular()`. The lesson from section 11 applies again:
 a step's output must be checked by its record count, not by the presence of a
 file.
+
+The design-stage scripts (`design_group_primers.py`, `specificity.py`, `design_from_reference.py`, `community_trends.py`, `reference_identity.py`, `analyze_ambiguous_bases.sh`) parsed the same numeric id; they accept `BIN<n>` as well now, and the class prefix is no longer a fixed list.

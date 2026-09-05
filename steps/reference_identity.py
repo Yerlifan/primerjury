@@ -152,14 +152,14 @@ def main():
 
     fq = collections.defaultdict(list)
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
-        m = re.search(r"((?:A1|A2|B|F1|F2)-\d+)[-_]reads[-_](\d+)\.fastq$",
+        m = re.search(r"([A-Z0-9]+-\d+)[-_]reads[-_](BIN\d+|OBEK\d+|\d+)\.fastq$",
                       os.path.basename(p))
         if m:
             fq[m.group(1)[:2].rstrip("-")].append((m.group(1), m.group(2), p))
     # sinif anahtarini duzelt (A1-4 -> A1)
     fq2 = collections.defaultdict(list)
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
-        m = re.search(r"((?:A1|A2|B|F1|F2))-(\d+)[-_]reads[-_](\d+)\.fastq$",
+        m = re.search(r"([A-Z0-9]+)-(\d+)[-_]reads[-_](BIN\d+|OBEK\d+|\d+)\.fastq$",
                       os.path.basename(p))
         if m:
             fq2[m.group(1)].append(("%s-%s" % (m.group(1), m.group(2)),
