@@ -92,7 +92,7 @@ for _d in (os.path.join(KOK, 'verification'), os.path.join(KOK, 'steps')):
         sys.path.insert(0, _d)
 from locus_decision import (MANTAR_LOKUSLARI, lokus_karari, birlestir,      # noqa: E402
                             raporlanan_yontem)
-from identity_verification import EN_AZ_KANIT, ADSIZ_JETONLARI              # noqa: E402
+from identity_verification import EN_AZ_KANIT, ADSIZ_JETONLARI, CINS_ESIGI  # noqa: E402
 from target_identity import ad_ayikla, cins_epitet                          # noqa: E402
 
 SET_DIR = os.path.join('referans_konsensus', 'fungal_polish', 'consensus')   # the new candidate set
@@ -104,6 +104,47 @@ MIN_DEPTH = 3          # samtools consensus -d
 PLACEHOLDER = ('sp', 'sp.', 'spp', 'spp.', 'cf', 'cf.', 'aff', 'aff.')
 FUNGAL_LIBS = ('F1', 'F2')
 ITS_DB = [d for lok, dbs, _a in MANTAR_LOKUSLARI if lok == u'ITS' for d in dbs]
+WINDOW_PAD = 60        # bases added on each side of the ITS window
+
+
+def its_window(reads_fa, db, threads=1):
+    u"""Where the ITS sits on each read: the reads are searched against the small RefSeq
+    ITS set and the best record's (bitscore) span on the read is the window.
+    {read: (qstart, qend)}. WHY: a whole-operon read (3.7 kb) searched against UNITE
+    gives long ~93 per cent alignments of its 18S/28S flanks to unrelated genera
+    (measured: Fusarium / Nectria; 60 reads took 442 s). The window cuts both the
+    artefact and the query length by about six."""
+    r = subprocess.run(['blastn', '-query', reads_fa, '-db', db, '-outfmt',
+                        '6 qseqid bitscore qstart qend', '-max_target_seqs', '5',
+                        '-evalue', '1e-20', '-num_threads', str(threads)],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(u'blastn (ITS window) failed: %s' % (r.stderr or '')[:200])
+    best = {}
+    for line in r.stdout.splitlines():
+        p = line.split('\t')
+        if len(p) < 4:
+            continue
+        k, bit, qs, qe = p[0], float(p[1]), int(p[2]), int(p[3])
+        qs, qe = min(qs, qe), max(qs, qe)
+        if k not in best or bit > best[k][0]:
+            best[k] = (bit, qs, qe)
+    return {k: (v[1], v[2]) for k, v in best.items()}
+
+
+def window_file(records, window, path):
+    u"""Write the reads cut to their ITS window (+- WINDOW_PAD); a read without a window
+    (no RefSeq hit at all: a new lineage) is written whole. Returns the number cut."""
+    out, n = [], 0
+    for k, d in records:
+        if k in window:
+            qs, qe = window[k]
+            out.append((k, d[max(0, qs - 1 - WINDOW_PAD):min(len(d), qe + WINDOW_PAD)]))
+            n += 1
+        else:
+            out.append((k, d))
+    write_fasta(path, out)
+    return n
 
 
 def db_path(root, name, db_dir=None, quiet=False):
@@ -313,6 +354,8 @@ def populations(best):
         genus, epithet = cins_epitet(name)
         if not genus:
             continue
+        if pid < CINS_ESIGI['ITS']:
+            continue          # below the genus threshold a hit founds no population
         count[genus] += 1
         members[genus].append((k, pid, aln, name))
         if epithet and epithet.lower() not in PLACEHOLDER:
@@ -322,15 +365,51 @@ def populations(best):
     return count, members, scount, spid
 
 
-def process_bin(root, label, path, a, tmp, blast_fn=None):
-    reads = sample_reads(path, a.reads)
-    if len(reads) < MIN_POPULATION:
-        return dict(bin=label, reads=len(reads), note=u'too few reads (%d)' % len(reads))
+SEP = u'@@'            # read id in the batched query: <bin>@@<read>
+
+
+def prepare_bin(path, a):
+    u"""A) sample the reads of one bin."""
+    return sample_reads(path, a.reads)
+
+
+def batch_hits(bin_reads, root, a, tmp, blast_fn=None):
+    u"""B) BATCHED: every bin's reads in one file -> ITS window (RefSeq) -> every window in one
+    file -> the ITS databases searched ONCE. Returns ({bin: {read: best}}, {bin: windowed}).
+    WHY BATCHED: BLAST's cost is the database SCAN far more than the query count; one call per
+    bin scans the database once per bin. Measured (2026-09-06): 150 windows against UNITE took
+    684 s at word size 64 (hits identical to word size 28), i.e. 7+ hours for 40 bins one by one."""
+    allreads = [(u'%s%s%s' % (label, SEP, k), d) for label, reads in bin_reads.items() for k, d in reads]
+    reads_fa = os.path.join(tmp, 'all_reads.fa')
+    write_fasta(reads_fa, allreads)
+    t0 = time.time()
+    rdb = db_path(root, ITS_DB[0], a.db_dir, quiet=True) if root is not None else ITS_DB[0]
+    window = its_window(reads_fa, rdb, a.threads) if rdb else {}
+    win_fa = os.path.join(tmp, 'all_windows.fa')
+    n_window = window_file(allreads, window, win_fa)
+    print(u'  ITS window: %d/%d reads (%.0f s)' % (n_window, len(allreads), time.time() - t0))
+    sys.stdout.flush()
+    t0 = time.time()
+    best = best_hits(win_fa, ITS_DB, root, a.threads, a.db_dir, blast_fn)
+    print(u'  ITS hits: %d/%d reads (%.0f s, %s)' % (len(best), len(allreads), time.time() - t0,
+                                                   u' + '.join(os.path.basename(d) for d in ITS_DB)))
+    sys.stdout.flush()
+    per_bin = {label: {} for label in bin_reads}
+    windowed = collections.Counter()
+    for key, v in best.items():
+        label, k = key.split(SEP, 1)
+        per_bin[label][k] = v
+    for key in window:
+        windowed[key.split(SEP, 1)[0]] += 1
+    return per_bin, windowed
+
+
+def polish_bin(root, label, reads, best, n_window, a, tmp):
+    u"""C) one bin: population table, dominant population, medoid, polish. Returns the row
+    dict ('sequence' present when a consensus was made)."""
     kd = os.path.join(tmp, label)
-    os.makedirs(kd)
-    reads_fa = os.path.join(kd, 'reads.fa')
-    write_fasta(reads_fa, reads)
-    best = best_hits(reads_fa, ITS_DB, root, a.threads, a.db_dir, blast_fn)
+    if not os.path.isdir(kd):
+        os.makedirs(kd)
     count, members, scount, spid = populations(best)
     seq_of = dict(reads)
     pop_dir = os.path.join(root, POP_DIR)
@@ -349,7 +428,7 @@ def process_bin(root, label, path, a, tmp, blast_fn=None):
             newline='\n').write(u'\n'.join(rows) + u'\n')
 
     total = sum(count.values())
-    r = dict(bin=label, reads=len(reads), assigned=total)
+    r = dict(bin=label, reads=len(reads), assigned=total, windowed=n_window)
     if scount:
         s1, n1 = scount.most_common(1)[0]
         pids = sorted(spid[s1])
@@ -364,7 +443,7 @@ def process_bin(root, label, path, a, tmp, blast_fn=None):
     else:
         pop = list(reads)
         r.update(genus=u'-', share=0.0, genus2=u'-', share2=0.0)
-        pop_note = u'no ITS hit; all reads form one population'
+        pop_note = u'no ITS hit above the genus threshold; all reads form one population'
     if len(pop) < MIN_POPULATION:
         r['note'] = u'%s: %d reads < %d, no consensus made' % (pop_note, len(pop), MIN_POPULATION)
         return r
@@ -385,23 +464,47 @@ def process_bin(root, label, path, a, tmp, blast_fn=None):
         write_fasta(out, [(label, seq)])
         tpl = out
     r.update(bp=len(seq), n_internal=n_in, sequence=seq, pop_note=pop_note, pop_n=len(pop))
-    query = os.path.join(kd, 'final.fa')
-    write_fasta(query, [(label, seq)])
-    hits = {}
+    return r
+
+
+def batch_decide(results, root, a, tmp, blast_fn=None):
+    u"""D) BATCHED: every polished consensus in one file, each locus database searched once;
+    per bin lokus_karari + birlestir + the reported method. `results` is updated in place."""
+    query = os.path.join(tmp, 'all_final.fa')
+    write_fasta(query, [(k, r['sequence']) for k, r in results.items() if r.get('sequence')])
+    hits = {k: {} for k in results}
     for lok, dbs, _an in MANTAR_LOKUSLARI:
-        acc = []
+        t0 = time.time()
         for name in dbs:
             db = db_path(root, name, a.db_dir) if root is not None else name
-            if db:
-                acc += (blast_fn or blast)(query, db, threads=a.threads).get(label, [])
-        hits[lok] = acc
-    decisions = {lok: lokus_karari(hits.get(lok), an, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
-                 for lok, _d, an in MANTAR_LOKUSLARI}
-    name, ident, note = birlestir(decisions)
-    ra, rp, rl, rlok, rsecond, rgap = raporlanan_yontem(hits, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
-    r.update(decisions=decisions, name=name, identity=ident, decision_note=note,
-             reported=(u'%s (%.2f%%, %d bp, %s)' % (ra, rp, rl, rlok)) if ra else u'-',
-             reported_second=(u'%s, gap %.2f' % (rsecond, rgap)) if rsecond else u'-')
+            if not db:
+                continue
+            for k, v in (blast_fn or blast)(query, db, threads=a.threads).items():
+                hits.setdefault(k, {}).setdefault(lok, []).extend(v)
+        print(u'  %s searched (%.0f s)' % (lok, time.time() - t0))
+        sys.stdout.flush()
+    for label, r in results.items():
+        if not r.get('sequence'):
+            continue
+        dec = {lok: lokus_karari(hits.get(label, {}).get(lok), an, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
+               for lok, _d, an in MANTAR_LOKUSLARI}
+        name, ident, note = birlestir(dec)
+        ra, rp, rl, rlok, rsecond, rgap = raporlanan_yontem(hits.get(label, {}), ad_ayikla, cins_epitet,
+                                                            ADSIZ_JETONLARI)
+        r.update(decisions=dec, name=name, identity=ident, decision_note=note,
+                 reported=(u'%s (%.2f%%, %d bp, %s)' % (ra, rp, rl, rlok)) if ra else u'-',
+                 reported_second=(u'%s, gap %.2f' % (rsecond, rgap)) if rsecond else u'-')
+
+
+def process_bin(root, label, path, a, tmp, blast_fn=None):
+    u"""One bin on its own (the batched stages with a single bin)."""
+    reads = prepare_bin(path, a)
+    if len(reads) < MIN_POPULATION:
+        return dict(bin=label, reads=len(reads), note=u'too few reads (%d)' % len(reads))
+    per_bin, windowed = batch_hits({label: reads}, root, a, tmp, blast_fn)
+    r = polish_bin(root, label, reads, per_bin[label], windowed[label], a, tmp)
+    if r.get('sequence'):
+        batch_decide({label: r}, root, a, tmp, blast_fn)
     return r
 
 
@@ -430,6 +533,17 @@ def make_row(r):
     p += [f(r.get('name')), f(r.get('identity')), f(r.get('decision_note')), f(r.get('reported')),
           f(r.get('reported_second')), f(r.get('note'))]
     return u'\t'.join(p)
+
+
+def level(name):
+    name = name or u''
+    if u'cf.' in name:
+        return u'cf.'
+    if name.endswith(u'sp.'):
+        return u'genus'
+    if u' ' in name and name not in (u'adlandırılamıyor', u'eşleşme yok'):
+        return u'species'
+    return u'unnamed'
 
 
 def main(argv=None):
@@ -463,43 +577,63 @@ def main(argv=None):
         for s in io.open(out_path, encoding='utf-8', errors='replace').read().splitlines()[1:]:
             if s.strip():
                 previous[s.split(u'\t')[0]] = s
-    print(u'  fungal bins: %d  (reads %d, rounds %d, threads %d)' % (len(bins), a.reads, a.rounds, a.threads))
-    rows = {}
+    rows, todo = {}, []
+    for label in bins:
+        fa = os.path.join(set_dir, label + '.fasta')
+        if os.path.exists(fa) and not a.redo and label in previous:
+            rows[label] = previous[label]
+        else:
+            todo.append(label)
+    print(u'  fungal bins: %d (done %d, to do %d; reads %d, rounds %d, threads %d)'
+          % (len(bins), len(bins) - len(todo), len(todo), a.reads, a.rounds, a.threads))
+    sys.stdout.flush()
     tmp = tempfile.mkdtemp(prefix='fungal_polish_')
     levels = collections.Counter()
+
+    def flush():
+        io.open(out_path, 'w', encoding='utf-8', newline='\n').write(
+            u'\t'.join(HEADER) + u'\n' + u'\n'.join(rows[k] for k in sorted(rows)) + u'\n')
     try:
-        for n, label in enumerate(bins, 1):
-            fa = os.path.join(set_dir, label + '.fasta')
-            if os.path.exists(fa) and not a.redo and label in previous:
-                rows[label] = previous[label]
-                print(u'  [%3d/%d] %-16s done, skipped' % (n, len(bins), label))
-                continue
-            t0 = time.time()
-            r = process_bin(root, label, files[label], a, tmp)
-            if r.get('sequence'):
-                with io.open(fa, 'w', encoding='utf-8') as g:
-                    g.write(u'>%s fungal_polish population=%s share=%.0f reads=%d template=%s rounds=%d\n%s\n'
-                            % (label, r.get('genus'), r.get('share', 0.0), r.get('pop_n', 0),
-                               r.get('template'), a.rounds, r['sequence']))
-                nm = r['name'] or u''
-                lvl = (u'species' if u' ' in nm and u'sp.' not in nm and u'cf.' not in nm
-                       else (u'cf.' if u'cf.' in nm else (u'genus' if nm.endswith(u'sp.') else u'unnamed')))
-                levels[lvl] += 1
-                d = r['decisions']
-                print(u'  [%3d/%d] %-16s %s %.0f%% | ITS %s %.2f%%/%d | 28S %s %.2f%% | -> %s (%s) %.0f s'
-                      % (n, len(bins), label, r.get('genus'), r.get('share', 0.0),
-                         d[u'ITS']['ad'][:24], d[u'ITS']['kimlik'], d[u'ITS']['hizalama'],
-                         d[u'28S']['ad'][:22], d[u'28S']['kimlik'], r['name'], lvl, time.time() - t0))
+        bin_reads = {}
+        for label in todo:
+            reads = prepare_bin(files[label], a)
+            if len(reads) < MIN_POPULATION:
+                rows[label] = make_row(dict(bin=label, reads=len(reads), note=u'too few reads (%d)' % len(reads)))
+                print(u'  %-16s too few reads (%d)' % (label, len(reads)))
             else:
-                print(u'  [%3d/%d] %-16s %s' % (n, len(bins), label, r.get('note')))
-            rows[label] = make_row(r)
-            sys.stdout.flush()
-            io.open(out_path, 'w', encoding='utf-8', newline='\n').write(
-                u'\t'.join(HEADER) + u'\n' + u'\n'.join(rows[k] for k in sorted(rows)) + u'\n')
+                bin_reads[label] = reads
+        if bin_reads:
+            per_bin, windowed = batch_hits(bin_reads, root, a, tmp)
+            results = {}
+            for n, label in enumerate(sorted(bin_reads), 1):
+                t0 = time.time()
+                r = polish_bin(root, label, bin_reads[label], per_bin[label], windowed[label], a, tmp)
+                results[label] = r
+                print(u'  [%3d/%d] %-16s %s %.0f%% (2nd %s %.0f%%) | read species %s %.0f%% | polish %s reads -> %s bp (%.0f s)'
+                      % (n, len(bin_reads), label, r.get('genus'), r.get('share', 0.0), r.get('genus2'),
+                         r.get('share2', 0.0), (r.get('read_species') or u'-')[:26], r.get('species_share', 0.0),
+                         r.get('pop_n', 0), r.get('bp', 0), time.time() - t0))
+                sys.stdout.flush()
+            batch_decide(results, root, a, tmp)
+            for label, r in sorted(results.items()):
+                if r.get('sequence'):
+                    with io.open(os.path.join(set_dir, label + '.fasta'), 'w', encoding='utf-8') as g:
+                        g.write(u'>%s fungal_polish population=%s share=%.0f reads=%d template=%s rounds=%d\n%s\n'
+                                % (label, r.get('genus'), r.get('share', 0.0), r.get('pop_n', 0),
+                                   r.get('template'), a.rounds, r['sequence']))
+                    d = r['decisions']
+                    lvl = level(r['name'])
+                    levels[lvl] += 1
+                    print(u'  %-16s ITS %s %.2f%%/%d | 28S %s %.2f%% | -> %s (%s)'
+                          % (label, d[u'ITS']['ad'][:24], d[u'ITS']['kimlik'], d[u'ITS']['hizalama'],
+                             d[u'28S']['ad'][:22], d[u'28S']['kimlik'], r['name'], lvl))
+                else:
+                    print(u'  %-16s %s' % (label, r.get('note')))
+                rows[label] = make_row(r)
+            flush()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    io.open(out_path, 'w', encoding='utf-8', newline='\n').write(
-        u'\t'.join(HEADER) + u'\n' + u'\n'.join(rows[k] for k in sorted(rows)) + u'\n')
+    flush()
     print(u'')
     print(u'  levels (this run): %s' % dict(levels))
     print(u'  set: %s' % set_dir)
