@@ -1166,6 +1166,10 @@ EN_AZ_HIZALAMA = {'SSU': 1200, 'LSU': 600, 'LSU_MANTAR': 600,
 # record. This is the ONE place the rule lives; every consumer calls
 # hizalama_yeterli() and none re-implements it.
 EN_AZ_KANIT = 250          # below this many bases nothing is named at all
+# Epithets that do NOT name a species. 'Petriella sp. CBS 3' parses to the epithet 'sp' and the
+# locus decision took it for a species; in the rival loop an 'X sp.' record counted as a close
+# rival species and produced a false 'cf.'. One place; locus_decision reads it.
+EPITET_DEGIL = frozenset(('sp', 'spp', 'cf', 'aff', 'nov', 'gen', 'genomosp', 'sp.', 'cf.', 'aff.'))
 KAYIT_KAPSAMA = 0.90       # share of the record the alignment must cover
 
 
