@@ -420,7 +420,7 @@ def main():
         # The label has the form "A1-1-reads_2209" or "A1_1_reads_2223"; the group and the
         # taxid are used together, so the coordinates of other taxa are not laid over the
         # anchor.
-        m_ = re.search(r"reads[-_](\d+)", anchor[0])
+        m_ = re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)", anchor[0])
         tid = m_.group(1) if m_ else None
         grp = re.split(r"[-_]reads", anchor[0])[0].replace("_", "-")
         pats = []

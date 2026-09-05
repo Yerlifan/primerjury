@@ -219,7 +219,7 @@ def main():
     fq = {}
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
         grp = os.path.basename(os.path.dirname(p))
-        m = re.search(r"reads[-_](\d+)", os.path.basename(p))
+        m = re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)", os.path.basename(p))
         if m:
             fq[(re.split(r"[-_]", grp)[0], grp, m.group(1))] = p
     log("fastq envanteri: %d" % len(fq))

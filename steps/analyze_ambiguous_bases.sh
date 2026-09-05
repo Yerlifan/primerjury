@@ -73,7 +73,7 @@ fq=glob.glob(os.path.join(pt,"fastq files","*","*.fastq"))
 # the key: (the normalised group, the taxid). A1_1 and A1-1 count as the same.
 def key(p):
     b=os.path.basename(p)
-    m=re.search(r"reads[-_](\d+)",b)
+    m=re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)",b)
     if not m: return None
     grp=os.path.basename(os.path.dirname(p)).replace("_","-")
     return (grp,m.group(1))

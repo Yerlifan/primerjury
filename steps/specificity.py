@@ -468,7 +468,7 @@ def main():
     fq = {}
     for p in glob.glob(os.path.join(a.pt, "fastq files", "*", "*.fastq")):
         grp = os.path.basename(os.path.dirname(p))
-        m = re.search(r"reads[-_](\d+)", os.path.basename(p))
+        m = re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)", os.path.basename(p))
         if m:
             fq[(re.split(r"[-_]", grp)[0], grp, m.group(1))] = p
     log(u'fastq inventory: %d files' % len(fq))
@@ -491,7 +491,7 @@ def main():
     def _kons_of(fq_yolu):
         b = os.path.basename(fq_yolu)
         g = os.path.basename(os.path.dirname(fq_yolu))
-        m = re.search(r"reads[-_](\d+)", b)
+        m = re.search(r"reads[-_](BIN\d+|OBEK\d+|\d+)", b)
         return kons.get((g, m.group(1))) if m else None
 
     # the target definitions
