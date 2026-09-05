@@ -727,7 +727,8 @@ def kl_degerlendir(kl, kutu_diz, kl_ust, taranan=None, t0=None):
                       diz if len(kutu_diz) <= len(diz) else kutu_diz)
         isabet.append(dict(baslik=c['baslik'][:160], kimlik=k, tohum=c['tohum'],
                            sira=c['sira'], kaynak=c['kaynak'], dizi=diz,
-                           hiz_uzunluk=min(len(kutu_diz), len(diz))))
+                           hiz_uzunluk=min(len(kutu_diz), len(diz)),
+                           kayit_uz=len(diz)))
     hiz_sure = round(time.time() - t_hiz, 1)
     # On equal identity the LONGER alignment comes first: 100 per cent over 2900
     # bases is stronger evidence than 100 per cent over 484. Apart from ties the
@@ -1156,6 +1157,35 @@ EN_AZ_HIZALAMA = {'SSU': 1200, 'LSU': 600, 'LSU_MANTAR': 600,
                   'ITS': 600, 'OPERON': 1200, 'KARISIK': 1200}
 
 
+# --- THE COVERAGE EXCEPTION (2026-09-02) -----------------------------------
+# The floors above are absolute lengths. But 57 to 71 per cent of the ITS
+# references in the local sets are SHORTER than 600 bases (measured), so an ITS
+# record matched end to end over 520 of its 540 bases was refused a species name
+# for a floor it could never reach. A record is counted as full evidence when the
+# alignment is at least EN_AZ_KANIT bases AND covers at least KAYIT_KAPSAMA of the
+# record. This is the ONE place the rule lives; every consumer calls
+# hizalama_yeterli() and none re-implements it.
+EN_AZ_KANIT = 250          # below this many bases nothing is named at all
+KAYIT_KAPSAMA = 0.90       # share of the record the alignment must cover
+
+
+def hizalama_yeterli(lokus, aln, kayit_uz=None):
+    """Is this alignment long enough to carry a species name at this locus?
+
+    Returns (sufficient, note). The note names the coverage exception when it
+    was the reason, so the row can say why a short record was accepted.
+    """
+    aln = aln or 0
+    enaz = EN_AZ_HIZALAMA.get(lokus, 600)
+    if aln >= enaz:
+        return True, u''
+    if kayit_uz and aln >= EN_AZ_KANIT and aln >= KAYIT_KAPSAMA * kayit_uz:
+        return True, (u'the alignment (%d bp) is under the %s floor of %d but covers '
+                      u'%d of the record\'s %d bases, so the record counts in full'
+                      % (aln, lokus, enaz, aln, kayit_uz))
+    return False, u''
+
+
 # -------------------------------------------------------------------------
 # UNNAMED ENVIRONMENTAL RECORDS - THE 2026-08-21 BUG FIX
 #
@@ -1393,7 +1423,8 @@ def _duzey_karar(isabetler, lokus='SSU'):
     # species level, and the reason is written down.
     enaz = EN_AZ_HIZALAMA.get(lokus, 600)
     uz1 = ilk.get('hiz_uzunluk') or 0
-    if k1 >= te and t1 and uz1 and uz1 < enaz:
+    _yeterli, _kapsama_notu = hizalama_yeterli(lokus, uz1, ilk.get('kayit_uz'))
+    if k1 >= te and t1 and uz1 and not _yeterli:
         return dict(duzey='CINS (hizalama kisa)',
                     onerilen_ad='%s sp.' % (c1 or (t1 or '').split()[0]),
                     gerekce=u'the identity of %s per cent passed the species threshold '

@@ -783,7 +783,10 @@ def yol5_cok_lokuslu(kok, nm, hedef, uye, rakip, kons, aday_ust=150,
                     sebep='there is no consensus above 800 bp, so it cannot be split into regions')
     omurga = kons[capa_kutu]
     yaz(u'      omurga: %s (%d bp)' % (capa_kutu, len(omurga)))
-    bolge, capalar = bolgeler_kur(motor, omurga, yaz)
+    # `motor` was never defined in this function (the engine is imported as
+    # engine_gateway above); route 5 raised NameError the moment it reached a
+    # backbone. Found by pyflakes on 2026-09-05, not by any test.
+    bolge, capalar = bolgeler_kur(engine_gateway, omurga, yaz)
 
     uye_diz = [kons[k['kutu']] for k in uye if k['kutu'] in kons]
     rak_diz = [kons[k['kutu']] for k in rakip if k['kutu'] in kons]
