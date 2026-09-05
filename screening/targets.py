@@ -258,10 +258,13 @@ def kutular():
     for p in sorted(glob.glob(os.path.join(C.FASTQ, '*', '*.fastq*'))):
         d = os.path.basename(os.path.dirname(p))
         b = os.path.basename(p)
-        m = re.search(r'reads_([0-9]+)\.fastq', b)
-        if not m:
+        # <prefix>[-_]reads[-_]<id>.fastq; the id is a taxid or a Kraken-free bin id
+        # (BIN<n>). A file whose prefix is not its folder is another bin's stray copy
+        # and is not a bin (2026-09-04: five such files made four phantom bins).
+        m = re.search(r'^(.+?)[-_]reads[-_](BIN\d+|OBEK\d+|[0-9]+)\.fastq', b)
+        if not m or m.group(1).replace('_', '-') != d.replace('_', '-'):
             continue
-        tax = m.group(1)
+        tax = m.group(2)
         sinif = d.split('-')[0]          # A1 / A2 / B / F1 / F2
         out.append(dict(kutu='%s_%s' % (d, tax), grup=d, sinif=sinif, taxid=tax, yol=p))
     return out
