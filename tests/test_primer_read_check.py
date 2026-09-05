@@ -69,6 +69,18 @@ def test_consensus_choice():
     ok = best is not None and best[0] == 'supported' and best[2] > m.MIN_SUPPORT
     best2 = m.choose([('zero_n', wrong)], rk)
     ok = ok and best2 is not None and best2[2] < m.MIN_SUPPORT
+    # the band: near-equal support (one base off in 2,400 = 21 k-mers, under one
+    # point), and among the near-equal ones the fewest N wins
+    # (a periodic sequence would not do: its k-mer SET is tiny, so one change
+    # would swing the support by tens of points)
+    import random
+    rnd = random.Random(1)
+    long_right = ''.join(rnd.choice('ACGT') for _ in range(2400))
+    rk2 = m.kmers(long_right) | m.kmers(m.rc(long_right))
+    long_masked = long_right[:1000] + 'N' * 20 + long_right[1020:]
+    near = long_right[:500] + ('T' if long_right[500] != 'T' else 'A') + long_right[501:]
+    best3 = m.choose([('masked', long_masked), ('near', near)], rk2)
+    ok = ok and best3 is not None and best3[0] == 'near' and best3[2] > 99.0
     print('  consensus choice: %s (%s %.0f%% / lone bad %.0f%%)'
           % ('ok' if ok else 'FAIL', best and best[0], best and best[2], best2 and best2[2]))
     return ok

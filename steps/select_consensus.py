@@ -23,7 +23,10 @@ reads? This is independent of any reference database; "pick the one closest to
 the reference" would be circular. The denominator is the CONSENSUS's k-mer
 count, not the read's, on purpose: with the read as denominator a short
 consensus is penalised structurally (measured: 4.2 kb reads, 1.47 kb
-consensus, ceiling about 35 per cent). Ties: fewer N, then longer.
+consensus, ceiling about 35 per cent). Candidates within SUPPORT_BAND (one
+point) of the best support are treated as equal, and among them the one with
+the fewest ambiguous bases wins, then the longest: the least ambiguous of the
+consensuses the reads actually support.
 
 THE FLOOR (2026-09-04)
 ----------------------
@@ -50,6 +53,10 @@ import sys
 
 K = 21
 MIN_SUPPORT = 60.0
+# Candidates within SUPPORT_BAND points of the best read support count as equal,
+# and among them the one with the FEWEST N wins, then the longest. Read support
+# still comes first: a zero-N sequence at 85 per cent cannot beat one at 99.
+SUPPORT_BAND = 1.0
 DEFAULT_SETS = ('referans_konsensus/baskin/konsensus', 'referans_konsensus/konsensus',
                 'referans_konsensus/self/konsensus', 'consensus sequences')
 COMPLEMENT = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
@@ -110,17 +117,19 @@ def candidates(root, sets, label):
 
 def choose(cands, read_kmers, max_n=50.0):
     """(set, sequence, support %, N %) of the best candidate, or None."""
-    best = None
+    measured = []
     for sub, seq in cands:
         n_pct = 100.0 * seq.count('N') / len(seq)
         if n_pct > max_n:
             continue
         kk = kmers(seq)
         support = (100.0 * len(kk & read_kmers) / len(kk)) if kk else 0.0
-        key = (-round(support, 2), n_pct, -len(seq))
-        if best is None or key < best[0]:
-            best = (key, sub, seq, support, n_pct)
-    return None if best is None else best[1:]
+        measured.append((sub, seq, support, n_pct))
+    if not measured:
+        return None
+    top = max(x[2] for x in measured)
+    band = [x for x in measured if x[2] >= top - SUPPORT_BAND]
+    return min(band, key=lambda x: (x[3], -len(x[1]), -x[2], x[0]))
 
 
 def main():

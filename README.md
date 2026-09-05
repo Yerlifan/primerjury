@@ -29,6 +29,32 @@ against four independent layers before anything is ordered.
 
 ---
 
+## What changed in September 2026
+
+The study was re-run from the raw reads, and the run found things the tests
+had not. Everything below is measured and recorded in `docs/WORK_RECORD.md`,
+sections 13 to 16.
+
+- **Bins without a classifier.** `./primerjury bins` turns demultiplexed BAMs
+  into bins by length peak and minimap2 clustering; no Kraken2 needed, no label
+  carried into the identity step.
+- **The consensus template fault.** The dominant-allele step could not seed
+  minimap2 on its own IUPAC-coded template: 0 of 3,001 reads aligned in a mixed
+  bin, and a bin that looked healthy carried twenty wrong bases. Fixed; four
+  bins rose a level, one from unnamed to species.
+- **Consensus choice by the bin's own reads**, with a floor that names an
+  untrustworthy choice (`./primerjury consensus`).
+- **The exact-match rate.** Deliberate 3'-end variants had scored high under
+  "at most one mismatch"; the read-level check reports mm0 and flags them
+  (`./primerjury readcheck`). ARMS variants are off by default.
+- **Evidence, not a number chosen for 16S.** A short reference matched over
+  at least 90 per cent of its length counts in full; hits under 250 bases no
+  longer veto a genus.
+- **Stray files cannot become bins**, and a route that raised `NameError` the
+  moment it was reached is fixed.
+
+---
+
 ## What it does
 
 ```
@@ -314,6 +340,9 @@ These are not style preferences; each was paid for with a real bug.
 Honest list; these are the gaps between "runs for the original study" and
 "general-purpose tool":
 
+- **QIIME2 and PICRUSt2 are installed but not yet driven by the chain.** The
+  study ran them beside the identity chain as an independent opinion; the
+  scripts are being generalised and will land as an optional stage.
 - **Targets are still study-specific.** `steps/targets.tsv` and
   `screening/target_clades.tsv` describe the original 20 targets and 5
   amplicon groups. Samples in `examples/` show the format. Generalising the
