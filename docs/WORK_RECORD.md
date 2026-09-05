@@ -899,3 +899,52 @@ rows into the table; the fifth shared a taxid with a real file and, being first
 in glob order, its reads built the real bin's consensus. The script now derives
 the prefix from the file name and skips, with a message, any file whose prefix
 does not match its folder. It also accepts Kraken-free bin ids (`BIN<n>`).
+
+---
+
+## 14. Binning from the raw reads, without a classifier (2026-09-04/05)
+
+The study's bins were "barcode x Kraken2 taxid". Re-running from raw reads on a
+16 GB machine made that definition unusable (the 196 GB database ran at 12 reads
+per second through memory mapping; the full set would have taken a week and the
+machine froze). `steps/bin_reads.py` defines bins from the reads instead.
+
+### 14.1 What was measured before the settings were fixed
+
+- **Barcodes carry several products.** 100 bp length histograms: one archaeal
+  barcode had the 4.2-4.4 kb operon at 6 per cent of reads, 1.2-1.4 kb at 12
+  per cent and 400-600 bp at 10 per cent; one bacterial barcode 1.4-1.6 kb at
+  54 per cent; one fungal barcode 3.6-3.8 kb at 54 per cent. A single window
+  would have discarded most reads, so every peak with a share of at least 3 per
+  cent (at most four) is a window of peak +- 15 per cent.
+- **vsearch was the wrong tool for 4 kb reads.** `cluster_fast` with an
+  exhaustive search did not finish 1,200 seeds in twenty minutes; with its
+  default k-mer prefilter none of 1,160 centres merged at 97 per cent because
+  true relatives were rejected before alignment. minimap2 `ava-ont` over the
+  same seeds takes seconds; connected components at identity >= 0.97 and
+  coverage >= 80 per cent of the shorter sequence.
+- **The longest member is not the centre.** The first centre chosen by length
+  was a 5.2 kb chimera. The centre is the member closest to the component's
+  median length.
+- **Assignment thresholds** 0.90 identity and 80 per cent read coverage; reads
+  that fit nowhere are counted as unassigned in the table (5.7 per cent in one
+  window), not dropped.
+- **Validation against the Kraken bins** of the same barcode: the three
+  dominant methanogen bins (*Methanosarcina*, *Methanothrix*, *Methanoculleus*)
+  were recovered at about 90 per cent recall and 100 per cent purity. Reads the
+  old bins never held (93 per cent of the barcode) now have bins; one 1.3 kb
+  population of 2,519 reads hits no rRNA database and is reported as such.
+- **Selection.** One bacterial barcode produced 1,962 bins. `select_bins.py`
+  takes share >= 0.5 per cent or the five largest of each window, at most 40 per
+  barcode (443 bins over 17 barcodes, measured), and writes the reason for
+  every bin left out.
+- **The pool.** Two barcodes at a time, two minimap2 threads each: minimap2 was
+  measured at 199 per cent CPU with two threads while four cores idled, and the
+  machine had shut itself down once at six of six. Per barcode 12 to 154
+  minutes, the largest (6.3 GB) the slowest.
+
+### 14.2 Temporary files
+
+They go beside the output, not to `/tmp`: on WSL `/tmp` lives in the virtual
+disk, which grows and does not shrink when files are deleted (C: fell from 43
+to 20 GB before this was understood).

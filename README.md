@@ -32,8 +32,10 @@ against four independent layers before anything is ordered.
 ## What it does
 
 ```
-sequences/  (your .fasta / .fastq)
+sequences/  (your .fasta / .fastq, or demultiplexed BAMs)
      │
+     ├─ 0. bin                 length peaks + minimap2 clustering, no classifier
+     │                         (steps/from_raw.sh; replaces step 1 when there is no Kraken2)
      ├─ 1. classify            Kraken2 + Bracken           (optional, see below)
      ├─ 2. consensus           per-bin consensus, N-analysis
      │                         distinguishes low coverage from real strain variation
@@ -109,6 +111,39 @@ for the fungal LSU (Vu et al. 2018). A species name is also refused when the
 alignment is too short to carry it: 100 per cent over 484 bases and 100 per cent
 over 2,900 are not the same evidence.
 
+### Starting from raw reads
+
+`steps/from_raw.sh` turns demultiplexed BAMs (or one fastq per barcode) into
+bins the chain reads, **without a classifier**:
+
+```bash
+bash steps/from_raw.sh --map examples/barcodes_example.tsv --bam-dir basecalled --parallel 2
+```
+
+1. `split_barcodes.py` reads the `BC:Z` tag dorado writes and produces one
+   fastq per barcode.
+2. `bin_reads.py` finds the length peaks of each barcode (a barcode rarely
+   carries a single amplicon: measured shares of 6, 12 and 10 per cent for
+   three products in one archaeal library), clusters a seed sample of every
+   peak with minimap2 `ava-ont` at 97 per cent identity, and assigns every
+   read to the nearest cluster centre at >= 90 per cent identity over >= 80
+   per cent of the read. Reads that fit nowhere are counted, not dropped.
+3. `select_bins.py` chooses the bins that enter the chain (share >= 0.5 per
+   cent, or the five largest of a window, at most 40 per barcode) and records
+   why every other bin was left out.
+
+The bins are named `BIN<n>`; the consensus and identity steps accept them
+beside Kraken taxids. Validated against the study's Kraken bins: the three
+dominant methanogen bins were recovered at 90 per cent recall and 100 per cent
+purity. The bin definition carries no database label, so the identity step
+is the first place a name appears.
+
+Two faults in the consensus steps were found on this route and fixed
+(`docs/WORK_RECORD.md`, section 13): the dominant-allele step could not seed
+minimap2 on its IUPAC-coded template (0 of 3,001 reads aligned in a mixed
+bin; a healthy-looking bin carried twenty wrong bases), and files of another
+library left in a bin folder became phantom bins. Both had passed every test.
+
 ---
 
 ## Requirements
@@ -141,6 +176,7 @@ Linux or WSL2. Everything runs through one file:
 ./primerjury                   # the built-in guide
 ./primerjury check             # what is installed? changes nothing
 ./primerjury install all       # tools + reference databases + QIIME2
+./primerjury bins --map barcodes.tsv --bam-dir basecalled   # from raw reads, no classifier
 ./primerjury run               # the full chain
 ```
 
