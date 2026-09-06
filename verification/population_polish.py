@@ -331,7 +331,8 @@ def main(argv=None):
         os.makedirs(set_dir)
     out_path = os.path.join(root, a.out)
     previous = {}
-    if os.path.exists(out_path) and not a.redo:
+    # with --bins the other bins' rows are kept whatever --redo says
+    if os.path.exists(out_path) and (not a.redo or a.bins):
         for s in io.open(out_path, encoding='utf-8', errors='replace').read().splitlines()[1:]:
             if s.strip():
                 previous[s.split(u'\t')[0]] = s
@@ -341,6 +342,10 @@ def main(argv=None):
             rows[label] = previous[label]
         else:
             todo.append(label)
+    if a.bins:
+        for k, line in previous.items():
+            if k not in bins:
+                rows[k] = line
     print(u'  bins: %d (done %d, to do %d; groups %s; reads %d, rounds %d, threads %d)'
           % (len(bins), len(bins) - len(todo), len(todo), u','.join(sorted(groups)), a.reads, a.rounds, a.threads))
     tmp = tempfile.mkdtemp(prefix='pak_polish_')
