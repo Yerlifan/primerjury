@@ -100,6 +100,14 @@ SEED = 20260905
 K_MEDOID = 15          # k-mer size for the medoid
 MIN_POPULATION = 5     # no consensus from fewer reads than this
 MIN_DEPTH = 3          # samtools consensus -d
+# medaka (2026-09-06): ONT's own neural polisher, applied ON TOP OF the samtools consensus. Measured on
+# the study's HAC root (99 bins, same code, the only difference medaka): one bin rose to species
+# (B-4_1642647, 98.59 -> 99.15 per cent), none fell; the bin's own reads fit the polished sequence
+# better in 21 bins and ~one base worse in 2. Medaka ALONE regressed one bin (99.86 -> 99.71), so it is
+# never used alone. The model is the data's basecalling model. Environment: a Python 3.11 conda env
+# (MEDAKA_ENV points at its bin directory); without it the samtools consensus stands and a warning says so.
+MEDAKA_ENV = os.environ.get('MEDAKA_ENV', os.path.expanduser('~/miniconda3/envs/medaka/bin'))
+MEDAKA_MODEL = os.environ.get('MEDAKA_MODEL', 'r1041_e82_400bps_sup_v5.2.0')
 PLACEHOLDER = ('sp', 'sp.', 'spp', 'spp.', 'cf', 'cf.', 'aff', 'aff.')
 FUNGAL_LIBS = ('F1', 'F2')
 ITS_DB = [d for lok, dbs, _a in MANTAR_LOKUSLARI if lok == u'ITS' for d in dbs]
@@ -310,6 +318,42 @@ def polish(template_fa, reads_fa, out_fa, threads=1):
         except OSError:
             pass
     return seq, seq.count(u'N')
+
+
+def medaka_present():
+    return os.path.exists(os.path.join(MEDAKA_ENV, 'medaka'))
+
+
+def medaka_polish(template_fa, reads_fa, out_fa, threads=1):
+    u"""minimap2 -> medaka inference -> medaka sequence (the medaka_consensus wrapper exits in its
+    version check when bcftools is absent, so the three steps are run directly).
+    Returns the sequence, or None when medaka failed."""
+    bam, hdf = out_fa + '.bam', out_fa + '.hdf'
+    env = dict(os.environ)
+    env['PATH'] = MEDAKA_ENV + ':' + env.get('PATH', '')
+    p1 = subprocess.Popen(['minimap2', '-t', str(threads), '-ax', 'map-ont', '--secondary=no', template_fa, reads_fa],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    p2 = subprocess.Popen(['samtools', 'sort', '-@', '1', '-o', bam, '-'], stdin=p1.stdout, stderr=subprocess.DEVNULL)
+    p1.stdout.close()
+    p2.communicate()
+    if p2.returncode != 0:
+        return None
+    run(['samtools', 'index', bam])
+    ok = True
+    for argv in ([os.path.join(MEDAKA_ENV, 'medaka'), 'inference', bam, hdf, '--model', MEDAKA_MODEL, '--threads', str(threads)],
+                 [os.path.join(MEDAKA_ENV, 'medaka'), 'sequence', hdf, template_fa, out_fa]):
+        r = subprocess.run(argv, env=env, capture_output=True, text=True)
+        if r.returncode != 0:
+            ok = False
+            break
+    for e in (bam, bam + '.bai', hdf):
+        try:
+            os.remove(e)
+        except OSError:
+            pass
+    if not ok or not os.path.exists(out_fa):
+        return None
+    return read_fasta_seq(out_fa).strip(u'N')
 
 
 def best_hits(reads_fa, dbs, root, threads=1, db_dir=None, blast_fn=None):

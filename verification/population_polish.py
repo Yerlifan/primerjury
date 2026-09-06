@@ -74,6 +74,19 @@ def level(name):
     return u'unnamed'
 
 
+def final_polish(tpl, pop_fa, kd, a):
+    u"""With --medaka (the default) medaka runs on top of the samtools consensus.
+    Returns (sequence or None, polish label)."""
+    if not getattr(a, 'medaka', False):
+        return None, u'samtools'
+    if not F.medaka_present():
+        return None, u'samtools (no medaka environment)'
+    seq = F.medaka_polish(tpl, pop_fa, os.path.join(kd, 'medaka.fa'), a.threads)
+    if not seq or len(seq) < 200:
+        return None, u'samtools (medaka failed)'
+    return seq, u'samtools+medaka'
+
+
 def group_locus(group):
     return u'ITS' if group in ('F1', 'F2') else u'SSU'
 
@@ -171,8 +184,11 @@ def polish_sub(root, tag, group, pop, a, tmp):
             break
         write_fasta(out, [(tag, seq)])
         tpl = out
+    seq2, how = final_polish(tpl, pop_fa, kd, a)
+    if seq2:
+        seq = seq2
     return dict(bin=tag, group=group, locus=group_locus(group), reads=len(pop), pop_n=len(pop),
-                template=med[0], template_similarity=med[2], bp=len(seq), sequence=seq)
+                template=med[0], template_similarity=med[2], bp=len(seq), sequence=seq, polish=how)
 
 
 def polish_bin(root, label, reads, best, n_window, a, tmp):
@@ -238,7 +254,10 @@ def polish_bin(root, label, reads, best, n_window, a, tmp):
             break
         write_fasta(out, [(label, seq)])
         tpl = out
-    r.update(bp=len(seq), n_internal=n_in, sequence=seq, pop_n=len(pop))
+    seq2, how = final_polish(tpl, pop_fa, kd, a)
+    if seq2:
+        seq, n_in = seq2, seq2.count(u'N')
+    r.update(bp=len(seq), n_internal=n_in, sequence=seq, pop_n=len(pop), polish=how)
     return r
 
 
@@ -326,6 +345,9 @@ def main(argv=None):
     ap.add_argument('--redo', action='store_true')
     ap.add_argument('--no-sub', dest='sub', action='store_false', default=True,
                     help='skip the sub-population stage')
+    ap.add_argument('--medaka', dest='medaka', action='store_true', default=True,
+                    help=u'medaka on top of the samtools consensus (default; environment: %s)' % F.MEDAKA_ENV)
+    ap.add_argument('--no-medaka', dest='medaka', action='store_false')
     ap.add_argument('--self-test', action='store_true')
     a = ap.parse_args(argv)
     if a.self_test:
@@ -357,6 +379,8 @@ def main(argv=None):
         for k, line in previous.items():
             if k not in bins:
                 rows[k] = line
+    if a.medaka and not F.medaka_present():
+        print(u'  WARNING: --medaka is on but the environment is missing (%s); the samtools consensus stands' % F.MEDAKA_ENV)
     print(u'  bins: %d (done %d, to do %d; groups %s; reads %d, rounds %d, threads %d)'
           % (len(bins), len(bins) - len(todo), len(todo), u','.join(sorted(groups)), a.reads, a.rounds, a.threads))
     tmp = tempfile.mkdtemp(prefix='pak_polish_')
@@ -414,9 +438,9 @@ def main(argv=None):
             for label, r in sorted(results.items()):
                 if r.get('sequence'):
                     with io.open(os.path.join(set_dir, label + '.fasta'), 'w', encoding='utf-8') as g:
-                        g.write(u'>%s pak_polish group=%s locus=%s population=%s share=%.0f reads=%d template=%s rounds=%d\n%s\n'
+                        g.write(u'>%s pak_polish group=%s locus=%s population=%s share=%.0f reads=%d template=%s rounds=%d polish=%s\n%s\n'
                                 % (label, r['group'], r['locus'], r.get('genus'), r.get('share', 0.0),
-                                   r.get('pop_n', 0), r.get('template'), a.rounds, r['sequence']))
+                                   r.get('pop_n', 0), r.get('template'), a.rounds, (r.get('polish') or u'samtools').replace(u' ', u'_'), r['sequence']))
                     levels[level(r.get('name'))] += 1
                     print(u'  %-16s %s -> %s' % (label, (r.get('detail') or u'')[:60], r.get('name')))
                 else:

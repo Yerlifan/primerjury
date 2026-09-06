@@ -210,7 +210,11 @@ genus while its reads said species.
 bin read by read (best ITS record over RefSeq ITS and UNITE), keeps the dominant
 genus population, picks that population's medoid read as the template (chosen by
 k-mer similarity among the reads, not by any reference) and polishes it with
-minimap2 and `samtools consensus` in two rounds. The polished sequence is decided
+minimap2 and `samtools consensus` in two rounds, then medaka on top of that
+(default when a medaka environment exists, `MEDAKA_ENV`; `--no-medaka` turns it
+off). Measured on 99 bins: one bin rose to species, none fell, the bin's own reads
+fit the polished sequence better in 21 bins; medaka alone regressed a bin, so it
+is never used alone. The polished sequence is decided
 over the three loci with the same thresholds as everything else and lands as one
 more candidate set: `select_consensus` weighs it with the same read-support
 criterion, so it is used only where it represents the reads better. The per-read
