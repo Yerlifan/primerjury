@@ -64,6 +64,20 @@ def test_close_rival_species_still_gives_cf():
     return True
 
 
+def test_combination_keeps_cf_from_the_its_locus():
+    """Found by the control environment (2026-09-06): reads of Petriella musispora came out
+    'Petriella sp.' although ITS had said 'cf. setifera' (two species at 100 per cent over the
+    same 500 bp). The combination must carry the strongest cf. instead of falling to genus."""
+    its = decide([hit(100.0, 500, u'UDB2|k__Fungi;p__Ascomycota;c__Sordariomycetes;o__Microascales;f__Microascaceae;g__Petriella;s__Petriella_setifera|SH2'),
+                  hit(100.0, 500, u'NR_172285.1 Petriella musispora CBS 745.69 ITS region; from TYPE material')])
+    assert u' cf. ' in its['ad'], its
+    lsu = dict(ad=u'Petriella sp.', cins=u'Petriella', tur=None, kimlik=99.6, hizalama=576, duzey=u'cins', notu=u'')
+    name, ident, note = ld.birlestir({u'ITS': its, u'28S': lsu})
+    assert name == its['ad'], (name, note)
+    assert u'cf.' in note
+    return True
+
+
 def test_placeholder_epithet_is_not_a_species_and_not_a_rival():
     r = decide([hit(100.0, 600, u'NG_1 Petriella sp. CBS 3 28S rRNA')], 'LSU_MANTAR')
     assert r['duzey'] == u'cins' and r['ad'] == u'Petriella sp.', r
@@ -74,7 +88,8 @@ def test_placeholder_epithet_is_not_a_species_and_not_a_rival():
 
 
 def main():
-    tests = [test_genus_only_top_record_within_margin_yields_species,
+    tests = [test_combination_keeps_cf_from_the_its_locus,
+             test_genus_only_top_record_within_margin_yields_species,
              test_unnamed_top_record_within_margin_yields_species,
              test_genus_only_record_leading_by_more_than_margin_stays_genus,
              test_close_rival_species_still_gives_cf,

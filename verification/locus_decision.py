@@ -233,6 +233,22 @@ def birlestir(kararlar):
               and k in TUR_VEREBILEN]
     _atlanan18s = [k for k, v in kullanilir.items()
                    if v['duzey'] == u'tur' and k not in TUR_VEREBILEN]
+    # 06.09.2026 (kontrol ortami): tur-verebilen lokus 'cf.' dediyse (iki tur adi ayrim payi icinde) bilgi cinse
+    # indirgenmez, en guclu cf. karari tasinir. Olculdu: Petriella musispora okumalari 'Petriella sp.' cikiyordu, ITS
+    # 'cf. setifera' demisken. cf. bir TUR iddiasi degil, tur adayidir (teslim duzeyi 'TUR ADAYI (cf.)').
+    if not turler:
+        cfler = sorted([(LOKUS_GUCU.get(k, 0), v['hizalama'], k) for k, v in kullanilir.items()
+                        if v['cins'] == cins and k in TUR_VEREBILEN and u' cf. ' in v['ad']],
+                       key=lambda x: (-x[0], -x[1], x[2]))
+        if cfler:
+            lok = cfler[0][2]
+            v = kullanilir[lok]
+            notlar = [u'tür adayı (cf.): %s lokusu, %d bp hizalama' % (lok, v['hizalama'])]
+            if v['notu']:
+                notlar.append(v['notu'])
+            if ayrisma:
+                notlar.append(ayrisma)
+            return v['ad'], u'%.2f' % v['kimlik'], u'; '.join(notlar)
     if not turler:
         notlar = [u'the genus is %s (from %s)' % (cins, u'+'.join(sorted(veren)))]
         if _atlanan18s:
