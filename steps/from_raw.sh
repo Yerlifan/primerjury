@@ -96,4 +96,4 @@ log "bin files: $(find "$BINS" -name '*BIN*.fastq' | wc -l)"
 log "--- 3 select_bins -> $OUT"
 python3 "$HERE/select_bins.py" --source "$BINS" --target "$OUT" >>"$LOG" 2>&1 || { log "select_bins FAILED"; exit 4; }
 log "chosen bins: $(find "$OUT" -name '*BIN*.fastq' | wc -l) (SELECTION_TABLE.tsv beside them)"
-log "=== from_raw finished; next: bash steps/anchored_reference_consensus.sh, then ./primerjury run ==="
+log "=== from_raw finished; next: bash steps/anchored_reference_consensus.sh, ./primerjury fungi (fungal bins), ./primerjury consensus, then ./primerjury run ==="

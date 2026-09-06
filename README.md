@@ -178,6 +178,23 @@ criterion, so it is used only where it represents the reads better. The per-read
 table doubles as the read-level witness, from the same databases as the
 consensus route. Self-test: `./primerjury fungi --self-test`.
 
+Two things were measured on the way and changed the code. BLAST with a small
+`-max_target_seqs` missed the best UNITE record in the Microascaceae pile-up (a
+read written as *Microascus* 96.6 per cent had a real best record, *Acaulium*, at
+98.3), so the per-read step maps the ITS windows with minimap2 against an index
+built once beside the database: 401 windows in 9 s instead of 26 min, and every
+genus that differed was a higher-identity record. And the top record is not the
+last word: when it cannot name a species (unnamed, genus only, or a placeholder
+such as "sp.") and a species-named record sits within the separation margin,
+the decision rests on that record, in the multi-locus and the single-locus
+paths alike (`tests/test_locus_tie.py`, `tests/test_single_locus_tie.py`).
+
+Measured on the three roots of the study (2026-09-06): the polished set won the
+read-support selection in 35 of 40, 31 of 40 and 140 of 173 fungal bins, and
+the fungal bins at species level went from 0 to 18, 0 to 19 and 9 to 44, with
+the independent re-derivation of every name agreeing 99 of 99 and the
+consistency audit at zero on all three.
+
 ### The QIIME2 route
 
 `./primerjury qiime2 all` runs an independent community profile beside the
@@ -201,6 +218,10 @@ identity chain, so that the two can be compared rather than one trusted:
    calculation; measured on a 16 GB machine).
 
 ### Starting from raw reads
+
+The order is `./primerjury bins` (barcodes and bins), then
+`bash steps/anchored_reference_consensus.sh`, then `./primerjury fungi` for the
+fungal bins, then `./primerjury consensus` and `./primerjury run`.
 
 `steps/from_raw.sh` turns demultiplexed BAMs (or one fastq per barcode) into
 bins the chain reads, **without a classifier**:
