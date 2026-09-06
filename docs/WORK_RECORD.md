@@ -1284,3 +1284,41 @@ at 100 per cent, while UNITE holds *P. setifera* records at 100 per cent over
 600 bp of the same consensus; the reads split evenly between the two. The two
 species cannot be separated on this amplicon and the decision is "cf.", which is
 what the tie rule gives once the UNITE records are in the decision set.
+
+---
+
+## 29. A control environment with known truth, and what it caught (2026-09-06)
+
+The author's rule: the system must not give false positives, and there must be
+control and test environments. In the study a fourth root now holds twelve
+synthetic bins simulated from real RefSeq records with ONT-like errors: positive
+controls (*Methanothrix soehngenii*, *Proteiniphilum saccharofermentans*,
+*Scopulariopsis brevicaulis* ITS), two ties (*Methanosarcina mazei*, one base from
+*M. soligelidi*; *Petriella musispora*, identical to *P. setifera* on the amplicon),
+negatives (8 per cent mutated sequences that must not reach species or cf.), two
+mixtures (70/50, across genera and within one genus), a three-read bin and an
+all-reverse-strand bin. The full chain runs on that root and a checker compares
+the delivery table, the population table and the sub-population report with the
+expectations; the audit script refuses a stale control (code changed since the
+last pass).
+
+The first run caught three things. A three-read bin was named at species level
+by the delivery table (the population polish had skipped it, the anchored
+consensus route had not): the study table now refuses a name below the
+minimum read count of the identity rules, and the independent re-derivation
+applies the same rule. Reads of *Petriella musispora* came out "Petriella sp."
+although the ITS locus had said "cf. setifera": the combination rule dropped a
+cf. to genus whenever no locus reached species outright; it now carries the
+strongest cf. (a species candidate is information, not a species claim). Here
+`locus_decision.birlestir` has the same change and
+`tests/test_locus_tie.py` covers it. The third was a chain rule of this
+session's making: the evidence audit writes a header-only file when it finds
+nothing, and the new "fresh output with at least one record" criterion counted
+that as a failed stage; the file now ends with a summary line.
+
+The chains themselves were hardened on the same rule: a stage counts as done only
+when its output was written after the stage started (a start marker), a
+directory only when it holds a file newer than the marker, and informational
+stages carry no stamp. This is the class of the PICRUSt2 failure found the same
+evening, where a memory-killed stage had been stamped done because its output
+directory existed.
