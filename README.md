@@ -269,7 +269,16 @@ library left in a bin folder became phantom bins. Both had passed every test.
 | Kraken2 + Bracken | classification (optional, see note) |
 | QIIME2 + PICRUSt2 | community/function analysis (optional) |
 
-Python packages are in `requirements.txt`.
+Python packages (`requirements.txt`, `python3 -m pip install -r requirements.txt`):
+
+| Package | Used for |
+|---|---|
+| primer3-py ≥ 2.0 | oligo thermodynamics: Tm, hairpin, homodimer and heterodimer Tm and ΔG, 3' end stability (`engine/geometry_core.py`, `screening/geometry.py`, candidate generation and group design) |
+| Biopython ≥ 1.79 | sequence handling and the second, independent Tm source (`Bio.SeqUtils.MeltingTemp`) that the primer3 values are checked against |
+| numpy | vectorised binding scans in the screening engine |
+| pysam | BAM and pileup reading for consensus and N-analysis |
+| openpyxl | Excel deliverables |
+| matplotlib | figures |
 
 > **Kraken2 is optional and deliberately so.** The pipeline runs without it; the
 > classification stages are marked skipped and the chain continues. Given the
