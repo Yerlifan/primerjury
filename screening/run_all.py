@@ -164,6 +164,8 @@ def kanonik_kos(yaz, sure, oncelik='ozgun'):
     betik = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build_canonical.py')
     if not os.path.exists(betik):
         return False, 'build_canonical.py bulunamadi'
+    if os.path.exists(os.path.join(C.KOK, 'CONSENSUS_SELECTION.tsv')):
+        oncelik = 'selection'       # 2026-09-06: the read-support selection, when it exists, is the canonical source
     komut = [_sys.executable, betik, '--root', C.KOK, '--priority', oncelik]
     yaz('  > %s' % ' '.join(komut[1:]))
     t = time.time()

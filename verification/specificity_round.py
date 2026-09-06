@@ -262,7 +262,7 @@ def kurtarilanlar(kok):
 def katman1_yerel(kok, ciftler, yaz, kontrol_dizin, parc=False, kume_ust=0):
     """Uses the EXISTING global scan code. A separate checkpoint for each set."""
     sys.path.insert(0, kok)
-    from screening import global_scan as KT, yapilandirma as C
+    from screening import global_scan as KT     # 2026-09-06: 'yapilandirma' does not exist here (config), it was an ImportError
 
     adaylar = [dict(ad=c['hedef'], F=c['F'], R=c['R'], lo=URUN_ALT, hi=URUN_UST)
                for c in ciftler]

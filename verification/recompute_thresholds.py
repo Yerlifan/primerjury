@@ -67,7 +67,6 @@ def main():
     kok = os.path.abspath(a.kok)
 
     panel = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'panel_tek_protokol.tsv'))
-    ham = _tsv(os.path.join(kok, 'ONE_PROTOCOL_RESULT', 'kutu_bazli_ham_sayilar.tsv'))
     if not panel:
         sys.exit(u'ERROR: panel_tek_protokol.tsv could not be read.')
 
