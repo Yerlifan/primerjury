@@ -114,21 +114,19 @@ def its_window(reads_fa, db, threads=1):
     gives long ~93 per cent alignments of its 18S/28S flanks to unrelated genera
     (measured: Fusarium / Nectria; 60 reads took 442 s). The window cuts both the
     artefact and the query length by about six."""
-    r = subprocess.run(['blastn', '-query', reads_fa, '-db', db, '-outfmt',
-                        '6 qseqid bitscore qstart qend', '-max_target_seqs', '5',
-                        '-evalue', '1e-20', '-num_threads', str(threads)],
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError(u'blastn (ITS window) failed: %s' % (r.stderr or '')[:200])
+    # 2026-09-06: minimap2 against the small RefSeq set's index. Measured: the bacterial 16S
+    # window for 12,377 reads took 48 min with blastn and seconds with minimap2. The window is
+    # the read span of the highest-scoring mapping (PAF columns 3-4, 0-based -> 1-based).
+    mmi = mmi_path(db, threads)
+    paf = run(['minimap2', '-t', str(threads), '-x', 'map-ont', '--secondary=no', mmi, reads_fa])
     best = {}
-    for line in r.stdout.splitlines():
+    for line in paf.splitlines():
         p = line.split('\t')
-        if len(p) < 4:
+        if len(p) < 12:
             continue
-        k, bit, qs, qe = p[0], float(p[1]), int(p[2]), int(p[3])
-        qs, qe = min(qs, qe), max(qs, qe)
-        if k not in best or bit > best[k][0]:
-            best[k] = (bit, qs, qe)
+        k, qs, qe, score = p[0], int(p[2]) + 1, int(p[3]), int(p[9])
+        if k not in best or score > best[k][0]:
+            best[k] = (score, qs, qe)
     return {k: (v[1], v[2]) for k, v in best.items()}
 
 
