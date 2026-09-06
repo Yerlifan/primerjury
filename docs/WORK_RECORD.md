@@ -1253,3 +1253,34 @@ this repository and, where the same code exists, in the study:
 
 `tests/test_review_0906.py` holds one test per finding. The reviewer's own
 minimal reproduction (in its report) passes on this commit.
+
+---
+
+## 28. medaka measured and adopted as the last polish stage (2026-09-06)
+
+The author asked for a Python 3.11 environment and a medaka test. medaka 2.2.2
+went into a conda environment; its `medaka_consensus` wrapper exits in its
+version check without bcftools, so the three steps (minimap2, `medaka
+inference`, `medaka sequence`) are called directly. The model is the data's own
+basecalling model.
+
+Pilot on five bins with the same medoid template and population reads: medaka
+alone regressed one bin (99.86 to 99.71 per cent); medaka on top of the samtools
+consensus regressed none and carried a bacterial bin over the species threshold
+(98.59 to 99.15, *Proteiniphilum saccharofermentans*).
+
+A first 99-bin comparison was discarded: it compared against a table produced by
+an earlier code state of the same day, and the population columns differed, which
+medaka cannot cause. Re-run apples to apples (same code, medaka the only
+difference): one bin rose to species, none fell, two unnamed bins changed label
+between two unnamed names. A reference-free arbiter, the population reads
+aligned to both consensuses, preferred the medaka sequence in 21 bins, was equal
+in 76 and worse by about one base in 2. So the polish is now samtools followed by
+medaka, on by default when the environment exists (`--no-medaka` to switch off).
+
+A finding from the discarded comparison stands on its own: seven *Petriella*
+bins had been called *P. musispora* at species level on a 500 bp RefSeq record
+at 100 per cent, while UNITE holds *P. setifera* records at 100 per cent over
+600 bp of the same consensus; the reads split evenly between the two. The two
+species cannot be separated on this amplicon and the decision is "cf.", which is
+what the tie rule gives once the UNITE records are in the decision set.
