@@ -1160,3 +1160,20 @@ NCBI Primer-BLAST layer with the corrected verdict rule), whole-operon bins and
 consensus for the archaeal and fungal libraries, and the identity method PAK in
 front of the design. Nothing in PrimerScope is needed beside PrimerJury any more;
 the old repository is kept archived for its history and its README points here.
+
+---
+
+## 25. The polish goes to every organism (2026-09-06)
+
+The author's instruction: not only the fungi, every organism. The population
+split and the medoid-read polish were measured first on the archaeal and
+bacterial bins of the study (59 bins, 150 reads each, 16S window, minimap2
+against RefSeq 16S and SILVA SSU): the table's genus matched the dominant read
+population in every bin, but six bacterial bins were mixtures inside the
+Bacteroidales with the dominant population under 80 per cent, one at 39.
+`verification/population_polish.py` carries the group logic (window database,
+per-read databases, decision rule per group) on top of the fungal module's
+machinery; `./primerjury polish` runs it for every library and the result is
+one more candidate set for `select_consensus`. In a first trial a ten-read
+archaeal bin moved from "cannot be named" at 94.2 per cent to *Methanofollis
+ethanolicus* at 99.86.

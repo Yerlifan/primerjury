@@ -60,7 +60,8 @@ SUPPORT_BAND = 1.0
 # 'fungal_polish/consensus' (2026-09-05) is the consensus polished from a fungal bin's
 # dominant population (verification/fungal_bin_identity.py). It is weighed with the
 # SAME read-support criterion as every other candidate; no fungal special case.
-DEFAULT_SETS = ('referans_konsensus/baskin/konsensus', 'referans_konsensus/fungal_polish/consensus',
+DEFAULT_SETS = ('referans_konsensus/baskin/konsensus', 'referans_konsensus/pak_polish/consensus',
+                'referans_konsensus/fungal_polish/consensus',
                 'referans_konsensus/konsensus',
                 'referans_konsensus/self/konsensus', 'consensus sequences')
 COMPLEMENT = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}

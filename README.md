@@ -74,7 +74,7 @@ sequences/  (your .fasta / .fastq, or demultiplexed BAMs)
      │                         (steps/from_raw.sh; replaces step 1 when there is no Kraken2)
      ├─ 1. classify            Kraken2 + Bracken           (optional, see below)
      ├─ 2. consensus           per-bin consensus, N-analysis
-     ├─ 2b. fungal polish      split a mixed bin by ITS population, polish the dominant one
+     ├─ 2b. PAK polish         split every bin by read population (ITS or 16S window), polish the dominant one
      │                         distinguishes low coverage from real strain variation
      ├─ 3. identity            12 reference databases, seed + full alignment,
      │                         NO taxonomy tree, ≥2 databases must agree
@@ -166,6 +166,19 @@ covers at least 90 per cent of the record counts in full, because more than
 half of the ITS references are shorter than the ITS floor (measured). Hits
 under 250 bases are removed before ranking, so a short junk hit cannot veto
 the genus a long one would give.
+
+### PAK polish for every bin
+
+`./primerjury polish` (`verification/population_polish.py`) applies the population
+split and the medoid-read polish below to every library: an ITS window for the
+fungi, a 16S window for archaea and bacteria (RefSeq 16S + SILVA SSU for the
+per-read records), and the group's own decision rule on the result (three loci
+for fungi, the 16S ladder for the rest). Measured on the study's archaeal and
+bacterial bins: the table's genus matched the dominant read population in 59 of
+59, but six bacterial bins (Bacteroidales mixtures) had a dominant population
+under 80 per cent, and a ten-read archaeal bin went from "cannot be named" at
+94.2 per cent to *Methanofollis ethanolicus* at 99.86 once polished from its own
+reads. The polished set is weighed by `select_consensus` like any other.
 
 ### Fungal bins: a mixed bin has no single consensus
 

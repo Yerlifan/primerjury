@@ -401,7 +401,7 @@ def unnamed(name):
     return any(t in low for t in ADSIZ_JETONLARI)
 
 
-def populations(best):
+def populations(best, key=u'ITS'):
     u"""Group reads by the genus of their best record. Returns (genus counter,
     {genus: [(read, pid, aln, name)]}, species counter, {species: [pid]}).
     Unnamed records join no population."""
@@ -416,8 +416,8 @@ def populations(best):
         genus, epithet = cins_epitet(name)
         if not genus:
             continue
-        if pid < CINS_ESIGI['ITS']:
-            continue          # below the genus threshold a hit founds no population
+        if pid < CINS_ESIGI[key]:
+            continue          # below the genus threshold (of the locus) a hit founds no population
         count[genus] += 1
         members[genus].append((k, pid, aln, name))
         if epithet and epithet.lower() not in PLACEHOLDER:
