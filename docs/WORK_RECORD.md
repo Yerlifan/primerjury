@@ -1097,3 +1097,38 @@ study) now looks at the same databases as the consensus route (UNITE and SILVA
 LSU added), so a disagreement can no longer be a database artefact. Tests:
 `tests/test_fungal_bin_identity.py` (pure parts always; the tool-bound self-test
 with synthetic 70/30 mixtures when blastn, minimap2 and samtools are present).
+
+---
+
+## 21. BLAST's shortlist cut off the best record; minimap2 replaced it for reads (2026-09-06)
+
+The per-read ITS search against UNITE took 11 to 22 minutes per bin and the
+seed size was not the reason: word size 64 returned exactly the same 150 hits
+as 28 and still took 684 s. The cost is UNITE itself, hundreds of near-identical
+records per species. Worse, `-max_target_seqs 5` was missing the best record in
+that pile-up: a read written as *Microascus* 96.63 per cent had a real best
+record, *Acaulium* MW031220, at 98.27 (confirmed with a pairwise blastn), and
+values of 50 and 500 each found different records again. The read is now cut to
+its ITS window (located with the small RefSeq set, 60 bp padding) and mapped
+with minimap2 -c against an index built once beside the database: 401 windows
+in 9 s, identity taken as 1 minus the gap-compressed divergence, and every genus
+that differed from BLAST was a higher-identity record. The three-locus decision
+on the polished consensus stays with BLAST at `-max_target_seqs 500`. Every bin's
+windows go to one query file, so the database is scanned once per run.
+
+## 22. The top record is not the last word (2026-09-06)
+
+With the polished consensus at 100 per cent the ITS search put a UNITE
+"Petriella sp." record (600 bp) above the RefSeq TYPE record *Petriella
+musispora* (500 bp, same identity) and the decision stopped at the top record:
+genus. The rule now reads: when the top record cannot name a species and a
+species-named record sits within the separation margin, that record decides and
+the skipped one is written in the note; a genus-only record leading by more than
+the margin still keeps the bin at genus, because then the nearest reference is
+an undescribed lineage. The same pass found that "Petriella sp. CBS 3" parsed to
+the epithet "sp" and counted as a species and as a rival, that a two word genus
+with a space ("Candidatus Methanofastidiosum") was written as a species in the
+single-locus path, and that unnamed records counted as rivals. EPITET_DEGIL in
+identity_verification is the one list of placeholder epithets; cins_epitet takes
+the epithet as what follows the genus. The independent re-derivation of the
+names in the study agreed 99 of 99 afterwards.
