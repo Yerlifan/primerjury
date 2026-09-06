@@ -57,6 +57,16 @@ sections 13 to 16.
 
 ## What it does
 
+The identification method is called **PAK, Population-resolved Amplicon Keying**
+(Turkish: *Popülasyon Ayrıştırmalı Kimliklendirme*), named by the author in
+September 2026. "Keying" is the taxonomist's word for taking a specimen down to
+a species with a key. PAK is the reference-anchored, dominant-allele consensus per
+bin, the split of a mixed bin into read populations with the dominant one polished
+from its own medoid read, thirteen rRNA databases, one place for every locus
+threshold, the top-record rule, the evidence layers, and an independent
+re-derivation of every name from the written rule. Kraken2, QIIME2 and NCBI run
+beside it as opinions to compare against, not as the answer.
+
 ```
 sequences/  (your .fasta / .fastq, or demultiplexed BAMs)
      │
@@ -197,8 +207,8 @@ consistency audit at zero on all three.
 
 ### The QIIME2 route
 
-`./primerjury qiime2 all` runs an independent community profile beside the
-identity chain, so that the two can be compared rather than one trusted:
+`./primerjury qiime2 all` runs an independent community profile beside PAK,
+so that the two can be compared rather than one trusted:
 
 1. `steps/qiime2_profile.sh`: per library, a length window from the sample's
    own read-length distribution (10th to 90th percentile; a 4.3 kb operon and a
@@ -211,7 +221,7 @@ identity chain, so that the two can be compared rather than one trusted:
    gave meaningless labels on fungi and on the long archaeal operon, so each
    library is aligned to the reference that fits it (SILVA SSU, SILVA LSU,
    UNITE) and `qiime2_reference_taxonomy.py` takes the taxonomy the best hits
-   agree on, with the identity chain's alignment-length rule and thresholds.
+   agree on, with PAK's alignment-length rule and thresholds.
 3. `steps/picrust2_run.sh`: functional prediction for the archaeal and bacterial
    libraries, an operon cut down to its SSU part first, every step under a
    memory guard (the trait-table check at start-up is what eats memory, not the

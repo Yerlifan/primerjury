@@ -1039,7 +1039,7 @@ appended to now.
 
 ## 18. A bin id is not a number (2026-09-05)
 
-With the Kraken-free bins in place the identity chain ran end to end in five
+With the Kraken-free bins in place PAK, the identity chain, ran end to end in five
 minutes and reported "done" with an empty table. Five scripts parsed the bin
 label as `<library>_<digits>`: the dominant-allele step skipped all 420 bins
 ("label could not be resolved"), the identity table scanned its consensus
@@ -1132,3 +1132,31 @@ single-locus path, and that unnamed records counted as rivals. EPITET_DEGIL in
 identity_verification is the one list of placeholder epithets; cins_epitet takes
 the epithet as what follows the genus. The independent re-derivation of the
 names in the study agreed 99 of 99 afterwards.
+
+---
+
+## 23. The method has a name: PAK (2026-09-06)
+
+The author named the identification method **PAK, Population-resolved Amplicon
+Keying** (Turkish *Popülasyon Ayrıştırmalı Kimliklendirme*). Until now the
+documents said "our method" or "the identity chain"; the study's scripts and
+reports say PAK from here on, and so does this record. Column names inside the
+tables did not change: seven scripts read them by name.
+
+---
+
+## 24. PrimerScope, the predecessor (July 2026), folded into this repository (2026-09-06)
+
+`Yerlifan/primerscope` (last commit 2026-07-09, 2,680 lines in twelve modules) was
+the first generation of this work: strict qPCR design with Primer3 and Biopython,
+both-strand in silico PCR against every taxon in the sample, NCBI Primer-BLAST
+driven through a headless browser with the template supplied and cropped to the
+amplicon window, an offline specificity check against the user's own rRNA FASTA
+with SPECIES / GENUS / NON_SPECIFIC ranks, and an "operon rescue" that designs
+from the variable ITS/23S region when the conserved 16S/18S cannot separate
+species. Every one of those ideas lives on here in a measured form: the design
+rules and the four specificity layers (in-sample engine, blastn, MFEprimer, the
+NCBI Primer-BLAST layer with the corrected verdict rule), whole-operon bins and
+consensus for the archaeal and fungal libraries, and the identity method PAK in
+front of the design. Nothing in PrimerScope is needed beside PrimerJury any more;
+the old repository is kept archived for its history and its README points here.
