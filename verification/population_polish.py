@@ -47,7 +47,8 @@ from fungal_bin_identity import (sample_reads, write_fasta, read_fasta_seq, medo
                                  polish, best_hits, best_hits_mm2, its_window,
                                  window_file, bin_files, db_path, populations,
                                  MIN_POPULATION, ITS_DB, blast)
-from locus_decision import MANTAR_LOKUSLARI, lokus_karari, birlestir, raporlanan_yontem   # noqa: E402
+from locus_decision import (MANTAR_LOKUSLARI, lokus_karari, birlestir, raporlanan_yontem,   # noqa: E402
+                            LOKUS_KUMELERI, BASAMAK_ARKE)
 from identity_verification import ADSIZ_JETONLARI                           # noqa: E402
 from target_identity import ad_ayikla, cins_epitet, basamaktan_sec          # noqa: E402
 
@@ -56,6 +57,10 @@ POP_DIR = os.path.join('referans_konsensus', 'pak_polish', 'population')
 GROUPS = ('A1', 'A2', 'B', 'F1', 'F2')
 SEP = u'@@'
 SSU_DB = ['archaea.16S.fna', 'bacteria.16S.fna', 'SILVA_138.2_SSURef_NR99.fasta']
+MULTI = {'F1': 'COK_LOKUS', 'F2': 'COK_LOKUS', 'A2': 'COK_LOKUS_ARKE'}   # groups decided over several loci
+ALT_DIR = os.path.join('referans_konsensus', 'pak_polish', 'sub')
+MIN_SUB = 10          # a sub-population needs this many reads ...
+SUB_SHARE = 15.0      # ... and this share of its parent population
 
 
 def group_locus(group):
@@ -107,6 +112,58 @@ def batch_hits(bin_reads, root, a, tmp, blast_fn=None):
     return per_bin, windowed
 
 
+def sub_populations(label, reads, count, members):
+    u"""SUB-POPULATIONS INSIDE A BIN (2026-09-06). A bin can hold several species
+    (Petriella musispora + guttulata; Proteiniphilum mixtures). Two sources: (a) species
+    groups inside the dominant genus (by the best record's real epithet), (b) the second
+    genus population. Each with >= MIN_SUB reads and >= SUB_SHARE per cent is polished on
+    its own. The parent bin's result does not change; sub-populations go to a separate
+    report (a primer target of their own). Returns [(tag, source, reads)]."""
+    out = []
+    seq_of = dict(reads)
+    total = sum(count.values())
+    if not total:
+        return out
+    g1, n1 = count.most_common(1)[0]
+    groups = collections.defaultdict(list)
+    for k, _p, _a, name in members[g1]:
+        c, e = cins_epitet(name)
+        if e and e.lower() not in F.PLACEHOLDER:
+            groups[u'%s %s' % (c, e)].append(k)
+    big = [(t, ks) for t, ks in groups.items() if len(ks) >= MIN_SUB and 100.0 * len(ks) / n1 >= SUB_SHARE]
+    if len(big) >= 2:
+        for t, ks in sorted(big, key=lambda x: -len(x[1])):
+            out.append((u'%s~%s' % (label, t.replace(u' ', u'_')), u'species group inside the dominant genus (%d/%d)' % (len(ks), n1),
+                        [(k, seq_of[k]) for k in ks]))
+    if len(count) > 1:
+        g2, n2 = count.most_common(2)[1]
+        if n2 >= MIN_SUB and 100.0 * n2 / total >= SUB_SHARE:
+            out.append((u'%s~%s' % (label, g2.replace(u' ', u'_')), u'second genus population (%d/%d)' % (n2, total),
+                        [(k, seq_of[k]) for k, _p, _a, _n in members[g2]]))
+    return out
+
+
+def polish_sub(root, tag, group, pop, a, tmp):
+    kd = os.path.join(tmp, tag.replace(u'~', u'__'))
+    os.makedirs(kd, exist_ok=True)
+    med = medoid(pop)
+    pop_fa = os.path.join(kd, 'population.fa')
+    write_fasta(pop_fa, pop)
+    tpl = os.path.join(kd, 'template0.fa')
+    write_fasta(tpl, [(med[0], med[1])])
+    seq = med[1]
+    for rnd in range(1, a.rounds + 1):
+        out = os.path.join(kd, 'round%d.fa' % rnd)
+        seq, _n = polish(tpl, pop_fa, out, a.threads)
+        if len(seq) < 200:
+            seq = read_fasta_seq(tpl)
+            break
+        write_fasta(out, [(tag, seq)])
+        tpl = out
+    return dict(bin=tag, group=group, locus=group_locus(group), reads=len(pop), pop_n=len(pop),
+                template=med[0], template_similarity=med[2], bp=len(seq), sequence=seq)
+
+
 def polish_bin(root, label, reads, best, n_window, a, tmp):
     group = label.split(u'-')[0]
     key = group_locus(group)
@@ -152,6 +209,8 @@ def polish_bin(root, label, reads, best, n_window, a, tmp):
     if len(pop) < MIN_POPULATION:
         r['note'] = u'%s: %d reads < %d, no consensus made' % (pop_note, len(pop), MIN_POPULATION)
         return r
+    if getattr(a, 'sub', True) and total:
+        r['sub'] = sub_populations(label, reads, count, members)
     med = medoid(pop)
     r.update(template=med[0], template_bp=len(med[1]), template_similarity=med[2])
     pop_fa = os.path.join(kd, 'population.fa')
@@ -174,13 +233,16 @@ def polish_bin(root, label, reads, best, n_window, a, tmp):
 
 def batch_decide(results, root, a, tmp, blast_fn=None):
     u"""Fungal bins: three loci; the others: the 16S ladder of target_identity."""
-    fungal = {k: r for k, r in results.items() if r.get('sequence') and r['group'] in ('F1', 'F2')}
-    others = {k: r for k, r in results.items() if r.get('sequence') and r['group'] not in ('F1', 'F2')}
-    if fungal:
-        query = os.path.join(tmp, 'final_fungal.fa')
+    multi = {k: r for k, r in results.items() if r.get('sequence') and r['group'] in MULTI}
+    others = {k: r for k, r in results.items() if r.get('sequence') and r['group'] not in MULTI}
+    for key in sorted(set(MULTI[r['group']] for r in multi.values())):
+        fungal = {k: r for k, r in multi.items() if MULTI[r['group']] == key}
+        loci = LOKUS_KUMELERI[key]
+        ladder = None if key == 'COK_LOKUS' else BASAMAK_ARKE
+        query = os.path.join(tmp, 'final_%s.fa' % key)
         write_fasta(query, [(k, r['sequence']) for k, r in fungal.items()])
         hits = {k: {} for k in fungal}
-        for lok, dbs, _an in MANTAR_LOKUSLARI:
+        for lok, dbs, _an in loci:
             for name in dbs:
                 db = db_path(root, name, a.db_dir) if root is not None else name
                 if db:
@@ -188,13 +250,13 @@ def batch_decide(results, root, a, tmp, blast_fn=None):
                         hits.setdefault(k, {}).setdefault(lok, []).extend(v)
         for label, r in fungal.items():
             dec = {lok: lokus_karari(hits.get(label, {}).get(lok), an, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
-                   for lok, _d, an in MANTAR_LOKUSLARI}
+                   for lok, _d, an in loci}
             name, ident, note = birlestir(dec)
             ra, rp, rl, rlok, rsecond, rgap = raporlanan_yontem(hits.get(label, {}), ad_ayikla, cins_epitet,
-                                                                ADSIZ_JETONLARI)
+                                                                ADSIZ_JETONLARI, ladder)
             r.update(name=name, identity=ident, decision_note=note,
                      detail=u' | '.join(u'%s: %s %.2f%%/%d' % (l, dec[l]['ad'], dec[l]['kimlik'], dec[l]['hizalama'])
-                                        for l in (u'18S', u'ITS', u'28S') if l in dec),
+                                        for l, _d, _a in loci if l in dec),
                      reported=(u'%s (%.2f%%, %d bp, %s)' % (ra, rp, rl, rlok)) if ra else u'-')
     groups = collections.defaultdict(dict)
     for k, r in others.items():
@@ -251,6 +313,8 @@ def main(argv=None):
     ap.add_argument('--db-dir', default=None)
     ap.add_argument('--out', default='PAK_POLISH.tsv')
     ap.add_argument('--redo', action='store_true')
+    ap.add_argument('--no-sub', dest='sub', action='store_false', default=True,
+                    help='skip the sub-population stage')
     ap.add_argument('--self-test', action='store_true')
     a = ap.parse_args(argv)
     if a.self_test:
@@ -304,7 +368,33 @@ def main(argv=None):
                       % (n, len(bin_reads), label, r.get('genus'), r.get('share', 0.0), r.get('genus2'),
                          r.get('share2', 0.0), r.get('pop_n', 0), r.get('bp', 0)))
                 sys.stdout.flush()
+            subs = {}
+            for label, r in sorted(results.items()):
+                for tag, source, pop in r.get('sub', []):
+                    rs = polish_sub(root, tag, r['group'], pop, a, tmp)
+                    rs['source'] = source
+                    subs[tag] = rs
             batch_decide(results, root, a, tmp)
+            if subs:
+                batch_decide(subs, root, a, tmp)
+                sub_dir = os.path.join(root, ALT_DIR)
+                if not os.path.isdir(sub_dir):
+                    os.makedirs(sub_dir)
+                sub_tsv = os.path.join(root, 'PAK_SUB_POPULATIONS.tsv')
+                old = {}
+                if os.path.exists(sub_tsv):
+                    for line in io.open(sub_tsv, encoding='utf-8', errors='replace').read().splitlines()[1:]:
+                        if line.strip() and line.split(u'\t')[0].split(u'~')[0] not in results:
+                            old[line.split(u'\t')[0]] = line
+                for tag, rs in sorted(subs.items()):
+                    with io.open(os.path.join(sub_dir, tag.replace(u'~', u'__') + '.fasta'), 'w', encoding='utf-8') as g:
+                        g.write(u'>%s pak_sub %s reads=%d template=%s\n%s\n' % (tag, rs['source'], rs['pop_n'], rs['template'], rs['sequence']))
+                    old[tag] = u'\t'.join([tag, tag.split(u'~')[0], rs['group'], rs['source'], u'%d' % rs['pop_n'], u'%d' % rs['bp'],
+                                           rs.get('name') or u'-', u'%s' % rs.get('identity', u'-'), rs.get('decision_note') or u'-', rs.get('detail') or u'-'])
+                    print(u'  SUB %-34s %-44s -> %s' % (tag[:34], rs['source'][:44], rs.get('name')))
+                io.open(sub_tsv, 'w', encoding='utf-8', newline='\n').write(
+                    u'\t'.join([u'sub tag', u'bin', u'group', u'source', u'reads', u'consensus bp', u'DECISION', u'identity %', u'decision note', u'locus detail'])
+                    + u'\n' + u'\n'.join(old[k] for k in sorted(old)) + u'\n')
             for label, r in sorted(results.items()):
                 if r.get('sequence'):
                     with io.open(os.path.join(set_dir, label + '.fasta'), 'w', encoding='utf-8') as g:
@@ -341,6 +431,15 @@ def self_test():
             errors.append(u'group_locus(%s) = %s' % (g, group_locus(g)))
     if window_db('B') != 'bacteria.16S.fna' or population_dbs('A1')[0] != 'archaea.16S.fna':
         errors.append(u'database mapping')
+    # sub-populations on a synthetic split: two species groups inside the dominant genus + a second genus
+    count = collections.Counter({u'Aus': 70, u'Bus': 30})
+    members = {u'Aus': [(u'a%d' % i, 99.0, 500, u'Aus alpha' if i < 40 else u'Aus beta') for i in range(70)],
+               u'Bus': [(u'b%d' % i, 99.0, 500, u'Bus beta') for i in range(30)]}
+    reads = [(u'a%d' % i, u'ACGT' * 100) for i in range(70)] + [(u'b%d' % i, u'ACGT' * 100) for i in range(30)]
+    subs = sub_populations(u'X-1_1', reads, count, members)
+    kinds = sorted(x[1].split(u' (')[0] for x in subs)
+    if len(subs) != 3 or kinds != [u'second genus population', u'species group inside the dominant genus', u'species group inside the dominant genus']:
+        errors.append(u'sub-populations: %s' % [(x[0], x[1], len(x[2])) for x in subs])
     r = dict(bin=u'B-9_1', group=u'B', reads=3, note=u'too few reads (3)')
     if len(make_row(r).split(u'\t')) != len(HEADER):
         errors.append(u'make_row field count does not match the header')

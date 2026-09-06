@@ -107,6 +107,7 @@ declare -A URL=(
   [refseq_its]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.ITS.fna.gz"
   [refseq_18s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.18SrRNA.fna.gz"
   [refseq_28s]="https://ftp.ncbi.nlm.nih.gov/refseq/TargetedLoci/Fungi/fungi.28SrRNA.fna.gz"
+  [gtdb]="https://data.gtdb.ecogenomic.org/releases/release220/220.0/genomic_files_all/ssu_all_r220.fna.gz"
 )
 # the target file names; the code expects these names (the database list in
 # verification/identity_verification.py)
@@ -120,6 +121,7 @@ declare -A HEDEF=(
   [refseq_its]="fungi.ITS.fna"
   [refseq_18s]="fungi.18SrRNA.fna"
   [refseq_28s]="fungi.28SrRNA.fna"
+  [gtdb]="GTDB_ssu_all_r220.fna"
 )
 # the minimum record count expected; below this the file is SUSPECT
 # (measured values, CROSSCHECK_RESULT/CAPRAZ_KONTROL_2026-08-09_2216.md)
@@ -127,9 +129,10 @@ declare -A ASGARI_KAYIT=(
   [silva_ssu]=400000  [silva_lsu]=80000  [silva_lsu_parc]=1000000
   [pr2]=200000        [refseq_bak16s]=20000  [refseq_ark16s]=800
   [refseq_its]=15000  [refseq_18s]=3000      [refseq_28s]=10000
+  [gtdb]=800000
 )
 SIRA=(silva_ssu silva_lsu silva_lsu_parc pr2 refseq_bak16s refseq_ark16s
-      refseq_its refseq_18s refseq_28s)
+      refseq_its refseq_18s refseq_28s gtdb)
 
 # UNITE and ROD are special: the UNITE address changes with a DOI per release, and
 # ROD is a git repository.
