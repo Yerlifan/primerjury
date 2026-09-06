@@ -51,7 +51,9 @@ from identity_verification import (TUR_ESIGI, CINS_ESIGI, AYRIM_PAYI,   # noqa: 
 # The loci of a fungal bin: (label, database files, threshold key). The order does
 # not matter; the decision goes by length and by vote, not by position.
 MANTAR_LOKUSLARI = [
-    (u'18S', ['fungi.18SrRNA.fna'], 'SSU'),
+    # PR2 (eukaryotic SSU, 240,201 records): ciliate and protist bins that NCBI could name
+    # stayed unnamed here (2026-09-06).
+    (u'18S', ['fungi.18SrRNA.fna', 'PR2_SSU_taxo_long.fasta'], 'SSU'),
     (u'ITS', ['fungi.ITS.fna', 'UNITE_ITS.fasta'], 'ITS'),
     # SILVA LSU NR99 (a DNA copy, indexed) beside RefSeq's 12,890 fungal 28S records; a
     # missing database is reported by the resolver, never skipped silently. LSU Parc is
@@ -76,8 +78,19 @@ MANTAR_LOKUSLARI = [
 #   * a tie in the GENUS vote is broken by DISCRIMINATING POWER.
 #   * a SPECIES name can only be taken from ITS or 28S. 18S contributes to the
 #     genus agreement but CANNOT PRODUCE a species name on its own.
-LOKUS_GUCU = {u'ITS': 3, u'28S': 2, u'18S': 1}
-TUR_VEREBILEN = (u'ITS', u'28S')
+LOKUS_GUCU = {u'ITS': 3, u'28S': 2, u'18S': 1, u'23S': 3, u'16S': 2}
+TUR_VEREBILEN = (u'ITS', u'28S', u'16S', u'23S')
+
+# The ARCHAEAL OPERON (A2: 16S + ITS + 23S, about 4.2 kb) is decided over two loci as well
+# (2026-09-06). When two references sit inside the separation margin on 16S (a 'cf.'),
+# 23S can separate them; the prokaryotic 23S is more variable than 16S (power 3 over 2).
+# There is no archaeal ITS database. GTDB r220 SSU (863,832 records, from genomes) joins 16S.
+ARKE_LOKUSLARI = [
+    (u'16S', ['archaea.16S.fna', 'SILVA_138.2_SSURef_NR99.fasta', 'GTDB_ssu_all_r220.fna'], 'SSU'),
+    (u'23S', ['SILVA_138.2_LSURef_NR99_DNA.fasta'], 'LSU'),
+]
+LOKUS_KUMELERI = {'COK_LOKUS': MANTAR_LOKUSLARI, 'COK_LOKUS_ARKE': ARKE_LOKUSLARI}
+BASAMAK_ARKE = [u'16S', u'23S']
 
 
 def _tur_epiteti(epitet):

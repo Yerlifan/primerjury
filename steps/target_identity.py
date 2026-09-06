@@ -183,13 +183,19 @@ TUM_VTB = [
     ("fungi.28SrRNA.fna",              "28S"),
     ("fungi.18SrRNA.fna",              "18S"),
     ("PR2_SSU_taxo_long.fasta",        "18S"),
+    # GTDB r220 SSU (2026-09-06): 863,832 16S sequences cut from genomes, named by the
+    # GTDB taxonomy. A digester lineage that SILVA lists as "uncultured" is often a
+    # named GTDB species cluster; "s__Genus sp002498885" is such a cluster (no Linnaean
+    # name) and genera with digits (UBA1234) are placeholders that name nothing.
+    ("GTDB_ssu_all_r220.fna",          "16S"),
 ]
 
 # The discriminating database of each class, asked first.
 AYIRT_EDICI = {
-    "A1": [("archaea.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S")],
-    "A2": [("archaea.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S")],
-    "B":  [("bacteria.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S")],
+    "A1": [("archaea.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S"), ("GTDB_ssu_all_r220.fna", "16S")],
+    "A2": [("archaea.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S"), ("GTDB_ssu_all_r220.fna", "16S"),
+           ("SILVA_138.2_LSURef_NR99.fasta", "23S")],
+    "B":  [("bacteria.16S.fna", "16S"), ("SILVA_138.2_SSURef_NR99.fasta", "16S"), ("GTDB_ssu_all_r220.fna", "16S")],
     "F1": [("fungi.ITS.fna", "ITS"), ("UNITE_ITS.fasta", "ITS"),
            ("fungi.28SrRNA.fna", "28S"), ("fungi.18SrRNA.fna", "18S")],
     "F2": [("fungi.ITS.fna", "ITS"), ("UNITE_ITS.fasta", "ITS"),
@@ -263,6 +269,30 @@ def ad_ayikla(baslik):
     # "from TYPE material" as the last element no name came out and the bin was
     # left unnamed (seen on the Petriella targets on 2026-08-26). Patterns anchored
     # at the start are not affected by a semicolon, so they are tried first.
+    # GTDB (RS_/GB_ accession, "g__X_A;s__X_A y [location=..]"): the genus suffix (_A) is
+    # kept, the "[..]" tail is dropped; "s__X sp002498885" is a GTDB species cluster and
+    # passes as the name; a genus with digits (UBA1234) is a placeholder and names nothing.
+    if b.startswith(("RS_", "GB_")) and "s__" in b:
+        mg = re.search(r"g__([A-Z][a-z]+(?:_[A-Z]+)?)(?=;|\s|$)", b)
+        ms = re.search(r"s__([^;\[]+)", b)
+        if ms:
+            mm = re.match(r"^([A-Z][a-z]+(?:_[A-Z]+)?) ([a-z][a-z0-9-]+)$", ms.group(1).strip())
+            if mm and mm.group(2) not in ("sp", "cf", "aff"):
+                return "%s %s" % (mm.group(1), mm.group(2))
+        return mg.group(1) if mg else None
+    # PR2 ("acc|18S_rRNA|...|Genus|Genus_species"): the last field is the species, the one
+    # before it the genus.
+    if "|" in b and ("|18S_rRNA|" in b or "|16S_rRNA|" in b):
+        alanlar = [x.strip() for x in b.split("|") if x.strip()]
+        if len(alanlar) >= 2:
+            son = alanlar[-1].replace("_", " ")
+            mm = re.match(r"^([A-Z][a-z]+) ([a-z][a-z-]+)$", son)
+            if mm and mm.group(2) not in ("sp", "cf", "aff"):
+                return "%s %s" % (mm.group(1), mm.group(2))
+            mg = re.match(r"^([A-Z][a-z]{2,})$", alanlar[-2].replace("_", " "))
+            if mg and not any(j in alanlar[-2].lower() for j in ("uncultured", "unidentified", "environmental")):
+                return mg.group(1)
+        return None
     m = re.match(r"^\S+\s+(Candidatus [A-Z][a-z]+\s+[a-z][a-z-]+)", b)
     if m:
         return m.group(1)
@@ -270,7 +300,9 @@ def ad_ayikla(baslik):
     if m:
         return m.group(1)
     if ";" in b:
-        yol = [x.strip() for x in b.split(";") if x.strip()]
+        # 2026-09-06: the last UNITE element is "s__Thelephora_albomarginata|SH1281904.10FU";
+        # the "|SH.." tail swallowed the species name and UNITE only ever gave a genus.
+        yol = [x.strip().split("|")[0].strip() for x in b.split(";") if x.strip()]
         for oge in reversed(yol):
             ad = re.sub(r"^[kpcofgs]__", "", oge).replace("_", " ").strip()
             # the first element can carry an accession: "CP009514.x.y Archaea"
@@ -285,6 +317,8 @@ def ad_ayikla(baslik):
                 return m.group(1)
             m = re.match(r"^([A-Z][a-z]+ [a-z][a-z-]+)$", ad)
             if m:
+                if m.group(1).split()[-1] in ("sp", "spp", "cf", "aff"):   # "Petriella sp" -> genus only
+                    return m.group(1).split()[0]
                 return m.group(1)
             m = re.match(r"^(Candidatus [A-Z][a-z]{2,})$", ad)
             if m:

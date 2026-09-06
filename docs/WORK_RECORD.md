@@ -1177,3 +1177,24 @@ machinery; `./primerjury polish` runs it for every library and the result is
 one more candidate set for `select_consensus`. In a first trial a ten-read
 archaeal bin moved from "cannot be named" at 94.2 per cent to *Methanofollis
 ethanolicus* at 99.86.
+
+---
+
+## 26. Everything over several loci, two more databases, sub-populations (2026-09-06)
+
+The author's instruction: combine every lever, decide over several loci wherever
+the amplicon allows, aim at the most accurate and decisive identification. Added
+in one pass: GTDB r220 SSU (863,832 genome-derived 16S sequences; GTDB species
+clusters count as names, placeholder genera with digits do not, and the
+population split stays on RefSeq + SILVA so that a GTDB genus suffix cannot cut a
+genus in two); PR2 in the fungal 18S locus, which names the ciliate and protist
+bins that only NCBI had named; the archaeal operon decided over 16S and 23S with
+the same combination rule as the fungal operon (23S gets the higher power, both
+may name a species, the reported ladder is 16S then 23S); and sub-populations
+inside a bin, species groups within the dominant genus and the second genus
+population, each polished and decided on its own into a separate report. In the
+study the NCBI core_nt cache also became a guarded naming source (a species
+named by at least two independent accessions or a RefSeq record, alignment
+capped so that an operon-length hit cannot inflate identity) with a column that
+says which database every name came from; that layer depends on the study's
+NCBI cache and is not part of this repository yet.

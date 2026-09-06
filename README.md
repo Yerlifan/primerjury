@@ -178,7 +178,23 @@ bacterial bins: the table's genus matched the dominant read population in 59 of
 59, but six bacterial bins (Bacteroidales mixtures) had a dominant population
 under 80 per cent, and a ten-read archaeal bin went from "cannot be named" at
 94.2 per cent to *Methanofollis ethanolicus* at 99.86 once polished from its own
-reads. The polished set is weighed by `select_consensus` like any other.
+reads. The polished set is weighed by `select_consensus` like any other. A bin
+that holds several species is not one target: inside the dominant genus the
+reads are grouped by the species of their best record, and a second genus
+population is kept too; each group with at least ten reads and fifteen per cent
+is polished and decided on its own and written to `PAK_SUB_POPULATIONS.tsv`
+(the bin count of the main table does not change).
+
+Every organism is decided over as many loci as its amplicon carries: the fungal
+operon over 18S (RefSeq + PR2), ITS (RefSeq + UNITE) and 28S (RefSeq + SILVA
+LSU); the archaeal operon over 16S (RefSeq + SILVA SSU + GTDB r220) and 23S
+(SILVA LSU), so that two references inside the separation margin on 16S can be
+told apart on 23S; the 16S-only libraries over 16S with GTDB r220 beside RefSeq
+and SILVA. GTDB names a digester lineage that SILVA lists as "uncultured" as a
+genome-based species cluster; such a cluster ("Genus sp002498885") passes as a
+name, a placeholder genus with digits (UBA1234) names nothing, and the
+population split itself stays on RefSeq + SILVA because GTDB genus suffixes
+(Proteiniphilum_A) would cut one genus in two.
 
 ### Fungal bins: a mixed bin has no single consensus
 
@@ -288,6 +304,7 @@ library left in a bin folder became phantom bins. Both had passed every test.
 | blastn / makeblastdb | specificity scans |
 | MFEprimer 4.4 | thermodynamics, off-target amplicons (layer 3) |
 | minimap2, samtools | read alignment, consensus |
+| GTDB r220 SSU | genome-based 16S names for archaea and bacteria (`bash install.sh databases`) |
 | seqkit | sequence handling |
 | Kraken2 + Bracken | classification (optional, see note) |
 | QIIME2 + PICRUSt2 | community/function analysis (optional) |
