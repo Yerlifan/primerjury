@@ -68,6 +68,9 @@ import orientation
 # reproduced. All the panel's numbers were measured on the ozgun set, so that must
 # be the baseline. ORIENTATION normalisation is a separate job and is applied on
 # both sources.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'steps'))
+from select_consensus import DEFAULT_SETS as _SETS   # noqa: E402
+
 ONCELIK = {
  'referans': [('referans_konsensus', 'referans_konsensus/konsensus'),
               ('konsensus_yeni', 'SCREENING_RESULT/konsensus_yeni'),
@@ -82,11 +85,20 @@ ONCELIK = {
  'ozgun':    [('ozgun', 'consensus sequences'),
               ('konsensus_yeni', 'SCREENING_RESULT/konsensus_yeni'),
               ('referans_konsensus', 'referans_konsensus/konsensus')],
+ # 'selection' (2026-09-06, external review): `./primerjury consensus` weighs every candidate
+ # set by read support and writes CONSENSUS_SELECTION.tsv; until now nothing consumed that
+ # table, so the winning polished consensus never reached identification or design. The
+ # canonical set now follows the table: for a bin the table names, only the chosen set is
+ # taken (its 'trusted' verdict is carried into the manifest, never hidden); a bin the table
+ # does not name falls through the sets in this order. The set list is the one
+ # select_consensus measures (single source).
+ 'selection': [(s, s) for s in _SETS],
 }
 
 
 _KUTU = re.compile(r'(?:^|[^A-Za-z0-9])(A1|A2|F1|F2|B)[-_](\d)(?!\d)')
 _TAX = re.compile(r'(?<![0-9])(\d{3,7})(?![0-9])')
+_BIN = re.compile(r'(BIN\d+|OBEK\d+)')     # a Kraken-free bin id (bin_reads); kept whole
 
 
 def kutu_adi(yol):
@@ -103,7 +115,9 @@ def kutu_adi(yol):
         return None
     kutu = '%s-%s' % (m.group(1), m.group(2))
     kalan = b[m.end():]
-    adaylar = [x for x in _TAX.findall(kalan)]
+    # BIN FIRST (2026-09-06, external review): the digits inside 'BIN123' were taken for a
+    # taxid and the bin became 'B-1_123'; 'BIN1' was dropped altogether.
+    adaylar = _BIN.findall(kalan) or _TAX.findall(kalan)
     if not adaylar:
         return None
     return '%s_%s' % (kutu, adaylar[0])
@@ -131,12 +145,29 @@ def main():
     # *_kanonik.fasta leftovers are inert.
 
     manifest, belirsiz, gorulen = [], [], {}
+    secim, guven = {}, {}
+    if a.oncelik == 'selection':
+        sy = os.path.join(a.kok, 'CONSENSUS_SELECTION.tsv')
+        if not os.path.exists(sy):
+            sys.exit('--priority selection needs %s (run ./primerjury consensus first)' % sy)
+        with open(sy, encoding='utf-8') as fh:
+            bas = fh.readline().rstrip('\n').split('\t')
+            ik, ise, ig = bas.index('bin'), bas.index('CHOSEN set'), bas.index('trusted')
+            for sat in fh:
+                p = sat.rstrip('\n').split('\t')
+                if len(p) > max(ik, ise, ig):
+                    secim[p[ik]], guven[p[ik]] = p[ise], p[ig]
+        print(u'selection table : %d bins (%d untrusted)' % (len(secim), sum(1 for v in guven.values() if v.startswith('NO'))))
+    taninmayan = []
     for etiket, kl in ONCELIK[a.oncelik]:
         yollar = sorted(glob.glob(os.path.join(a.kok, kl, '**', '*.fasta'), recursive=True))
         for y in yollar:
             k = kutu_adi(y)
             if not k:
+                taninmayan.append(os.path.relpath(y, a.kok))
                 continue
+            if secim and k in secim and secim[k] != etiket:
+                continue          # the selection table chose another set for this bin
             sn = orientation.sinifi(os.path.basename(y))
             if sn == '?':
                 sn = orientation.sinifi(y)
@@ -144,13 +175,13 @@ def main():
                 continue
             if k in gorulen:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
-                                     eski_yon='', cevrildi='', uzunluk='', durum='skipped (%s won)' % gorulen[k]))
+                                     eski_yon='', cevrildi='', uzunluk='', durum='skipped (%s won)' % gorulen[k], secim_guven=guven.get(k, '')))
                 continue
             kayitlar, _ = orientation.dosya_kanonik(y)
             kayitlar = [r for r in kayitlar if len(r[1]) >= 200]
             if not kayitlar:
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
-                                     eski_yon='', cevrildi='', uzunluk=0, durum='empty or too short, skipped'))
+                                     eski_yon='', cevrildi='', uzunluk=0, durum='empty or too short, skipped', secim_guven=guven.get(k, '')))
                 continue
             ad, dizi, karar, cev = max(kayitlar, key=lambda r: len(r[1]))
             if karar == 'BELIRSIZ':
@@ -160,9 +191,11 @@ def main():
                                      not_='yon belirlenemedi - KANONIGE ALINMADI, maskeli'))
                 manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
                                      eski_yon='BELIRSIZ', cevrildi='', uzunluk=len(dizi),
-                                     durum='UNDECIDED, not written'))
+                                     durum='UNDECIDED, not written', secim_guven=guven.get(k, '')))
                 continue
             gorulen[k] = etiket
+            if k in guven and guven[k].startswith('NO'):
+                print(u'  %-14s taken from %s although the selection marks it UNTRUSTED (%s)' % (k, etiket, guven[k]))
             cy = os.path.join(cik, '%s.canonical.fa' % k)
             with open(cy, 'w', encoding='utf-8') as fh:
                 fh.write('>%s kanonik=%s kaynak=%s eski_yon=%s cevrildi=%s\n'
@@ -171,7 +204,7 @@ def main():
                     fh.write(dizi[i:i + 70] + '\n')
             manifest.append(dict(kutu=k, sinif=sn, kaynak=etiket, dosya=os.path.relpath(y, a.kok),
                                  eski_yon=karar, cevrildi='EVET' if cev else 'hayir',
-                                 uzunluk=len(dizi), durum='yazildi'))
+                                 uzunluk=len(dizi), durum='yazildi', secim_guven=guven.get(k, '')))
 
     def yaz(ad, rows):
         if not rows:
@@ -199,6 +232,10 @@ def main():
     print(u'  converted           : %d (ANTISENSE -> SENSE)' % len(cevrilen))
     print(u'  already sense       : %d' % (len(yazilan) - len(cevrilen)))
     print(u'BELIRSIZ       : %d (not written, UNDECIDED.tsv)' % len(belirsiz))
+    if taninmayan:
+        print(u'unrecognised file names (no bin id found, skipped): %d' % len(taninmayan))
+        for t in taninmayan[:10]:
+            print(u'    %s' % t)
     kay = {}
     for m in yazilan:
         kay[m['kaynak']] = kay.get(m['kaynak'], 0) + 1

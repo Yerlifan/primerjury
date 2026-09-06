@@ -1198,3 +1198,58 @@ named by at least two independent accessions or a RefSeq record, alignment
 capped so that an operon-length hit cannot inflate identity) with a column that
 says which database every name came from; that layer depends on the study's
 NCBI cache and is not part of this repository yet.
+
+---
+
+## 27. Code hygiene and an external review (2026-09-06)
+
+The author asked for no dead code and no spaghetti. In the study the fungal
+shims were deleted (`PAK_KUTU_KIMLIK` is the one module for every library), an
+unused bin routine went, and the read-witness fast path counts its sampled reads
+properly instead of faking a list. Here `verification/fungal_bin_identity.py` is
+a library only (sampling, windows, per-read records, medoid, polish,
+populations, self-test); `population_polish.py` is the one driver and
+`./primerjury fungi` is `polish --groups F1,F2`. Two undefined names in
+`refresh_geometry.py` (the loader returned a name that did not exist and the
+main body used the module global) and two dead assignments were removed on the
+same pass.
+
+The author then had an external reviewer (ChatGPT, on commit 23aad2b) read the
+repository. It reported six defects; all six were reproduced here and fixed in
+this repository and, where the same code exists, in the study:
+
+1. `specificity_round.katman1_yerel` imported `yapilandirma`, the study's name
+   for what is `config` here: an ImportError before any scan. Fixed; a test calls
+   the layer on an empty root.
+2. The global scan checkpoint (`global_scan.tara`) was accepted on its format
+   version alone, so changed primers or a changed database read the old result
+   back from the same file. Measured on a synthetic amplicon exactly as the
+   reviewer did (changed primers: cached 1, fresh 0). The checkpoint now carries a
+   signature of the candidates (name, F, R, product range), the database (name,
+   size, mtime), the mismatch cap and whether a classifier was in use; a
+   mismatching checkpoint is scanned from scratch. Format version 3, so every
+   earlier pickle is rescanned once.
+3. The scan looked for the amplicon on one strand only; a record carrying it on
+   the other strand gave zero products (forward 1, reverse complement 0). Both
+   placements are scanned, a record is counted once with the placement of fewer
+   mismatches, and the mismatch pair is reported as (F, R) whichever placement
+   won. Cost: two more `find_sites` calls per candidate and chunk.
+4. `./primerjury consensus` wrote `CONSENSUS_SELECTION.tsv` and nothing read it,
+   so the polished consensus that won by read support never reached the canonical
+   set or anything downstream. `build_canonical` has a `selection` priority: it
+   follows the table (only the chosen set for a bin the table names, the
+   `trusted` verdict carried into the manifest and printed when a chosen candidate
+   is untrusted), falls through the measured set list for other bins, and the set
+   list is imported from `select_consensus` (single source). `run_all` uses that
+   priority whenever the table exists. A test builds a two-set root and checks
+   that the canonical file carries the chosen sequence.
+5. The canonical file-name parser read the digits inside `BIN123` as a taxid and
+   dropped `BIN1`; the study's `OBEK123` had the same trap. A BIN/OBEK id is now
+   taken whole and first, and unrecognised file names are counted and printed.
+6. On resume a stage stamped finished was skipped without its output auditor
+   running, even when the output had been deleted. The auditor now runs before
+   the skip; if it fails the stamp falls and the stage reruns. The same change is
+   in the study's chain.
+
+`tests/test_review_0906.py` holds one test per finding. The reviewer's own
+minimal reproduction (in its report) passes on this commit.

@@ -57,7 +57,7 @@ OPTIONAL TAXONOMIC CLASSIFICATION
 # size is bounded by KURESEL_PARCA because the memory ceiling is about six times
 # that size.
 # -------------------------------------------------------------------------
-import os, json, pickle, time
+import os, json, pickle, time, hashlib
 import numpy as np
 from . import config as C
 from . import engine_gateway
@@ -104,9 +104,22 @@ def _kayit_indeksi(uz_l):
 # would be read back silently and the taxonomic counters would stay zero, and
 # "measured, no cross reaction found" could not be told apart from "never
 # measured".
-DURUM_SURUMU = 2
+DURUM_SURUMU = 3      # 3 (06.09.2026): 'imza' alani (tarama_imzasi)
 
 SINIFLAR = ('a', 'ao', 'b', 'c', 'bilinmiyor')
+
+
+def tarama_imzasi(adaylar, db, max_mm, siniflandirilacak):
+    """06.09.2026 (dis inceleme): kontrol noktasi yalnizca OLCTUGU girdiler icin gecerlidir.
+    Onceden yalnizca bicim surumu denetleniyordu; primer degisince ya da veritabani degisince
+    ayni dosyadan ESKI sonuc donuyordu (sentetik olcum: degismis primer, onbellekli 1 urun,
+    taze 0). Muhur: adaylar (ad, F, R, urun araligi) + veritabani (ad, boyut, mtime) +
+    uyumsuzluk tavani + siniflandirici var mi + bicim surumu. Uymayan nokta BASTAN taranir."""
+    st = os.stat(db)
+    parcalar = sorted('%s>%s<%s:%s-%s' % (a['ad'], a['F'], a['R'], a['lo'], a['hi']) for a in adaylar)
+    metin = '|'.join(parcalar + [os.path.basename(db), str(st.st_size), str(int(st.st_mtime)),
+                                 str(max_mm), str(bool(siniflandirilacak)), str(DURUM_SURUMU)])
+    return hashlib.md5(metin.encode('utf-8')).hexdigest()
 
 
 def _bos_sonuc():
@@ -140,12 +153,13 @@ def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM
         return {a['ad']: dict(hata='there is no such database: %s' % db) for a in adaylar}
     db_ad = os.path.basename(db)
 
-    durum = dict(surum=DURUM_SURUMU, parca=0, toplam_kayit=0,
+    imza = tarama_imzasi(adaylar, db, max_mm, siniflandirici is not None)
+    durum = dict(surum=DURUM_SURUMU, imza=imza, parca=0, toplam_kayit=0,
                  res={a['ad']: _bos_sonuc() for a in adaylar})
     if durum_yolu and os.path.exists(durum_yolu):
         try:
             eski = pickle.load(open(durum_yolu, 'rb'))
-            if eski.get('surum') == DURUM_SURUMU:
+            if eski.get('surum') == DURUM_SURUMU and eski.get('imza') == imza:
                 durum = eski
             # if the version does not match it is scanned FROM SCRATCH; the old result is NOT returned silently.
         except Exception:
@@ -163,54 +177,60 @@ def tara(adaylar, db=None, durum_yolu=None, ilerle=None, max_mm=C.KURESEL_MAX_MM
         durum['toplam_kayit'] += len(ad_l)
         for a in adaylar:
             F, R = a['F'], a['R']
-            revrc = engine_gateway.rc(R)
-            fs = engine_gateway.find_sites(enc, F, max_mm, need_tail=False)
-            if not fs:
-                continue
-            rs = engine_gateway.find_sites(enc, revrc, max_mm, need_tail=False)
-            if not rs:
-                continue
-            fpos = np.array([x[0] for x in fs]); fmm = np.array([x[1] for x in fs])
-            rpos = np.array([x[0] for x in rs]); rmm = np.array([x[1] for x in rs])
-            frec = np.searchsorted(off, fpos, 'right') - 1
-            rrec = np.searchsorted(off, rpos, 'right') - 1
-            # kayit ici konum
-            fin = fpos - off[frec]; rin = rpos - off[rrec]
-            gecerli_f = fin + len(F) <= np.array(uz_l)[frec]
-            gecerli_r = rin + len(revrc) <= np.array(uz_l)[rrec]
-            fpos, fmm, frec, fin = fpos[gecerli_f], fmm[gecerli_f], frec[gecerli_f], fin[gecerli_f]
-            rpos, rmm, rrec, rin = rpos[gecerli_r], rmm[gecerli_r], rrec[gecerli_r], rin[gecerli_r]
-            ort = set(frec.tolist()) & set(rrec.tolist())
-            if not ort:
+            # 06.09.2026 (dis inceleme): kayit ampliconu IKI iplikten birinde tasiyabilir. Sentetik
+            # amplicon ile olculdu: ileri kayit 1 urun, ters tamamlayani 0. Iki yerlesim de taranir,
+            # (F, rc R) ve (R, rc F); kayit BIR kez sayilir, az uyumsuz yerlesimle. Uyumsuzluk cifti
+            # hangi yerlesim kazanirsa kazansin (F, R) sirasiyla yazilir.
+            en_kayit = {}
+            for ters, (P, Q) in enumerate(((F, engine_gateway.rc(R)), (R, engine_gateway.rc(F)))):
+                fs = engine_gateway.find_sites(enc, P, max_mm, need_tail=False)
+                if not fs:
+                    continue
+                rs = engine_gateway.find_sites(enc, Q, max_mm, need_tail=False)
+                if not rs:
+                    continue
+                fpos = np.array([x[0] for x in fs]); fmm = np.array([x[1] for x in fs])
+                rpos = np.array([x[0] for x in rs]); rmm = np.array([x[1] for x in rs])
+                frec = np.searchsorted(off, fpos, 'right') - 1
+                rrec = np.searchsorted(off, rpos, 'right') - 1
+                fin = fpos - off[frec]; rin = rpos - off[rrec]          # kayit ici konum
+                gecerli_f = fin + len(P) <= np.array(uz_l)[frec]
+                gecerli_r = rin + len(Q) <= np.array(uz_l)[rrec]
+                fmm, frec, fin = fmm[gecerli_f], frec[gecerli_f], fin[gecerli_f]
+                rmm, rrec, rin = rmm[gecerli_r], rrec[gecerli_r], rin[gecerli_r]
+                for kid in set(frec.tolist()) & set(rrec.tolist()):
+                    fi = fin[frec == kid]; fm = fmm[frec == kid]
+                    ri = rin[rrec == kid]; rm = rmm[rrec == kid]
+                    en = None
+                    for x, xm in zip(fi, fm):
+                        for yy, ym in zip(ri, rm):
+                            bp = int(yy + len(Q) - x)
+                            if a['lo'] <= bp <= a['hi'] and yy >= x + len(P) and xm + ym <= max_mm:
+                                mf, mr = (int(ym), int(xm)) if ters else (int(xm), int(ym))
+                                if en is None or mf + mr < en[1] + en[2]:
+                                    en = (bp, mf, mr)
+                    if en and (kid not in en_kayit or en[1] + en[2] < en_kayit[kid][1] + en_kayit[kid][2]):
+                        en_kayit[kid] = en
+            if not en_kayit:
                 continue
             r = durum['res'][a['ad']]
-            for kid in sorted(ort):
-                fi = fin[frec == kid]; fm = fmm[frec == kid]
-                ri = rin[rrec == kid]; rm = rmm[rrec == kid]
-                en = None
-                for x, xm in zip(fi, fm):
-                    for yy, ym in zip(ri, rm):
-                        bp = int(yy + len(revrc) - x)
-                        if a['lo'] <= bp <= a['hi'] and yy >= x + len(F) and xm + ym <= max_mm:
-                            if en is None or xm + ym < en[1] + en[2]:
-                                en = (bp, int(xm), int(ym))
-                if en:
-                    r['urun'] += 1
-                    r['boy'][en[0]] = r['boy'].get(en[0], 0) + 1
-                    # A2: SAYAC tavansiz, KIMLIK listesi tavanli.
-                    # Taksonomik hukum sayaclardan uretilir; 'vurus' yalnizca
-                    # insana gosterilecek kanit ornegidir.
-                    if siniflandirici is not None:
-                        try:
-                            s = siniflandirici(a['ad'], ad_l[kid], db_ad)
-                        except Exception:
-                            s = 'bilinmiyor'
-                        if s not in r['sinif']:
-                            s = 'bilinmiyor'
-                        r['sinif'][s] += 1
-                        r['siniflandirildi'] = True
-                    if len(r['vurus']) < 300:
-                        r['vurus'].append((ad_l[kid], en[0], en[1], en[2]))
+            for kid in sorted(en_kayit):
+                en = en_kayit[kid]
+                r['urun'] += 1
+                r['boy'][en[0]] = r['boy'].get(en[0], 0) + 1
+                # A2: SAYAC tavansiz, KIMLIK listesi tavanli. Taksonomik hukum sayaclardan
+                # uretilir; 'vurus' yalnizca insana gosterilecek kanit ornegidir.
+                if siniflandirici is not None:
+                    try:
+                        s = siniflandirici(a['ad'], ad_l[kid], db_ad)
+                    except Exception:
+                        s = 'bilinmiyor'
+                    if s not in r['sinif']:
+                        s = 'bilinmiyor'
+                    r['sinif'][s] += 1
+                    r['siniflandirildi'] = True
+                if len(r['vurus']) < 300:
+                    r['vurus'].append((ad_l[kid], en[0], en[1], en[2]))
         durum['parca'] = pi
         if durum_yolu:
             pickle.dump(durum, open(durum_yolu, 'wb'))

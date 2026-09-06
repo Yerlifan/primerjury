@@ -104,7 +104,7 @@ cat <<'EOF'
     ./primerjury bins --map M --bam-dir D   Bins from raw reads, no classifier
     ./primerjury consensus             Choose each bin's consensus by read support
     ./primerjury polish                PAK polish for every bin: split by read population, polish the dominant one
-    ./primerjury fungi                 The fungal-only form of the same (ITS window, three-locus decision)
+    ./primerjury fungi                 The same for the fungal libraries only (polish --groups F1,F2)
     ./primerjury qiime2 [profile|classify|picrust|all]   The independent QIIME2 route
     ./primerjury readcheck --pairs P   Read-level in silico PCR with mm0 (ARMS trap)
     ./primerjury identity              Identity verification only
@@ -174,7 +174,7 @@ cmd_install() {
 cmd_bins()        { kos bash steps/from_raw.sh "$@"; }
 cmd_readcheck()   { kos "$PY" verification/read_level_primer_check.py --root . "$@"; }
 cmd_consensus()   { kos "$PY" steps/select_consensus.py --root . "$@"; }
-cmd_fungi()       { kos "$PY" verification/fungal_bin_identity.py --root . "$@"; }
+cmd_fungi()       { kos "$PY" verification/population_polish.py --root . --groups F1,F2 "$@"; }
 cmd_polish()      { kos "$PY" verification/population_polish.py --root . "$@"; }
 cmd_qiime2() {
     local ne="${1:-profile}"; shift 2>/dev/null || true

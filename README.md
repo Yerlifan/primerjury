@@ -206,7 +206,7 @@ other Microascaceae; the chain's blended consensus sat at 97.25 per cent to the
 sequence between them, and in ITS that is close to nothing; the bin stayed at
 genus while its reads said species.
 
-`./primerjury fungi` (`verification/fungal_bin_identity.py`) splits each fungal
+`./primerjury fungi` (`population_polish.py --groups F1,F2`; the machinery lives in `verification/fungal_bin_identity.py`) splits each fungal
 bin read by read (best ITS record over RefSeq ITS and UNITE), keeps the dominant
 genus population, picks that population's medoid read as the template (chosen by
 k-mer similarity among the reads, not by any reference) and polishes it with
@@ -416,6 +416,8 @@ python3 tests/test_repo_health.py      # imports, names, format strings, line
 python3 tests/test_taxonomy.py         # 5 header formats, real DBs
 python3 tests/test_unnamed_records.py  # unnamed records cannot become names
 python3 tests/test_orientation_trap.py # orientation-trap detector
+python3 tests/test_review_0906.py      # the six findings of the 2026-09-06
+                                       # external review, each kept from returning
 ```
 
 Each exits non-zero on failure and prints what it measured.

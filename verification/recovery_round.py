@@ -1106,8 +1106,6 @@ def _tur(kok, CIKTI, KONTROL, yaz, nm, hedefler, uyelik, kons, kut, eslenik,
 
         else:
             # --- YOL 2: uyelik daraltma ---
-            kapsam_tam = (r.get('ASIL_kapsam_mm1') or '').split('/')
-            tam = (len(kapsam_tam) == 2 and kapsam_tam[0] == kapsam_tam[1])
             # ---------------------------------------------------------------
             # THE MEMBERSHIP IS ADOPTED UNCONDITIONALLY - AND A DROP IS NOT A LOSS.
             # After narrowing, the measured value can come out LOWER than before. That is

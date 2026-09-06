@@ -9,8 +9,8 @@
 # OUTPUT           : referans_konsensus/fungal_polish/consensus/<bin>.fasta (a new candidate set),
 #                    referans_konsensus/fungal_polish/population/<bin>.tsv (one row per read),
 #                    FUNGAL_BIN_IDENTITY.tsv (one row per bin: populations, decision, gain)
-# HOW TO RUN IT    : python3 verification/fungal_bin_identity.py --root . [--reads 150] [--rounds 2]
-#                    python3 verification/fungal_bin_identity.py --self-test
+# HOW TO RUN IT    : ./primerjury polish  (verification/population_polish.py drives every library;
+#                    this file is the shared machinery)  |  python3 verification/fungal_bin_identity.py = self-test
 # WHY IT IS LIKE THIS : Measured (2026-09-05): in a mixed fungal bin the chain's blended
 #                    consensus sat at 97.25 per cent to the Petriella musispora TYPE ITS record
 #                    while the bin's own single reads reached a median of 98.20 and a best of
@@ -67,11 +67,10 @@ THE READ WITNESS FROM THE SAME DATABASE
   two routes looking at two different databases.
 
 RUN
-  python3 verification/fungal_bin_identity.py --root . [--reads 150] [--rounds 2]
-      [--threads 1] [--bins F2-2_500148,...] [--redo] [--db-dir REFERENCE_DB]
-  python3 verification/fungal_bin_identity.py --self-test
-An existing bin output is skipped unless --redo is given (a restarted chain
-continues where it stopped).
+  This file is the shared machinery (sampling, windows, per-read records, medoid,
+  polish, populations). The driver for every library is
+  verification/population_polish.py (`./primerjury polish`; `./primerjury fungi`
+  is the same with --groups F1,F2). Running this file runs its self-test.
 """
 from __future__ import print_function
 import argparse
@@ -425,290 +424,6 @@ def populations(best, key=u'ITS'):
     return count, members, scount, spid
 
 
-SEP = u'@@'            # read id in the batched query: <bin>@@<read>
-
-
-def prepare_bin(path, a):
-    u"""A) sample the reads of one bin."""
-    return sample_reads(path, a.reads)
-
-
-def batch_hits(bin_reads, root, a, tmp, blast_fn=None):
-    u"""B) BATCHED: every bin's reads in one file -> ITS window (RefSeq) -> every window in one
-    file -> the ITS databases searched ONCE. Returns ({bin: {read: best}}, {bin: windowed}).
-    WHY BATCHED: BLAST's cost is the database SCAN far more than the query count; one call per
-    bin scans the database once per bin. Measured (2026-09-06): 150 windows against UNITE took
-    684 s at word size 64 (hits identical to word size 28), i.e. 7+ hours for 40 bins one by one."""
-    allreads = [(u'%s%s%s' % (label, SEP, k), d) for label, reads in bin_reads.items() for k, d in reads]
-    reads_fa = os.path.join(tmp, 'all_reads.fa')
-    write_fasta(reads_fa, allreads)
-    t0 = time.time()
-    rdb = db_path(root, ITS_DB[0], a.db_dir, quiet=True) if root is not None else ITS_DB[0]
-    window = its_window(reads_fa, rdb, a.threads) if rdb else {}
-    win_fa = os.path.join(tmp, 'all_windows.fa')
-    n_window = window_file(allreads, window, win_fa)
-    print(u'  ITS window: %d/%d reads (%.0f s)' % (n_window, len(allreads), time.time() - t0))
-    sys.stdout.flush()
-    t0 = time.time()
-    best = (best_hits(win_fa, ITS_DB, root, a.threads, a.db_dir, blast_fn) if blast_fn
-            else best_hits_mm2(win_fa, ITS_DB, root, a.threads, a.db_dir))
-    print(u'  ITS hits: %d/%d reads (%.0f s, %s)' % (len(best), len(allreads), time.time() - t0,
-                                                   u' + '.join(os.path.basename(d) for d in ITS_DB)))
-    sys.stdout.flush()
-    per_bin = {label: {} for label in bin_reads}
-    windowed = collections.Counter()
-    for key, v in best.items():
-        label, k = key.split(SEP, 1)
-        per_bin[label][k] = v
-    for key in window:
-        windowed[key.split(SEP, 1)[0]] += 1
-    return per_bin, windowed
-
-
-def polish_bin(root, label, reads, best, n_window, a, tmp):
-    u"""C) one bin: population table, dominant population, medoid, polish. Returns the row
-    dict ('sequence' present when a consensus was made)."""
-    kd = os.path.join(tmp, label)
-    if not os.path.isdir(kd):
-        os.makedirs(kd)
-    count, members, scount, spid = populations(best)
-    seq_of = dict(reads)
-    pop_dir = os.path.join(root, POP_DIR)
-    if not os.path.isdir(pop_dir):
-        os.makedirs(pop_dir)
-    rows = [u'read\tbp\tgenus\tname\tidentity %\talignment bp\tdatabase']
-    for k, d in reads:
-        if k in best:
-            pid, aln, title, db = best[k]
-            name = ad_ayikla(title) or u''
-            rows.append(u'%s\t%d\t%s\t%s\t%.2f\t%d\t%s'
-                        % (k, len(d), cins_epitet(name)[0] if name else u'', name, pid, aln, db))
-        else:
-            rows.append(u'%s\t%d\t\t\t\t\t' % (k, len(d)))
-    io.open(os.path.join(pop_dir, label + '.tsv'), 'w', encoding='utf-8',
-            newline='\n').write(u'\n'.join(rows) + u'\n')
-
-    total = sum(count.values())
-    r = dict(bin=label, reads=len(reads), assigned=total, windowed=n_window)
-    if scount:
-        s1, n1 = scount.most_common(1)[0]
-        pids = sorted(spid[s1])
-        r.update(read_species=s1, species_share=100.0 * n1 / sum(scount.values()),
-                 species_n=n1, species_median=pids[len(pids) // 2])
-    if total:
-        g1, n1 = count.most_common(1)[0]
-        g2, n2 = count.most_common(2)[1] if len(count) > 1 else (u'-', 0)
-        r.update(genus=g1, share=100.0 * n1 / total, genus2=g2, share2=100.0 * n2 / total)
-        pop = [(k, seq_of[k]) for k, _p, _a, _n in members[g1]]
-        pop_note = u'dominant population %s %d/%d' % (g1, n1, total)
-    else:
-        pop = list(reads)
-        r.update(genus=u'-', share=0.0, genus2=u'-', share2=0.0)
-        pop_note = u'no ITS hit above the genus threshold; all reads form one population'
-    if len(pop) < MIN_POPULATION and total < 0.1 * len(reads):
-        # fewer than 10 per cent of the reads reach an ITS record: a new lineage. All reads
-        # form one population (a new lineage); a consensus is still made, the name stays unnamed.
-        pop = list(reads)
-        pop_note = u'%s; ITS hits %d/%d (<10%%), all reads form one population' % (pop_note, total, len(reads))
-    if len(pop) < MIN_POPULATION:
-        r['note'] = u'%s: %d reads < %d, no consensus made' % (pop_note, len(pop), MIN_POPULATION)
-        return r
-    med = medoid(pop)
-    r.update(template=med[0], template_bp=len(med[1]), template_similarity=med[2])
-    pop_fa = os.path.join(kd, 'population.fa')
-    write_fasta(pop_fa, pop)
-    tpl = os.path.join(kd, 'template0.fa')
-    write_fasta(tpl, [(med[0], med[1])])
-    seq, n_in = med[1], 0
-    for rnd in range(1, a.rounds + 1):
-        out = os.path.join(kd, 'round%d.fa' % rnd)
-        seq, n_in = polish(tpl, pop_fa, out, a.threads)
-        if len(seq) < 200:
-            r['note'] = u'%s; round %d left %d bp, previous round kept' % (pop_note, rnd, len(seq))
-            seq = read_fasta_seq(tpl)
-            break
-        write_fasta(out, [(label, seq)])
-        tpl = out
-    r.update(bp=len(seq), n_internal=n_in, sequence=seq, pop_note=pop_note, pop_n=len(pop))
-    return r
-
-
-def batch_decide(results, root, a, tmp, blast_fn=None):
-    u"""D) BATCHED: every polished consensus in one file, each locus database searched once;
-    per bin lokus_karari + birlestir + the reported method. `results` is updated in place."""
-    query = os.path.join(tmp, 'all_final.fa')
-    write_fasta(query, [(k, r['sequence']) for k, r in results.items() if r.get('sequence')])
-    hits = {k: {} for k in results}
-    for lok, dbs, _an in MANTAR_LOKUSLARI:
-        t0 = time.time()
-        for name in dbs:
-            db = db_path(root, name, a.db_dir) if root is not None else name
-            if not db:
-                continue
-            # top=500: UNITE holds hundreds of near-identical records per species; at 50 the
-            # best record can be cut off (measured, see best_hits_mm2).
-            for k, v in (blast_fn or blast)(query, db, threads=a.threads, top=500).items():
-                hits.setdefault(k, {}).setdefault(lok, []).extend(v)
-        print(u'  %s searched (%.0f s)' % (lok, time.time() - t0))
-        sys.stdout.flush()
-    for label, r in results.items():
-        if not r.get('sequence'):
-            continue
-        dec = {lok: lokus_karari(hits.get(label, {}).get(lok), an, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
-               for lok, _d, an in MANTAR_LOKUSLARI}
-        name, ident, note = birlestir(dec)
-        ra, rp, rl, rlok, rsecond, rgap = raporlanan_yontem(hits.get(label, {}), ad_ayikla, cins_epitet,
-                                                            ADSIZ_JETONLARI)
-        r.update(decisions=dec, name=name, identity=ident, decision_note=note,
-                 reported=(u'%s (%.2f%%, %d bp, %s)' % (ra, rp, rl, rlok)) if ra else u'-',
-                 reported_second=(u'%s, gap %.2f' % (rsecond, rgap)) if rsecond else u'-')
-
-
-def process_bin(root, label, path, a, tmp, blast_fn=None):
-    u"""One bin on its own (the batched stages with a single bin)."""
-    reads = prepare_bin(path, a)
-    if len(reads) < MIN_POPULATION:
-        return dict(bin=label, reads=len(reads), note=u'too few reads (%d)' % len(reads))
-    per_bin, windowed = batch_hits({label: reads}, root, a, tmp, blast_fn)
-    r = polish_bin(root, label, reads, per_bin[label], windowed[label], a, tmp)
-    if r.get('sequence'):
-        batch_decide({label: r}, root, a, tmp, blast_fn)
-    return r
-
-
-HEADER = [u'bin', u'sampled reads', u'ITS-assigned reads', u'dominant genus', u'share %',
-          u'second genus', u'second share %', u'read species (ITS)', u'species share %',
-          u'reads at species', u'species median identity %', u'template read', u'template bp',
-          u'template k-mer similarity', u'polishing reads', u'consensus bp', u'internal N',
-          u'18S name', u'18S %', u'18S bp', u'ITS name', u'ITS %', u'ITS bp',
-          u'28S name', u'28S %', u'28S bp', u'COMBINED NAME', u'identity %', u'decision note',
-          u'reported method', u'reported second', u'note']
-
-
-def make_row(r):
-    def f(x, fmt=u'%s'):
-        return (fmt % x) if x not in (None, u'') else u'-'
-    dec = r.get('decisions', {})
-    p = [r['bin'], f(r.get('reads')), f(r.get('assigned')), f(r.get('genus')),
-         f(r.get('share'), u'%.0f'), f(r.get('genus2')), f(r.get('share2'), u'%.0f'),
-         f(r.get('read_species')), f(r.get('species_share'), u'%.0f'), f(r.get('species_n')),
-         f(r.get('species_median'), u'%.2f'), f(r.get('template')), f(r.get('template_bp')),
-         f(r.get('template_similarity'), u'%.3f'), f(r.get('pop_n')), f(r.get('bp')),
-         f(r.get('n_internal'))]
-    for lok in (u'18S', u'ITS', u'28S'):
-        k = dec.get(lok)
-        p += [k['ad'], u'%.2f' % k['kimlik'], u'%d' % k['hizalama']] if k else [u'-', u'-', u'-']
-    p += [f(r.get('name')), f(r.get('identity')), f(r.get('decision_note')), f(r.get('reported')),
-          f(r.get('reported_second')), f(r.get('note'))]
-    return u'\t'.join(p)
-
-
-def level(name):
-    name = name or u''
-    if u'cf.' in name:
-        return u'cf.'
-    if name.endswith(u'sp.'):
-        return u'genus'
-    if u' ' in name and name not in (u'adlandırılamıyor', u'eşleşme yok'):
-        return u'species'
-    return u'unnamed'
-
-
-def main(argv=None):
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--root', default='.')
-    ap.add_argument('--reads', type=int, default=150)
-    ap.add_argument('--rounds', type=int, default=2)
-    ap.add_argument('--threads', type=int, default=1)
-    ap.add_argument('--bins', default='')
-    ap.add_argument('--db-dir', default=None)
-    ap.add_argument('--out', default='FUNGAL_BIN_IDENTITY.tsv')
-    ap.add_argument('--redo', action='store_true')
-    ap.add_argument('--self-test', action='store_true')
-    a = ap.parse_args(argv)
-    if a.self_test:
-        return self_test(a)
-    root = os.path.abspath(a.root)
-    for name in ITS_DB:
-        db_path(root, name, a.db_dir)
-    files = bin_files(root)
-    bins = [b for b in sorted(files) if b.split(u'-')[0] in FUNGAL_LIBS]
-    if a.bins:
-        want = set(a.bins.split(u','))
-        bins = [b for b in bins if b in want]
-    set_dir = os.path.join(root, SET_DIR)
-    if not os.path.isdir(set_dir):
-        os.makedirs(set_dir)
-    out_path = os.path.join(root, a.out)
-    previous = {}
-    if os.path.exists(out_path) and not a.redo:
-        for s in io.open(out_path, encoding='utf-8', errors='replace').read().splitlines()[1:]:
-            if s.strip():
-                previous[s.split(u'\t')[0]] = s
-    rows, todo = {}, []
-    for label in bins:
-        fa = os.path.join(set_dir, label + '.fasta')
-        if os.path.exists(fa) and not a.redo and label in previous:
-            rows[label] = previous[label]
-        else:
-            todo.append(label)
-    print(u'  fungal bins: %d (done %d, to do %d; reads %d, rounds %d, threads %d)'
-          % (len(bins), len(bins) - len(todo), len(todo), a.reads, a.rounds, a.threads))
-    sys.stdout.flush()
-    tmp = tempfile.mkdtemp(prefix='fungal_polish_')
-    levels = collections.Counter()
-
-    def flush():
-        io.open(out_path, 'w', encoding='utf-8', newline='\n').write(
-            u'\t'.join(HEADER) + u'\n' + u'\n'.join(rows[k] for k in sorted(rows)) + u'\n')
-    try:
-        bin_reads = {}
-        for label in todo:
-            reads = prepare_bin(files[label], a)
-            if len(reads) < MIN_POPULATION:
-                rows[label] = make_row(dict(bin=label, reads=len(reads), note=u'too few reads (%d)' % len(reads)))
-                print(u'  %-16s too few reads (%d)' % (label, len(reads)))
-            else:
-                bin_reads[label] = reads
-        if bin_reads:
-            per_bin, windowed = batch_hits(bin_reads, root, a, tmp)
-            results = {}
-            for n, label in enumerate(sorted(bin_reads), 1):
-                t0 = time.time()
-                r = polish_bin(root, label, bin_reads[label], per_bin[label], windowed[label], a, tmp)
-                results[label] = r
-                print(u'  [%3d/%d] %-16s %s %.0f%% (2nd %s %.0f%%) | read species %s %.0f%% | polish %s reads -> %s bp (%.0f s)'
-                      % (n, len(bin_reads), label, r.get('genus'), r.get('share', 0.0), r.get('genus2'),
-                         r.get('share2', 0.0), (r.get('read_species') or u'-')[:26], r.get('species_share', 0.0),
-                         r.get('pop_n', 0), r.get('bp', 0), time.time() - t0))
-                sys.stdout.flush()
-            batch_decide(results, root, a, tmp)
-            for label, r in sorted(results.items()):
-                if r.get('sequence'):
-                    with io.open(os.path.join(set_dir, label + '.fasta'), 'w', encoding='utf-8') as g:
-                        g.write(u'>%s fungal_polish population=%s share=%.0f reads=%d template=%s rounds=%d\n%s\n'
-                                % (label, r.get('genus'), r.get('share', 0.0), r.get('pop_n', 0),
-                                   r.get('template'), a.rounds, r['sequence']))
-                    d = r['decisions']
-                    lvl = level(r['name'])
-                    levels[lvl] += 1
-                    print(u'  %-16s ITS %s %.2f%%/%d | 28S %s %.2f%% | -> %s (%s)'
-                          % (label, d[u'ITS']['ad'][:24], d[u'ITS']['kimlik'], d[u'ITS']['hizalama'],
-                             d[u'28S']['ad'][:22], d[u'28S']['kimlik'], r['name'], lvl))
-                else:
-                    print(u'  %-16s %s' % (label, r.get('note')))
-                rows[label] = make_row(r)
-            flush()
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-    flush()
-    print(u'')
-    print(u'  levels (this run): %s' % dict(levels))
-    print(u'  set: %s' % set_dir)
-    print(u'  report: %s' % out_path)
-    return 0
-
-
 # ---------------------------------------------------------------------------
 # SELF-TEST: synthetic data, the real tools (blastn, minimap2, samtools)
 # ---------------------------------------------------------------------------
@@ -818,9 +533,6 @@ def self_test(a=None):
         o1, o2 = sample_reads(fq, 50), sample_reads(fq, 50)
         if len(o1) != 50 or o1 != o2:
             errors.append(u'sample_reads is not deterministic or did not return 50 (%d)' % len(o1))
-        r = dict(bin=u'F9-9_1', reads=3, note=u'too few reads (3)')
-        if len(make_row(r).split(u'\t')) != len(HEADER):
-            errors.append(u'make_row field count does not match the header')
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     for e in errors:
@@ -830,4 +542,4 @@ def self_test(a=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(self_test())

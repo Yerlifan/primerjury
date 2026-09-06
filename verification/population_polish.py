@@ -63,6 +63,17 @@ MIN_SUB = 10          # a sub-population needs this many reads ...
 SUB_SHARE = 15.0      # ... and this share of its parent population
 
 
+def level(name):
+    name = name or u''
+    if u'cf.' in name:
+        return u'cf.'
+    if name.endswith(u'sp.'):
+        return u'genus'
+    if u' ' in name and name not in (u'adlandırılamıyor', u'eşleşme yok', u'cannot be named', u'no match'):
+        return u'species'
+    return u'unnamed'
+
+
 def group_locus(group):
     return u'ITS' if group in ('F1', 'F2') else u'SSU'
 
@@ -406,7 +417,7 @@ def main(argv=None):
                         g.write(u'>%s pak_polish group=%s locus=%s population=%s share=%.0f reads=%d template=%s rounds=%d\n%s\n'
                                 % (label, r['group'], r['locus'], r.get('genus'), r.get('share', 0.0),
                                    r.get('pop_n', 0), r.get('template'), a.rounds, r['sequence']))
-                    levels[F.level(r.get('name'))] += 1
+                    levels[level(r.get('name'))] += 1
                     print(u'  %-16s %s -> %s' % (label, (r.get('detail') or u'')[:60], r.get('name')))
                 else:
                     print(u'  %-16s %s' % (label, r.get('note')))

@@ -23,6 +23,7 @@ import sys
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(KOK, 'verification'))
 import fungal_bin_identity as fbi   # noqa: E402
+import population_polish as pp      # noqa: E402
 
 
 def test_medoid_prefers_central_full_length_read():
@@ -67,11 +68,11 @@ def test_best_hits_keeps_highest_identity_then_length():
 
 
 def test_row_matches_header():
-    r = dict(bin=u'F1-1_1', reads=10, assigned=8, genus=u'Petriella', share=75.0,
-             genus2=u'Scedosporium', share2=25.0, decisions={})
-    assert len(fbi.make_row(r).split(u'\t')) == len(fbi.HEADER)
-    r = dict(bin=u'F1-1_2', reads=2, note=u'too few reads (2)')
-    assert len(fbi.make_row(r).split(u'\t')) == len(fbi.HEADER)
+    r = dict(bin=u'F1-1_1', group=u'F1', locus=u'ITS', reads=10, assigned=8, genus=u'Petriella', share=75.0,
+             genus2=u'Scedosporium', share2=25.0)
+    assert len(pp.make_row(r).split(u'\t')) == len(pp.HEADER)
+    r = dict(bin=u'F1-1_2', group=u'F1', reads=2, note=u'too few reads (2)')
+    assert len(pp.make_row(r).split(u'\t')) == len(pp.HEADER)
     return True
 
 

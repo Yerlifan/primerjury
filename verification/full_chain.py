@@ -533,9 +533,18 @@ def calistir(kok, ayar, secili, durum, dyol, gunluk, yaz, kuru):
     for kod, ad, grup, dk, kraken, komut_f, denet in secili:
         d = durum.setdefault(kod, {})
         if d.get('durum') == 'bitti':
-            yaz(u'\n>> %s  %s\n   SKIPPED - already finished in a previous run (%s)'
-                % (kod, ad, sn_metni(d.get('sure', 0))))
-            continue
+            # 2026-09-06 (external review): the stamp alone is not enough; the output is audited
+            # AGAIN. Measured: with the stamp set and the output deleted the stage was skipped and
+            # the auditor never ran. If the audit fails the stamp falls and the stage reruns.
+            ayar.setdefault('_son_cikti', u'')
+            tamam, mesaj = denet(kok, ayar)
+            if tamam is True:
+                yaz(u'\n>> %s  %s\n   SKIPPED - already finished in a previous run (%s), output audit passed again'
+                    % (kod, ad, sn_metni(d.get('sure', 0))))
+                continue
+            d.update(durum='eksik', sebep=u'output audit failed on resume: %s' % mesaj)
+            yaz(u'\n>> %s  %s\n   stamped finished but the output audit FAILED (%s) - rerunning'
+                % (kod, ad, mesaj))
 
         if kraken and not ayar['kraken_var']:
             d.update(durum='atlandi', sebep=ayar['kraken_sebep'], sure=0)
