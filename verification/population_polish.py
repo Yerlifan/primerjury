@@ -42,7 +42,8 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _d in (os.path.join(KOK, 'verification'), os.path.join(KOK, 'steps')):
     if _d not in sys.path:
         sys.path.insert(0, _d)
-import fungal_bin_identity as F                                             # noqa: E402
+import fungal_bin_identity as F
+from identity_verification import is_concatemer, CONCATEMER_FACTOR                                             # noqa: E402
 from fungal_bin_identity import (sample_reads, write_fasta, read_fasta_seq, medoid,   # noqa: E402
                                  polish, best_hits, best_hits_mm2, its_window,
                                  window_file, bin_files, db_path, populations,
@@ -393,9 +394,15 @@ def main(argv=None):
         bin_reads = {}
         for label in todo:
             reads = sample_reads(files[label], a.reads)
+            median_bp = sorted(len(d) for _k, d in reads)[len(reads) // 2] if reads else 0
+            conc, expected = is_concatemer(label.split(u'-')[0], median_bp)
             if len(reads) < MIN_POPULATION:
                 rows[label] = make_row(dict(bin=label, group=label.split(u'-')[0], reads=len(reads),
                                             note=u'too few reads (%d)' % len(reads)))
+            elif conc:
+                # 2026-09-07: two amplicons ligated end to end; not an organism, not named (see identity_verification)
+                rows[label] = make_row(dict(bin=label, group=label.split(u'-')[0], reads=len(reads),
+                                            note=u'concatemer: median read %d bp > %.1f x %d bp, two amplicons ligated, not named' % (median_bp, CONCATEMER_FACTOR, expected)))
             else:
                 bin_reads[label] = reads
         if bin_reads:
