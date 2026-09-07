@@ -1322,3 +1322,29 @@ directory only when it holds a file newer than the marker, and informational
 stages carry no stamp. This is the class of the PICRUSt2 failure found the same
 evening, where a memory-killed stage had been stamped done because its output
 directory existed.
+
+---
+
+## 30. Concatemer bins: two amplicons ligated end to end (2026-09-07)
+
+The read-based primer check on the study's from-scratch SUP root showed the
+Methanosarcina and Methanothrix pairs amplifying 75 to 85 per cent of the reads
+of bins named *Candidatus Nitrosocosmicus*, while on the HAC root the same pairs
+touched the Nitrosocosmicus bin at 0.0 to 0.4 per cent. The bins turned out to
+carry 2.9 kb reads in a 1.4 kb amplicon library: thirty of thirty reads aligned
+to two distinct 16S records in two halves (Nitrosocosmicus 12 to 1442,
+Methanosarcina 1444 to 2879). Two amplicons had been ligated end to end and the
+length-peak clustering had made them a bin of their own. The population split
+took the better half of each read (mostly Methanosarcina), the full-read polish
+kept both halves, and the decision saw two records at 100 per cent, so the name
+fell to whichever sorted first. Such a bin is not an organism.
+
+Rule, in the single-source module: a bin whose median read is longer than 1.6
+times the library's amplicon (`AMPLICON_BP`, `CONCATEMER_FACTOR`,
+`is_concatemer`) is not named; the population driver writes the reason and skips
+polishing. In the study the same rule sits in the table, the independent
+re-derivation and the primer check (such bins are neither members nor rivals),
+and the control environment has a concatemer bin that must come out unnamed.
+Counts there: from-scratch SUP A1 22 of 113 bins, B 5 of 88, F2 5 of 90; HAC and
+the HAC-seeded SUP none. Splitting those reads back into their amplicons in the
+clustering step is the next step, not done here.

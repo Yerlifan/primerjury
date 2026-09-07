@@ -1076,6 +1076,21 @@ def nt_yukle(yol):
 #     A WARNING: Hackmann 2025 (IJSEM), 191 million alignments over 19,556 type
 #     strains, puts the same species range at 97.2 to 100 and the genus range at
 #     90.1 to 99.0, and stresses that THE TWO RANGES OVERLAP. So a single sharp
+# Concatemer bins (2026-09-07). Measured in the study's from-scratch SUP root: A1 bins with 2.9 kb reads
+# where 30 of 30 reads carried TWO distinct 16S copies (Methanosarcina + Nitrosocosmicus), two amplicons
+# ligated end to end. Such a bin is not an organism; which half names the consensus is arbitrary (the table
+# had said Nitrosocosmicus while 95 per cent of the reads were Methanosarcina). A bin whose median read is
+# longer than CONCATEMER_FACTOR times the library's amplicon is not named.
+AMPLICON_BP = {'A1': 1500, 'B': 1500, 'A2': 4300, 'F1': 3700, 'F2': 3700}
+CONCATEMER_FACTOR = 1.6
+
+
+def is_concatemer(group, median_read_bp):
+    """THE ONE PLACE: (group, median read length) -> (bool, expected amplicon bp)."""
+    expected = AMPLICON_BP.get(group, 0)
+    return (bool(expected) and median_read_bp > CONCATEMER_FACTOR * expected), expected
+
+
 #     cut point is an approximation in principle; the AYRIM_PAYI rule exists for
 #     exactly that reason. Rossi-Tamisier et al. 2015: 57 per cent of valid
 #     species sit closer to one another than 98.7 per cent, and only 10.8 per
