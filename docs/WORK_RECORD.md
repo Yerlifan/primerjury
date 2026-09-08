@@ -1348,3 +1348,74 @@ and the control environment has a concatemer bin that must come out unnamed.
 Counts there: from-scratch SUP A1 22 of 113 bins, B 5 of 88, F2 5 of 90; HAC and
 the HAC-seeded SUP none. Splitting those reads back into their amplicons in the
 clustering step is the next step, not done here.
+
+## 31. Clean bins: one organism per bin, full-length amplicons only (2026-09-07/08)
+
+The concatemer rule of section 30 named the symptom. The cause was the bin
+definition itself. On the from-scratch SUP root the first archaeal barcode had
+28 bins: 11 were full-length amplicons, 10 were fragments (500 to 760 bp) of
+organisms that already had a bin, 7 were end-to-end concatemers (2.9 kb) of the
+same organisms. Fragment bins appeared in the primer check as members that do
+not amplify (the primer site is not in the read); concatemer bins took whichever
+name sorted first. The user's decision: bins must be clean, organisms must not
+mix. `steps/clean_bins.py` replaces the length-peak clustering.
+
+**Method, each setting measured.** Reads are classed against the library's
+amplicon (`AMPLICON_BP`): full 0.80 to 1.25 times, fragment below, concatemer
+above. Seeds come from the core length only (0.85 to 1.15): a 1,753 bp seed,
+16S plus 300 bp of the next copy, once collected 11,261 segments. Assignment is
+tiered: at least 97 per cent identity over at least 85 per cent of the read goes
+in; 95 to 97 only when the nearest centre leads the second by two points, so
+sister genera at 92 to 95 per cent are not forced together. At a flat 97 per
+cent, 44 per cent of the full reads were left out; their identity to the centre
+had a median of 0.962 and a consensus centre did not help (0.961): the loss is
+read error. Two seed rounds, the second from the leftovers. Concatemers are
+aligned to all centres and every interval covering at least 80 per cent of a
+centre at 97 per cent is cut out as a read of its own and joins that centre's
+bin; 46,298 of 60,908 concatemer reads of the first barcode came back into their
+bins this way instead of forming bins of their own.
+
+**Three things the first full run taught, on 2026-09-08.**
+
+1. *Fragments are counted, not mapped.* One fungal barcode carried 2.3 million
+   fragments in 2.4 million reads. Mapping them to 1,569 centres reached 51 per
+   cent of the file in 13 hours; restricted to the 524 bin centres it produced
+   0 bytes of PAF in 3.7 hours, because every rRNA fragment chains to every
+   centre. Fragments never enter a bin, the identity step and the primer check
+   use full-length reads only, so the mapping had no consumer. It is off by
+   default; the class count stays in the table. The PAF of every minimap2 call
+   is now streamed from a file: a 1 GB PAF held as a string had pushed the
+   process into swap.
+
+2. *A segment may be two copies.* An integrity check over the sixteen finished
+   barcodes (table count equals file count, no read in two bins, every full
+   read in class) found 0.6 to 3 per cent of the concatemer segments at 1.8 to
+   2.0 times the amplicon. minimap2 had chained the shared end of two tandem
+   copies into one alignment with a large insertion, and the interval was cut as
+   it came. Two small bins of one fungal barcode were almost nothing else (858 of
+   895 reads). A segment longer than 1.25 times its centre is now refused in
+   `segments_from_rows`, and `select_bins.py` counts and drops such reads from
+   the copy that enters the chain, so runs made before the cap are clean too.
+
+3. *Satellite bins.* About 3.5 per cent of the reads carry the amplicon plus a
+   ~310 bp tail shared between reads (29 of 31 tails identical; not 16S; a
+   library artefact). A tailed read covers the centre but is itself covered at
+   82 per cent, below the assignment floor, so it is left over; the second seed
+   round then builds a second bin of the same organism from the tails (bin 7
+   of the first barcode: 31 full reads and 2,152 segments, 98 per cent of them
+   98.9 per cent identical to bin 1's centre). `select_bins.py` samples sixty
+   reads of every candidate against the centres already chosen; half of them on
+   one centre at 97 per cent over 80 per cent of that centre makes it a
+   satellite, left out with its parent named. Bins whose reads align to no
+   chosen centre are separate organisms: the long 16S variants (1,626 and 1,713
+   bp) were, and stay.
+
+The selection floor for these tables is 500 reads after the long-read filter,
+or the five largest of the barcode, at most forty: a 0.5 per cent share left 5
+to 12 bins per barcode where the old rule chose 22 to 38, and 500 reads is what
+the PAK polish needs (a 150-read sample and a sub-population of at least 60 per
+cent and five reads). Regression on one small barcode with the same seed: bin
+columns and bin fastq checksums identical across the three changes; only the
+fragment rows moved. `tests/test_clean_bins.py` covers the length classes, the
+two assignment tiers, the segment cap, the satellite rule and, when minimap2 is
+present, one synthetic barcode end to end.

@@ -36,8 +36,16 @@ had not. Everything below is measured and recorded in `docs/WORK_RECORD.md`,
 sections 13 to 16.
 
 - **Bins without a classifier.** `./primerjury bins` turns demultiplexed BAMs
-  into bins by length peak and minimap2 clustering; no Kraken2 needed, no label
-  carried into the identity step.
+  into bins by minimap2 clustering; no Kraken2 needed, no label carried into
+  the identity step.
+- **One organism per bin, full-length only** (`steps/clean_bins.py`,
+  2026-09-07/08). The length-peak bins were length classes: fragments and
+  end-to-end concatemers of organisms that already had a bin, misnamed by
+  whichever half sorted first. Now reads are classed against the library's
+  amplicon, assigned in two identity tiers, concatemers are cut into their
+  segments (with a length cap: minimap2 chains two tandem copies into one
+  alignment), fragments are counted and never mapped, and the selection step
+  leaves out satellite bins. Section 31 of the work record.
 - **The consensus template fault.** The dominant-allele step could not seed
   minimap2 on its own IUPAC-coded template: 0 of 3,001 reads aligned in a mixed
   bin, and a bin that looked healthy carried twenty wrong bases. Fixed; four
@@ -275,14 +283,22 @@ bash steps/from_raw.sh --map examples/barcodes_example.tsv --bam-dir basecalled 
 
 1. `split_barcodes.py` reads the `BC:Z` tag dorado writes and produces one
    fastq per barcode.
-2. `bin_reads.py` finds the length peaks of each barcode (a barcode rarely
-   carries a single amplicon: measured shares of 6, 12 and 10 per cent for
-   three products in one archaeal library), clusters a seed sample of every
-   peak with minimap2 `ava-ont` at 97 per cent identity, and assigns every
-   read to the nearest cluster centre at >= 90 per cent identity over >= 80
-   per cent of the read. Reads that fit nowhere are counted, not dropped.
-3. `select_bins.py` chooses the bins that enter the chain (share >= 0.5 per
-   cent, or the five largest of a window, at most 40 per barcode) and records
+2. `clean_bins.py` makes every bin ONE ORGANISM of FULL-LENGTH amplicons.
+   Reads are classed by length against the library's amplicon (full
+   0.80-1.25x, fragment, concatemer), seeds are drawn from the core length
+   and clustered with minimap2 `ava-ont` at 97 per cent, every full read is
+   assigned in two tiers (>= 97 per cent over >= 85 per cent of the read;
+   95-97 only with a 2-point margin over the second centre), concatemers are
+   cut into their amplicon segments (each <= 1.25x the centre), fragments are
+   counted and never mapped. Reads that fit nowhere are written and counted,
+   not dropped. The older `bin_reads.py` (length peaks, 90 per cent
+   assignment) produced bins that were length classes: of 28 bins in one
+   archaeal barcode, 10 were fragments and 7 concatemers of organisms that
+   already had a bin (measured 2026-09-07).
+3. `select_bins.py` chooses the bins that enter the chain (>= 500 reads after
+   dropping two-copy reads, or the five largest, at most 40 per barcode),
+   leaves out SATELLITE bins (a second bin of an organism that already has
+   one, built from reads carrying a shared ~310 bp library tail) and records
    why every other bin was left out.
 
 The bins are named `BIN<n>`; the consensus and identity steps accept them

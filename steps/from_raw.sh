@@ -11,7 +11,7 @@
 #
 # THE STEPS
 #   1  split_barcodes.py   BAM -> barcodeNN.fastq        (skipped with --fastq-dir)
-#   2  bin_reads.py        one barcode at a time, --parallel of them at once,
+#   2  clean_bins.py       one barcode at a time (v4: one organism per bin), --parallel of them at once,
 #                          each with --threads minimap2 threads
 #   3  select_bins.py      the bins that enter the chain -> --out
 #
@@ -57,22 +57,22 @@ fi
 bin_one(){ # bin_one <barcode> <name>
   local bc="$1" name="$2" t0
   t0=$(date +%s)
-  if nice -n 10 python3 "$HERE/bin_reads.py" --fastq "$FASTQ_DIR/$bc.fastq" --name "$name" \
+  if nice -n 10 python3 "$HERE/clean_bins.py" --fastq "$FASTQ_DIR/$bc.fastq" --name "$name" \
        --out "$BINS" --threads "$THREADS" >>"$LOG" 2>&1; then
     log "    done $name ($(( ($(date +%s)-t0)/60 )) min): $(grep -c '^BIN' "$BINS/$name/BIN_TABLE.tsv") bins"
   else
     log "    FAILED ($name)"
   fi
 }
-running(){ pgrep -fc "bin_reads.py.*--name " || true; }   # every binning process on the machine
+running(){ pgrep -fc "clean_bins.py.*--name " || true; }   # every binning process on the machine
 
-log "--- 2 bin_reads (pool of $PARALLEL)"
+log "--- 2 clean_bins (pool of $PARALLEL)"
 while IFS=$'\t' read -r bc name _; do
   [ -n "$bc" ] && [ "${bc#\#}" = "$bc" ] || continue
   if [ -s "$BINS/$name/BIN_TABLE.tsv" ] && ls "$BINS/$name/"*BIN*.fastq >/dev/null 2>&1; then
     log "  $name ($bc): bins exist, skipped"; continue
   fi
-  if pgrep -f "bin_reads.py.*--name $name( |$)" >/dev/null; then
+  if pgrep -f "clean_bins.py.*--name $name( |$)" >/dev/null; then
     log "  $name ($bc): another process is binning it, skipped and waited for"; continue
   fi
   [ -s "$FASTQ_DIR/$bc.fastq" ] || { log "  $name ($bc): no reads file $FASTQ_DIR/$bc.fastq, skipped"; continue; }
@@ -84,7 +84,7 @@ while IFS=$'\t' read -r bc name _; do
   sleep 5
 done < "$MAP"
 wait
-while pgrep -f "bin_reads.py.*--name " >/dev/null; do sleep 60; done
+while pgrep -f "clean_bins.py.*--name " >/dev/null; do sleep 60; done
 missing=0
 while IFS=$'\t' read -r bc name _; do
   [ -n "$bc" ] && [ "${bc#\#}" = "$bc" ] || continue
