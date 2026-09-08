@@ -8,9 +8,12 @@ that are already there.
 
 ## Binning without a classifier
 
-`from_raw.sh` drives `split_barcodes.py`, `bin_reads.py` and `select_bins.py`:
-demultiplexed BAMs to per-barcode fastq, per-barcode bins by length peak and
-minimap2 clustering, then the subset that enters the chain. Barcodes are binned
+`from_raw.sh` drives `split_barcodes.py`, `clean_bins.py` and `select_bins.py`:
+demultiplexed BAMs to per-barcode fastq, per-barcode bins that are one organism
+of full-length amplicons each (length classes, tiered minimap2 assignment,
+concatemers cut into segments; `bin_reads.py` is the older length-peak
+version), then the subset that enters the chain (satellite bins and two-copy
+segments left out). Barcodes are binned
 `--parallel` at a time, each with `--threads` minimap2 threads; a barcode that
 already has its table and bin files is skipped, and one that another process is
 binning is waited for, so an interrupted run continues with the same command.
