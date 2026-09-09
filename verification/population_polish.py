@@ -48,7 +48,7 @@ from fungal_bin_identity import (sample_reads, write_fasta, read_fasta_seq, medo
                                  polish, best_hits, best_hits_mm2, its_window,
                                  window_file, bin_files, db_path, populations,
                                  MIN_POPULATION, ITS_DB, blast)
-from locus_decision import (MANTAR_LOKUSLARI, lokus_karari, birlestir, raporlanan_yontem,   # noqa: E402
+from locus_decision import (MANTAR_LOKUSLARI, lokus_karari, birlestir, raporlanan_yontem, kingdom_gate,   # noqa: E402
                             LOKUS_KUMELERI, BASAMAK_ARKE)
 from identity_verification import ADSIZ_JETONLARI                           # noqa: E402
 from target_identity import ad_ayikla, cins_epitet, basamaktan_sec          # noqa: E402
@@ -283,6 +283,9 @@ def batch_decide(results, root, a, tmp, blast_fn=None):
             dec = {lok: lokus_karari(hits.get(label, {}).get(lok), an, ad_ayikla, cins_epitet, ADSIZ_JETONLARI)
                    for lok, _d, an in loci}
             name, ident, note = birlestir(dec)
+            gate = kingdom_gate(hits.get(label, {})) if key == 'COK_LOKUS' else None   # 2026-09-09
+            if gate:
+                name, ident, note = gate
             ra, rp, rl, rlok, rsecond, rgap = raporlanan_yontem(hits.get(label, {}), ad_ayikla, cins_epitet,
                                                                 ADSIZ_JETONLARI, ladder)
             r.update(name=name, identity=ident, decision_note=note,

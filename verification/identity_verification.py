@@ -2606,3 +2606,102 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
+
+
+# ---------------------------------------------------------------------------
+# KINGDOM GATE (2026-09-09). The user's rule: archaeal, bacterial and fungal species must never mix.
+# Measured on the study's clean-bin root: ciliate bins in the fungal library (Parakahliella macrostoma
+# 99.65 per cent over 1,725 bp on 18S, Oxytricha 99.83) took a fungal GENUS from ITS (Inocybe at 97 per
+# cent over 488 bp, Entoloma), because the multi-locus decision only knew fungal names and the 18S hit
+# against PR2 was rejected as "18S cannot give a species". A record whose taxonomy path starts with
+# Eukaryota and does not contain Fungi is a non-fungal eukaryote; when, WITHIN THE SAME LOCUS (18S: PR2 +
+# RefSeq fungal 18S; 28S: SILVA LSU + RefSeq 28S), the best such record reaches KINGDOM_GATE_IDENTITY and
+# leads the best fungal record by KINGDOM_GATE_MARGIN, the bin is not a fungus and gets no fungal name.
+# The comparison is made within a locus on purpose: full-operon hits (UNITE's 3.7 kb records) score 94 to
+# 97 per cent on the conserved regions and would inflate the fungal baseline (measured: the gate opened on
+# 1 bin instead of 11).
+# ---------------------------------------------------------------------------
+KINGDOM_GATE_IDENTITY = 95.0
+KINGDOM_GATE_MARGIN = 2.0
+
+
+def non_fungal_eukaryote(title):
+    """Is this record a eukaryote outside Fungi? (True, 'Parakahliella macrostoma') or (False, None).
+
+    Reads SILVA paths ('Eukaryota;SAR;...;Parakahliella macrostoma', with or without an accession in
+    front) and PR2 headers ('acc|18S_rRNA|nucleus|strain|Eukaryota|TSAR|...|Parakahliella_macrostoma').
+    RefSeq/UNITE/NCBI titles (no path, or a Fungi path) give (False, None). PR2 placeholders such as
+    'Sandonidae_X' and 'Euglyphida_XX_sp' are skipped for the name.
+    """
+    b = (title or '').strip()
+    if '|' in b and ';' not in b:
+        tokens = [x.strip() for x in b.split('|')]
+        if 'Eukaryota' not in tokens or 'Fungi' in tokens:
+            return False, None
+        for tok in reversed(tokens):
+            parts = tok.split('_')
+            if any(x and set(x) == {'X'} for x in parts) or parts[-1] in ('sp', 'sp.'):
+                continue
+            name = tok.replace('_', ' ').strip()
+            if name and not adsiz_mi(name) and name != 'Eukaryota' and name[:1].isupper():
+                return True, name
+        return True, 'Eukaryota'
+    if ';' not in b:
+        return False, None
+    path = b
+    if not path.startswith('Eukaryota;') and ' ' in path:
+        path = path.split(None, 1)[1]
+    if not path.startswith('Eukaryota;'):
+        return False, None
+    if ';Fungi' in path or path.endswith('Fungi'):
+        return False, None
+    nodes = [x.strip().split('|')[0].strip() for x in path.split(';') if x.strip()]
+    for node in reversed(nodes):
+        if node and not adsiz_mi(node):
+            return True, node
+    return True, (nodes[-1] if nodes else 'Eukaryota')
+
+
+# SYNONYMS (2026-09-09). The NCBI nt cross-check reported CONTRADICTION for the same organism under two
+# names. Current names after LPSN / Index Fungorum; both sides are mapped before they are compared.
+SYNONYMS = {
+    'Methanosaeta concilii': 'Methanothrix soehngenii',
+    'Methanosaeta harundinacea': 'Methanothrix harundinacea',
+    'Methanosaeta thermophila': 'Methanothrix thermoacetophila',
+    'Geomyces destructans': 'Pseudogymnoascus destructans',
+    'Geomyces pannorum': 'Pseudogymnoascus pannorum',
+    'Scedosporium prolificans': 'Lomentospora prolificans',
+}
+
+
+def current_name(name):
+    """The accepted name of a species ('cf.' removed); the name itself when it is not in the table."""
+    a = (name or '').replace(' cf. ', ' ').strip()
+    return SYNONYMS.get(a, a)
+
+
+def reconcile_with_nt(our_name, our_pid, nt_name, nt_rank, nt_pid, nt_bp, species_threshold):
+    """NCBI nt cross-check of a SPECIES call. Returns (name, downgraded) where downgraded is True when
+    nt carries a DIFFERENT, non-synonymous species at or above the species threshold, inside the
+    separation margin of our identity (or above it), over at least EN_AZ_KANIT bases: the species name
+    cannot be defended and becomes a candidate ('Genus cf. epithet'). nt never REPLACES our name; it can
+    only lower it. Measured: Ruminofilibacter xylanolyticum 99.80 vs Xiashengella succiniciproducens 99.87
+    (a 2023 genus absent from SILVA 138.2); Methanocorpusculum bavaricum vs labreanum 99.86.
+    """
+    if not our_name or ' cf. ' in our_name or nt_rank != 'species':
+        return our_name, False
+    parts = our_name.split()
+    if parts and parts[0] == 'Candidatus':
+        parts = parts[1:]
+    if len(parts) < 2:
+        return our_name, False
+    if current_name(nt_name) == current_name(our_name):
+        return our_name, False
+    try:
+        nt_pid, our_pid, nt_bp = float(nt_pid), float(our_pid), int(nt_bp)
+    except (TypeError, ValueError):
+        return our_name, False
+    if nt_pid >= species_threshold and nt_pid >= our_pid - AYRIM_PAYI and nt_bp >= EN_AZ_KANIT:
+        genus = ' '.join(our_name.split()[:-1])
+        return '%s cf. %s' % (genus, our_name.split()[-1]), True
+    return our_name, False

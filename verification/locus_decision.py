@@ -386,3 +386,37 @@ def _daha_guclu_lokus(lokus_isabet, secilen, s_pid, s_aln,
                         u'%d bp]' % (lok, ad, pid, aln))
             break
     return None
+
+
+def kingdom_gate(lokus_isabet):
+    """2026-09-09. Fungal bin: within the 18S and 28S loci, the best non-fungal eukaryote record against
+    the best fungal record. Returns ('outside kingdom: <name>', '<pid>', note) when the gate opens,
+    else None. Hits are (pid, aln, bitscore, qlen, title, ...). Measured: F2-3_OBEK13 18S Parakahliella
+    macrostoma 99.65 per cent / 1,725 bp (PR2) against fungal 18S 87.8 per cent; the ITS genus (Inocybe,
+    97.3 per cent over 488 bp) was never a fungus. See identity_verification.non_fungal_eukaryote.
+    """
+    from identity_verification import non_fungal_eukaryote, KINGDOM_GATE_IDENTITY, KINGDOM_GATE_MARGIN
+    best = None
+    for lok, hits in (lokus_isabet or {}).items():
+        if lok not in (u'18S', u'28S'):
+            continue
+        fungal, outside = 0.0, None
+        for x in hits or []:
+            if x[1] < EN_AZ_KANIT:
+                continue
+            is_out, name = non_fungal_eukaryote(x[4])
+            if is_out:
+                if outside is None or x[0] > outside[0]:
+                    outside = (x[0], x[1], name, lok)
+            elif x[0] > fungal:
+                fungal = x[0]
+        if outside and outside[0] >= KINGDOM_GATE_IDENTITY and outside[0] - fungal >= KINGDOM_GATE_MARGIN:
+            if best is None or outside[0] > best[0][0]:
+                best = (outside, fungal)
+    if best:
+        (pid, aln, name, lok), fungal = best
+        return (u'outside kingdom: %s' % name, u'%.2f' % pid,
+                u'not a fungus: on %s the nearest record is a non-fungal eukaryote, %s (%.2f%%, %d bp); the best '
+                u'fungal record on the same locus is %.2f%%, %.1f points behind (kingdom gate)'
+                % (lok, name, pid, aln, fungal, pid - fungal))
+    return None

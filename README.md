@@ -38,6 +38,15 @@ sections 13 to 16.
 - **Bins without a classifier.** `./primerjury bins` turns demultiplexed BAMs
   into bins by minimap2 clustering; no Kraken2 needed, no label carried into
   the identity step.
+- **Kingdoms do not mix** (2026-09-09). A ciliate in the fungal library used to
+  take a fungal genus from the ITS database (Inocybe at 97 per cent over 488 bp)
+  while PR2 held Parakahliella at 99.65 per cent over 1,725 bp on 18S. The kingdom
+  gate (`locus_decision.kingdom_gate`) compares, within a locus, the best non-fungal
+  eukaryote against the best fungal record and names no fungus when the eukaryote
+  leads by two points; eleven bins on the study root. Synonyms (Methanosaeta =
+  Methanothrix) are mapped before nt comparisons, and a species is lowered to
+  "cf." when nt holds a different species inside the separation margin
+  (`identity_verification.reconcile_with_nt`). Section 32 of the work record.
 - **One organism per bin, full-length only** (`steps/clean_bins.py`,
   2026-09-07/08). The length-peak bins were length classes: fragments and
   end-to-end concatemers of organisms that already had a bin, misnamed by
