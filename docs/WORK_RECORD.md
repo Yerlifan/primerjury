@@ -1419,3 +1419,55 @@ columns and bin fastq checksums identical across the three changes; only the
 fragment rows moved. `tests/test_clean_bins.py` covers the length classes, the
 two assignment tiers, the segment cap, the satellite rule and, when minimap2 is
 present, one synthetic barcode end to end.
+
+## 32. The kingdom gate, synonyms and the nt cross-check (2026-09-09)
+
+The user's rule for the first clean-bin delivery: accuracy over coverage, and archaeal,
+bacterial and fungal species must never mix. The NCBI nt cross-check of the 220
+clean bins reported 35 contradictions; every one was measured against the scan
+records and fell into four classes.
+
+*Synonyms.* Methanothrix soehngenii is Methanosaeta concilii (99.79 per cent),
+Pseudogymnoascus is Geomyces, Lomentospora prolificans is Scedosporium prolificans.
+`identity_verification.SYNONYMS` and `current_name` map both sides to the accepted
+name before a comparison; these are no longer contradictions.
+
+*We are the more conservative side.* nt naming a species at 98.19 per cent where the
+16S threshold is 98.7, or a genus at the same identity under another genus name
+(Dechlorobacter 95.37 against Azonexus 95.28). Nothing changes; the nt name sits in a
+column beside ours.
+
+*Ciliates and other non-fungal eukaryotes named as fungal genera (a real fault).*
+Six bins of the fungal library carried Parakahliella macrostoma at 99.65 per cent
+over 1,725 bp on 18S (PR2), Oxytricha at 99.83, and had been given the fungal genus
+that the ITS database offered at 97 per cent over 488 bp (Inocybe, Entoloma). The
+multi-locus decision saw the disagreement, wrote "loci disagree", and still voted
+the ITS genus, because it only knew fungal names and rejected the 18S species as
+"18S cannot separate fungal species". `identity_verification.non_fungal_eukaryote`
+reads SILVA paths and PR2 headers (a eukaryote without the Fungi node), and
+`locus_decision.kingdom_gate` compares WITHIN a locus: the best non-fungal record on
+18S or 28S against the best fungal record on the same locus, opening at 95 per cent
+identity and a two-point lead. The first version compared against the bin's reported
+identity and against all hits, and opened on one bin instead of eleven: the reported
+identity was the ciliate hit itself, and UNITE's 3.7 kb full-operon records score 94
+to 97 per cent on the conserved regions and inflated the fungal baseline. On the
+study root the gate now sets eleven bins to "outside kingdom" (ciliates, testate
+amoebae, cercozoans), the independent re-derivation agrees 220 of 220, and the
+top-species report lists them under no kingdom.
+
+*nt asked the wrong region for fungi.* The nt query was the whole 3.7 kb consensus.
+For Petriella musispora (ITS type strain NR_172285, 500 of 500 bases, 100 per cent)
+nt answered Lomentospora prolificans CBS 467.74 at 99.83 per cent over 1,719 bp: the
+18S and 28S regions, nearly identical across the Microascaceae. On the ITS window
+Lomentospora is 89 per cent and Parascedosporium 90. The study's nt layer now sends
+the ITS window (a local blastn against RefSeq ITS finds it; 60 bases of margin) for
+fungal bins; the port carries the helper `reconcile_with_nt`, which lowers a species
+to "cf." only when nt holds a different, non-synonymous species at or above the
+threshold and inside the separation margin over at least 250 bases (Ruminofilibacter
+xylanolyticum 99.80 against Xiashengella succiniciproducens 99.87, a 2023 genus that
+SILVA 138.2 does not carry). nt never replaces a name; it can only lower one.
+
+Counts on the delivered root after all of this: 220 bins, species 35, cf. 41, genus
+55, family or order 54, unnamed 24, outside kingdom 11. `tests/test_kingdom_gate.py`
+covers the header formats, the within-locus comparison, the synonyms and the
+reconciliation helper.
