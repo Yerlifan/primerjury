@@ -230,7 +230,8 @@ def kontrol_ciplak_import(bulgu):
     std = getattr(_sys, "stdlib_module_names", set())
     DIS = {'numpy', 'Bio', 'primer3', 'openpyxl', 'pysam', 'matplotlib',
            'mappy', 'requests', 'yaml', 'scipy', 'pandas', 'playwright',
-           'setuptools', 'pkg_resources'}
+           'setuptools', 'pkg_resources',
+           'docx'}          # python-docx (import name docx): the Word deliverables of top_species_report.py
     # MEASURED TWICE: a regex over the raw text reads prose as an import.
     # An English sentence wrapped so that a line begins with "from" ("...different
     # enough / from one another?") matched `^\s*from\s+(\w+)\s` and was reported as
