@@ -31,9 +31,8 @@ against four independent layers before anything is ordered.
 
 ## What changed in September 2026
 
-The study was re-run from the raw reads, and the run found things the tests
-had not. Everything below is measured and recorded in `docs/WORK_RECORD.md`,
-sections 13 to 16.
+The pipeline was re-run from raw reads, and the run found things the tests
+had not. Everything below was measured before it was changed.
 
 - **Bins without a classifier.** `./primerjury bins` turns demultiplexed BAMs
   into bins by minimap2 clustering; no Kraken2 needed, no label carried into
@@ -46,7 +45,7 @@ sections 13 to 16.
   leads by two points; eleven bins on the study root. Synonyms (Methanosaeta =
   Methanothrix) are mapped before nt comparisons, and a species is lowered to
   "cf." when nt holds a different species inside the separation margin
-  (`identity_verification.reconcile_with_nt`). Section 32 of the work record.
+  (`identity_verification.reconcile_with_nt`).
 - **One organism per bin, full-length only** (`steps/clean_bins.py`,
   2026-09-07/08). The length-peak bins were length classes: fragments and
   end-to-end concatemers of organisms that already had a bin, misnamed by
@@ -54,7 +53,7 @@ sections 13 to 16.
   amplicon, assigned in two identity tiers, concatemers are cut into their
   segments (with a length cap: minimap2 chains two tandem copies into one
   alignment), fragments are counted and never mapped, and the selection step
-  leaves out satellite bins. Section 31 of the work record.
+  leaves out satellite bins.
 - **The consensus template fault.** The dominant-allele step could not seed
   minimap2 on its own IUPAC-coded template: 0 of 3,001 reads aligned in a mixed
   bin, and a bin that looked healthy carried twenty wrong bases. Fixed; four
@@ -316,8 +315,8 @@ dominant methanogen bins were recovered at 90 per cent recall and 100 per cent
 purity. The bin definition carries no database label, so the identity step
 is the first place a name appears.
 
-Two faults in the consensus steps were found on this route and fixed
-(`docs/WORK_RECORD.md`, section 13): the dominant-allele step could not seed
+Two faults in the consensus steps were found on this route and fixed:
+the dominant-allele step could not seed
 minimap2 on its IUPAC-coded template (0 of 3,001 reads aligned in a mixed
 bin; a healthy-looking bin carried twenty wrong bases), and files of another
 library left in a bin folder became phantom bins. Both had passed every test.
@@ -486,10 +485,11 @@ These are not style preferences; each was paid for with a real bug.
 Honest list; these are the gaps between "runs for the original study" and
 "general-purpose tool":
 
-- **Targets are still study-specific.** `steps/targets.tsv` and
-  `screening/target_clades.tsv` describe the original 20 targets and 5
-  amplicon groups. Samples in `examples/` show the format. Generalising the
-  target definition is the main open work item.
+- **Target definitions are still study-shaped.** `steps/targets.tsv` is
+  yours to write (the format is in `examples/targets_example.tsv`), and
+  `screening/target_clades.tsv` and the membership tables under `screening/`
+  assume amplicon groups and bin naming close to the data the tool was built
+  on. Generalising the target definition is the main open work item.
 - **`screening/config.py` holds every path and constant** and is
   meant to be edited. Moving it to YAML/TOML is planned, the good news is that
   it is genuinely the only place paths are defined.
@@ -520,7 +520,7 @@ Honest list; these are the gaps between "runs for the original study" and
 | `tests/` | tests |
 | `tools/` | Kraken2 environment/database tooling |
 | `primerjury` | **the single entry point, start here** |
-| `docs/` | user guide, audit report, measurements |
+| `docs/` | user guide |
 | `sequences/` | **your input goes here** |
 
 ---
@@ -530,9 +530,8 @@ Honest list; these are the gaps between "runs for the original study" and
 **[Full user guide → `docs/GUIDE.md`](docs/GUIDE.md)**, installation, input
 preparation, defining your own targets, reading the output, and troubleshooting.
 
-`docs/AUDIT_2026-08-21.md` is the pre-release code audit: what was measured,
-what was broken and what was fixed. `docs/WORK_RECORD.md` is the record of the
-design decisions and the faults found while the pipeline was built.
+The design decisions and the faults found while the pipeline was built are
+recorded as comments at the place in the code where each one was measured.
 
 ## Licence
 

@@ -20,7 +20,7 @@ import os, sys, json, glob, argparse
 sys.path.insert(0, '/tmp/mrb')
 from shared_scorer import Puanlayici
 
-KOK = '/path/to/your/project'
+KOK = os.environ.get('PRIMERJURY_ROOT', '/path/to/your/project')  # the project root (set PRIMERJURY_ROOT)
 KP = '/tmp/mrb/kontrol/kalib.json'
 
 

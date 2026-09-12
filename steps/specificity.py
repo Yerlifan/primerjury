@@ -379,7 +379,7 @@ def okuma_taramasi(path, F, R, prod_min, prod_max, limit):
 def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--candidates", required=True, help="08'in output directory")
-    p.add_argument("--pt", required=True, help="PROJECT kok directory")
+    p.add_argument("--pt", required=True, help="project root directory")
     p.add_argument("--out", required=True)
     p.add_argument("--targets", default=os.path.join(HERE, "targets.tsv"))
     p.add_argument("--top", type=int, default=15,

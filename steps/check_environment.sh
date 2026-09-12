@@ -128,7 +128,7 @@ _BETIK_DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PT="${PT:-$(cd "$_BETIK_DIZIN/.." && pwd)}"
 [ -d "$PT" ] || PT=""
 if [ -n "$PT" ]; then
-  echo "PROJECT: $PT"
+  echo "Project root: $PT"
   python3 - "$PT" <<'PY'
 import sys,glob,os,statistics
 pt=sys.argv[1]

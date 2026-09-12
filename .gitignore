@@ -32,7 +32,6 @@ examples/*.fa
 !steps/targets.tsv
 !steps/reference_targets.tsv
 !steps/taxid_names.tsv
-!steps/F2_ITS_window.fa
 !screening/*.tsv
 !examples/*.tsv
 

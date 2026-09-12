@@ -446,7 +446,7 @@ Being honest about what is not yet general:
   YAML/TOML is planned and should be straightforward.
 - **Layer 2 taxonomic discrimination is reported but does not vote.** The
   before/after study has now been run across all five taxonomy-carrying
-  databases (`docs/layer2_taxonomy_measurement.txt`) and the answer was *do not
+  databases (`tests/measure_layer2_taxonomy.py`) and the answer was *do not
   switch yet*. Taxonomy is clearly right for universal primers, the bacterial
   universal pair went from 171,080 size-flagged "off-target" hits to 122 real
   ones, with 419,750 correctly recognised as inside the target clade. But for

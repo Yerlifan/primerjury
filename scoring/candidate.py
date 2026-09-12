@@ -23,7 +23,7 @@ import os, sys, json, argparse, time
 sys.path.insert(0, '/tmp/mrb')
 from shared_scorer import Puanlayici
 
-KOK = '/path/to/your/project'
+KOK = os.environ.get('PRIMERJURY_ROOT', '/path/to/your/project')  # the project root (set PRIMERJURY_ROOT)
 UZ_ALT, UZ_UST = 18, 25
 GC_ALT, GC_UST = 35.0, 65.0
 

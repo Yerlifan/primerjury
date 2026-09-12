@@ -172,7 +172,7 @@ def get_args():
     p = argparse.ArgumentParser()
     p.add_argument("--db", required=True, help='the reference database '
                                                'directory')
-    p.add_argument("--pt", required=True, help="PROJECT kok directory")
+    p.add_argument("--pt", required=True, help="project root directory")
     p.add_argument("--reference-targets", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--max-reads", type=int, default=3000)

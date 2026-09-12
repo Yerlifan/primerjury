@@ -13,7 +13,7 @@ VALUE goes into the report and the difference is written out plainly.
 import os, sys, json, time, argparse
 sys.path.insert(0, '/tmp/mrb')
 from shared_scorer import Puanlayici
-KOK = '/path/to/your/project'
+KOK = os.environ.get('PRIMERJURY_ROOT', '/path/to/your/project')  # the project root (set PRIMERJURY_ROOT)
 
 
 def kapsam_orani(s):

@@ -1,0 +1,13 @@
+# SYNTHETIC EXAMPLE. The barcode-to-library map that from_raw.sh takes with --map.
+#
+# barcode	name (library-timepoint; becomes the bin folder and file prefix)
+#
+# The name is free text without spaces. The convention used throughout the
+# pipeline is <library>-<timepoint>: the part before the dash is the amplicon
+# class (one primer pair, one rDNA window), the part after it the sampling
+# point, so that bins of the same library from different samplings can be
+# compared in one coordinate system.
+barcode01	LIB1-1
+barcode02	LIB1-2
+barcode03	LIB2-1
+barcode04	LIB2-2

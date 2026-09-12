@@ -54,8 +54,7 @@ uret() {
   # written list of files is a promise that has to be kept by hand; '*.py' is
   # not.
   ozet "$HERE" '*.py' '*.sh' \
-       'targets.tsv' 'reference_targets.tsv' 'taxid_names.tsv' \
-       'rapor/*.py' 'rapor/*.js' 'rapor/*.json' | sort -k2
+       'targets.tsv' 'reference_targets.tsv' 'taxid_names.tsv' | sort -k2
   echo "[CIKTI]"
   ozet "$PT" 'final_primers/final_primers.tsv' 'final_primers/dis_veritabani.tsv' \
        'final_primers/mfeprimer.tsv' 'final_primers/hedef_kimlik.tsv' \

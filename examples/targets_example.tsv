@@ -1,0 +1,33 @@
+# SYNTHETIC EXAMPLE of steps/targets.tsv: the taxid counterparts of the design
+# decisions. The organisms below are textbook model organisms chosen only to
+# show the format; replace every row with your own targets.
+#
+# The columns:
+#   karar     the decision this row belongs to
+#   hedef     the target name, which is also the output label
+#   duzey     the level asked for: tur (species), cins (genus), grup, alan (universal)
+#   in_taxid  the targeted members; a product has to form in ALL of them
+#   haric     these taxids are not taken into the competitor set. They are the
+#             close relatives deliberately left out so that the separation is not
+#             forced. When it is empty, every other taxon in the same amplicon
+#             class counts as a competitor.
+#   not       a free note; it does not affect the run
+#   hedef_tur optional. When the name of the declared taxid does not match the
+#             organism in the sample, the right species name is written here
+#             directly. A TAXID IS NEVER INVENTED: a species with no counterpart
+#             in taxid_names.tsv is reported through this column instead. An
+#             empty column changes nothing.
+#
+# The design is made separately for every amplicon class (the library part of
+# the bin name, e.g. LIB1 and LIB2 in barcodes_example.tsv), because the classes
+# cover different windows of the rDNA and the consensuses share coordinates
+# inside a class.
+#
+# "*LIB1" in in_taxid means every taxon of that amplicon class (a universal
+# target).
+karar	hedef	duzey	in_taxid	haric	not	hedef_tur
+1	Escherichia_coli_species	tur	562		species-level target
+1	Bacillus_subtilis_species	tur	1423	1428	B. thuringiensis left out of the competitor set on purpose
+2	Pseudomonas_genus	cins	287,303		P. aeruginosa and P. putida
+3	Lactic_acid_bacteria_group	grup	1578,1357,1301		Lactobacillus, Lactococcus, Streptococcus
+4	Bacteria_universal	alan	*LIB1		every taxon in class LIB1

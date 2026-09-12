@@ -1,0 +1,24 @@
+# SYNTHETIC EXAMPLE of screening/target_clades.tsv: the one thing needed to say
+# whether an off-target amplicon came from INSIDE the target or from OUTSIDE it.
+# The rows match examples/targets_example.tsv; replace them with your own.
+#
+# WHY IT EXISTS: MFEprimer's "off target" measure rests on product LENGTH
+# alone. A universal bacterial primer finds hundreds of differently sized
+# amplicons that all begin with "Bacteria;..." in SILVA, that is they are
+# INSIDE the target and are the natural length polymorphism of 16S. Put into
+# the verdict, the raw count would make such a pair come out risky. This table
+# makes the distinction measurable.
+#
+# The columns:
+#   hedef   the target name exactly as it stands in targets.tsv / the panel
+#   alan    Bacteria | Archaea | Eukaryota  (the FIRST token of the SILVA lineage)
+#           (b) same domain, outside the clade ; (c) another domain
+#   klad    a comma separated token list. If ANY of them occurs in the
+#           amplicon's taxonomy lineage the amplicon counts as INSIDE the target.
+#   kaynak  where the tokens came from, so that the choice can be audited
+hedef	alan	klad	kaynak
+Escherichia_coli_species	Bacteria	Escherichia	targets.tsv decision 1, member 562; SILVA does not resolve below genus, so the genus token is used
+Bacillus_subtilis_species	Bacteria	Bacillus	targets.tsv decision 1, member 1423
+Pseudomonas_genus	Bacteria	Pseudomonas	targets.tsv decision 2, members 287 and 303
+Lactic_acid_bacteria_group	Bacteria	Lactobacillus,Lactococcus,Streptococcus,Lactobacillales	targets.tsv decision 3, the three genera plus their shared order
+Bacteria_universal	Bacteria	Bacteria	targets.tsv decision 4, level 'alan': every taxon in class LIB1

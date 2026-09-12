@@ -15,7 +15,7 @@ import os, sys, json, argparse, bisect, time
 sys.path.insert(0, '/tmp/mrb')
 from shared_scorer import Puanlayici
 
-KOK = '/path/to/your/project'
+KOK = os.environ.get('PRIMERJURY_ROOT', '/path/to/your/project')  # the project root (set PRIMERJURY_ROOT)
 TM_ALT, TM_UST = 58.0, 62.5
 DTM_UST, URUN_ALT, URUN_UST = 1.5, 60, 400
 IDEAL = (60, 150)

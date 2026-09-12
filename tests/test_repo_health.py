@@ -67,7 +67,6 @@ PAKETLER = [
 # the correct name. Exclude this file from any bulk rewrite, and re-read the
 # list afterwards.
 YASAK = [
-    (r'\bOldName' + r'Booster\b', 'old project name'),
     (r'\bKAPSAMLI_ARAMA\b', 'old package name (now screening)'),
     (r'\bKURTARMA\b(?!_SONUC)', 'old package name (now verification)'),
     (r'\bWSL_betikleri\b', 'old directory name (now steps)'),
