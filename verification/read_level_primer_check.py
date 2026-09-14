@@ -7,6 +7,12 @@ Every pair is searched in the RAW READS of every bin:
   * product 40-700 bp, both orientations (a read may come from either strand)
 At most --max-reads reads per bin, taken from the start of the file.
 
+DEGENERATE PRIMERS
+------------------
+A primer carrying an IUPAC code (K = G/T, ...) is expanded into its concrete sequences and
+the best product over all of them is kept. Comparing an IUPAC letter base by base would count
+it as a mismatch in every read and hide a perfect match (mm0 = 0) behind mm1.
+
 THE ARMS TRAP (2026-09-02), the reason mm0 is reported next to mm1
 ------------------------------------------------------------------
 Two ordered oligos disagreed with the template at the third base from the 3'
@@ -27,6 +33,10 @@ INPUT
           expected bp, members. `members` is either "MEMBERSHIP" (look the pair
           up in --membership) or "bin1;bin2;..." (the rest of the class's bins
           become the competitors).
+--related-classes  optional, e.g. "F1:F2,A1:A2". A qPCR assay runs on total DNA, so a pair
+          designed on one library must also be screened against the bins of the related
+          libraries. Without it the competitors come only from the pair's own class, and a
+          cross-reaction in the sister library stays invisible.
 --membership  TSV with a header; columns: name, ., ., members, mixed, competitors
           (each a ";"-separated list of bin labels). Optional.
 The bins are <root>/fastq files/<lib>/<lib>[-_]reads[-_]<id>.fastq; a file whose
@@ -93,7 +103,32 @@ def approximate_find(S, p, three_prime_first, max_mm):
     return out
 
 
+IUPAC = {'A': 'A', 'C': 'C', 'G': 'G', 'T': 'T', 'R': 'AG', 'Y': 'CT', 'S': 'CG', 'W': 'AT', 'K': 'GT', 'M': 'AC',
+         'B': 'CGT', 'D': 'AGT', 'H': 'ACT', 'V': 'ACG', 'N': 'ACGT'}
+
+
+def expand(p, limit=64):
+    """A degenerate primer -> its concrete sequences. A primer without IUPAC codes gives [p]."""
+    out = ['']
+    for c in p.upper():
+        out = [x + y for x in out for y in IUPAC.get(c, c)]
+        if len(out) > limit:
+            raise ValueError('primer expands to more than %d sequences: %s' % (limit, p))
+    return out
+
+
 def products(S, F, R, max_mm):
+    """Best product over every concrete F x R sequence: (length, total mismatches) or None."""
+    best = None
+    for f in expand(F):
+        for r in expand(R):
+            p = _products_one(S, f, r, max_mm)
+            if p is not None and (best is None or p[1] < best[1]):
+                best = p
+    return best
+
+
+def _products_one(S, F, R, max_mm):
     """Is there an F..rc(R) or R..rc(F) product in the read? (length, total mismatches) or None."""
     rR, rF = rc(R), rc(F)
     best = None
@@ -154,6 +189,24 @@ def process_bin(arg):
     return label, n, count, lengths
 
 
+def parse_related(text):
+    """"F1:F2,A1:A2" -> {'F1': {'F2'}, 'F2': {'F1'}, 'A1': {'A2'}, 'A2': {'A1'}}."""
+    rel = collections.defaultdict(set)
+    for group in (text or '').split(','):
+        names = [x.strip() for x in group.split(':') if x.strip()]
+        for x in names:
+            rel[x].update(y for y in names if y != x)
+    return rel
+
+
+def competitor_classes(klass, related):
+    """The classes whose bins compete with a pair: its own classes plus the related ones."""
+    classes = set(klass.split('/'))
+    for c in list(classes):
+        classes |= related.get(c, set())
+    return classes
+
+
 def verdict(member_rates, pooled_mm1, pooled_mm0, worst_competitor_rate, pooled_competitor_rate, universal):
     """The rule in one place. Returns (verdict text, systematic mismatch flag)."""
     inf = float('inf')
@@ -185,11 +238,13 @@ def main():
     ap.add_argument('--root', default='.')
     ap.add_argument('--pairs', required=True)
     ap.add_argument('--membership', default=None)
+    ap.add_argument('--related-classes', default='', help='e.g. F1:F2,A1:A2 - screen against the sister libraries too')
     ap.add_argument('--out', required=True, help='output prefix')
     ap.add_argument('--max-reads', type=int, default=MAX_READS)
     ap.add_argument('--workers', type=int, default=4)
     a = ap.parse_args()
     root = os.path.abspath(a.root)
+    related = parse_related(a.related_classes)
     pairs = []
     for i, s in enumerate(io.open(a.pairs, encoding='utf-8')):
         p = s.rstrip('\n').split('\t')
@@ -229,7 +284,7 @@ def main():
     inf = float('inf')
     for c in pairs:
         name, source, klass, F, R, expected, members_field = c[:7]
-        classes = set(klass.split('/'))
+        classes = competitor_classes(klass, related)
         if members_field == 'MEMBERSHIP':
             if name not in membership:
                 print(u'  WARNING: %s is not in the membership table' % name)

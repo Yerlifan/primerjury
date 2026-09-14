@@ -8,6 +8,8 @@
    looks like on the reads.
 3. The consensus chooser prefers read support over "fewest N" and marks a
    choice below the support floor as untrusted.
+4. A degenerate primer (K = G/T) matches both variants exactly (mm0), not with one mismatch.
+5. --related-classes adds the sister libraries' bins to the competitors.
 
 RUN
     python3 tests/test_primer_read_check.py
@@ -86,7 +88,33 @@ def test_consensus_choice():
     return ok
 
 
+def test_degenerate_primer():
+    m = _load('verification/read_level_primer_check.py', 'rlpc')
+    F = 'ACGGACCAGACTCCTACGG'
+    Rk = 'GGCTGCTGGCACGKAGTT'                  # K = G/T
+    insert = 'ACGT' * 30
+    for base in 'GT':
+        read = 'TTTT' + F + insert + m.rc('GGCTGCTGGCACG' + base + 'AGTT') + 'GGGG'
+        if m.products(read, F, Rk, 1) != (len(F) + len(insert) + 18, 0):
+            print('  degenerate primer: FAIL (%s variant)' % base)
+            return False
+    plain = 'GGCTGCTGGCACGTAGTT'
+    read_g = 'TTTT' + F + insert + m.rc('GGCTGCTGGCACGGAGTT') + 'GGGG'
+    ok = m.products(read_g, F, plain, 1)[1] == 1 and m.expand(plain) == [plain] and len(m.expand(Rk)) == 2
+    print('  degenerate primer: %s' % ('ok' if ok else 'FAIL'))
+    return ok
+
+
+def test_related_classes():
+    m = _load('verification/read_level_primer_check.py', 'rlpc')
+    rel = m.parse_related('F1:F2,A1:A2')
+    ok = m.competitor_classes('F2', rel) == {'F1', 'F2'} and m.competitor_classes('A1/A2', rel) == {'A1', 'A2'}
+    ok = ok and m.competitor_classes('B', rel) == {'B'} and m.competitor_classes('F2', m.parse_related('')) == {'F2'}
+    print('  related classes: %s' % ('ok' if ok else 'FAIL'))
+    return ok
+
+
 if __name__ == '__main__':
-    r = [test_products(), test_arms_verdict(), test_consensus_choice()]
+    r = [test_products(), test_arms_verdict(), test_consensus_choice(), test_degenerate_primer(), test_related_classes()]
     print('read-level primer check: %s' % ('PASS' if all(r) else 'FAIL'))
     sys.exit(0 if all(r) else 1)
